@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "respected-orchestrator"
+version = "0.1.0"
+description = "Independent local AI task orchestration engine"
+requires-python = ">=3.10"
+dependencies = [
+    "agent-framework-core==1.21.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+respected_orchestrator = ["resources/policy.json", "resources/skills/*/SKILL.md"]
