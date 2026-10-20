@@ -419,7 +419,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Rol:** Bağımsız roots/state.
 
-**Amaç / sorumluluk:** EngineContext DataRoot/state/workspace ve AppRoot ayrımı, no-link path ve atomik JSON yazısını sağlar.
+**Amaç / sorumluluk:** EngineContext DataRoot/state/workspace ve AppRoot ayrımı, no-link path ve atomik JSON yazısını sağlar. Windows varsayılan DataRoot'u tek Respected klasöründedir: `%LOCALAPPDATA%/Respected/RespectedOrchestrator/data`.
 
 **İlişkiler ve sınır:** runner ve çıkarılmış motor kullanır; Brain context/vault/lease bağı yoktur.
 
