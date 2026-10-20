@@ -355,11 +355,11 @@
     {
       "path": "src/respected_orchestrator/context.py",
       "role": "Bağımsız roots/state",
-      "purpose": "EngineContext DataRoot/state/workspace ve AppRoot ayrımı, no-link path ve atomik JSON yazısını sağlar.",
+      "purpose": "EngineContext DataRoot/state/workspace ve AppRoot ayrımı, no-link path ve atomik JSON yazısını sağlar. Windows varsayılan DataRoot'u tek Respected klasöründedir: `%LOCALAPPDATA%/Respected/RespectedOrchestrator/data`.",
       "relationships": [
         "runner ve çıkarılmış motor kullanır; Brain context/vault/lease bağı yoktur."
       ],
-      "review_sha256": "ec1a8124149cbcc849fa8cc9d7af5e85ca145dbdf311baa8075d6a5c008d8339"
+      "review_sha256": "14834508b876df40314d5fec4b3316d510eb94e9fb7b9367935272e71a4b51ff"
     },
     {
       "path": "src/respected_orchestrator/integrations.py",
