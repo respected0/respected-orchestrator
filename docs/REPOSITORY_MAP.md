@@ -451,7 +451,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Rol:** Vendor-bağımsız MCP stdio ön yüzü.
 
-**Amaç / sorumluluk:** Orchestrator motorunu yalnızca standart kütüphaneyle MCP (stdio) araçları olarak sunar (plan, task_start, project_start, progress, evidence, resume, cancel, memory_note, apply). Motorun onayları geçerli kalır, apply doğrulanmış patch özetini ister ve orkestre edilen süreçler (RESPECTED_ORCH_DELEGATED) araç görmez, böylece özyinelemeli delegasyon olmaz. MCP üzerinden custom worker, command, apply_root ve engine_source reddedilir (--allow-auto-apply ile açılır). Özel seçenekler için ayrı --allow-privileged anahtarı vardır; acceptance/verify komutları roles.acceptance_allowed ile kullanıcının mcp_acceptance_allow önek listesine karşı denetlenir (varsayılan boş).
+**Amaç / sorumluluk:** Orchestrator motorunu yalnızca standart kütüphaneyle MCP (stdio) araçları olarak sunar (plan, task_start, project_start, progress, evidence, resume, cancel, memory_note, apply). Motorun onayları geçerli kalır, apply doğrulanmış patch özetini ister ve orkestre edilen süreçler (RESPECTED_ORCH_DELEGATED) araç görmez, böylece özyinelemeli delegasyon olmaz. MCP üzerinden custom worker, command, apply_root ve engine_source reddedilir (--allow-auto-apply ile açılır). Özel seçenekler için ayrı --allow-privileged anahtarı vardır; acceptance/verify komutları roles.acceptance_allowed ile kullanıcının mcp_acceptance_allow önek listesine karşı denetlenir (varsayılan boş). `initialize` yanıtı kod-orkestrasyon skill'inin kurallar kısmını (front matter ve CLI kampanya bölümü hariç) MCP `instructions` olarak verir; böylece bağlanan her AI istemcisi skill'i ayrı dosya kurulmadan alır.
 
 **İlişkiler ve sınır:** AI istemcileri integrations.py ile kaydedilen komutla başlatır; campaign, project, roles, runner ve context motor işlevlerini çağırır. tests/test_mcp_server.py ile test edilir.
 
@@ -503,9 +503,9 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Rol:** Çıkarılmış skill.
 
-**Amaç / sorumluluk:** Master/worker, explicit scope, bağımsız task/log/cancel/verify ve patch inceleme sözleşmesini Hub'a uyarlar. Claude Master kampanya döngüsünü (campaign-start/status, apply, allow_apply, MiMo yasağı) anlatır.
+**Amaç / sorumluluk:** Orchestrator'a ait kod-orkestrasyon skill'i (2026-10-21'de SecondBrain'den taşındı). Kurallar bölümü MCP araçlarının kullanımını (task_start, progress, evidence, onaylı apply, memory_note) anlatır ve mcp_server tarafından `instructions` olarak verilir; ayrı Claude Master kampanya bölümü CLI döngüsünü (campaign-start/status, apply, allow_apply, MiMo yasağı) anlatır.
 
-**İlişkiler ve sınır:** Eski vault/dashboard komutları kaldırıldı; global provider skill ayarı değiştirilmez.
+**İlişkiler ve sınır:** mcp_server._instructions okur; pyproject package-data ile paketlenir. Global provider skill ayarı değiştirilmez.
 
 ### src/respected_orchestrator
 
@@ -675,7 +675,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Rol:** MCP sunucu testleri.
 
-**Amaç / sorumluluk:** mcp_server araç listesini, orkestre edilen süreçte araçların gizlenmesini (özyineleme koruması), apply için doğrulanmış digest ve kimlik doğrulamasını, varsayılan auto_apply reddini, hafıza notunun yazma izni olmadan kapalı olmasını ve stdio gidiş-dönüşünü doğrular. MCP'de ayrıcalıklı görev seçenekleri ve bypass bayrağı varyantlarının reddi test edilir. MCP'de acceptance/verify komutlarının kullanıcı listesi olmadan reddi, önek eşleşmesi, ayrı --allow-privileged anahtarı ve auto_apply onayının özel seçenekleri açmadığı test edilir.
+**Amaç / sorumluluk:** mcp_server araç listesini, orkestre edilen süreçte araçların gizlenmesini (özyineleme koruması), apply için doğrulanmış digest ve kimlik doğrulamasını, varsayılan auto_apply reddini, hafıza notunun yazma izni olmadan kapalı olmasını ve stdio gidiş-dönüşünü doğrular. MCP'de ayrıcalıklı görev seçenekleri ve bypass bayrağı varyantlarının reddi test edilir. MCP'de acceptance/verify komutlarının kullanıcı listesi olmadan reddi, önek eşleşmesi, ayrı --allow-privileged anahtarı ve auto_apply onayının özel seçenekleri açmadığı test edilir. initialize yanıtındaki `instructions` alanının skill kurallarını içerdiği, front matter ve CLI bölümünü içermediği test edilir.
 
 **İlişkiler ve sınır:** mcp_server ve runner'ı çağırır. Kayıt: docs/records/2026-10-15-mcp-access.md.
 

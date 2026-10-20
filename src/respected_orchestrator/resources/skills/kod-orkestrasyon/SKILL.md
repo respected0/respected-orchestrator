@@ -1,30 +1,21 @@
 ---
 name: kod-orkestrasyon
-description: Bağımsız Respected Orchestrator ile bounded scope içinde AI worker görevi çalıştırma ve sonuç inceleme.
+description: Respected Orchestrator ile çoklu AI model orkestrasyonu (izole çalışma alanı). "orkestrasyon", "modeli işçi olarak çalıştır", "worktree'de dene" için kullan.
 ---
 
-# Kod Orkestrasyonu
+# Kod Orkestrasyonu (Respected Orchestrator)
 
-Respected Hub üzerinden Git projesini, worker'ı, read/write türünü ve explicit
-dosya scope'unu seç. Write için doğrulama komutunu JSON argv listeleri olarak ver.
-Kullanıcı veya herhangi bir AI planlayıcı task metnini hazırlayabilir; worker
-Codex, Claude, Gemini, Antigravity veya uyumlu özel komut olabilir.
+Bu talimatın sahibi Respected Orchestrator'dır; MCP bağlantısı kurulduğunda sunucu bunu bağlanan AI aracına `instructions` olarak verir. Hub'da Orchestrator → "AI araçlarından kullan (MCP)" bölümünden bağlandıysa bu araçta `orchestrator_*` MCP araçları görünür.
 
-Engine DataRoot altında bağımsız teknik state ve workspaces kullanır. Brain
-kurulumu veya kasa UUID'si gerekmez. Worker ayrı worktree'de çalışır. Ana proje
-otomatik değiştirilmez. Görev deadline'ı bütün worker/test süresini sınırlar;
-permission bypass varsayılan değildir ve engine tarafından reddedilir.
+## Kurallar
+1. Ağır kodlama/refactoring işini `orchestrator_task_start` ile başlat; işçi model izole bir çalışma alanında çalışır, gerçek ağaca dokunmaz.
+2. İlerlemeyi `orchestrator_progress`, kanıtı `orchestrator_evidence` ile oku.
+3. Yamayı yalnızca kullanıcı onayıyla `orchestrator_apply` ile uygula (evidence'taki `patch_sha256` gerekir).
+4. Master/işçi rolleri sabit değildir: kullanıcı veya Hub varsayılanı hangi modeli seçtiyse o kullanılır.
+5. Tekrar kullanılabilir bir karar veya bilgi çıkarsa (görev geçmişi değil) `orchestrator_memory_note` ile SecondBrain gelen kutusuna not bırak; yalnızca SecondBrain kuruluysa ve kullanıcı Hub'da yazma iznini açtıysa çalışır.
+6. Başarısız, bekleyen, eski veya değiştirilmiş sonuç kabul edilmez; yeniden deneme yalnızca kullanıcının açık isteğiyle yapılır.
 
-Hub'dan status, log, doğrulama sonucu ve binary patch'i incele; Cancel ile çalışan
-görevi durdur. Hub kapanınca engine sürer. Başarısız/pending/stale/tampered sonuç
-kabul edilmez. Retry yalnız açık kullanıcı eylemiyle yapılır ve iki retry ile
-sınırlıdır. Ana projeye patch entegrasyonu bu geliştirme sürümünde dış inceleme
-sonrası `apply` komutuyla yapılır.
-
-Codex worker'ları açık `--sandbox workspace-write` ve onaysız modda çalışır;
-ortamdaki secret benzeri değişkenler worker'a geçmez. Diğer CLI'ler için scope
-denetimi tam OS sandbox değildir; onların approval/sandbox kontrollerini koru. Salt read işi repository diff
-üretirse başarısız sayılır. Brain'e kalıcı kayıt isteğe bağlı ayrı bir işlemdir.
+Orchestrator MCP bağlı değilse kullanıcıdan Hub'da bağlamasını iste.
 
 ## Claude Master döngüsü (kampanya)
 
@@ -41,7 +32,3 @@ doğrulanmış sonuçlarla bir kez başlatılır. Durum: `campaign-status ID`. N
 kaynaklar geçici Git mirror'da geliştirilir; `apply RUN_ID` yalnız doğrulanmış
 sonucu çalışma ağacına uygular, commit etmez. İnsan onayı (`maf-approve`) yalnız
 etkileşimli terminalden verilir. MiMo profilleri reddedilir.
-
-Provenance: Brain `resources/skills/kod-orkestrasyon/SKILL.md` içindeki görev,
-izolasyon ve yama sözleşmesinden çıkarıldı; eski vault/dashboard komutları
-bağımsız ürün akışına uyarlandı. Diğer provider ayarlarına kurulum yapma.
