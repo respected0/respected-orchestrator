@@ -107,6 +107,10 @@ class McpServerTest(unittest.TestCase):
             return [json.loads(line) for line in done.stdout.splitlines()]
         free = run({})
         self.assertEqual(free[0]["result"]["protocolVersion"], "2025-06-18")
+        instructions = free[0]["result"]["instructions"]  # the kod-orkestrasyon skill, without front matter or the CLI section
+        self.assertIn("orchestrator_task_start", instructions)
+        self.assertNotIn("name: kod-orkestrasyon", instructions)
+        self.assertNotIn("campaign-start", instructions)
         self.assertEqual(len(free), 2)  # the notification gets no reply
         self.assertGreater(len(free[1]["result"]["tools"]), 5)
         self.assertEqual(run({mcp_server.DELEGATED: "1"})[1]["result"]["tools"], [])

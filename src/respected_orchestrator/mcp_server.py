@@ -182,6 +182,12 @@ def _dispatch(ctx, name, args, allow_auto_apply, allow_privileged=False):
     raise ValueError(f"Unknown tool {name}")
 
 
+def _instructions():
+    """The kod-orkestrasyon skill (rules part) is the server's MCP instructions, so every connected client gets it."""
+    text = (Path(__file__).parent / "resources/skills/kod-orkestrasyon/SKILL.md").read_text(encoding="utf-8")
+    return text.split("\n---\n", 1)[-1].split("\n## Claude Master")[0].strip()
+
+
 def handle(ctx, message, *, delegated=False, allow_auto_apply=False, allow_privileged=False):
     """One JSON-RPC message -> response dict, or None for notifications."""
     method, ident = message.get("method"), message.get("id")
@@ -193,7 +199,8 @@ def handle(ctx, message, *, delegated=False, allow_auto_apply=False, allow_privi
     if method == "initialize":
         version = (message.get("params") or {}).get("protocolVersion", "2025-03-26")
         return reply(result={"protocolVersion": version, "capabilities": {"tools": {}},
-                             "serverInfo": {"name": "respected-orchestrator", "version": __version__}})
+                             "serverInfo": {"name": "respected-orchestrator", "version": __version__},
+                             "instructions": _instructions()})
     if method == "ping":
         return reply(result={})
     if method == "tools/list":  # an orchestrated process sees nothing to call: no recursive delegation
