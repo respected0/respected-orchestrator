@@ -64,7 +64,7 @@ only their file-edit approval flag; scope, acceptance and patch checks are uncha
 
 `roles.py` (resolution, validation, settings fields), `runner.create_task` (resolution at submission),
 `maf_workflow._review_assignment` (availability check + fallbacks before work), `rpp.py` (settings schema),
-private entry point `python -m respected_orchestrator roles` (dry-run of an assignment). Tests: `tests/test_roles.py`.
+private entry point `python -m respected_orchestrator roles` (dry-run of an assignment). Tests: `tests/workflows/test_roles.py`.
 
 ## Roles the engine consumes
 
@@ -81,4 +81,3 @@ private entry point `python -m respected_orchestrator roles` (dry-run of an assi
 
 Hub's Orchestrator page still says role assignment cannot be edited there (Hub UI is outside this track); the
 settings form does render the new fields because it is generated from the RPP schema.
-The legacy `vertical_slice` demo keeps its own glm/deepseek constants (not an engine path).

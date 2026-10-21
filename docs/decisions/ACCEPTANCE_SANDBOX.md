@@ -26,7 +26,7 @@ Those commands run through `sandbox_exec` with a **restricted token** (`CreateRe
   silent fallback. `RESPECTED_ORCH_SANDBOX=off` is an explicit developer switch (also the only way non-Windows runs).
 * Final approval stays in the trusted control plane: it needs the key (unreadable to the sandbox) and the interactive gate.
 
-## Proven (tests/test_sandbox.py, with a negative control)
+## Proven (tests/engine/test_sandbox.py, with a negative control)
 Sandboxed code cannot: read the key (plain path, `\\?\` path, junction, hardlink), read settings/evidence, create or
 overwrite or delete anything under the data root, forge `maf-approval.json`, rewrite the key's ACL, remove the deny ACE,
 take ownership, or obtain the signing key through the engine's own `_signature`. It can: write/read its worktree and
