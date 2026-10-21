@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 from . import winproc
-from ..context import atomic_write_json, safe_path
+from ..context import FROZEN, atomic_write_json, safe_path
 
 
 class SandboxError(RuntimeError):
@@ -96,7 +96,7 @@ def protect(data_root, key_path):
     if state.get("protected_key") == identity:       # same key file as when the ACLs were applied
         return sid
     env = dict(os.environ, SBX_SID=sid, SBX_ROOT=str(data_root), SBX_WORKSPACES=str(workspaces), SBX_KEY=str(key_path))
-    done = winproc.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", _PS], capture_output=True, text=True, timeout=120, env=env)
+    done = winproc.run([winproc.system_tool("powershell"), "-NoProfile", "-NonInteractive", "-Command", _PS], capture_output=True, text=True, timeout=120, env=env)
     if done.returncode or "ok" not in done.stdout:
         raise SandboxError(f"ACL setup failed: {(done.stderr or done.stdout).strip()[:300]}")
     atomic_write_json(marker, dict(state, protected_key=identity))
@@ -108,6 +108,8 @@ def wrap(data_root, key_path, command):
     if not enabled():
         return list(command)
     sid = protect(data_root, key_path)
+    if FROZEN:  # the packaged executable serves the restricted-token launcher as a private subcommand
+        return [sys.executable, "_sandbox-exec", "--sid", sid, "--", *command]
     source = str(Path(__file__).resolve().parents[2])   # importable wherever the engine itself runs from
     boot = "import sys; sys.path.insert(0, sys.argv[1]); from respected_orchestrator.engine import sandbox_exec; sys.exit(sandbox_exec.main(sys.argv[2:]))"
     return [sys.executable, "-c", boot, source, "--sid", sid, "--", *command]

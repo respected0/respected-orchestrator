@@ -1,4 +1,4 @@
-﻿"""Private JSON entry point for Hub and developer verification; no public CLI script."""
+"""Private JSON entry point for Hub and developer verification; no public CLI script."""
 import argparse
 import json
 from pathlib import Path
@@ -15,15 +15,32 @@ def _stdin_json():
     return json.loads(sys.stdin.buffer.read().decode("utf-8-sig"))
 
 
+def _selfcheck():
+    """Import every engine module: proves a packaged executable carries its whole closure (CI runs it on the build)."""
+    import importlib, pkgutil
+    from . import __path__ as package_path
+    names = sorted(module.name for module in pkgutil.walk_packages(package_path, __package__ + ".") if not module.name.endswith("__main__"))
+    for name in names:
+        importlib.import_module(name)
+    import agent_framework  # the MAF runtime the workflows need at run time
+    return dict(status="ok", version=__version__, modules=len(names))
+
+
 def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv[:1] == ["_sandbox-exec"]:  # restricted-token launcher of the packaged build: touches no data root
+        from .engine import sandbox_exec
+        return sandbox_exec.main(argv[1:])
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=default_data_root())
-    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "campaign-start", "campaign-run", "campaign-status", "project-start", "project-run", "project-resume", "project-status", "project-cancel", "rpp", "roles", "plan", "mcp"])
+    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "campaign-start", "campaign-run", "campaign-status", "project-start", "project-run", "project-resume", "project-status", "project-cancel", "rpp", "roles", "plan", "mcp", "_selfcheck"])
     parser.add_argument("args", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
     ctx = EngineContext(args.data_root)
     try:
-        if args.command == "status":
+        if args.command == "_selfcheck":
+            payload = _selfcheck()
+        elif args.command == "status":
             payload = dict(product="respected-orchestrator", version=__version__, data_root=str(ctx.data_root),
                            workers={worker: runner.get_cli_command(worker) for worker in runner.SUPPORTED_AGENTS if worker != "custom"},
                            git=runner.shutil.which("git"))

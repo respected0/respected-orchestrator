@@ -13,7 +13,7 @@ from uuid import uuid4
 
 from ..engine import lanes
 from ..engine import winproc
-from ..context import EngineContext, safe_path
+from ..context import FROZEN, EngineContext, engine_command, safe_path
 from ..engine.processes import execute
 from . import roles
 from ..engine.runner import SUPPORTED_AGENTS, _track_record, _command, _load, _save, command_for, create_task, tool_available, tool_result
@@ -96,6 +96,8 @@ def _snapshot_engine(ctx, source=None):
     """Copy the engine so a campaign can develop the engine itself without touching the code that is running.
 
     `source` lets a long-lived supervisor snapshot the real (possibly just-updated) source instead of its own copy."""
+    if FROZEN:  # the packaged executable is already an immutable copy of the engine
+        return _engine_dir()
     source = Path(source).resolve() if source else Path(__file__).resolve().parents[1]  # the package
     files = sorted(p for p in source.rglob("*") if p.is_file() and "__pycache__" not in p.parts)
     digest = hashlib.sha256()
@@ -105,6 +107,15 @@ def _snapshot_engine(ctx, source=None):
     if not (target / "respected_orchestrator").is_dir():
         shutil.copytree(source, target / "respected_orchestrator", ignore=shutil.ignore_patterns("__pycache__"))
     return target
+
+
+def _engine_dir():
+    """Folder that holds the running engine: src/ of a source checkout, or the packaged executable's folder."""
+    return Path(sys.executable).resolve().parent if FROZEN else Path(__file__).resolve().parents[2]
+
+
+# How a master (or the user) runs this engine's CLI; the packaged build has no Python in front of it.
+ENGINE_CLI = subprocess.list2cmdline(engine_command()) if FROZEN else "python -m respected_orchestrator"
 
 
 def _engine_env(root):
@@ -123,8 +134,8 @@ def create_campaign(ctx, request):
 def start_campaign(ctx, request):
     campaign_id, directory = create_campaign(ctx, request)
     engine = _snapshot_engine(ctx)
-    command = [sys.executable, "-m", "respected_orchestrator", "--data-root", str(ctx.data_root),
-               "campaign-run", campaign_id]
+    command = engine_command("--data-root", str(ctx.data_root),
+               "campaign-run", campaign_id)
     pid = lanes._spawn_detached(command, engine, directory / "supervisor.log", env=_engine_env(engine))
     _save(ctx, directory / "supervisor.json", dict(campaign_id=campaign_id, pid=pid, engine=str(engine)))
     return dict(campaign_id=campaign_id, status="started", pid=pid)
@@ -172,8 +183,8 @@ def _build_mirror(source, mirror):
 
 def _maf_lane(lane_ctx, run_id, timeout, main_root=None):
     """Real lane: a separate process runs the whole MAF pipeline for one run in its own data root."""
-    engine = Path(__file__).resolve().parents[2]  # src/, holds the package
-    command = [sys.executable, "-m", "respected_orchestrator", "--data-root", str(lane_ctx.data_root), "maf", run_id]
+    engine = _engine_dir()
+    command = engine_command("--data-root", str(lane_ctx.data_root), "maf", run_id)
     env = _engine_env(engine)
     if main_root is not None:  # lanes hold no settings.json or memory token; the child resolves them from here
         env["RESPECTED_ORCH_MAIN_ROOT"] = str(main_root)
@@ -212,7 +223,7 @@ def _lane_summary(name, lane_ctx, output):
 
 
 def _final_prompt(spec, directory, lanes, engine, project_review=False):
-    apply_hint = "python -m respected_orchestrator --data-root <lane_data_root> apply <final_run_id>"
+    apply_hint = f"{ENGINE_CLI} --data-root <lane_data_root> apply <final_run_id>"
     permission = ("You may run exactly that command for approved lanes." if spec["final"]["allow_apply"]
                   else "You are not permitted to run it; tell the user which commands to run.")
     states = []
@@ -317,14 +328,14 @@ def _start_final_master(ctx, directory, spec, lanes, project_review=False):
         os.close(descriptor)
     except FileExistsError:
         return
-    engine = Path(__file__).resolve().parents[2]  # src/, holds the package
+    engine = _engine_dir()
     prompt = _final_prompt(spec, directory, lanes, engine, project_review)
     command = [part.replace("{prompt}", prompt) for part in spec["final"]["command"]]
     if Path(command[0]).stem.casefold() == "claude" and "--permission-mode" not in command:
         # Unattended but bounded: dontAsk denies anything not allow-listed instead of prompting or bypassing.
         tools = ["Read", "Glob", "Grep"]
         if spec["final"]["allow_apply"]:  # opt-in: only the engine's own CLI (which re-verifies evidence) may run
-            tools += ["Bash(python -m respected_orchestrator:*)", "PowerShell(python -m respected_orchestrator:*)"]
+            tools += [f"Bash({ENGINE_CLI}:*)", f"PowerShell({ENGINE_CLI}:*)"]
         command[1:1] = ["--permission-mode", "dontAsk", "--allowedTools", *tools,
                          *[arg for root in spec.get("roots", []) for arg in ("--add-dir", root)]]
     try:

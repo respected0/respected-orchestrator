@@ -17,7 +17,7 @@ from . import lanes, sandbox
 from . import budget, winproc
 from ..interfaces import memory
 from ..workflows import roles
-from ..context import EngineContext, atomic_write_json, safe_path, validate_project
+from ..context import EngineContext, atomic_write_json, engine_command, safe_path, validate_project
 from .processes import ProcessStopped, execute
 from .codex import _is_turn_completed, stream_verified_complete
 
@@ -208,7 +208,7 @@ def _restrict_key(path):
     if os.name != "nt" or path in _RESTRICTED_KEYS:
         return
     user = f"{os.environ.get('USERDOMAIN', '')}\\{os.environ['USERNAME']}".lstrip("\\")
-    winproc.run(["icacls", str(path), "/inheritance:r", "/grant:r", f"{user}:(F)"],
+    winproc.run([winproc.system_tool("icacls"), str(path), "/inheritance:r", "/grant:r", f"{user}:(F)"],
                    capture_output=True, check=True, timeout=30)
     _RESTRICTED_KEYS.add(path)
 
@@ -779,7 +779,7 @@ def start_task(ctx, run_id):
         raise ValueError("Only queued tasks can start")
     source = str(Path(__file__).resolve().parents[2])  # src/
     env = dict(os.environ, PYTHONPATH=source)
-    command = [sys.executable, "-m", "respected_orchestrator", "--data-root", str(ctx.data_root), "_execute", run_id]
+    command = engine_command("--data-root", str(ctx.data_root), "_execute", run_id)
     pid = lanes._spawn_detached(command, ctx.app_root, directory / "supervisor.log", env=env)
     _save(ctx, directory / "supervisor.json", dict(run_id=run_id, pid=pid))
     return dict(run_id=run_id, status="queued", pid=pid)
