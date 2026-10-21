@@ -18,7 +18,7 @@ from respected_orchestrator.engine import lanes, winproc
 from respected_orchestrator.engine.processes import ProcessStopped, execute
 
 PY = sys.executable
-SRC = Path(__file__).resolve().parents[1] / "src" / "respected_orchestrator"
+SRC = Path(__file__).resolve().parents[2] / "src" / "respected_orchestrator"
 WINDOWS = os.name == "nt"
 
 
