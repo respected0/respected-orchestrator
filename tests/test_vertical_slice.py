@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from respected_orchestrator.vertical_slice import (
+from respected_orchestrator.engine.vertical_slice import (
     CodexCall,
     CodexOutcome,
     _usage,
@@ -62,7 +62,7 @@ class VerticalSliceTest(unittest.TestCase):
                 stderr_path=call.run_root / "stderr.log",
             )
 
-        with mock.patch("respected_orchestrator.vertical_slice.run_codex_call", side_effect=fake_call):
+        with mock.patch("respected_orchestrator.engine.vertical_slice.run_codex_call", side_effect=fake_call):
             with tempfile.TemporaryDirectory() as temporary:
                 state = run_vertical_slice(
                     goal="demo",
@@ -89,7 +89,7 @@ class VerticalSliceTest(unittest.TestCase):
                 return CodexOutcome("COMPLETE", '{"decision":"APPROVED"}', {}, Path("a"), Path("b"), Path("c"))
             return CodexOutcome("COMPLETE", "APPROVED\nready", {}, Path("a"), Path("b"), Path("c"))
 
-        with mock.patch("respected_orchestrator.vertical_slice.run_codex_call", side_effect=fake_call):
+        with mock.patch("respected_orchestrator.engine.vertical_slice.run_codex_call", side_effect=fake_call):
             with tempfile.TemporaryDirectory() as temporary:
                 state = run_vertical_slice(
                     goal="demo",

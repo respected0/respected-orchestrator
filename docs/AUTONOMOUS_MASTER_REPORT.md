@@ -34,8 +34,8 @@ Corrections no longer restart the same completed run identity. Each correction c
 
 ## Changed files
 
-- `src/respected_orchestrator/runner.py`
-- `src/respected_orchestrator/maf_workflow.py`
+- `src/respected_orchestrator/engine/runner.py`
+- `src/respected_orchestrator/workflows/maf_workflow.py`
 - `src/respected_orchestrator/__main__.py`
 - `tests/test_maf_coding.py`
 - `tests/test_maf_workflow.py`
@@ -144,12 +144,12 @@ Added by the recovery engineer (DeepSeek V4.1 Flash) after the GLM session was c
 ### Root cause of the failing full-test run
 
 - `python -m unittest discover -s tests` imports each test module as a top-level module (`test_test_isolation`), so the `tests` package `__init__.py` is never executed. That also explains the "15 focused tests passed" result: focused runs like `python -m unittest tests.test_test_isolation` do import the package and run its `__init__`.
-- The isolated-test guard in `src/respected_orchestrator/processes.py::execute` was armed only by the `RESPECTED_ORCH_TEST_ISOLATION` env var, which was set solely in `tests/__init__.py` and `tests/conftest.py`.
+- The isolated-test guard in `src/respected_orchestrator/engine/processes.py::execute` was armed only by the `RESPECTED_ORCH_TEST_ISOLATION` env var, which was set solely in `tests/__init__.py` and `tests/conftest.py`.
 - Under discovery the env var was therefore unset for nearly the whole run, the guard was disarmed, and `execute(["codex", "exec"], ...)` actually launched the real Codex CLI. The only reported failure was `test_execute_blocks_codex_cli_in_isolated_tests` (`RuntimeError not raised`).
 
 ### Changes made
 
-- `src/respected_orchestrator/processes.py`: added `import sys` and `_tests_loaded()`, which returns True when a test module (`tests`, `tests.*`, `test_*`) is already in `sys.modules`. The Codex-blocking guard now fires when the env var is set **or** a test session is detected, so the block no longer depends on the import path. Production imports are unaffected (`_tests_loaded()` is False in a plain process).
+- `src/respected_orchestrator/engine/processes.py`: added `import sys` and `_tests_loaded()`, which returns True when a test module (`tests`, `tests.*`, `test_*`) is already in `sys.modules`. The Codex-blocking guard now fires when the env var is set **or** a test session is detected, so the block no longer depends on the import path. Production imports are unaffected (`_tests_loaded()` is False in a plain process).
 - `docs/repository_inventory.json`: updated the `processes.py` role/purpose/relationships.
 - `docs/AUTONOMOUS_MASTER_REPORT.md`: this section.
 

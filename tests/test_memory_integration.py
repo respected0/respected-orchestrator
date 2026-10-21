@@ -9,7 +9,11 @@ import unittest
 from types import SimpleNamespace
 from unittest import mock
 
-from respected_orchestrator import campaign, memory, rpp, runner
+from respected_orchestrator.workflows import campaign
+
+from respected_orchestrator.interfaces import memory, rpp
+
+from respected_orchestrator.engine import runner
 from respected_orchestrator.context import EngineContext
 
 TOKEN = "rbm_" + "A1b2C3d4" * 4
@@ -270,7 +274,7 @@ class LaneRootTests(Base):
             self.assertEqual(runner.settings_root(self.ctx), self.ctx.data_root)
 
     def test_main_root_survives_environment_scrub(self):
-        from respected_orchestrator.processes import scrub_environment
+        from respected_orchestrator.engine.processes import scrub_environment
         self.assertIn("RESPECTED_ORCH_MAIN_ROOT", scrub_environment({"RESPECTED_ORCH_MAIN_ROOT": "x", "API_TOKEN": "y"}))
 
     def test_maf_lane_passes_main_root(self):

@@ -12,12 +12,12 @@ import re
 import sys
 import tempfile
 
-from . import __version__
+from .. import __version__
 from . import lifecycle
 from . import memory
-from . import roles
-from . import runner
-from .context import atomic_write_json, safe_path
+from ..workflows import roles
+from ..engine import runner
+from ..context import atomic_write_json, safe_path
 
 PROTOCOL_MIN = "1.0"
 PROTOCOL_MAX = "1.1"

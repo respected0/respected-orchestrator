@@ -11,8 +11,10 @@ import re
 import sys
 from pathlib import Path
 
-from . import __version__, campaign, project, roles, runner
-from .context import EngineContext
+from .. import __version__
+from ..workflows import campaign, project, roles
+from ..engine import runner
+from ..context import EngineContext
 
 DELEGATED = "RESPECTED_ORCH_DELEGATED"  # set on everything the engine spawns (see campaign._engine_env)
 _RUN, _PROJECT, _CAMPAIGN = (re.compile(p) for p in (r"run-[A-Za-z0-9-]{1,80}", r"proj-[a-z0-9-]{1,60}", r"camp-[a-z0-9-]{1,60}"))
@@ -99,7 +101,7 @@ def _refuse_unlisted_commands(ctx, args, allow_privileged):
     _commands_of(args, found)
     if not found:
         return
-    from . import roles
+    from ..workflows import roles
     settings = roles.read_settings(ctx.data_root)
     for command in found:
         if not roles.acceptance_allowed(settings, command):
@@ -131,7 +133,7 @@ def _dispatch(ctx, name, args, allow_auto_apply, allow_privileged=False):
         return dict(product="respected-orchestrator", version=__version__, data_root=str(ctx.data_root),
                     workers={w: runner.get_cli_command(w) for w in runner.SUPPORTED_AGENTS if w != "custom"})
     if name == "orchestrator_plan":
-        from .planner import plan
+        from ..workflows.planner import plan
         return plan(ctx, args)
     if name == "orchestrator_task_start":
         created = runner.create_task(ctx, args)
@@ -168,7 +170,8 @@ def _dispatch(ctx, name, args, allow_auto_apply, allow_privileged=False):
             return project.cancel_project(ctx, _check_id(ident, _PROJECT))
         return runner.cancel_task(ctx, _check_id(ident, _RUN))
     if name == "orchestrator_memory_note":
-        from . import memory, roles
+        from . import memory
+        from ..workflows import roles
         tags = args.get("tags") or []
         key = json.dumps([args.get("title"), args.get("body"), tags], ensure_ascii=False, sort_keys=True)
         return memory.write_note(roles.read_settings(ctx.data_root), ctx.data_root, args.get("title"), args.get("body"), tags,
@@ -184,7 +187,7 @@ def _dispatch(ctx, name, args, allow_auto_apply, allow_privileged=False):
 
 def _instructions():
     """The kod-orkestrasyon skill (rules part) is the server's MCP instructions, so every connected client gets it."""
-    text = (Path(__file__).parent / "resources/skills/kod-orkestrasyon/SKILL.md").read_text(encoding="utf-8")
+    text = (Path(__file__).resolve().parents[1] / "resources/skills/kod-orkestrasyon/SKILL.md").read_text(encoding="utf-8")
     return text.split("\n---\n", 1)[-1].split("\n## Claude Master")[0].strip()
 
 

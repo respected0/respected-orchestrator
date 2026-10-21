@@ -10,13 +10,13 @@ import tempfile
 import unittest
 from unittest import mock
 
-from respected_orchestrator import campaign, project
+from respected_orchestrator.workflows import campaign, project
 from respected_orchestrator.context import EngineContext
-from respected_orchestrator.maf_workflow import (ReviewerDisconnectedError, ReviewerTimeoutError, review_attempt_timeouts,
+from respected_orchestrator.workflows.maf_workflow import (ReviewerDisconnectedError, ReviewerTimeoutError, review_attempt_timeouts,
                                                  review_timeout_default, run_maf_coding_task)
-from respected_orchestrator.processes import ProcessStopped
-from respected_orchestrator.runner import _load, apply_task, check_result, create_task, execute_task
-from respected_orchestrator.vertical_slice import CodexCall, CodexOutcome, diagnose, run_codex_call
+from respected_orchestrator.engine.processes import ProcessStopped
+from respected_orchestrator.engine.runner import _load, apply_task, check_result, create_task, execute_task
+from respected_orchestrator.engine.vertical_slice import CodexCall, CodexOutcome, diagnose, run_codex_call
 
 PY = sys.executable
 # verbatim from stderr.log of the real runs: printed every ~4.5 min by every codex process, whatever the turn is doing
@@ -61,7 +61,7 @@ class DiagnosisAndPolicyTests(unittest.TestCase):
 
     def test_a_real_timed_out_review_is_recorded_as_a_timeout_not_a_disconnect(self):
         stopped = ProcessStopped("timeout", stdout=PARTIAL_STDOUT, stderr=MODELS_NOISE, had_output=True, last_output_age=3.0)
-        with tempfile.TemporaryDirectory() as temporary, mock.patch("respected_orchestrator.vertical_slice.execute", side_effect=stopped):
+        with tempfile.TemporaryDirectory() as temporary, mock.patch("respected_orchestrator.engine.vertical_slice.execute", side_effect=stopped):
             root = Path(temporary) / "review-fast-1"
             result = run_codex_call(CodexCall("fast", "deepseek", None, "prompt", root), cwd=Path(temporary), timeout_seconds=1)
             process = json.loads((root / "process.json").read_text(encoding="utf8"))
@@ -95,7 +95,7 @@ class CodingFixture(unittest.TestCase):
         (self.root / "data").mkdir()  # Hub-configured default reviewer (priority 2) for fixtures that state none
         (self.root / "data" / "settings.json").write_text('{"default_reviewer_profile": "deepseek"}', encoding="utf8")
         self.counter = self.root / "worker-runs.txt"
-        patcher = mock.patch("respected_orchestrator.runner._stdin_is_tty", return_value=True)
+        patcher = mock.patch("respected_orchestrator.engine.runner._stdin_is_tty", return_value=True)
         patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -124,8 +124,8 @@ class MockedReviewTests(CodingFixture):
                 "usage": {"estimated_weighted_tokens": 100}}
 
     def run_with(self, run_id, calls, **kwargs):
-        with mock.patch("respected_orchestrator.maf_workflow.execute_task", return_value=self.completed(run_id)), \
-             mock.patch("respected_orchestrator.maf_workflow.run_codex_call", side_effect=calls) as codex:
+        with mock.patch("respected_orchestrator.workflows.maf_workflow.execute_task", return_value=self.completed(run_id)), \
+             mock.patch("respected_orchestrator.workflows.maf_workflow.run_codex_call", side_effect=calls) as codex:
             return run_maf_coding_task(ctx=self.ctx, run_id=run_id, **kwargs), codex
 
     def approved(self):
@@ -201,7 +201,7 @@ class ReviewOnlyRetryTests(CodingFixture):
             result = real(ctx, current)
             return dict(result, usage={"estimated_weighted_tokens": 100})  # a worker that spent tokens
 
-        with mock.patch("respected_orchestrator.maf_workflow.execute_task", side_effect=counted):
+        with mock.patch("respected_orchestrator.workflows.maf_workflow.execute_task", side_effect=counted):
             first = run_maf_coding_task(ctx=self.ctx, run_id=run_id, reviewer=self.failing_review)
         self.assertEqual((first["status"], first["reason"]), ("FAILED", "reviewer_timeout"))
         self.assertEqual(self.worker_runs(), 1)
@@ -210,7 +210,7 @@ class ReviewOnlyRetryTests(CodingFixture):
     def test_review_only_retry_does_not_run_the_worker_again_and_keeps_history_and_tokens(self):
         run_id, first = self.coded_and_review_failed()
         patch_before = (self.ctx.run_dir(run_id) / "worker.patch").read_bytes()
-        with mock.patch("respected_orchestrator.maf_workflow.execute_task", side_effect=AssertionError("worker re-executed")) as worker:
+        with mock.patch("respected_orchestrator.workflows.maf_workflow.execute_task", side_effect=AssertionError("worker re-executed")) as worker:
             second = run_maf_coding_task(ctx=self.ctx, run_id=run_id, reviewer=self.approve)
         worker.assert_not_called()
         self.assertEqual(second["status"], "MASTER_APPROVED")
@@ -242,7 +242,7 @@ class ReviewOnlyRetryTests(CodingFixture):
         run_id, _ = self.coded_and_review_failed()
         patch = self.ctx.run_dir(run_id) / "worker.patch"
         patch.write_bytes(patch.read_bytes() + b"tampered")
-        with mock.patch("respected_orchestrator.maf_workflow.execute_task", side_effect=AssertionError("worker re-executed")):
+        with mock.patch("respected_orchestrator.workflows.maf_workflow.execute_task", side_effect=AssertionError("worker re-executed")):
             output = run_maf_coding_task(ctx=self.ctx, run_id=run_id, reviewer=self.approve)
         self.assertEqual((output["status"], output["reason"]), ("FAILED", "reuse_verification_failed"))
         self.assertEqual(self.worker_runs(), 1)

@@ -10,9 +10,9 @@ import tempfile
 import unittest
 from unittest import mock
 
-from respected_orchestrator import antigravity_orchestrator as agy
+from respected_orchestrator.engine import antigravity_orchestrator as agy
 from respected_orchestrator.context import EngineContext
-from respected_orchestrator.runner import check_result, create_task, execute_task
+from respected_orchestrator.engine.runner import check_result, create_task, execute_task
 
 PY = sys.executable
 
@@ -177,7 +177,7 @@ class EndToEndTests(Fixture):
     def setUp(self):
         super().setUp()
         self.ctx = EngineContext(self.root / "data")
-        patcher = mock.patch("respected_orchestrator.runner._stdin_is_tty", return_value=True)
+        patcher = mock.patch("respected_orchestrator.engine.runner._stdin_is_tty", return_value=True)
         patcher.start()
         self.addCleanup(patcher.stop)
 

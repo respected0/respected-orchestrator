@@ -8,10 +8,10 @@ import time
 import unittest
 from unittest import mock
 
-from respected_orchestrator.maf_workflow import review_timeout_default
-from respected_orchestrator.processes import ProcessStopped, execute
-from respected_orchestrator.runner import _workflow
-from respected_orchestrator.vertical_slice import (
+from respected_orchestrator.workflows.maf_workflow import review_timeout_default
+from respected_orchestrator.engine.processes import ProcessStopped, execute
+from respected_orchestrator.engine.runner import _workflow
+from respected_orchestrator.engine.vertical_slice import (
     CodexCall, _is_turn_completed, diagnose, run_codex_call, stream_verified_complete)
 
 # Representative `codex exec --json` streams, replayed by a real local subprocess.
@@ -57,7 +57,7 @@ class CodexStreamTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
-        patcher = mock.patch("respected_orchestrator.vertical_slice.ACTIVE_WINDOW_SECONDS", 1)  # short runs
+        patcher = mock.patch("respected_orchestrator.engine.vertical_slice.ACTIVE_WINDOW_SECONDS", 1)  # short runs
         patcher.start()
         self.addCleanup(patcher.stop)
         (self.root / "fake_ai.py").write_text(FAKE, encoding="utf8")

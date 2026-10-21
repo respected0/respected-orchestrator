@@ -6,10 +6,10 @@ import tempfile
 import unittest
 from unittest import mock
 
-from respected_orchestrator import campaign, project
+from respected_orchestrator.workflows import campaign, project
 from respected_orchestrator.context import EngineContext
-from respected_orchestrator.maf_workflow import run_maf_coding_task
-from respected_orchestrator.runner import _load, _save
+from respected_orchestrator.workflows.maf_workflow import run_maf_coding_task
+from respected_orchestrator.engine.runner import _load, _save
 
 PY = sys.executable
 
@@ -32,7 +32,7 @@ class ProjectRecoveryTests(unittest.TestCase):
         self.source = self.root / "src"
         self.source.mkdir()
         (self.source / "f.txt").write_text("old\n")
-        patcher = mock.patch("respected_orchestrator.runner._stdin_is_tty", return_value=True)
+        patcher = mock.patch("respected_orchestrator.engine.runner._stdin_is_tty", return_value=True)
         patcher.start()
         self.addCleanup(patcher.stop)
         self.runs = []

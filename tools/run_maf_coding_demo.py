@@ -12,10 +12,10 @@ import tempfile
 import time
 
 from respected_orchestrator.context import EngineContext, safe_path
-from respected_orchestrator.maf_workflow import run_maf_coding_task
-from respected_orchestrator.processes import execute
-from respected_orchestrator.runner import check_result, create_task, get_cli_command, inspect_task
-from respected_orchestrator.vertical_slice import _events, _usage
+from respected_orchestrator.workflows.maf_workflow import run_maf_coding_task
+from respected_orchestrator.engine.processes import execute
+from respected_orchestrator.engine.runner import check_result, create_task, get_cli_command, inspect_task
+from respected_orchestrator.engine.vertical_slice import _events, _usage
 
 
 ROOT = Path(__file__).resolve().parents[1]

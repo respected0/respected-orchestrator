@@ -39,7 +39,7 @@
       "relationships": [
         "runner/maf_workflow/__main__ değişiklikleri ve ilgili test komutlarıyla ilişkilendirir; canlı smoke sonucu ayrı tutulur."
       ],
-      "review_sha256": "bac26dcb2e3cac203a1b348a51f38bc6420b225af9a98037760770d812807366"
+      "review_sha256": "1a90daf49d53d8a97c06c5b9837effdb9dbdc7b069e598c893a636a384d3356a"
     },
     {
       "path": "docs/REPOSITORY_MAP.md",
@@ -55,7 +55,7 @@
       "role": "Kabul sandbox kararı",
       "purpose": "Worker yazımı kodun motor anahtarını okuyup onay/kanıt sahteleyememesi için seçilen kısıtlı token + ACL sınırının gerekçesini, kanıtını ve açıkça belirtilen sınırlarını (profil dosyaları okunabilir, ağ açık, yalnızca Windows) kaydeder.",
       "relationships": [
-        "sandbox.py, sandbox_exec.py ve tests/test_sandbox.py ile birlikte okunur."
+        "engine/sandbox.py, engine/sandbox_exec.py ve tests/test_sandbox.py ile birlikte okunur."
       ],
       "review_sha256": "2fad6fbb9cf52e36d56b196a996a5df2988c064b0fe5dc5324ce0ede02659318"
     },
@@ -64,7 +64,7 @@
       "role": "MCP yetki kararı",
       "purpose": "MCP üzerinden bağlanan modelin yapabileceklerini sınırlayan kararı kaydeder: özel worker/command/apply_root/engine_source yalnızca --allow-privileged ile, kabul ve verify komutları yalnızca kullanıcının mcp_acceptance_allow önek listesindeyse, bypass bayrakları her yerde reddedilir; sınırları ve kanıtı belirtir.",
       "relationships": [
-        "mcp_server.py, roles.py ve runner._command ile birlikte okunur; docs/decisions/ACCEPTANCE_SANDBOX.md onaylı komutların yine sandbox'ta çalıştığını açıklar."
+        "interfaces/mcp_server.py, workflows/roles.py ve runner._command ile birlikte okunur; docs/decisions/ACCEPTANCE_SANDBOX.md onaylı komutların yine sandbox'ta çalıştığını açıklar."
       ],
       "review_sha256": "e9c57a0c8af51ad6015d17b5ac0bacfd604b227d820d52d5fc845778d5322beb"
     },
@@ -73,7 +73,7 @@
       "role": "Karar: isteğe bağlı SecondBrain hafızası",
       "purpose": "Görevlerin `memory.use` ile SecondBrain'den RPP `memory.recall` üzerinden hafıza isteme kararını anlatır. Hub'da etkinleştirme bir izindir, varsayılan değildir; en fazla yaklaşık 3000 karakter güvenilmez veri olarak brief'e eklenir, her hata 'hafıza yok' demektir. Token yalnızca 0600/ACL'li dosyada ve child stdin'inde tutulur, loglara ve kanıta sızmaz.",
       "relationships": [
-        "memory.py ve runner.create_task bu kararı uygular; Hub gizli ayarları (memory_enabled, memory_command, memory_grant_id, memory_token) RPP settings.apply ile yazar.",
+        "interfaces/memory.py ve runner.create_task bu kararı uygular; Hub gizli ayarları (memory_enabled, memory_command, memory_grant_id, memory_token) RPP settings.apply ile yazar.",
         "tests/test_memory.py ve tests/test_memory_integration.py kararın gizlilik ve politika kurallarını doğrular."
       ],
       "review_sha256": "0a113a6198336d79c6a465b055536ee26f4e65b3598b9fdf1a31d1040701ebf6"
@@ -81,19 +81,19 @@
     {
       "path": "docs/decisions/PROJECT_SUPERVISOR_REVIEW.md",
       "role": "Karar: proje supervisor adversarial incelemesi",
-      "purpose": "project.py otonom proje supervisor'ının ve campaign.py'nin ilgili parçalarının kaynak değiştirilmeden yapılan adversarial incelemesi. Şüpheli kusurları (ör. bozuk budget/verify/after için ValueError yerine AttributeError/TypeError) satır numaralarıyla belgeler.",
+      "purpose": "workflows/project.py otonom proje supervisor'ının ve workflows/campaign.py'nin ilgili parçalarının kaynak değiştirilmeden yapılan adversarial incelemesi. Şüpheli kusurları (ör. bozuk budget/verify/after için ValueError yerine AttributeError/TypeError) satır numaralarıyla belgeler.",
       "relationships": [
-        "src/respected_orchestrator/project.py ve campaign.py incelenen kodlardır.",
+        "src/respected_orchestrator/project.py ve workflows/campaign.py incelenen kodlardır.",
         "tests/test_project_adversarial.py bu incelemenin doğru kalan değişmezlerini ve sonradan kapatılan kusurlarını test eder."
       ],
-      "review_sha256": "ba9ab3c9a9671c32da269473a5f00cbbe5228d20c914f7cfcd483e97b6a24946"
+      "review_sha256": "d13c35d0496b9095ec669ff7341a0aa18f06e1e900c5f8983bbe203238846d56"
     },
     {
       "path": "docs/decisions/ROLE_ASSIGNMENT.md",
       "role": "Karar: satıcıdan bağımsız rol ataması",
       "purpose": "Her uyumlu model/sağlayıcı/araç her iş akışı rolünü üstlenebilir; kodda 'model X yalnızca rol Y' kuralı yoktur. Rol, profil, araç ve atama ayrı kavramlardır; öncelik sırası açık atama, Hub varsayılanı, isteğe bağlı otomatik atamadır; aynı rolün çelişen iki değeri ROLE_CONFLICT olur.",
       "relationships": [
-        "roles.py ve runner.create_task kararı uygular; maf_workflow reviewer/derin review için atanan aracı kullanır.",
+        "workflows/roles.py ve runner.create_task kararı uygular; maf_workflow reviewer/derin review için atanan aracı kullanır.",
         "tests/test_roles.py kararı doğrular; kayıt: docs/records/2026-10-15-role-assignment-validation.md."
       ],
       "review_sha256": "268158e7ee62fc23b42b3e88a1beb12379ba8ce6d3f5b6b2a5a35c03f0713f13"
@@ -106,17 +106,17 @@
         "src/respected_orchestrator/rpp.py sözleşmeyi uygular; v1.1 uzantısı RPP_V1_1.md'dedir.",
         "tests/test_rpp.py v1.0 davranışını doğrular."
       ],
-      "review_sha256": "1e9227f726e5a8f9d4f6129bac80fd9ae7f997fb7426d8ec8ce1664ca2a0094e"
+      "review_sha256": "b64c9da53694f264689dbf748998a83fae93cdd89a7641f161df5d2e3a5b8808"
     },
     {
       "path": "docs/decisions/RPP_V1_1.md",
       "role": "Karar: RPP v1.1 geriye uyumlu uzantı",
       "purpose": "v1.0'ın katı üst kümesi olan v1.1'i tanımlar: 1.0..1.1 sürüm uzlaşması, lifecycle plan/apply/status/rollback ve operation.receipt op'ları, yedi yeni tipli hata ve zengin manifest. Taşıma ve mevcut op davranışı değişmez; yeni op'lar aynı allow-list kayıt desenine eklenir.",
       "relationships": [
-        "rpp.py ve lifecycle.py uygular; RPP_V1.md'ye eklenir.",
+        "interfaces/rpp.py ve interfaces/lifecycle.py uygular; RPP_V1.md'ye eklenir.",
         "tests/test_rpp.py (RppV11Tests) ve tests/test_rpp_lifecycle.py doğrular."
       ],
-      "review_sha256": "49e413425e0494920d58a584ccc4a298dc63c990ecc72fc37869b2f79004f35c"
+      "review_sha256": "a7dfe3c90f48195183ab18509e2016ca2449362a841b10f2efb508c18d262673"
     },
     {
       "path": "docs/decisions/campaign-master-lifecycle.md",
@@ -208,7 +208,7 @@
     {
       "path": "docs/records/2026-10-15-role-assignment-validation.md",
       "role": "Tarihli kanıt kaydı: rol ataması doğrulaması",
-      "purpose": "Rol ataması uygulamasının neyi değiştirdiğini (roles.py, sabit reviewer/MiMo kurallarının kaldırılması, yeni RPP ayarları) ve tam test paketi ile gerçek tek kullanımlık repo üzerindeki doğrulama kanıtını kaydeder.",
+      "purpose": "Rol ataması uygulamasının neyi değiştirdiğini (workflows/roles.py, sabit reviewer/MiMo kurallarının kaldırılması, yeni RPP ayarları) ve tam test paketi ile gerçek tek kullanımlık repo üzerindeki doğrulama kanıtını kaydeder.",
       "relationships": [
         "Karar: docs/decisions/ROLE_ASSIGNMENT.md.",
         "tests/test_roles.py, test_campaign ve test_project kanıtta anılan testlerdir."
@@ -221,7 +221,7 @@
       "purpose": "SecondBrain'in ilk projesinin Orchestrator üzerinden çalıştırılmasını kaydeder: git mirror izolasyonu, Hub tarzı rol varsayılanları, iki fazlı proje sonuçları, reviewer engeli ve toplam yaklaşık 578k ağırlıklı token. Gerçek repo yalnızca baseline hash denetiminden sonra güncellenmiştir.",
       "relationships": [
         "Sözleşme respected-secondbrain RPP_MEMORY_RECALL.md'de; ilgili karar docs/decisions/MEMORY_INTEGRATION.md.",
-        "Proje supervisor'ı project.py ve kayıtla birlikte test_project_recovery.py ilgilidir."
+        "Proje supervisor'ı workflows/project.py ve kayıtla birlikte test_project_recovery.py ilgilidir."
       ],
       "review_sha256": "a8c5a168a9baf30a3145c3bf63d492f73c2edd2cd0ef2d4b036d6b7a5ee23001"
     },
@@ -230,7 +230,7 @@
       "role": "Tarihli kanıt kaydı: reviewer güvenilirliği (A1/A2)",
       "purpose": "Sağlayıcıya duyarlı review zaman aşımı, ayrı hata sınıfları, sınırlı review yeniden denemesi (varsayılan 1) ve yalnız review yeniden çalıştırma yolunu belgeler. Worker işi yalnızca imzalı sonuç yeniden doğrulanırsa yeniden kullanılır; red kesindir, geçersiz çıktı yeniden denenmez.",
       "relationships": [
-        "maf_workflow.py, vertical_slice.py, runner.py ve project.py ile uygulanır.",
+        "workflows/maf_workflow.py, engine/vertical_slice.py, engine/runner.py ve workflows/project.py ile uygulanır.",
         "tests/test_reviewer_reliability.py doğrular."
       ],
       "review_sha256": "505e08eec6073bfee9bc49ab28d202829293108cecde7064bbab988374d8b596"
@@ -240,7 +240,7 @@
       "role": "Tarihli kanıt kaydı: üretilmiş artefakt ve token bütçesi (A3/A4)",
       "purpose": "A3: untracked/ignored üretilmiş dosyaları (build, egg-info, __pycache__) gerçek değişiklikten ayırıp patch'e sokmama, gerçek scope ihlallerini koruma. A4: lane başına kalıcı token bütçesi, UNKNOWN kullanımın açık raporlanması ve proje bütçesinde varsayılan ücretlendirme.",
       "relationships": [
-        "antigravity_orchestrator.py, runner.py, budget.py, maf_workflow.py, project.py ve campaign.py ilgilidir; A1_A2_RELIABILITY.md üzerine kurulur.",
+        "engine/antigravity_orchestrator.py, engine/runner.py, engine/budget.py, workflows/maf_workflow.py, workflows/project.py ve workflows/campaign.py ilgilidir; A1_A2_RELIABILITY.md üzerine kurulur.",
         "tests/test_generated_artifacts.py ve tests/test_token_budget.py doğrular."
       ],
       "review_sha256": "f2dcc27d802337865b0677e8203f413d8ab5cbf2e5279c6814d95aba8c318b19"
@@ -250,7 +250,7 @@
       "role": "İnceleme kaydı: Codex reconnect bildirimi",
       "purpose": "Codex JSONL akışındaki fatal olmayan 'Reconnecting...' üst düzey error olayının worker_failed sayılması hatasının düzeltmesini onaylar. Tolerans yalnızca tam önek, turn.failed yokluğu, başka error yokluğu ve tam olarak bir turn.completed ile bitiş koşullarında geçerlidir.",
       "relationships": [
-        "vertical_slice.py'deki Codex akış ayrıştırıcısını inceler.",
+        "engine/vertical_slice.py'deki Codex akış ayrıştırıcısını inceler.",
         "tests/test_reviewer_reliability.py diagnose ve reconnect testleriyle ilişkilidir."
       ],
       "review_sha256": "48da6bc5e3b0a0206618961b6f0a207ffd45c92354584a9282c0fcafcfec2314"
@@ -260,7 +260,7 @@
       "role": "İnceleme kaydı: lane özeti hata nedeni",
       "purpose": "Kampanya lane özetinin genel worker_failed yerine imzalı çalıştırma durumundaki gerçek nedeni (scope_violation, timed_out) taşımasını onaylar. Geçersiz/eksik imzalı status genel MAF nedenine döner; başka run dizinine kopyalanmış status final_run_id eşleşmezse reddedilir.",
       "relationships": [
-        "campaign._lane_summary ve project.py hata mesajı incelenen koddur.",
+        "campaign._lane_summary ve workflows/project.py hata mesajı incelenen koddur.",
         "tests/test_project_recovery.py ilgili özet testlerini içerir."
       ],
       "review_sha256": "8fe117c296d73628f49a76b9cbc19f40da837b49f8b79f4c5cf3aefd2437d249"
@@ -270,7 +270,7 @@
       "role": "Tarihli kanıt kaydı: RPP v1.1 uygulama durumu",
       "purpose": "Orchestrator'ın RPP v1.1 yüzeyinin (sürüm uzlaşması, lifecycle ve receipt op'ları, yedi yeni hata) tamamlandığını kod satırı ve test referanslarıyla kaydeder; kardeş repolar yalnız okunmuştur, kod değişmemiştir.",
       "relationships": [
-        "Sözleşme docs/decisions/RPP_V1_1.md ve RPP_V1.md; kod rpp.py ve lifecycle.py.",
+        "Sözleşme docs/decisions/RPP_V1_1.md ve RPP_V1.md; kod interfaces/rpp.py ve interfaces/lifecycle.py.",
         "tests/test_rpp.py ve tests/test_rpp_lifecycle.py anılan testlerdir."
       ],
       "review_sha256": "f02d05b9f51c3ec86da4876e293bca982ed7b9969c091c6a96bdca41ea8c4c7c"
@@ -301,7 +301,7 @@
       "relationships": [
         "Setuptools bağımsız wheel üretir; public console script ve Brain bağımlılığı yoktur."
       ],
-      "review_sha256": "5cdea50703760b94c0cbcf9695589e45747ef8a10b190153bb730805ad29779d"
+      "review_sha256": "854b9b900b9e6acba9858c9be45a5accc04e18a8b1f2e3f2665caad2647d9a7f"
     },
     {
       "path": "src/respected_orchestrator/__init__.py",
@@ -310,7 +310,7 @@
       "relationships": [
         "Private status girişinin sürüm kaynağıdır; import yan etkisi yoktur."
       ],
-      "review_sha256": "bc673f688d31c817f8ecebd5e887d20a818fa85093702ce1e1e61f2477e01d26"
+      "review_sha256": "97c56b0532188a48e000feb83f0a65677ba45a95ff91ab65db0373fcd8d4adff"
     },
     {
       "path": "src/respected_orchestrator/__main__.py",
@@ -320,37 +320,7 @@
         "runner, roles, campaign, project, maf_workflow, planner, mcp_server, rpp ve antigravity_orchestrator'ı çağırır; Brain launcher/vault gerektirmez.",
         "tests/test_engine.py ve tests/test_maf_coding.py private JSON sözleşmesini doğrular."
       ],
-      "review_sha256": "97077ea810d669c3c63e32c57d7d51c56d124c6cdd10f0c8dd5ec976fe0e767a"
-    },
-    {
-      "path": "src/respected_orchestrator/antigravity_orchestrator.py",
-      "role": "Çıkarılmış worktree motoru",
-      "purpose": "Policy, lane/worktree, dirty-input overlay, baseline commit, brief, WriterLock, kapsam kontrolü, acceptance ve binary patch dışa aktarımı yardımcılarını ve ortak worker çıkış sınıflandırmasını (sıfır exit'li açık failure reddi dahil) korur. İzin atlatan (permission bypass) komutlar reddedilir; ham apply kapalıdır. WriterLock sahibi ölmüş kilidi geri alır; yaşayan sahip varsa reddeder.",
-      "relationships": [
-        "runner ve processes/context tarafından ortak katman olarak kullanılır; 'antigravity' alt komutu uyumluluk girişi olarak __main__'den çağrılır.",
-        "tests/test_engine.py ve tests/test_codex_results.py kapsar."
-      ],
-      "review_sha256": "050606032508a57d9aaafd91e973be180d899d5c92e1eed7887d710ee4a59f39"
-    },
-    {
-      "path": "src/respected_orchestrator/budget.py",
-      "role": "Token bütçesi ve kullanım muhasebesi",
-      "purpose": "Şerit başına token bütçesini ve dürüst kullanım muhasebesini yönetir. Kullanım bildirmeyen ama başlamış adım SIFIR değil BİLİNMEYEN sayılır ve yalnızca bütçe kontrolünde varsayılan bir ücretle yazılır; hiç başlamayan adım sayılmaz.",
-      "relationships": [
-        "Proje/kampanya bütçe kontrolleri ve runner tarafından çağrılır; engine sonuçlarındaki usage alanlarını okur.",
-        "tests/test_token_budget.py ile test edilir."
-      ],
-      "review_sha256": "5ab27ee6c9ff984abcd6537f1b3ee75ae8f1ff0622af24093838228499ab3e23"
-    },
-    {
-      "path": "src/respected_orchestrator/campaign.py",
-      "role": "Kalıcı çok-repo kampanya supervisor'ı",
-      "purpose": "Claude master'ın devrettiği 1..8 workstream'i detached supervisor ile paralel MAF hatlarına çevirir (ayrı data-root, WriterLock, anahtar ve çalışma alanı; after ile bağımlılık). Non-Git kaynak için gizli dosyalar hariç geçici Git mirror kurar, doğrulanmış patch'i apply_root'a uygulatır ve motoru snapshot'layıp supervisor'ı oradan çalıştırır. Tüm hatlar bitince imzalı result.json yazar, final.claim ile tam bir kez final master başlatır; allow_apply açıksa yalnız 'python -m respected_orchestrator' komutlarına izin verir.",
-      "relationships": [
-        "runner.create_task/apply_task, maf_workflow.run_maf_coding_task ve processes.execute'u kullanır; project.py bunu faz başına çağırır; __main__ campaign-* komutlarıyla bağlanır.",
-        "tests/test_campaign.py kapsar."
-      ],
-      "review_sha256": "90efe27e4c417bf6c99c6f7f526bcc440cb905612c550bf7cd87c6d2b4315c28"
+      "review_sha256": "ebc8ab3430f938b5a06c41d7cf7a5505a479b76c2c1cc07373b489ffd00b0c7a"
     },
     {
       "path": "src/respected_orchestrator/context.py",
@@ -362,69 +332,38 @@
       "review_sha256": "14834508b876df40314d5fec4b3316d510eb94e9fb7b9367935272e71a4b51ff"
     },
     {
-      "path": "src/respected_orchestrator/integrations.py",
-      "role": "AI istemcisi MCP entegrasyonu",
-      "purpose": "RPP integrations.* işlemlerini uygular: Orchestrator MCP sunucusunu AI istemci yapılandırmalarına (claude-code, codex, cursor, gemini, windsurf, claude-desktop) Discover/Inspect/Plan/Apply/Verify/Rollback akışıyla kaydeder. Yalnızca 'respected-orchestrator' girdisine dokunur; sahip olunmayan veya kullanıcının sonradan düzenlediği girdi ezilmez, apply onaylanan planın özetini ister. Okunamayan bir istemci yapılandırması, istenmeyen diğer istemcilerin planını engellemez (state=unreadable); istenen istemci için hata yine verilir.",
+      "path": "src/respected_orchestrator/engine/__init__.py",
+      "role": "Worker yürütme paketi",
+      "purpose": "AI worker CLI'larını güvenle çalıştıran katman: süreç ve Windows süreç denetimi, kabul sandbox'ı, izole worktree başlatıcısı (antigravity_orchestrator), görev koşucusu (runner), token bütçesi ve başarı kaydı. 2026-10-21'de düz paket bu alt paketlere ayrıldı.",
       "relationships": [
-        "rpp.py tarafından çağrılır; lifecycle (LifecycleError, atomik yazma, makbuz) ve context.safe_path kullanır.",
-        "tests/test_integrations.py ile test edilir."
+        "Kök paketteki __main__.py ve context.py ile diğer alt paketler tarafından içe aktarılır; Hub yalnızca `python -m respected_orchestrator` çağırır, bu yüzden dışarıdan görünen davranış değişmez."
       ],
-      "review_sha256": "0487d062438f87cf5a8a784a30ca0e42e4d5584c2f27ec2ea59a3b9fcaa0b83e"
+      "review_sha256": "a018d4872cc725aab6e7e37b648ab6564f9362eba07c5f8f2c18b123a00f61e8"
     },
     {
-      "path": "src/respected_orchestrator/lifecycle.py",
-      "role": "RPP yaşam döngüsü durumu",
-      "purpose": "Sürümlü kurulum manifestosu, planlar, günlük ve rollback için RPP v1.1 yaşam döngüsü durumunu yönetir (install/update/repair/uninstall). Yalnızca açık kökler üzerinde safe_path ile sınırlı yerel dosya işlemi yapar; kabuk ve ağ yoktur, hatalar LifecycleError üçlüsüyle döner.",
+      "path": "src/respected_orchestrator/engine/antigravity_orchestrator.py",
+      "role": "Çıkarılmış worktree motoru",
+      "purpose": "Policy, lane/worktree, dirty-input overlay, baseline commit, brief, WriterLock, kapsam kontrolü, acceptance ve binary patch dışa aktarımı yardımcılarını ve ortak worker çıkış sınıflandırmasını (sıfır exit'li açık failure reddi dahil) korur. İzin atlatan (permission bypass) komutlar reddedilir; ham apply kapalıdır. WriterLock sahibi ölmüş kilidi geri alır; yaşayan sahip varsa reddeder. (2026-10-21: `src/respected_orchestrator/antigravity_orchestrator.py` yolundan taşındı.)",
       "relationships": [
-        "rpp.py ve integrations.py tarafından kullanılır; context'teki safe_path ve atomic_write_json'a dayanır.",
-        "tests/test_rpp_lifecycle.py ile test edilir."
+        "runner ve processes/context tarafından ortak katman olarak kullanılır; 'antigravity' alt komutu uyumluluk girişi olarak __main__'den çağrılır.",
+        "tests/test_engine.py ve tests/test_codex_results.py kapsar."
       ],
-      "review_sha256": "8f6d6df3c75767aa1550cdff431f09dfb147da8f516861a3e92ce026b628b94a"
+      "review_sha256": "40bb7777b7563b9c7a2a07aaff6f87ffe7f7e62355fc7ff271a89febaf487877"
     },
     {
-      "path": "src/respected_orchestrator/maf_workflow.py",
-      "role": "MAF workflow adapter",
-      "purpose": "Microsoft Agent Framework functional workflow ile eş zamanlı worker fan-out, replayable step cache, checkpoint resume, bağımsız review, önceki başarılı patch'i devralan sınırlı correction ve isteğe bağlı deep review sağlar. Review deadline'ı provider-aware tavan ve pipeline deadline ile sınırlıdır, toplam bütçe worker+review tavanlarından türetilir veya açık timeout_seconds sert sınırdır. Reviewer hatası/geçersiz çıktısı fail-closed kalır; escalate_from_round'dan itibaren düzeltmeyi escalate_profile devralır, önceki implementer bağımsız reviewer olur; imzalı maf-result.json yazılır.",
+      "path": "src/respected_orchestrator/engine/budget.py",
+      "role": "Token bütçesi ve kullanım muhasebesi",
+      "purpose": "Şerit başına token bütçesini ve dürüst kullanım muhasebesini yönetir. Kullanım bildirmeyen ama başlamış adım SIFIR değil BİLİNMEYEN sayılır ve yalnızca bütçe kontrolünde varsayılan bir ücretle yazılır; hiç başlamayan adım sayılmaz. (2026-10-21: `src/respected_orchestrator/budget.py` yolundan taşındı.)",
       "relationships": [
-        "runner execute_task/create_task/check_result ve vertical_slice run_codex_call adaptörlerini kullanır; __main__ 'maf' komutu ve campaign tarafından çağrılır.",
-        "tests/test_maf_coding.py kapsar."
+        "Proje/kampanya bütçe kontrolleri ve runner tarafından çağrılır; engine sonuçlarındaki usage alanlarını okur.",
+        "tests/test_token_budget.py ile test edilir."
       ],
-      "review_sha256": "a112976176ce3b17b875e1d2ecbabb37ff341bb51e5e4fc9108450c8b080500e"
+      "review_sha256": "5ab27ee6c9ff984abcd6537f1b3ee75ae8f1ff0622af24093838228499ab3e23"
     },
     {
-      "path": "src/respected_orchestrator/mcp_server.py",
-      "role": "Vendor-bağımsız MCP stdio ön yüzü",
-      "purpose": "Orchestrator motorunu yalnızca standart kütüphaneyle MCP (stdio) araçları olarak sunar (plan, task_start, project_start, progress, evidence, resume, cancel, memory_note, apply). Motorun onayları geçerli kalır, apply doğrulanmış patch özetini ister ve orkestre edilen süreçler (RESPECTED_ORCH_DELEGATED) araç görmez, böylece özyinelemeli delegasyon olmaz. MCP üzerinden custom worker, command, apply_root ve engine_source reddedilir (--allow-auto-apply ile açılır). Özel seçenekler için ayrı --allow-privileged anahtarı vardır; acceptance/verify komutları roles.acceptance_allowed ile kullanıcının mcp_acceptance_allow önek listesine karşı denetlenir (varsayılan boş). `initialize` yanıtı kod-orkestrasyon skill'inin kurallar kısmını (front matter ve CLI kampanya bölümü hariç) MCP `instructions` olarak verir; böylece bağlanan her AI istemcisi skill'i ayrı dosya kurulmadan alır.",
-      "relationships": [
-        "AI istemcileri integrations.py ile kaydedilen komutla başlatır; campaign, project, roles, runner ve context motor işlevlerini çağırır.",
-        "tests/test_mcp_server.py ile test edilir."
-      ],
-      "review_sha256": "2072a512643df38d979c28263a2046d95a947d4327ccf2875a98ba65a8163449"
-    },
-    {
-      "path": "src/respected_orchestrator/memory.py",
-      "role": "İsteğe bağlı SecondBrain bellek istemcisi",
-      "purpose": "SecondBrain'in salt-okunur RPP 'memory.recall' işlemi için isteğe bağlı, hata-yumuşak istemcidir. Grant token gizlidir: yalnızca data_root/memory-token içinde durur, çocuğun stdin'inden geçer ve çıktıdan üretilen mesajlardan temizlenir; dönen notlar güvenilmez veri olarak işaretlenir.",
-      "relationships": [
-        "rpp.py ayarlarını ve runner/project bellek bağlamını besler; winproc ile süreç başlatır, token dosyasını runner._restrict_key ile kısıtlar.",
-        "tests/test_memory.py ve tests/test_memory_integration.py ile test edilir."
-      ],
-      "review_sha256": "2e2b23688ec07ccdd724ad18164fdbd0d852b5db54342f9a582b851e93e81c9e"
-    },
-    {
-      "path": "src/respected_orchestrator/planner.py",
-      "role": "Planner rolü yürütücüsü",
-      "purpose": "'planner' rolünü çalıştırılabilir yapar: atanan araç/model bir proje spesifikasyonu taslağı üretir, motor doğrular. Taslak asla başlatılmaz veya motorca düzenlenmez; planlayıcı ataması, kullanım ve doğrulama sonucuyla <data root>/drafts altına kaydedilir ve project-start ile insan/Master onayından sonra başlar.",
-      "relationships": [
-        "mcp_server.py (orchestrator_plan) ve Hub tarafından çağrılır; roles, runner, processes ve antigravity_orchestrator'ı kullanır.",
-        "tests/test_roles.py ve tests/test_project.py ile dolaylı kapsanır."
-      ],
-      "review_sha256": "b30ae0d5e69fcb29e7438659655732be0f6e6c32a00a0223b3c5ea23bdafc5e8"
-    },
-    {
-      "path": "src/respected_orchestrator/processes.py",
+      "path": "src/respected_orchestrator/engine/processes.py",
       "role": "Worker süreç yönetimi",
-      "purpose": "Windows suspended child/job ve POSIX process group ile deadline, cancel, process-tree temizliği ve çıktı akışı sağlar. complete_when/verify_complete ile doğrulanmış completion event'inde ağacı temizleyip ilerler; iptal geç completion'dan üstündür. scrub_environment anahtar/token/secret benzeri değişkenleri çocuğa geçirmez (RESPECTED_WORKER_ENV_ALLOW hariç), çocuğa RESPECTED_ORCH_CHILD=1 koyar ve izole test modunda Codex API çağrılarını reddeder.",
+      "purpose": "Windows suspended child/job ve POSIX process group ile deadline, cancel, process-tree temizliği ve çıktı akışı sağlar. complete_when/verify_complete ile doğrulanmış completion event'inde ağacı temizleyip ilerler; iptal geç completion'dan üstündür. scrub_environment anahtar/token/secret benzeri değişkenleri çocuğa geçirmez (RESPECTED_WORKER_ENV_ALLOW hariç), çocuğa RESPECTED_ORCH_CHILD=1 koyar ve izole test modunda Codex API çağrılarını reddeder. (2026-10-21: `src/respected_orchestrator/processes.py` yolundan taşındı.)",
       "relationships": [
         "runner, antigravity_orchestrator, campaign, project ve vertical_slice worker/acceptance/master süreçlerini buradan çalıştırır.",
         "tests/test_engine.py (tree cleanup, ortam sızıntısı) ve tests/test_codex_results.py dolaylı kapsar."
@@ -432,14 +371,124 @@
       "review_sha256": "9249cc816f5c0075a08c037b59291f4f0b305237b7a7a7f1e08333535ce19210"
     },
     {
-      "path": "src/respected_orchestrator/project.py",
-      "role": "Kalıcı otonom proje/faz supervisor'ı",
-      "purpose": "Tek seferlik yazılmış proje planını (bağımlı fazlar, workstream'ler, deterministik verify komutları, bütçe) imzalı project.json olarak saklar. Detached supervisor her fazı yeni motor snapshot'ı ve mirror ile campaign olarak çalıştırır; yalnız MASTER_APPROVED ve auto_apply ile önceden yetkilendirilmişse hep-ya-hiç apply eder, gerçek kaynakta verify çalıştırır. Sınırlı düzeltme denemesi, zaman/token bütçesi, iptal dosyası, pid'li tek-supervisor kilidi, resume ve isteğe bağlı final review sağlar. Faz verify komutları sandbox'tan ve temizlenmiş ortamdan (scrub_env, çocuk işareti) geçer.",
+      "path": "src/respected_orchestrator/engine/runner.py",
+      "role": "Tek görev worker yürütücüsü",
+      "purpose": "Create/start/list/inspect/cancel/check/retry ile imzalı yaşam döngüsünü; Codex brief/strict JSONL, scope, acceptance, freshness ve correction patch hash/scope doğrulamasını yürütür. Codex açık --sandbox workspace-write ve approval_policy=never ile çalışır, MiMo profilleri reddedilir, reviewer implementer'dan farklı olmalıdır, .engine-key Windows'ta mevcut kullanıcıya ACL'lenir. apply_task doğrulanmış (gerekirse insan onaylı) patch'i commit etmeden uygular; maf-approve yalnız etkileşimli operatör terminalinde, patch_sha256'ya bağlı ve değiştirilemez onay verir. Kabul komutları sandbox.wrap ile kısıtlı token'da çalışır (kurulamazsa sandbox_unavailable ile fail-closed), kabul öncesi worker'ın bıraktığı __pycache__/.pyc silinir (üretilen dosya sayısı yine raporlanır); Windows'ta .cmd/.bat worker kabukları kullanılamaz, görev metni Windows'ta 20000 karakterle sınırlıdır, bypass bayrağı kontrolü genişletildi, retry açık memory kararını korur, tester/coordinator rolleri ROLE_NOT_EXECUTABLE ile reddedilir. (2026-10-21: `src/respected_orchestrator/runner.py` yolundan taşındı.)",
       "relationships": [
-        "campaign.create_campaign/run_campaign/_snapshot_engine, runner.apply_task ve processes.execute'u kullanır; __main__ project-* komutlarıyla bağlanır.",
-        "tests/test_project.py kapsar."
+        "context, processes ve antigravity_orchestrator katmanlarını kullanır; __main__, maf_workflow, campaign ve project tarafından çağrılır.",
+        "tests/test_engine.py, tests/test_codex_results.py ve tests/test_maf_coding.py kapsar."
       ],
-      "review_sha256": "456d1f300893ecc34e1b4ef6482e2d5844d459aa15a707f3d7e7b99610ae2d57"
+      "review_sha256": "ea43e99fcbfc538f81970f1dcb4f939e23419b27b52e0d2da30a92cd88e13d78"
+    },
+    {
+      "path": "src/respected_orchestrator/engine/sandbox.py",
+      "role": "Güvenilmeyen kod sınır katmanı",
+      "purpose": "Motorun kendi çalıştırdığı worker yazımı kodun (kabul ve verify komutları) yetkisini sınırlar: Windows'ta veri kökü başına rastgele bir SID üretir, veri kökünün (workspaces hariç) tüm çocuklarına ve .engine-key dosyasına bu SID için inheritable DENY ACE ekler, OWNER RIGHTS ACE ile sahibin örtük WRITE_DAC hakkını kaldırır ve komutu sandbox_exec üzerinden kısıtlı token ile çalıştıracak biçimde sarar (wrap). Sınır kurulamazsa SandboxError verir (fail-closed); RESPECTED_ORCH_SANDBOX=off yalnızca açık geliştirici anahtarıdır. Karar: docs/decisions/ACCEPTANCE_SANDBOX.md. (2026-10-21: `src/respected_orchestrator/sandbox.py` yolundan taşındı.)",
+      "relationships": [
+        "runner (kabul komutları) ve project (_verify) tarafından çağrılır; anahtar yolunu runner._key_path verir.",
+        "sandbox_exec ile birlikte çalışır; PowerShell ACL kurulumunu winproc.run ile gizli pencerede yürütür.",
+        "tests/test_sandbox.py gerçek saldırı denemeleri ve negatif kontrolle sınırı kanıtlar."
+      ],
+      "review_sha256": "d3097c73d02ab18619ec25289316eca6d56cc14ffb4e6dd3c2e5165e4b264027"
+    },
+    {
+      "path": "src/respected_orchestrator/engine/sandbox_exec.py",
+      "role": "Kısıtlı token ile komut çalıştırıcı",
+      "purpose": "python -m ... sandbox_exec --sid SID -- komut: çağıranın token'ından CreateRestrictedToken ile (kullanıcının tüm SID'leri + veri köküne ait ek SID kısıtlayıcı SID olarak, DISABLE_MAX_PRIVILEGE) yeni bir token üretir ve komutu CreateProcessAsUser ile çağıranın standart tutamaçlarıyla başlatır; çıkış kodunu döndürür. Çağıranın job nesnesi (süreç ağacı sonlandırma, zaman aşımı) çocuk için de geçerlidir. Yalnızca Windows. (2026-10-21: `src/respected_orchestrator/sandbox_exec.py` yolundan taşındı.)",
+      "relationships": [
+        "sandbox.wrap tarafından komut öneki olarak eklenir; processes.execute bunu sıradan bir süreç gibi yönetir.",
+        "tests/test_sandbox.py ile doğrulanır."
+      ],
+      "review_sha256": "b7bcab7e01f84b5dc74d4979714fbaf0123615b6156ed68beb44d91c84801270"
+    },
+    {
+      "path": "src/respected_orchestrator/engine/track_record.py",
+      "role": "Ölçülü araç/profil sicili",
+      "purpose": "(araç, profil) başına başarı, token ve süre sicilini bu kurulumun imzalı run kanıtından okur. Yalnızca imzası doğrulanan kanıt sayılır; imzasız, kurcalanmış veya kısmi kayıt atlanır. Adayları yalnızca sıralar, asla elemez; geçmiş MIN_RUNS altındaysa kullanılabilir geçmiş yoktur. (2026-10-21: `src/respected_orchestrator/track_record.py` yolundan taşındı.)",
+      "relationships": [
+        "runner._track_record ve roles otomatik atama tarafından çağrılır; runner._load ve EngineContext kullanır.",
+        "tests/test_roles.py ve tests/test_reviewer_reliability.py ile kapsanır."
+      ],
+      "review_sha256": "0460b1ebe3400a1a774f7d8aad7f0ade8e83cfa4878aa266217a454656598fff"
+    },
+    {
+      "path": "src/respected_orchestrator/engine/vertical_slice.py",
+      "role": "Autonomous vertical slice",
+      "purpose": "Codex çağrı adaptörünü (run_codex_call, CodexOutcome, diagnose) ve GLM master planı + paralel Codex worker + bounded correction + deterministik test + final gate dikey dilimini sağlar. turn.completed'da beklemeden ilerler; stream_verified_complete turn.failed görülen akışı başarıya çevirmez; diagnose yapılandırılmış JSONL kanıtını stderr regex'inden üstün tutar ve confidence raporlar. MiMo profilleri reddedilir, reviewer süreçleri scrub_env ile çalışır. (2026-10-21: `src/respected_orchestrator/vertical_slice.py` yolundan taşındı.)",
+      "relationships": [
+        "processes.execute ve context'i kullanır; maf_workflow ve runner Codex çağrıları için buradan yararlanır.",
+        "tests/test_codex_results.py ve tests/test_maf_coding.py dolaylı kapsar."
+      ],
+      "review_sha256": "7ce1ae7bac2214d93ea2881a9065ce9f57b15f32195dfc7e2a8a9a55c879ffbf"
+    },
+    {
+      "path": "src/respected_orchestrator/engine/winproc.py",
+      "role": "Windows süreç başlatma yardımcısı",
+      "purpose": "Windows'ta çocuk süreçleri konsol penceresi açmadan başlatır; ayrık supervisor'ların git/python/icacls çağrıları görünür pencere açmasın diye bayraklar tek yerde tutulur. Çıktı, hata, çıkış kodu ve zaman aşımı davranışı değişmez; Windows dışında boş seçenek döner. (2026-10-21: `src/respected_orchestrator/winproc.py` yolundan taşındı.)",
+      "relationships": [
+        "Paketteki süreç başlatan modüller (memory, runner, processes vb.) tarafından kullanılır.",
+        "tests/test_windows_processes.py ile test edilir."
+      ],
+      "review_sha256": "993ec6f1b5232d556db4cfded70a0ecbcb882ba4cb56cc12b2babf1f7db4e7ed"
+    },
+    {
+      "path": "src/respected_orchestrator/interfaces/__init__.py",
+      "role": "Arayüz paketi",
+      "purpose": "Dışarının motorla konuştuğu yollar: AI istemcileri için MCP sunucusu, Respected Hub için RPP, yaşam döngüsü/entegrasyon kayıtları ve SecondBrain hafıza bağlantısı. 2026-10-21'de düz paket bu alt paketlere ayrıldı.",
+      "relationships": [
+        "Kök paketteki __main__.py ve context.py ile diğer alt paketler tarafından içe aktarılır; Hub yalnızca `python -m respected_orchestrator` çağırır, bu yüzden dışarıdan görünen davranış değişmez."
+      ],
+      "review_sha256": "f53c4cf7b21fe64850c69e1b9d67103b705749aef8040bbf9dc39b9c6f56d735"
+    },
+    {
+      "path": "src/respected_orchestrator/interfaces/integrations.py",
+      "role": "AI istemcisi MCP entegrasyonu",
+      "purpose": "RPP integrations.* işlemlerini uygular: Orchestrator MCP sunucusunu AI istemci yapılandırmalarına (claude-code, codex, cursor, gemini, windsurf, claude-desktop) Discover/Inspect/Plan/Apply/Verify/Rollback akışıyla kaydeder. Yalnızca 'respected-orchestrator' girdisine dokunur; sahip olunmayan veya kullanıcının sonradan düzenlediği girdi ezilmez, apply onaylanan planın özetini ister. Okunamayan bir istemci yapılandırması, istenmeyen diğer istemcilerin planını engellemez (state=unreadable); istenen istemci için hata yine verilir. (2026-10-21: `src/respected_orchestrator/integrations.py` yolundan taşındı.)",
+      "relationships": [
+        "interfaces/rpp.py tarafından çağrılır; lifecycle (LifecycleError, atomik yazma, makbuz) ve context.safe_path kullanır.",
+        "tests/test_integrations.py ile test edilir."
+      ],
+      "review_sha256": "aa83df81039af00a4d98b3862f6c4a420ded7c605dd06cd1d8e7f1545cb302f3"
+    },
+    {
+      "path": "src/respected_orchestrator/interfaces/lifecycle.py",
+      "role": "RPP yaşam döngüsü durumu",
+      "purpose": "Sürümlü kurulum manifestosu, planlar, günlük ve rollback için RPP v1.1 yaşam döngüsü durumunu yönetir (install/update/repair/uninstall). Yalnızca açık kökler üzerinde safe_path ile sınırlı yerel dosya işlemi yapar; kabuk ve ağ yoktur, hatalar LifecycleError üçlüsüyle döner. (2026-10-21: `src/respected_orchestrator/lifecycle.py` yolundan taşındı.)",
+      "relationships": [
+        "interfaces/rpp.py ve interfaces/integrations.py tarafından kullanılır; context'teki safe_path ve atomic_write_json'a dayanır.",
+        "tests/test_rpp_lifecycle.py ile test edilir."
+      ],
+      "review_sha256": "5ff177ab47cdefb5855002bb995be04c360ea0bbed4f33461e963a13e5b0ee5d"
+    },
+    {
+      "path": "src/respected_orchestrator/interfaces/mcp_server.py",
+      "role": "Vendor-bağımsız MCP stdio ön yüzü",
+      "purpose": "Orchestrator motorunu yalnızca standart kütüphaneyle MCP (stdio) araçları olarak sunar (plan, task_start, project_start, progress, evidence, resume, cancel, memory_note, apply). Motorun onayları geçerli kalır, apply doğrulanmış patch özetini ister ve orkestre edilen süreçler (RESPECTED_ORCH_DELEGATED) araç görmez, böylece özyinelemeli delegasyon olmaz. MCP üzerinden custom worker, command, apply_root ve engine_source reddedilir (--allow-auto-apply ile açılır). Özel seçenekler için ayrı --allow-privileged anahtarı vardır; acceptance/verify komutları roles.acceptance_allowed ile kullanıcının mcp_acceptance_allow önek listesine karşı denetlenir (varsayılan boş). `initialize` yanıtı kod-orkestrasyon skill'inin kurallar kısmını (front matter ve CLI kampanya bölümü hariç) MCP `instructions` olarak verir; böylece bağlanan her AI istemcisi skill'i ayrı dosya kurulmadan alır. (2026-10-21: `src/respected_orchestrator/mcp_server.py` yolundan taşındı.)",
+      "relationships": [
+        "AI istemcileri interfaces/integrations.py ile kaydedilen komutla başlatır; campaign, project, roles, runner ve context motor işlevlerini çağırır.",
+        "tests/test_mcp_server.py ile test edilir."
+      ],
+      "review_sha256": "3c8a922ba766abb3c2e72e7677519426766dd3e8d512a50ef80e0dc0e56ca9bd"
+    },
+    {
+      "path": "src/respected_orchestrator/interfaces/memory.py",
+      "role": "İsteğe bağlı SecondBrain bellek istemcisi",
+      "purpose": "SecondBrain'in salt-okunur RPP 'memory.recall' işlemi için isteğe bağlı, hata-yumuşak istemcidir. Grant token gizlidir: yalnızca data_root/memory-token içinde durur, çocuğun stdin'inden geçer ve çıktıdan üretilen mesajlardan temizlenir; dönen notlar güvenilmez veri olarak işaretlenir. (2026-10-21: `src/respected_orchestrator/memory.py` yolundan taşındı.)",
+      "relationships": [
+        "interfaces/rpp.py ayarlarını ve runner/project bellek bağlamını besler; winproc ile süreç başlatır, token dosyasını runner._restrict_key ile kısıtlar.",
+        "tests/test_memory.py ve tests/test_memory_integration.py ile test edilir."
+      ],
+      "review_sha256": "919fdf3794753c048e9542671d4b7470be491bb2eef664b848c0272975f40638"
+    },
+    {
+      "path": "src/respected_orchestrator/interfaces/rpp.py",
+      "role": "RPP v1.0/1.1 protokol girişi",
+      "purpose": "Respected Product Protocol: bir JSON istek alır, tek satır JSON yanıt döner. Hub ve testler için özel modüldür; daemon değildir ve ağ dinlemez. Her hata yapılandırılmış hata üçlüsü olarak döner, fırlatılmaz; yetenekleri, ayar şemasını ve lifecycle/memory/roles/runner işlemlerini yönlendirir. (2026-10-21: `src/respected_orchestrator/rpp.py` yolundan taşındı.)",
+      "relationships": [
+        "Hub ve testler çağırır; lifecycle, memory, roles, runner, integrations ve context'i kullanır.",
+        "tests/test_rpp.py ve tests/test_rpp_lifecycle.py ile test edilir."
+      ],
+      "review_sha256": "b7ee773b26127c6c26f79b89bb044affd5c93b0023c2df5c0772b7d6a4a571c4"
     },
     {
       "path": "src/respected_orchestrator/resources/policy.json",
@@ -460,85 +509,63 @@
       "review_sha256": "16594310efec3f4c78757d3184aa559a9f4480477f374adfe9eb81b878d9e04f"
     },
     {
-      "path": "src/respected_orchestrator/roles.py",
+      "path": "src/respected_orchestrator/workflows/__init__.py",
+      "role": "İş akışı paketi",
+      "purpose": "Motorun üzerindeki görev akışları: MAF kodlama hattı, planlayıcı, rol/model ataması, kampanyalar ve projeler. 2026-10-21'de düz paket bu alt paketlere ayrıldı.",
+      "relationships": [
+        "Kök paketteki __main__.py ve context.py ile diğer alt paketler tarafından içe aktarılır; Hub yalnızca `python -m respected_orchestrator` çağırır, bu yüzden dışarıdan görünen davranış değişmez."
+      ],
+      "review_sha256": "303b0aa80172e7a8b17549fad473ebea743a561628fd8a4034c6ac205d5bfbfa"
+    },
+    {
+      "path": "src/respected_orchestrator/workflows/campaign.py",
+      "role": "Kalıcı çok-repo kampanya supervisor'ı",
+      "purpose": "Claude master'ın devrettiği 1..8 workstream'i detached supervisor ile paralel MAF hatlarına çevirir (ayrı data-root, WriterLock, anahtar ve çalışma alanı; after ile bağımlılık). Non-Git kaynak için gizli dosyalar hariç geçici Git mirror kurar, doğrulanmış patch'i apply_root'a uygulatır ve motoru snapshot'layıp supervisor'ı oradan çalıştırır. Tüm hatlar bitince imzalı result.json yazar, final.claim ile tam bir kez final master başlatır; allow_apply açıksa yalnız 'python -m respected_orchestrator' komutlarına izin verir. (2026-10-21: `src/respected_orchestrator/campaign.py` yolundan taşındı.)",
+      "relationships": [
+        "runner.create_task/apply_task, maf_workflow.run_maf_coding_task ve processes.execute'u kullanır; workflows/project.py bunu faz başına çağırır; __main__ campaign-* komutlarıyla bağlanır.",
+        "tests/test_campaign.py kapsar."
+      ],
+      "review_sha256": "35ea903724ce7e240dfd167c466cb47c47b43be45423269e1177f8b560256dad"
+    },
+    {
+      "path": "src/respected_orchestrator/workflows/maf_workflow.py",
+      "role": "MAF workflow adapter",
+      "purpose": "Microsoft Agent Framework functional workflow ile eş zamanlı worker fan-out, replayable step cache, checkpoint resume, bağımsız review, önceki başarılı patch'i devralan sınırlı correction ve isteğe bağlı deep review sağlar. Review deadline'ı provider-aware tavan ve pipeline deadline ile sınırlıdır, toplam bütçe worker+review tavanlarından türetilir veya açık timeout_seconds sert sınırdır. Reviewer hatası/geçersiz çıktısı fail-closed kalır; escalate_from_round'dan itibaren düzeltmeyi escalate_profile devralır, önceki implementer bağımsız reviewer olur; imzalı maf-result.json yazılır. (2026-10-21: `src/respected_orchestrator/maf_workflow.py` yolundan taşındı.)",
+      "relationships": [
+        "runner execute_task/create_task/check_result ve vertical_slice run_codex_call adaptörlerini kullanır; __main__ 'maf' komutu ve campaign tarafından çağrılır.",
+        "tests/test_maf_coding.py kapsar."
+      ],
+      "review_sha256": "5adb3a5a7b7dc2ea88ad7f3d0ab7be2e4f3debec641f0d2c39efaed99d918ed3"
+    },
+    {
+      "path": "src/respected_orchestrator/workflows/planner.py",
+      "role": "Planner rolü yürütücüsü",
+      "purpose": "'planner' rolünü çalıştırılabilir yapar: atanan araç/model bir proje spesifikasyonu taslağı üretir, motor doğrular. Taslak asla başlatılmaz veya motorca düzenlenmez; planlayıcı ataması, kullanım ve doğrulama sonucuyla <data root>/drafts altına kaydedilir ve project-start ile insan/Master onayından sonra başlar. (2026-10-21: `src/respected_orchestrator/planner.py` yolundan taşındı.)",
+      "relationships": [
+        "interfaces/mcp_server.py (orchestrator_plan) ve Hub tarafından çağrılır; roles, runner, processes ve antigravity_orchestrator'ı kullanır.",
+        "tests/test_roles.py ve tests/test_project.py ile dolaylı kapsanır."
+      ],
+      "review_sha256": "76930286466eb5751f2844018ba4c7d630d0f938307d0a936f05ba7570726401"
+    },
+    {
+      "path": "src/respected_orchestrator/workflows/project.py",
+      "role": "Kalıcı otonom proje/faz supervisor'ı",
+      "purpose": "Tek seferlik yazılmış proje planını (bağımlı fazlar, workstream'ler, deterministik verify komutları, bütçe) imzalı project.json olarak saklar. Detached supervisor her fazı yeni motor snapshot'ı ve mirror ile campaign olarak çalıştırır; yalnız MASTER_APPROVED ve auto_apply ile önceden yetkilendirilmişse hep-ya-hiç apply eder, gerçek kaynakta verify çalıştırır. Sınırlı düzeltme denemesi, zaman/token bütçesi, iptal dosyası, pid'li tek-supervisor kilidi, resume ve isteğe bağlı final review sağlar. Faz verify komutları sandbox'tan ve temizlenmiş ortamdan (scrub_env, çocuk işareti) geçer. (2026-10-21: `src/respected_orchestrator/project.py` yolundan taşındı.)",
+      "relationships": [
+        "campaign.create_campaign/run_campaign/_snapshot_engine, runner.apply_task ve processes.execute'u kullanır; __main__ project-* komutlarıyla bağlanır.",
+        "tests/test_project.py kapsar."
+      ],
+      "review_sha256": "239c20ffd310635c72cc467552822285a008fa7e2abada18071fd671381e79af"
+    },
+    {
+      "path": "src/respected_orchestrator/workflows/roles.py",
       "role": "Vendor-bağımsız rol ataması",
-      "purpose": "Rolleri (implementer, reviewer, planner vb.) profil ve araçlarla eşler; hiçbir model bir role bağlanmaz. Öncelik: açık görev ataması > Hub varsayılanı > otomatik öneri (isteğe bağlı); açık atama sessizce değiştirilmez, kullanılamazsa kendi yedeği yoksa hata verir. Engelli profil listesi ve Hub ayar alanlarını da yönetir. Profil adı düz model adı karakter kümesiyle sınırlıdır (kabuk/argüman enjeksiyonunu önler). mcp_acceptance_allow ayarı (JSON komut önekleri listesi), doğrulaması ve acceptance_allowed denetimi eklendi.",
+      "purpose": "Rolleri (implementer, reviewer, planner vb.) profil ve araçlarla eşler; hiçbir model bir role bağlanmaz. Öncelik: açık görev ataması > Hub varsayılanı > otomatik öneri (isteğe bağlı); açık atama sessizce değiştirilmez, kullanılamazsa kendi yedeği yoksa hata verir. Engelli profil listesi ve Hub ayar alanlarını da yönetir. Profil adı düz model adı karakter kümesiyle sınırlıdır (kabuk/argüman enjeksiyonunu önler). mcp_acceptance_allow ayarı (JSON komut önekleri listesi), doğrulaması ve acceptance_allowed denetimi eklendi. (2026-10-21: `src/respected_orchestrator/roles.py` yolundan taşındı.)",
       "relationships": [
         "planner, mcp_server, runner, project ve rpp tarafından kullanılır; track_record sıralama verisini kullanır.",
         "tests/test_roles.py ile test edilir."
       ],
-      "review_sha256": "0e0c8ce804cc726ae8dd1dd070964e6b281491a8e9022f7bd239110e37c59df3"
-    },
-    {
-      "path": "src/respected_orchestrator/rpp.py",
-      "role": "RPP v1.0/1.1 protokol girişi",
-      "purpose": "Respected Product Protocol: bir JSON istek alır, tek satır JSON yanıt döner. Hub ve testler için özel modüldür; daemon değildir ve ağ dinlemez. Her hata yapılandırılmış hata üçlüsü olarak döner, fırlatılmaz; yetenekleri, ayar şemasını ve lifecycle/memory/roles/runner işlemlerini yönlendirir.",
-      "relationships": [
-        "Hub ve testler çağırır; lifecycle, memory, roles, runner, integrations ve context'i kullanır.",
-        "tests/test_rpp.py ve tests/test_rpp_lifecycle.py ile test edilir."
-      ],
-      "review_sha256": "24d91c49ee59b2b6538fbec96ede05c830cf987a16d64acd4c6e31e83941315c"
-    },
-    {
-      "path": "src/respected_orchestrator/runner.py",
-      "role": "Tek görev worker yürütücüsü",
-      "purpose": "Create/start/list/inspect/cancel/check/retry ile imzalı yaşam döngüsünü; Codex brief/strict JSONL, scope, acceptance, freshness ve correction patch hash/scope doğrulamasını yürütür. Codex açık --sandbox workspace-write ve approval_policy=never ile çalışır, MiMo profilleri reddedilir, reviewer implementer'dan farklı olmalıdır, .engine-key Windows'ta mevcut kullanıcıya ACL'lenir. apply_task doğrulanmış (gerekirse insan onaylı) patch'i commit etmeden uygular; maf-approve yalnız etkileşimli operatör terminalinde, patch_sha256'ya bağlı ve değiştirilemez onay verir. Kabul komutları sandbox.wrap ile kısıtlı token'da çalışır (kurulamazsa sandbox_unavailable ile fail-closed), kabul öncesi worker'ın bıraktığı __pycache__/.pyc silinir (üretilen dosya sayısı yine raporlanır); Windows'ta .cmd/.bat worker kabukları kullanılamaz, görev metni Windows'ta 20000 karakterle sınırlıdır, bypass bayrağı kontrolü genişletildi, retry açık memory kararını korur, tester/coordinator rolleri ROLE_NOT_EXECUTABLE ile reddedilir.",
-      "relationships": [
-        "context, processes ve antigravity_orchestrator katmanlarını kullanır; __main__, maf_workflow, campaign ve project tarafından çağrılır.",
-        "tests/test_engine.py, tests/test_codex_results.py ve tests/test_maf_coding.py kapsar."
-      ],
-      "review_sha256": "90b26157cb392db2868ddd4d84e6c44f408a18651b42d27a89d8e2b80d27aa6e"
-    },
-    {
-      "path": "src/respected_orchestrator/sandbox.py",
-      "role": "Güvenilmeyen kod sınır katmanı",
-      "purpose": "Motorun kendi çalıştırdığı worker yazımı kodun (kabul ve verify komutları) yetkisini sınırlar: Windows'ta veri kökü başına rastgele bir SID üretir, veri kökünün (workspaces hariç) tüm çocuklarına ve .engine-key dosyasına bu SID için inheritable DENY ACE ekler, OWNER RIGHTS ACE ile sahibin örtük WRITE_DAC hakkını kaldırır ve komutu sandbox_exec üzerinden kısıtlı token ile çalıştıracak biçimde sarar (wrap). Sınır kurulamazsa SandboxError verir (fail-closed); RESPECTED_ORCH_SANDBOX=off yalnızca açık geliştirici anahtarıdır. Karar: docs/decisions/ACCEPTANCE_SANDBOX.md.",
-      "relationships": [
-        "runner (kabul komutları) ve project (_verify) tarafından çağrılır; anahtar yolunu runner._key_path verir.",
-        "sandbox_exec ile birlikte çalışır; PowerShell ACL kurulumunu winproc.run ile gizli pencerede yürütür.",
-        "tests/test_sandbox.py gerçek saldırı denemeleri ve negatif kontrolle sınırı kanıtlar."
-      ],
-      "review_sha256": "1079ebb660a17e5e675f8221444b80a3f92f5d9bfeb260c98a0d54836ff031c6"
-    },
-    {
-      "path": "src/respected_orchestrator/sandbox_exec.py",
-      "role": "Kısıtlı token ile komut çalıştırıcı",
-      "purpose": "python -m ... sandbox_exec --sid SID -- komut: çağıranın token'ından CreateRestrictedToken ile (kullanıcının tüm SID'leri + veri köküne ait ek SID kısıtlayıcı SID olarak, DISABLE_MAX_PRIVILEGE) yeni bir token üretir ve komutu CreateProcessAsUser ile çağıranın standart tutamaçlarıyla başlatır; çıkış kodunu döndürür. Çağıranın job nesnesi (süreç ağacı sonlandırma, zaman aşımı) çocuk için de geçerlidir. Yalnızca Windows.",
-      "relationships": [
-        "sandbox.wrap tarafından komut öneki olarak eklenir; processes.execute bunu sıradan bir süreç gibi yönetir.",
-        "tests/test_sandbox.py ile doğrulanır."
-      ],
-      "review_sha256": "886261f9061b876b1c186810823b285f42beab51a817a29c3de223866ad7375c"
-    },
-    {
-      "path": "src/respected_orchestrator/track_record.py",
-      "role": "Ölçülü araç/profil sicili",
-      "purpose": "(araç, profil) başına başarı, token ve süre sicilini bu kurulumun imzalı run kanıtından okur. Yalnızca imzası doğrulanan kanıt sayılır; imzasız, kurcalanmış veya kısmi kayıt atlanır. Adayları yalnızca sıralar, asla elemez; geçmiş MIN_RUNS altındaysa kullanılabilir geçmiş yoktur.",
-      "relationships": [
-        "runner._track_record ve roles otomatik atama tarafından çağrılır; runner._load ve EngineContext kullanır.",
-        "tests/test_roles.py ve tests/test_reviewer_reliability.py ile kapsanır."
-      ],
-      "review_sha256": "9cd4178f64d27c2ac94036df3218de297e30a12b68dad4ea29fe06594747ebbb"
-    },
-    {
-      "path": "src/respected_orchestrator/vertical_slice.py",
-      "role": "Autonomous vertical slice",
-      "purpose": "Codex çağrı adaptörünü (run_codex_call, CodexOutcome, diagnose) ve GLM master planı + paralel Codex worker + bounded correction + deterministik test + final gate dikey dilimini sağlar. turn.completed'da beklemeden ilerler; stream_verified_complete turn.failed görülen akışı başarıya çevirmez; diagnose yapılandırılmış JSONL kanıtını stderr regex'inden üstün tutar ve confidence raporlar. MiMo profilleri reddedilir, reviewer süreçleri scrub_env ile çalışır.",
-      "relationships": [
-        "processes.execute ve context'i kullanır; maf_workflow ve runner Codex çağrıları için buradan yararlanır.",
-        "tests/test_codex_results.py ve tests/test_maf_coding.py dolaylı kapsar."
-      ],
-      "review_sha256": "d76cf07402b0b363f32395cc1b1707b5467debceb25f240c07c7fe6aee272765"
-    },
-    {
-      "path": "src/respected_orchestrator/winproc.py",
-      "role": "Windows süreç başlatma yardımcısı",
-      "purpose": "Windows'ta çocuk süreçleri konsol penceresi açmadan başlatır; ayrık supervisor'ların git/python/icacls çağrıları görünür pencere açmasın diye bayraklar tek yerde tutulur. Çıktı, hata, çıkış kodu ve zaman aşımı davranışı değişmez; Windows dışında boş seçenek döner.",
-      "relationships": [
-        "Paketteki süreç başlatan modüller (memory, runner, processes vb.) tarafından kullanılır.",
-        "tests/test_windows_processes.py ile test edilir."
-      ],
-      "review_sha256": "993ec6f1b5232d556db4cfded70a0ecbcb882ba4cb56cc12b2babf1f7db4e7ed"
+      "review_sha256": "1c18836950ef45a47fb5b820a4592b31fc7430dd89364340d64b5ed5ffe605a2"
     },
     {
       "path": "tests/__init__.py",
@@ -565,7 +592,7 @@
       "relationships": [
         "Temporary Git/fake worker kullanır; Brain veya canlı provider ayarı gerekmez."
       ],
-      "review_sha256": "2a8fa61b332170fcabe36c39042c67c443112d5b2d43a5fb7c9044ce04909851"
+      "review_sha256": "02a2a4d0c79fdccb61761a4a14c11815aae1a62a074c736248ace6589ab5c74c"
     },
     {
       "path": "tests/test_campaign.py",
@@ -574,7 +601,7 @@
       "relationships": [
         "src/respected_orchestrator/campaign.py ve runner.apply_task'ı sınar; tests/test_project.py aynı fixture yaklaşımını paylaşır."
       ],
-      "review_sha256": "e7364aa42bfa7f9da9b32a6a55b5d22e375530c5aa3c1d4dcf995fbdb3fa1595"
+      "review_sha256": "806a9bc79761fffcb8b8b2f7c49f866ff31cd24ceb2ff0012490aafa37d6f36c"
     },
     {
       "path": "tests/test_codex_results.py",
@@ -583,7 +610,7 @@
       "relationships": [
         "runner ve antigravity_orchestrator kodunu geçici teknik veriyle çalıştırır; Git ve worker alt süreci taklit edilir, canlı model çağrılmaz."
       ],
-      "review_sha256": "6737f8c2afee64367b09c26d3c8d3c148e77f6eb778e1c45efc5f48cc2915de5"
+      "review_sha256": "fccf54635ee2dd29bc6859c2012d0972f82a484d16b1ea10fc6534d921492bf6"
     },
     {
       "path": "tests/test_completion_deadlines.py",
@@ -592,7 +619,7 @@
       "relationships": [
         "processes.execute, vertical_slice completion/cause yardımcıları, maf_workflow review_timeout_default ve runner._workflow ile model çağrısı olmadan çalışır."
       ],
-      "review_sha256": "1d755c19c8a577590500a5da6169c1b0f9dfa93261e3da5ba30fb17e2f080040"
+      "review_sha256": "7cd1f1f7c7fb3e7087609c04c34c6a0d0bd27e41c1f3ebd117f0c6b4f939fe64"
     },
     {
       "path": "tests/test_engine.py",
@@ -601,7 +628,7 @@
       "relationships": [
         "runner, processes ve __main__ gerçek disposable Git projelerinde çalışır; Codex CLI sınırı model çağrısı olmadan taklit edilir."
       ],
-      "review_sha256": "4c20e4cbad646087923914a1248982b9779c9241ef9ac2f2a7734100c71141b0"
+      "review_sha256": "330af9430a6ef3989544f8a5fddc39cf613dbf7dccc600ad1f4c17dafc4b6157"
     },
     {
       "path": "tests/test_generated_artifacts.py",
@@ -611,7 +638,7 @@
         "antigravity_orchestrator ve runner (create_task, execute_task, check_result) uçtan uca kullanılır.",
         "Kayıt: A3_A4_ENGINE.md."
       ],
-      "review_sha256": "0d73b0a24e544b7cc38327057f70054f3fe1398e7727dcda198790432ed69a50"
+      "review_sha256": "958e7f2c5e3de6574eabcf1c30401e848148b2af4fa3460cd60df257c23981d4"
     },
     {
       "path": "tests/test_integrations.py",
@@ -621,7 +648,7 @@
         "integrations ve rpp modüllerini çağırır; RPP op'ları yalnız v1.1'de listelenir.",
         "RPP_V1_1.md lifecycle sözleşmesiyle uyumludur."
       ],
-      "review_sha256": "0dcd96b0788eb069143f5f8a5ee8fcc33e1f5a345578f0108b8176974b9f068b"
+      "review_sha256": "43864cd3f9f109907b55ea0d2f193a4fe823c062f551a4674272bc304b901483"
     },
     {
       "path": "tests/test_maf_coding.py",
@@ -630,7 +657,7 @@
       "relationships": [
         "maf_workflow, runner create/execute/check/approve ve __main__ maf/maf-approve sözleşmelerini geçici Git fixture'larıyla canlı model çağrısı olmadan sınar."
       ],
-      "review_sha256": "cd58575e844513082e04ab7c3faba8c5b43ee604b6a1c64dbd1b66d188a9bd8b"
+      "review_sha256": "33b21b42e73263287e1690a9cd6f369e6138be05aa40f66f6b9de7b6648ec1b9"
     },
     {
       "path": "tests/test_maf_coding_demo.py",
@@ -648,7 +675,7 @@
       "relationships": [
         "maf_workflow adaptörünün karar durumlarını canlı model çağrısı olmadan sınar."
       ],
-      "review_sha256": "0bf065ad9ac3f6d6dae4c8b4ce260cf8cdff40bb5a3a68b32f9db6e3da2cf773"
+      "review_sha256": "af5755d19abda9a04c8d4bf6019429e6af173b2b0cf874b6204a395820e70922"
     },
     {
       "path": "tests/test_mcp_server.py",
@@ -658,7 +685,7 @@
         "mcp_server ve runner'ı çağırır.",
         "Kayıt: docs/records/2026-10-15-mcp-access.md."
       ],
-      "review_sha256": "dc111573d1cb69b3f06f026bdfa10f3a2f809ef43fe47eb33c69b5761b9e1abd"
+      "review_sha256": "d5e5cf5687d171a4630101208e23a5949c5646157ee43211851f77387d383223"
     },
     {
       "path": "tests/test_memory.py",
@@ -668,7 +695,7 @@
         "memory modülünü çağırır; token yalnızca stdin ve 0600/ACL dosyasında kalır.",
         "Karar: docs/decisions/MEMORY_INTEGRATION.md."
       ],
-      "review_sha256": "9bce9eff4f6fb025993d493bb5d9b9a5b8a9c311dba62a516a9766cdeeb79b40"
+      "review_sha256": "ca22cc759221c7272cd358c8bcc75c11a5d5d4aa7e39996172a8aa3dbfece512"
     },
     {
       "path": "tests/test_memory_integration.py",
@@ -678,7 +705,7 @@
         "memory, campaign, rpp ve runner kullanır.",
         "Karar: docs/decisions/MEMORY_INTEGRATION.md."
       ],
-      "review_sha256": "2c203209091ae242d39e22c49f15ed48047b7cb8ef1ee37236b00abdae442b23"
+      "review_sha256": "686ac458a973e60cfada917f0651a10ccc6165516fcb5a5e42bb7a27d30ffbc4"
     },
     {
       "path": "tests/test_project.py",
@@ -687,17 +714,17 @@
       "relationships": [
         "src/respected_orchestrator/project.py'yi sınar; tests/test_campaign.py ile fixture yaklaşımını paylaşır."
       ],
-      "review_sha256": "51d40f76bee3b98754e021041a8f7facd2682d39c216f15cb9ca211a6f2a0766"
+      "review_sha256": "838092a70a0210c72180be30370e28fbbf6bb3a5299a9180b1e7b0093dc304d0"
     },
     {
       "path": "tests/test_project_adversarial.py",
       "role": "Proje adversarial testleri",
-      "purpose": "project.py için kötü niyetli ve çökme senaryolarını doğrular: apply sonrası çökmede ikinci apply olmaması, çakışmada engelleme, ProcessStopped sınırlı deneme, iptal, bütçe, kalıcı deadline ve bozuk kilit, bozuk spec için ValueError, reddedilen lane'in sınırlı yeniden denenmesi.",
+      "purpose": "workflows/project.py için kötü niyetli ve çökme senaryolarını doğrular: apply sonrası çökmede ikinci apply olmaması, çakışmada engelleme, ProcessStopped sınırlı deneme, iptal, bütçe, kalıcı deadline ve bozuk kilit, bozuk spec için ValueError, reddedilen lane'in sınırlı yeniden denenmesi.",
       "relationships": [
         "project, campaign, maf_workflow ve runner'ı kullanır.",
         "Karar: docs/decisions/PROJECT_SUPERVISOR_REVIEW.md."
       ],
-      "review_sha256": "c832acdca6f3c2c82ad7610812548ec989d651df3081a0f4725a27b880b52907"
+      "review_sha256": "439ecfe0c858c98e14f908c1b007902929ba250f0311ab8fb80a1f7706778656"
     },
     {
       "path": "tests/test_project_recovery.py",
@@ -707,7 +734,7 @@
         "project, campaign, maf_workflow ve runner'ı kullanır.",
         "Kayıt: LANE_SUMMARY_REVIEW.md ve A3_A4_ENGINE.md."
       ],
-      "review_sha256": "06beda1f5bd826903e9fee05f2cf550a8f486ecf0667da5b19dd43fa4c7da294"
+      "review_sha256": "e5fc8bea8c36aeb9aa1c2376c205832d8be26d32271fdde6c5d7718af3d36d19"
     },
     {
       "path": "tests/test_reviewer_reliability.py",
@@ -717,7 +744,7 @@
         "maf_workflow, vertical_slice, project, campaign ve runner'ı kullanır; modeller sahte çağrılarla taklit edilir.",
         "Kayıt: A1_A2_RELIABILITY.md."
       ],
-      "review_sha256": "04f57a4c8025409c64f5fccb197f8735c5fdef06cb9a5965376f279d98591092"
+      "review_sha256": "1bbfdaf1520958621f5c501cf9c676ef2a4f8dd2bb8ff2bf3710d825dbd5e475"
     },
     {
       "path": "tests/test_roles.py",
@@ -727,17 +754,17 @@
         "roles, maf_workflow ve runner (create_task, inspect_task) kullanılır.",
         "Karar: docs/decisions/ROLE_ASSIGNMENT.md."
       ],
-      "review_sha256": "ea3d0b61aeafbc2b4ece05a3f541013cbfab5d6a5e372cc2a2d8e714c616c2ce"
+      "review_sha256": "ae7b4e95f395c3df7661d0518c3b9fdee4b83c211ac3a1b1867036bff21b96b6"
     },
     {
       "path": "tests/test_rpp.py",
       "role": "RPP testleri",
-      "purpose": "rpp.py'nin v1.0 ve v1.1 davranışını doğrular: her yanıtta tüm anahtarlar, bilinmeyen op, sürüm uzlaşması ve sınırları, operation_id şekli, çöp girdide istisna olmaması, manifest, health, ayar şeması, apply idempotansı ve çakışması, secret maskeleme ve receipt okuma. Ayar şemasının mcp_acceptance_allow alanını da içerdiği doğrulanır.",
+      "purpose": "interfaces/rpp.py'nin v1.0 ve v1.1 davranışını doğrular: her yanıtta tüm anahtarlar, bilinmeyen op, sürüm uzlaşması ve sınırları, operation_id şekli, çöp girdide istisna olmaması, manifest, health, ayar şeması, apply idempotansı ve çakışması, secret maskeleme ve receipt okuma. Ayar şemasının mcp_acceptance_allow alanını da içerdiği doğrulanır.",
       "relationships": [
         "rpp ve EngineContext çağrılır.",
         "Karar: docs/decisions/RPP_V1.md ve RPP_V1_1.md."
       ],
-      "review_sha256": "14fddbf17ab3b431dd6999e3b0eeec571d7769acf655b50702bf2a2a662e695a"
+      "review_sha256": "8df7fcbad462da737e4755ceb7207b3ee73fcd6fe0552a5206a21f7899f719be"
     },
     {
       "path": "tests/test_rpp_lifecycle.py",
@@ -747,7 +774,7 @@
         "rpp ve lifecycle modüllerini çağırır.",
         "Karar: docs/decisions/RPP_V1_1.md; durum: RPP_V11_STATUS.md."
       ],
-      "review_sha256": "530a079863dd207673c0471fefe94dac019ba2259d6a68847418cb81b6a3a37f"
+      "review_sha256": "5718ef732bbb5d6022856573e3e5cf83094f48c2601e20cdc3157438237c00c9"
     },
     {
       "path": "tests/test_sandbox.py",
@@ -756,7 +783,7 @@
       "relationships": [
         "sandbox, sandbox_exec ve runner._signature ile gerçek Windows ACL'leri üzerinde çalışır (yalnızca Windows)."
       ],
-      "review_sha256": "f86ffb70edb862684976fdf511512eab2d6ab129282948db6af4812e6e5617aa"
+      "review_sha256": "c450db9b1b9306dc0be4373a6eefc831bb411efe47b7cf4ff5daa1df16d89cd3"
     },
     {
       "path": "tests/test_test_isolation.py",
@@ -765,7 +792,7 @@
       "relationships": [
         "tests paket işareti ve processes execute guard sözleşmesini sınar; canlı provider çağrısı yapmaz."
       ],
-      "review_sha256": "3910d01c41b4f3383d4439a34120dea12320f199e5ba7a0f578707593712e2de"
+      "review_sha256": "5f2b218fa70bfd95b914c25bdd95361fbabc3daeb18bf797e9b864ed1a975e19"
     },
     {
       "path": "tests/test_token_budget.py",
@@ -775,7 +802,7 @@
         "budget, campaign, project, runner ve maf_workflow kullanır.",
         "Kayıt: A3_A4_ENGINE.md."
       ],
-      "review_sha256": "0511e1df495a6f7b0ee37151380534ee3dfe723aead3d982ff4981491f929851"
+      "review_sha256": "70845662d867b3b373f9b452b00ba91fec506ac78a433e4bb8f10ae84397340f"
     },
     {
       "path": "tests/test_vertical_slice.py",
@@ -784,7 +811,7 @@
       "relationships": [
         "vertical_slice davranışını canlı model olmadan doğrular; canlı EVREN/GPT demo state ayrı tutulur."
       ],
-      "review_sha256": "5fbd4a37688f77aa12d8054bed795edeac61a1cf039c3dd12300e74bcb452e45"
+      "review_sha256": "fb9968930c988c867e1836e1601fe8e97f3261d498df00c95f85d052982022dd"
     },
     {
       "path": "tests/test_windows_processes.py",
@@ -794,7 +821,7 @@
         "winproc, processes ve antigravity_orchestrator'ı kullanır.",
         "Kayıt: A1_A2_RELIABILITY.md konsol penceresi sızıntısı düzeltmesi."
       ],
-      "review_sha256": "4427b21739f0fa82ffae5c0157364fbb133d13922e926e6b37e290bfc2f635af"
+      "review_sha256": "9e822b302de87e9b1a47dff1385761a2104a6b53b2f48cd356a67c58b280cf6e"
     },
     {
       "path": "tests/test_worker_environment.py",
@@ -803,7 +830,7 @@
       "relationships": [
         "processes.execute gerçek temporary Python child çalıştırır; demo auth sınırı taklit edilir; sandbox marker yalnız temporary fixture içinde yazılır, gerçek Codex/runtime çalıştırılmaz."
       ],
-      "review_sha256": "186466938df4bc4f944a2434eff5c6a19cc749c2d277aa3771d279befa0ddfee"
+      "review_sha256": "628c987c645d00acde9179c9ac203003f2f03fd22aca25d4d8ef46bd74a7d69a"
     },
     {
       "path": "tests/test_worker_status_contract.py",
@@ -812,7 +839,7 @@
       "relationships": [
         "antigravity_orchestrator.render_brief ile temporary template dizinlerini kullanır; worker çalıştırmaz."
       ],
-      "review_sha256": "cd0ddbc6b5b4e7b02d1fd8ed1eea14fdc7c0f61f1803ea3aac55d7471c42e81d"
+      "review_sha256": "57166790180fd83fcbb731230c6a0a41d42b8f1b3a4132b840bcebdeb97bc19f"
     },
     {
       "path": "tools/repository_map.py",
@@ -831,7 +858,7 @@
         "maf_workflow/runner/processes fail-closed kapılarını kullanır; mevcut named profile/home korunur ve explicit config yazılmaz; Codex provisioning yan etkileri evidence kaydında ayrı risk olarak belirtilir.",
         "test_maf_coding_demo argv/acceptance; test_worker_environment auth/marker/child ortamını model çağırmadan doğrular."
       ],
-      "review_sha256": "46c9decf5ccd86f3848e042e6d3f036803b0135af4f2a5db874c8fe13b0cab14"
+      "review_sha256": "a4f0ed0397914c3c3292ada7ee113811b972dc1cc7981c1ae65cc77907dd26d1"
     }
   ]
 }

@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 from . import winproc
-from .context import atomic_write_json, safe_path
+from ..context import atomic_write_json, safe_path
 
 
 class SandboxError(RuntimeError):
@@ -108,6 +108,6 @@ def wrap(data_root, key_path, command):
     if not enabled():
         return list(command)
     sid = protect(data_root, key_path)
-    source = str(Path(__file__).resolve().parents[1])   # importable wherever the engine itself runs from
-    boot = "import sys; sys.path.insert(0, sys.argv[1]); from respected_orchestrator import sandbox_exec; sys.exit(sandbox_exec.main(sys.argv[2:]))"
+    source = str(Path(__file__).resolve().parents[2])   # importable wherever the engine itself runs from
+    boot = "import sys; sys.path.insert(0, sys.argv[1]); from respected_orchestrator.engine import sandbox_exec; sys.exit(sandbox_exec.main(sys.argv[2:]))"
     return [sys.executable, "-c", boot, source, "--sid", sid, "--", *command]

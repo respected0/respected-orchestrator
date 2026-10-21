@@ -4,7 +4,7 @@ import unittest
 
 from agent_framework import InMemoryCheckpointStorage
 
-from respected_orchestrator.maf_workflow import run_maf_slice
+from respected_orchestrator.workflows.maf_workflow import run_maf_slice
 
 
 class MafWorkflowTest(unittest.TestCase):

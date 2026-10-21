@@ -2,7 +2,7 @@
 
 > Bu belge `tools/repository_map.py` tarafından `docs/repository_inventory.json` içindeki gözden geçirilmiş açıklamalardan üretilir. Doğrudan bu Markdown dosyasını düzenlemeyin.
 
-**Kapsam:** 86 proje dosyası. Git çalıştırmadan dosya sistemi ve kök ignore kurallarıyla keşfedilen bağımsız ürün kaynağıdır. Bağımlılık/üretim önbellekleri ayrı kategoriler olarak açıklanır.
+**Kapsam:** 89 proje dosyası. Git çalıştırmadan dosya sistemi ve kök ignore kurallarıyla keşfedilen bağımsız ürün kaynağıdır. Bağımlılık/üretim önbellekleri ayrı kategoriler olarak açıklanır.
 
 ## Eksiksiz kaynak ağacı
 
@@ -47,31 +47,37 @@ respected-orchestrator/
 │   └── respected_orchestrator/
 │       ├── __init__.py
 │       ├── __main__.py
-│       ├── antigravity_orchestrator.py
-│       ├── budget.py
-│       ├── campaign.py
 │       ├── context.py
-│       ├── integrations.py
-│       ├── lifecycle.py
-│       ├── maf_workflow.py
-│       ├── mcp_server.py
-│       ├── memory.py
-│       ├── planner.py
-│       ├── processes.py
-│       ├── project.py
+│       ├── engine/
+│       │   ├── __init__.py
+│       │   ├── antigravity_orchestrator.py
+│       │   ├── budget.py
+│       │   ├── processes.py
+│       │   ├── runner.py
+│       │   ├── sandbox.py
+│       │   ├── sandbox_exec.py
+│       │   ├── track_record.py
+│       │   ├── vertical_slice.py
+│       │   └── winproc.py
+│       ├── interfaces/
+│       │   ├── __init__.py
+│       │   ├── integrations.py
+│       │   ├── lifecycle.py
+│       │   ├── mcp_server.py
+│       │   ├── memory.py
+│       │   └── rpp.py
 │       ├── resources/
 │       │   ├── policy.json
 │       │   └── skills/
 │       │       └── kod-orkestrasyon/
 │       │           └── SKILL.md
-│       ├── roles.py
-│       ├── rpp.py
-│       ├── runner.py
-│       ├── sandbox.py
-│       ├── sandbox_exec.py
-│       ├── track_record.py
-│       ├── vertical_slice.py
-│       └── winproc.py
+│       └── workflows/
+│           ├── __init__.py
+│           ├── campaign.py
+│           ├── maf_workflow.py
+│           ├── planner.py
+│           ├── project.py
+│           └── roles.py
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py
@@ -163,7 +169,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** Worker yazımı kodun motor anahtarını okuyup onay/kanıt sahteleyememesi için seçilen kısıtlı token + ACL sınırının gerekçesini, kanıtını ve açıkça belirtilen sınırlarını (profil dosyaları okunabilir, ağ açık, yalnızca Windows) kaydeder.
 
-**İlişkiler ve sınır:** sandbox.py, sandbox_exec.py ve tests/test_sandbox.py ile birlikte okunur.
+**İlişkiler ve sınır:** engine/sandbox.py, engine/sandbox_exec.py ve tests/test_sandbox.py ile birlikte okunur.
 
 #### [`docs/decisions/MCP_PERMISSIONS.md`](../docs/decisions/MCP_PERMISSIONS.md)
 
@@ -171,7 +177,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** MCP üzerinden bağlanan modelin yapabileceklerini sınırlayan kararı kaydeder: özel worker/command/apply_root/engine_source yalnızca --allow-privileged ile, kabul ve verify komutları yalnızca kullanıcının mcp_acceptance_allow önek listesindeyse, bypass bayrakları her yerde reddedilir; sınırları ve kanıtı belirtir.
 
-**İlişkiler ve sınır:** mcp_server.py, roles.py ve runner._command ile birlikte okunur; docs/decisions/ACCEPTANCE_SANDBOX.md onaylı komutların yine sandbox'ta çalıştığını açıklar.
+**İlişkiler ve sınır:** interfaces/mcp_server.py, workflows/roles.py ve runner._command ile birlikte okunur; docs/decisions/ACCEPTANCE_SANDBOX.md onaylı komutların yine sandbox'ta çalıştığını açıklar.
 
 #### [`docs/decisions/MEMORY_INTEGRATION.md`](../docs/decisions/MEMORY_INTEGRATION.md)
 
@@ -179,15 +185,15 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** Görevlerin `memory.use` ile SecondBrain'den RPP `memory.recall` üzerinden hafıza isteme kararını anlatır. Hub'da etkinleştirme bir izindir, varsayılan değildir; en fazla yaklaşık 3000 karakter güvenilmez veri olarak brief'e eklenir, her hata 'hafıza yok' demektir. Token yalnızca 0600/ACL'li dosyada ve child stdin'inde tutulur, loglara ve kanıta sızmaz.
 
-**İlişkiler ve sınır:** memory.py ve runner.create_task bu kararı uygular; Hub gizli ayarları (memory_enabled, memory_command, memory_grant_id, memory_token) RPP settings.apply ile yazar. tests/test_memory.py ve tests/test_memory_integration.py kararın gizlilik ve politika kurallarını doğrular.
+**İlişkiler ve sınır:** interfaces/memory.py ve runner.create_task bu kararı uygular; Hub gizli ayarları (memory_enabled, memory_command, memory_grant_id, memory_token) RPP settings.apply ile yazar. tests/test_memory.py ve tests/test_memory_integration.py kararın gizlilik ve politika kurallarını doğrular.
 
 #### [`docs/decisions/PROJECT_SUPERVISOR_REVIEW.md`](../docs/decisions/PROJECT_SUPERVISOR_REVIEW.md)
 
 **Rol:** Karar: proje supervisor adversarial incelemesi.
 
-**Amaç / sorumluluk:** project.py otonom proje supervisor'ının ve campaign.py'nin ilgili parçalarının kaynak değiştirilmeden yapılan adversarial incelemesi. Şüpheli kusurları (ör. bozuk budget/verify/after için ValueError yerine AttributeError/TypeError) satır numaralarıyla belgeler.
+**Amaç / sorumluluk:** workflows/project.py otonom proje supervisor'ının ve workflows/campaign.py'nin ilgili parçalarının kaynak değiştirilmeden yapılan adversarial incelemesi. Şüpheli kusurları (ör. bozuk budget/verify/after için ValueError yerine AttributeError/TypeError) satır numaralarıyla belgeler.
 
-**İlişkiler ve sınır:** src/respected_orchestrator/project.py ve campaign.py incelenen kodlardır. tests/test_project_adversarial.py bu incelemenin doğru kalan değişmezlerini ve sonradan kapatılan kusurlarını test eder.
+**İlişkiler ve sınır:** src/respected_orchestrator/project.py ve workflows/campaign.py incelenen kodlardır. tests/test_project_adversarial.py bu incelemenin doğru kalan değişmezlerini ve sonradan kapatılan kusurlarını test eder.
 
 #### [`docs/decisions/ROLE_ASSIGNMENT.md`](../docs/decisions/ROLE_ASSIGNMENT.md)
 
@@ -195,7 +201,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** Her uyumlu model/sağlayıcı/araç her iş akışı rolünü üstlenebilir; kodda 'model X yalnızca rol Y' kuralı yoktur. Rol, profil, araç ve atama ayrı kavramlardır; öncelik sırası açık atama, Hub varsayılanı, isteğe bağlı otomatik atamadır; aynı rolün çelişen iki değeri ROLE_CONFLICT olur.
 
-**İlişkiler ve sınır:** roles.py ve runner.create_task kararı uygular; maf_workflow reviewer/derin review için atanan aracı kullanır. tests/test_roles.py kararı doğrular; kayıt: docs/records/2026-10-15-role-assignment-validation.md.
+**İlişkiler ve sınır:** workflows/roles.py ve runner.create_task kararı uygular; maf_workflow reviewer/derin review için atanan aracı kullanır. tests/test_roles.py kararı doğrular; kayıt: docs/records/2026-10-15-role-assignment-validation.md.
 
 #### [`docs/decisions/RPP_V1.md`](../docs/decisions/RPP_V1.md)
 
@@ -211,7 +217,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** v1.0'ın katı üst kümesi olan v1.1'i tanımlar: 1.0..1.1 sürüm uzlaşması, lifecycle plan/apply/status/rollback ve operation.receipt op'ları, yedi yeni tipli hata ve zengin manifest. Taşıma ve mevcut op davranışı değişmez; yeni op'lar aynı allow-list kayıt desenine eklenir.
 
-**İlişkiler ve sınır:** rpp.py ve lifecycle.py uygular; RPP_V1.md'ye eklenir. tests/test_rpp.py (RppV11Tests) ve tests/test_rpp_lifecycle.py doğrular.
+**İlişkiler ve sınır:** interfaces/rpp.py ve interfaces/lifecycle.py uygular; RPP_V1.md'ye eklenir. tests/test_rpp.py (RppV11Tests) ve tests/test_rpp_lifecycle.py doğrular.
 
 #### [`docs/decisions/campaign-master-lifecycle.md`](../docs/decisions/campaign-master-lifecycle.md)
 
@@ -291,7 +297,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Rol:** Tarihli kanıt kaydı: rol ataması doğrulaması.
 
-**Amaç / sorumluluk:** Rol ataması uygulamasının neyi değiştirdiğini (roles.py, sabit reviewer/MiMo kurallarının kaldırılması, yeni RPP ayarları) ve tam test paketi ile gerçek tek kullanımlık repo üzerindeki doğrulama kanıtını kaydeder.
+**Amaç / sorumluluk:** Rol ataması uygulamasının neyi değiştirdiğini (workflows/roles.py, sabit reviewer/MiMo kurallarının kaldırılması, yeni RPP ayarları) ve tam test paketi ile gerçek tek kullanımlık repo üzerindeki doğrulama kanıtını kaydeder.
 
 **İlişkiler ve sınır:** Karar: docs/decisions/ROLE_ASSIGNMENT.md. tests/test_roles.py, test_campaign ve test_project kanıtta anılan testlerdir.
 
@@ -301,7 +307,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** SecondBrain'in ilk projesinin Orchestrator üzerinden çalıştırılmasını kaydeder: git mirror izolasyonu, Hub tarzı rol varsayılanları, iki fazlı proje sonuçları, reviewer engeli ve toplam yaklaşık 578k ağırlıklı token. Gerçek repo yalnızca baseline hash denetiminden sonra güncellenmiştir.
 
-**İlişkiler ve sınır:** Sözleşme respected-secondbrain RPP_MEMORY_RECALL.md'de; ilgili karar docs/decisions/MEMORY_INTEGRATION.md. Proje supervisor'ı project.py ve kayıtla birlikte test_project_recovery.py ilgilidir.
+**İlişkiler ve sınır:** Sözleşme respected-secondbrain RPP_MEMORY_RECALL.md'de; ilgili karar docs/decisions/MEMORY_INTEGRATION.md. Proje supervisor'ı workflows/project.py ve kayıtla birlikte test_project_recovery.py ilgilidir.
 
 ### docs/records/2026-10-master-program
 
@@ -311,7 +317,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** Sağlayıcıya duyarlı review zaman aşımı, ayrı hata sınıfları, sınırlı review yeniden denemesi (varsayılan 1) ve yalnız review yeniden çalıştırma yolunu belgeler. Worker işi yalnızca imzalı sonuç yeniden doğrulanırsa yeniden kullanılır; red kesindir, geçersiz çıktı yeniden denenmez.
 
-**İlişkiler ve sınır:** maf_workflow.py, vertical_slice.py, runner.py ve project.py ile uygulanır. tests/test_reviewer_reliability.py doğrular.
+**İlişkiler ve sınır:** workflows/maf_workflow.py, engine/vertical_slice.py, engine/runner.py ve workflows/project.py ile uygulanır. tests/test_reviewer_reliability.py doğrular.
 
 #### [`docs/records/2026-10-master-program/A3_A4_ENGINE.md`](../docs/records/2026-10-master-program/A3_A4_ENGINE.md)
 
@@ -319,7 +325,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** A3: untracked/ignored üretilmiş dosyaları (build, egg-info, __pycache__) gerçek değişiklikten ayırıp patch'e sokmama, gerçek scope ihlallerini koruma. A4: lane başına kalıcı token bütçesi, UNKNOWN kullanımın açık raporlanması ve proje bütçesinde varsayılan ücretlendirme.
 
-**İlişkiler ve sınır:** antigravity_orchestrator.py, runner.py, budget.py, maf_workflow.py, project.py ve campaign.py ilgilidir; A1_A2_RELIABILITY.md üzerine kurulur. tests/test_generated_artifacts.py ve tests/test_token_budget.py doğrular.
+**İlişkiler ve sınır:** engine/antigravity_orchestrator.py, engine/runner.py, engine/budget.py, workflows/maf_workflow.py, workflows/project.py ve workflows/campaign.py ilgilidir; A1_A2_RELIABILITY.md üzerine kurulur. tests/test_generated_artifacts.py ve tests/test_token_budget.py doğrular.
 
 #### [`docs/records/2026-10-master-program/CODEX_RECONNECT_REVIEW.md`](../docs/records/2026-10-master-program/CODEX_RECONNECT_REVIEW.md)
 
@@ -327,7 +333,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** Codex JSONL akışındaki fatal olmayan 'Reconnecting...' üst düzey error olayının worker_failed sayılması hatasının düzeltmesini onaylar. Tolerans yalnızca tam önek, turn.failed yokluğu, başka error yokluğu ve tam olarak bir turn.completed ile bitiş koşullarında geçerlidir.
 
-**İlişkiler ve sınır:** vertical_slice.py'deki Codex akış ayrıştırıcısını inceler. tests/test_reviewer_reliability.py diagnose ve reconnect testleriyle ilişkilidir.
+**İlişkiler ve sınır:** engine/vertical_slice.py'deki Codex akış ayrıştırıcısını inceler. tests/test_reviewer_reliability.py diagnose ve reconnect testleriyle ilişkilidir.
 
 #### [`docs/records/2026-10-master-program/LANE_SUMMARY_REVIEW.md`](../docs/records/2026-10-master-program/LANE_SUMMARY_REVIEW.md)
 
@@ -335,7 +341,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** Kampanya lane özetinin genel worker_failed yerine imzalı çalıştırma durumundaki gerçek nedeni (scope_violation, timed_out) taşımasını onaylar. Geçersiz/eksik imzalı status genel MAF nedenine döner; başka run dizinine kopyalanmış status final_run_id eşleşmezse reddedilir.
 
-**İlişkiler ve sınır:** campaign._lane_summary ve project.py hata mesajı incelenen koddur. tests/test_project_recovery.py ilgili özet testlerini içerir.
+**İlişkiler ve sınır:** campaign._lane_summary ve workflows/project.py hata mesajı incelenen koddur. tests/test_project_recovery.py ilgili özet testlerini içerir.
 
 #### [`docs/records/2026-10-master-program/RPP_V11_STATUS.md`](../docs/records/2026-10-master-program/RPP_V11_STATUS.md)
 
@@ -343,7 +349,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** Orchestrator'ın RPP v1.1 yüzeyinin (sürüm uzlaşması, lifecycle ve receipt op'ları, yedi yeni hata) tamamlandığını kod satırı ve test referanslarıyla kaydeder; kardeş repolar yalnız okunmuştur, kod değişmemiştir.
 
-**İlişkiler ve sınır:** Sözleşme docs/decisions/RPP_V1_1.md ve RPP_V1.md; kod rpp.py ve lifecycle.py. tests/test_rpp.py ve tests/test_rpp_lifecycle.py anılan testlerdir.
+**İlişkiler ve sınır:** Sözleşme docs/decisions/RPP_V1_1.md ve RPP_V1.md; kod interfaces/rpp.py ve interfaces/lifecycle.py. tests/test_rpp.py ve tests/test_rpp_lifecycle.py anılan testlerdir.
 
 #### [`docs/records/2026-10-master-program/UNTRACKED_INPUTS_REVIEW.md`](../docs/records/2026-10-master-program/UNTRACKED_INPUTS_REVIEW.md)
 
@@ -391,30 +397,6 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **İlişkiler ve sınır:** runner, roles, campaign, project, maf_workflow, planner, mcp_server, rpp ve antigravity_orchestrator'ı çağırır; Brain launcher/vault gerektirmez. tests/test_engine.py ve tests/test_maf_coding.py private JSON sözleşmesini doğrular.
 
-#### [`src/respected_orchestrator/antigravity_orchestrator.py`](../src/respected_orchestrator/antigravity_orchestrator.py)
-
-**Rol:** Çıkarılmış worktree motoru.
-
-**Amaç / sorumluluk:** Policy, lane/worktree, dirty-input overlay, baseline commit, brief, WriterLock, kapsam kontrolü, acceptance ve binary patch dışa aktarımı yardımcılarını ve ortak worker çıkış sınıflandırmasını (sıfır exit'li açık failure reddi dahil) korur. İzin atlatan (permission bypass) komutlar reddedilir; ham apply kapalıdır. WriterLock sahibi ölmüş kilidi geri alır; yaşayan sahip varsa reddeder.
-
-**İlişkiler ve sınır:** runner ve processes/context tarafından ortak katman olarak kullanılır; 'antigravity' alt komutu uyumluluk girişi olarak __main__'den çağrılır. tests/test_engine.py ve tests/test_codex_results.py kapsar.
-
-#### [`src/respected_orchestrator/budget.py`](../src/respected_orchestrator/budget.py)
-
-**Rol:** Token bütçesi ve kullanım muhasebesi.
-
-**Amaç / sorumluluk:** Şerit başına token bütçesini ve dürüst kullanım muhasebesini yönetir. Kullanım bildirmeyen ama başlamış adım SIFIR değil BİLİNMEYEN sayılır ve yalnızca bütçe kontrolünde varsayılan bir ücretle yazılır; hiç başlamayan adım sayılmaz.
-
-**İlişkiler ve sınır:** Proje/kampanya bütçe kontrolleri ve runner tarafından çağrılır; engine sonuçlarındaki usage alanlarını okur. tests/test_token_budget.py ile test edilir.
-
-#### [`src/respected_orchestrator/campaign.py`](../src/respected_orchestrator/campaign.py)
-
-**Rol:** Kalıcı çok-repo kampanya supervisor'ı.
-
-**Amaç / sorumluluk:** Claude master'ın devrettiği 1..8 workstream'i detached supervisor ile paralel MAF hatlarına çevirir (ayrı data-root, WriterLock, anahtar ve çalışma alanı; after ile bağımlılık). Non-Git kaynak için gizli dosyalar hariç geçici Git mirror kurar, doğrulanmış patch'i apply_root'a uygulatır ve motoru snapshot'layıp supervisor'ı oradan çalıştırır. Tüm hatlar bitince imzalı result.json yazar, final.claim ile tam bir kez final master başlatır; allow_apply açıksa yalnız 'python -m respected_orchestrator' komutlarına izin verir.
-
-**İlişkiler ve sınır:** runner.create_task/apply_task, maf_workflow.run_maf_coding_task ve processes.execute'u kullanır; project.py bunu faz başına çağırır; __main__ campaign-* komutlarıyla bağlanır. tests/test_campaign.py kapsar.
-
 #### [`src/respected_orchestrator/context.py`](../src/respected_orchestrator/context.py)
 
 **Rol:** Bağımsız roots/state.
@@ -423,69 +405,137 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **İlişkiler ve sınır:** runner ve çıkarılmış motor kullanır; Brain context/vault/lease bağı yoktur.
 
-#### [`src/respected_orchestrator/integrations.py`](../src/respected_orchestrator/integrations.py)
+### src/respected_orchestrator/engine
 
-**Rol:** AI istemcisi MCP entegrasyonu.
+#### [`src/respected_orchestrator/engine/__init__.py`](../src/respected_orchestrator/engine/__init__.py)
 
-**Amaç / sorumluluk:** RPP integrations.* işlemlerini uygular: Orchestrator MCP sunucusunu AI istemci yapılandırmalarına (claude-code, codex, cursor, gemini, windsurf, claude-desktop) Discover/Inspect/Plan/Apply/Verify/Rollback akışıyla kaydeder. Yalnızca 'respected-orchestrator' girdisine dokunur; sahip olunmayan veya kullanıcının sonradan düzenlediği girdi ezilmez, apply onaylanan planın özetini ister. Okunamayan bir istemci yapılandırması, istenmeyen diğer istemcilerin planını engellemez (state=unreadable); istenen istemci için hata yine verilir.
+**Rol:** Worker yürütme paketi.
 
-**İlişkiler ve sınır:** rpp.py tarafından çağrılır; lifecycle (LifecycleError, atomik yazma, makbuz) ve context.safe_path kullanır. tests/test_integrations.py ile test edilir.
+**Amaç / sorumluluk:** AI worker CLI'larını güvenle çalıştıran katman: süreç ve Windows süreç denetimi, kabul sandbox'ı, izole worktree başlatıcısı (antigravity_orchestrator), görev koşucusu (runner), token bütçesi ve başarı kaydı. 2026-10-21'de düz paket bu alt paketlere ayrıldı.
 
-#### [`src/respected_orchestrator/lifecycle.py`](../src/respected_orchestrator/lifecycle.py)
+**İlişkiler ve sınır:** Kök paketteki __main__.py ve context.py ile diğer alt paketler tarafından içe aktarılır; Hub yalnızca `python -m respected_orchestrator` çağırır, bu yüzden dışarıdan görünen davranış değişmez.
 
-**Rol:** RPP yaşam döngüsü durumu.
+#### [`src/respected_orchestrator/engine/antigravity_orchestrator.py`](../src/respected_orchestrator/engine/antigravity_orchestrator.py)
 
-**Amaç / sorumluluk:** Sürümlü kurulum manifestosu, planlar, günlük ve rollback için RPP v1.1 yaşam döngüsü durumunu yönetir (install/update/repair/uninstall). Yalnızca açık kökler üzerinde safe_path ile sınırlı yerel dosya işlemi yapar; kabuk ve ağ yoktur, hatalar LifecycleError üçlüsüyle döner.
+**Rol:** Çıkarılmış worktree motoru.
 
-**İlişkiler ve sınır:** rpp.py ve integrations.py tarafından kullanılır; context'teki safe_path ve atomic_write_json'a dayanır. tests/test_rpp_lifecycle.py ile test edilir.
+**Amaç / sorumluluk:** Policy, lane/worktree, dirty-input overlay, baseline commit, brief, WriterLock, kapsam kontrolü, acceptance ve binary patch dışa aktarımı yardımcılarını ve ortak worker çıkış sınıflandırmasını (sıfır exit'li açık failure reddi dahil) korur. İzin atlatan (permission bypass) komutlar reddedilir; ham apply kapalıdır. WriterLock sahibi ölmüş kilidi geri alır; yaşayan sahip varsa reddeder. (2026-10-21: `src/respected_orchestrator/antigravity_orchestrator.py` yolundan taşındı.)
 
-#### [`src/respected_orchestrator/maf_workflow.py`](../src/respected_orchestrator/maf_workflow.py)
+**İlişkiler ve sınır:** runner ve processes/context tarafından ortak katman olarak kullanılır; 'antigravity' alt komutu uyumluluk girişi olarak __main__'den çağrılır. tests/test_engine.py ve tests/test_codex_results.py kapsar.
 
-**Rol:** MAF workflow adapter.
+#### [`src/respected_orchestrator/engine/budget.py`](../src/respected_orchestrator/engine/budget.py)
 
-**Amaç / sorumluluk:** Microsoft Agent Framework functional workflow ile eş zamanlı worker fan-out, replayable step cache, checkpoint resume, bağımsız review, önceki başarılı patch'i devralan sınırlı correction ve isteğe bağlı deep review sağlar. Review deadline'ı provider-aware tavan ve pipeline deadline ile sınırlıdır, toplam bütçe worker+review tavanlarından türetilir veya açık timeout_seconds sert sınırdır. Reviewer hatası/geçersiz çıktısı fail-closed kalır; escalate_from_round'dan itibaren düzeltmeyi escalate_profile devralır, önceki implementer bağımsız reviewer olur; imzalı maf-result.json yazılır.
+**Rol:** Token bütçesi ve kullanım muhasebesi.
 
-**İlişkiler ve sınır:** runner execute_task/create_task/check_result ve vertical_slice run_codex_call adaptörlerini kullanır; __main__ 'maf' komutu ve campaign tarafından çağrılır. tests/test_maf_coding.py kapsar.
+**Amaç / sorumluluk:** Şerit başına token bütçesini ve dürüst kullanım muhasebesini yönetir. Kullanım bildirmeyen ama başlamış adım SIFIR değil BİLİNMEYEN sayılır ve yalnızca bütçe kontrolünde varsayılan bir ücretle yazılır; hiç başlamayan adım sayılmaz. (2026-10-21: `src/respected_orchestrator/budget.py` yolundan taşındı.)
 
-#### [`src/respected_orchestrator/mcp_server.py`](../src/respected_orchestrator/mcp_server.py)
+**İlişkiler ve sınır:** Proje/kampanya bütçe kontrolleri ve runner tarafından çağrılır; engine sonuçlarındaki usage alanlarını okur. tests/test_token_budget.py ile test edilir.
 
-**Rol:** Vendor-bağımsız MCP stdio ön yüzü.
-
-**Amaç / sorumluluk:** Orchestrator motorunu yalnızca standart kütüphaneyle MCP (stdio) araçları olarak sunar (plan, task_start, project_start, progress, evidence, resume, cancel, memory_note, apply). Motorun onayları geçerli kalır, apply doğrulanmış patch özetini ister ve orkestre edilen süreçler (RESPECTED_ORCH_DELEGATED) araç görmez, böylece özyinelemeli delegasyon olmaz. MCP üzerinden custom worker, command, apply_root ve engine_source reddedilir (--allow-auto-apply ile açılır). Özel seçenekler için ayrı --allow-privileged anahtarı vardır; acceptance/verify komutları roles.acceptance_allowed ile kullanıcının mcp_acceptance_allow önek listesine karşı denetlenir (varsayılan boş). `initialize` yanıtı kod-orkestrasyon skill'inin kurallar kısmını (front matter ve CLI kampanya bölümü hariç) MCP `instructions` olarak verir; böylece bağlanan her AI istemcisi skill'i ayrı dosya kurulmadan alır.
-
-**İlişkiler ve sınır:** AI istemcileri integrations.py ile kaydedilen komutla başlatır; campaign, project, roles, runner ve context motor işlevlerini çağırır. tests/test_mcp_server.py ile test edilir.
-
-#### [`src/respected_orchestrator/memory.py`](../src/respected_orchestrator/memory.py)
-
-**Rol:** İsteğe bağlı SecondBrain bellek istemcisi.
-
-**Amaç / sorumluluk:** SecondBrain'in salt-okunur RPP 'memory.recall' işlemi için isteğe bağlı, hata-yumuşak istemcidir. Grant token gizlidir: yalnızca data_root/memory-token içinde durur, çocuğun stdin'inden geçer ve çıktıdan üretilen mesajlardan temizlenir; dönen notlar güvenilmez veri olarak işaretlenir.
-
-**İlişkiler ve sınır:** rpp.py ayarlarını ve runner/project bellek bağlamını besler; winproc ile süreç başlatır, token dosyasını runner._restrict_key ile kısıtlar. tests/test_memory.py ve tests/test_memory_integration.py ile test edilir.
-
-#### [`src/respected_orchestrator/planner.py`](../src/respected_orchestrator/planner.py)
-
-**Rol:** Planner rolü yürütücüsü.
-
-**Amaç / sorumluluk:** 'planner' rolünü çalıştırılabilir yapar: atanan araç/model bir proje spesifikasyonu taslağı üretir, motor doğrular. Taslak asla başlatılmaz veya motorca düzenlenmez; planlayıcı ataması, kullanım ve doğrulama sonucuyla <data root>/drafts altına kaydedilir ve project-start ile insan/Master onayından sonra başlar.
-
-**İlişkiler ve sınır:** mcp_server.py (orchestrator_plan) ve Hub tarafından çağrılır; roles, runner, processes ve antigravity_orchestrator'ı kullanır. tests/test_roles.py ve tests/test_project.py ile dolaylı kapsanır.
-
-#### [`src/respected_orchestrator/processes.py`](../src/respected_orchestrator/processes.py)
+#### [`src/respected_orchestrator/engine/processes.py`](../src/respected_orchestrator/engine/processes.py)
 
 **Rol:** Worker süreç yönetimi.
 
-**Amaç / sorumluluk:** Windows suspended child/job ve POSIX process group ile deadline, cancel, process-tree temizliği ve çıktı akışı sağlar. complete_when/verify_complete ile doğrulanmış completion event'inde ağacı temizleyip ilerler; iptal geç completion'dan üstündür. scrub_environment anahtar/token/secret benzeri değişkenleri çocuğa geçirmez (RESPECTED_WORKER_ENV_ALLOW hariç), çocuğa RESPECTED_ORCH_CHILD=1 koyar ve izole test modunda Codex API çağrılarını reddeder.
+**Amaç / sorumluluk:** Windows suspended child/job ve POSIX process group ile deadline, cancel, process-tree temizliği ve çıktı akışı sağlar. complete_when/verify_complete ile doğrulanmış completion event'inde ağacı temizleyip ilerler; iptal geç completion'dan üstündür. scrub_environment anahtar/token/secret benzeri değişkenleri çocuğa geçirmez (RESPECTED_WORKER_ENV_ALLOW hariç), çocuğa RESPECTED_ORCH_CHILD=1 koyar ve izole test modunda Codex API çağrılarını reddeder. (2026-10-21: `src/respected_orchestrator/processes.py` yolundan taşındı.)
 
 **İlişkiler ve sınır:** runner, antigravity_orchestrator, campaign, project ve vertical_slice worker/acceptance/master süreçlerini buradan çalıştırır. tests/test_engine.py (tree cleanup, ortam sızıntısı) ve tests/test_codex_results.py dolaylı kapsar.
 
-#### [`src/respected_orchestrator/project.py`](../src/respected_orchestrator/project.py)
+#### [`src/respected_orchestrator/engine/runner.py`](../src/respected_orchestrator/engine/runner.py)
 
-**Rol:** Kalıcı otonom proje/faz supervisor'ı.
+**Rol:** Tek görev worker yürütücüsü.
 
-**Amaç / sorumluluk:** Tek seferlik yazılmış proje planını (bağımlı fazlar, workstream'ler, deterministik verify komutları, bütçe) imzalı project.json olarak saklar. Detached supervisor her fazı yeni motor snapshot'ı ve mirror ile campaign olarak çalıştırır; yalnız MASTER_APPROVED ve auto_apply ile önceden yetkilendirilmişse hep-ya-hiç apply eder, gerçek kaynakta verify çalıştırır. Sınırlı düzeltme denemesi, zaman/token bütçesi, iptal dosyası, pid'li tek-supervisor kilidi, resume ve isteğe bağlı final review sağlar. Faz verify komutları sandbox'tan ve temizlenmiş ortamdan (scrub_env, çocuk işareti) geçer.
+**Amaç / sorumluluk:** Create/start/list/inspect/cancel/check/retry ile imzalı yaşam döngüsünü; Codex brief/strict JSONL, scope, acceptance, freshness ve correction patch hash/scope doğrulamasını yürütür. Codex açık --sandbox workspace-write ve approval_policy=never ile çalışır, MiMo profilleri reddedilir, reviewer implementer'dan farklı olmalıdır, .engine-key Windows'ta mevcut kullanıcıya ACL'lenir. apply_task doğrulanmış (gerekirse insan onaylı) patch'i commit etmeden uygular; maf-approve yalnız etkileşimli operatör terminalinde, patch_sha256'ya bağlı ve değiştirilemez onay verir. Kabul komutları sandbox.wrap ile kısıtlı token'da çalışır (kurulamazsa sandbox_unavailable ile fail-closed), kabul öncesi worker'ın bıraktığı __pycache__/.pyc silinir (üretilen dosya sayısı yine raporlanır); Windows'ta .cmd/.bat worker kabukları kullanılamaz, görev metni Windows'ta 20000 karakterle sınırlıdır, bypass bayrağı kontrolü genişletildi, retry açık memory kararını korur, tester/coordinator rolleri ROLE_NOT_EXECUTABLE ile reddedilir. (2026-10-21: `src/respected_orchestrator/runner.py` yolundan taşındı.)
 
-**İlişkiler ve sınır:** campaign.create_campaign/run_campaign/_snapshot_engine, runner.apply_task ve processes.execute'u kullanır; __main__ project-* komutlarıyla bağlanır. tests/test_project.py kapsar.
+**İlişkiler ve sınır:** context, processes ve antigravity_orchestrator katmanlarını kullanır; __main__, maf_workflow, campaign ve project tarafından çağrılır. tests/test_engine.py, tests/test_codex_results.py ve tests/test_maf_coding.py kapsar.
+
+#### [`src/respected_orchestrator/engine/sandbox.py`](../src/respected_orchestrator/engine/sandbox.py)
+
+**Rol:** Güvenilmeyen kod sınır katmanı.
+
+**Amaç / sorumluluk:** Motorun kendi çalıştırdığı worker yazımı kodun (kabul ve verify komutları) yetkisini sınırlar: Windows'ta veri kökü başına rastgele bir SID üretir, veri kökünün (workspaces hariç) tüm çocuklarına ve .engine-key dosyasına bu SID için inheritable DENY ACE ekler, OWNER RIGHTS ACE ile sahibin örtük WRITE_DAC hakkını kaldırır ve komutu sandbox_exec üzerinden kısıtlı token ile çalıştıracak biçimde sarar (wrap). Sınır kurulamazsa SandboxError verir (fail-closed); RESPECTED_ORCH_SANDBOX=off yalnızca açık geliştirici anahtarıdır. Karar: docs/decisions/ACCEPTANCE_SANDBOX.md. (2026-10-21: `src/respected_orchestrator/sandbox.py` yolundan taşındı.)
+
+**İlişkiler ve sınır:** runner (kabul komutları) ve project (_verify) tarafından çağrılır; anahtar yolunu runner._key_path verir. sandbox_exec ile birlikte çalışır; PowerShell ACL kurulumunu winproc.run ile gizli pencerede yürütür. tests/test_sandbox.py gerçek saldırı denemeleri ve negatif kontrolle sınırı kanıtlar.
+
+#### [`src/respected_orchestrator/engine/sandbox_exec.py`](../src/respected_orchestrator/engine/sandbox_exec.py)
+
+**Rol:** Kısıtlı token ile komut çalıştırıcı.
+
+**Amaç / sorumluluk:** python -m ... sandbox_exec --sid SID -- komut: çağıranın token'ından CreateRestrictedToken ile (kullanıcının tüm SID'leri + veri köküne ait ek SID kısıtlayıcı SID olarak, DISABLE_MAX_PRIVILEGE) yeni bir token üretir ve komutu CreateProcessAsUser ile çağıranın standart tutamaçlarıyla başlatır; çıkış kodunu döndürür. Çağıranın job nesnesi (süreç ağacı sonlandırma, zaman aşımı) çocuk için de geçerlidir. Yalnızca Windows. (2026-10-21: `src/respected_orchestrator/sandbox_exec.py` yolundan taşındı.)
+
+**İlişkiler ve sınır:** sandbox.wrap tarafından komut öneki olarak eklenir; processes.execute bunu sıradan bir süreç gibi yönetir. tests/test_sandbox.py ile doğrulanır.
+
+#### [`src/respected_orchestrator/engine/track_record.py`](../src/respected_orchestrator/engine/track_record.py)
+
+**Rol:** Ölçülü araç/profil sicili.
+
+**Amaç / sorumluluk:** (araç, profil) başına başarı, token ve süre sicilini bu kurulumun imzalı run kanıtından okur. Yalnızca imzası doğrulanan kanıt sayılır; imzasız, kurcalanmış veya kısmi kayıt atlanır. Adayları yalnızca sıralar, asla elemez; geçmiş MIN_RUNS altındaysa kullanılabilir geçmiş yoktur. (2026-10-21: `src/respected_orchestrator/track_record.py` yolundan taşındı.)
+
+**İlişkiler ve sınır:** runner._track_record ve roles otomatik atama tarafından çağrılır; runner._load ve EngineContext kullanır. tests/test_roles.py ve tests/test_reviewer_reliability.py ile kapsanır.
+
+#### [`src/respected_orchestrator/engine/vertical_slice.py`](../src/respected_orchestrator/engine/vertical_slice.py)
+
+**Rol:** Autonomous vertical slice.
+
+**Amaç / sorumluluk:** Codex çağrı adaptörünü (run_codex_call, CodexOutcome, diagnose) ve GLM master planı + paralel Codex worker + bounded correction + deterministik test + final gate dikey dilimini sağlar. turn.completed'da beklemeden ilerler; stream_verified_complete turn.failed görülen akışı başarıya çevirmez; diagnose yapılandırılmış JSONL kanıtını stderr regex'inden üstün tutar ve confidence raporlar. MiMo profilleri reddedilir, reviewer süreçleri scrub_env ile çalışır. (2026-10-21: `src/respected_orchestrator/vertical_slice.py` yolundan taşındı.)
+
+**İlişkiler ve sınır:** processes.execute ve context'i kullanır; maf_workflow ve runner Codex çağrıları için buradan yararlanır. tests/test_codex_results.py ve tests/test_maf_coding.py dolaylı kapsar.
+
+#### [`src/respected_orchestrator/engine/winproc.py`](../src/respected_orchestrator/engine/winproc.py)
+
+**Rol:** Windows süreç başlatma yardımcısı.
+
+**Amaç / sorumluluk:** Windows'ta çocuk süreçleri konsol penceresi açmadan başlatır; ayrık supervisor'ların git/python/icacls çağrıları görünür pencere açmasın diye bayraklar tek yerde tutulur. Çıktı, hata, çıkış kodu ve zaman aşımı davranışı değişmez; Windows dışında boş seçenek döner. (2026-10-21: `src/respected_orchestrator/winproc.py` yolundan taşındı.)
+
+**İlişkiler ve sınır:** Paketteki süreç başlatan modüller (memory, runner, processes vb.) tarafından kullanılır. tests/test_windows_processes.py ile test edilir.
+
+### src/respected_orchestrator/interfaces
+
+#### [`src/respected_orchestrator/interfaces/__init__.py`](../src/respected_orchestrator/interfaces/__init__.py)
+
+**Rol:** Arayüz paketi.
+
+**Amaç / sorumluluk:** Dışarının motorla konuştuğu yollar: AI istemcileri için MCP sunucusu, Respected Hub için RPP, yaşam döngüsü/entegrasyon kayıtları ve SecondBrain hafıza bağlantısı. 2026-10-21'de düz paket bu alt paketlere ayrıldı.
+
+**İlişkiler ve sınır:** Kök paketteki __main__.py ve context.py ile diğer alt paketler tarafından içe aktarılır; Hub yalnızca `python -m respected_orchestrator` çağırır, bu yüzden dışarıdan görünen davranış değişmez.
+
+#### [`src/respected_orchestrator/interfaces/integrations.py`](../src/respected_orchestrator/interfaces/integrations.py)
+
+**Rol:** AI istemcisi MCP entegrasyonu.
+
+**Amaç / sorumluluk:** RPP integrations.* işlemlerini uygular: Orchestrator MCP sunucusunu AI istemci yapılandırmalarına (claude-code, codex, cursor, gemini, windsurf, claude-desktop) Discover/Inspect/Plan/Apply/Verify/Rollback akışıyla kaydeder. Yalnızca 'respected-orchestrator' girdisine dokunur; sahip olunmayan veya kullanıcının sonradan düzenlediği girdi ezilmez, apply onaylanan planın özetini ister. Okunamayan bir istemci yapılandırması, istenmeyen diğer istemcilerin planını engellemez (state=unreadable); istenen istemci için hata yine verilir. (2026-10-21: `src/respected_orchestrator/integrations.py` yolundan taşındı.)
+
+**İlişkiler ve sınır:** interfaces/rpp.py tarafından çağrılır; lifecycle (LifecycleError, atomik yazma, makbuz) ve context.safe_path kullanır. tests/test_integrations.py ile test edilir.
+
+#### [`src/respected_orchestrator/interfaces/lifecycle.py`](../src/respected_orchestrator/interfaces/lifecycle.py)
+
+**Rol:** RPP yaşam döngüsü durumu.
+
+**Amaç / sorumluluk:** Sürümlü kurulum manifestosu, planlar, günlük ve rollback için RPP v1.1 yaşam döngüsü durumunu yönetir (install/update/repair/uninstall). Yalnızca açık kökler üzerinde safe_path ile sınırlı yerel dosya işlemi yapar; kabuk ve ağ yoktur, hatalar LifecycleError üçlüsüyle döner. (2026-10-21: `src/respected_orchestrator/lifecycle.py` yolundan taşındı.)
+
+**İlişkiler ve sınır:** interfaces/rpp.py ve interfaces/integrations.py tarafından kullanılır; context'teki safe_path ve atomic_write_json'a dayanır. tests/test_rpp_lifecycle.py ile test edilir.
+
+#### [`src/respected_orchestrator/interfaces/mcp_server.py`](../src/respected_orchestrator/interfaces/mcp_server.py)
+
+**Rol:** Vendor-bağımsız MCP stdio ön yüzü.
+
+**Amaç / sorumluluk:** Orchestrator motorunu yalnızca standart kütüphaneyle MCP (stdio) araçları olarak sunar (plan, task_start, project_start, progress, evidence, resume, cancel, memory_note, apply). Motorun onayları geçerli kalır, apply doğrulanmış patch özetini ister ve orkestre edilen süreçler (RESPECTED_ORCH_DELEGATED) araç görmez, böylece özyinelemeli delegasyon olmaz. MCP üzerinden custom worker, command, apply_root ve engine_source reddedilir (--allow-auto-apply ile açılır). Özel seçenekler için ayrı --allow-privileged anahtarı vardır; acceptance/verify komutları roles.acceptance_allowed ile kullanıcının mcp_acceptance_allow önek listesine karşı denetlenir (varsayılan boş). `initialize` yanıtı kod-orkestrasyon skill'inin kurallar kısmını (front matter ve CLI kampanya bölümü hariç) MCP `instructions` olarak verir; böylece bağlanan her AI istemcisi skill'i ayrı dosya kurulmadan alır. (2026-10-21: `src/respected_orchestrator/mcp_server.py` yolundan taşındı.)
+
+**İlişkiler ve sınır:** AI istemcileri interfaces/integrations.py ile kaydedilen komutla başlatır; campaign, project, roles, runner ve context motor işlevlerini çağırır. tests/test_mcp_server.py ile test edilir.
+
+#### [`src/respected_orchestrator/interfaces/memory.py`](../src/respected_orchestrator/interfaces/memory.py)
+
+**Rol:** İsteğe bağlı SecondBrain bellek istemcisi.
+
+**Amaç / sorumluluk:** SecondBrain'in salt-okunur RPP 'memory.recall' işlemi için isteğe bağlı, hata-yumuşak istemcidir. Grant token gizlidir: yalnızca data_root/memory-token içinde durur, çocuğun stdin'inden geçer ve çıktıdan üretilen mesajlardan temizlenir; dönen notlar güvenilmez veri olarak işaretlenir. (2026-10-21: `src/respected_orchestrator/memory.py` yolundan taşındı.)
+
+**İlişkiler ve sınır:** interfaces/rpp.py ayarlarını ve runner/project bellek bağlamını besler; winproc ile süreç başlatır, token dosyasını runner._restrict_key ile kısıtlar. tests/test_memory.py ve tests/test_memory_integration.py ile test edilir.
+
+#### [`src/respected_orchestrator/interfaces/rpp.py`](../src/respected_orchestrator/interfaces/rpp.py)
+
+**Rol:** RPP v1.0/1.1 protokol girişi.
+
+**Amaç / sorumluluk:** Respected Product Protocol: bir JSON istek alır, tek satır JSON yanıt döner. Hub ve testler için özel modüldür; daemon değildir ve ağ dinlemez. Her hata yapılandırılmış hata üçlüsü olarak döner, fırlatılmaz; yetenekleri, ayar şemasını ve lifecycle/memory/roles/runner işlemlerini yönlendirir. (2026-10-21: `src/respected_orchestrator/rpp.py` yolundan taşındı.)
+
+**İlişkiler ve sınır:** Hub ve testler çağırır; lifecycle, memory, roles, runner, integrations ve context'i kullanır. tests/test_rpp.py ve tests/test_rpp_lifecycle.py ile test edilir.
 
 ### src/respected_orchestrator/resources
 
@@ -507,71 +557,55 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **İlişkiler ve sınır:** mcp_server._instructions okur; pyproject package-data ile paketlenir. Global provider skill ayarı değiştirilmez.
 
-### src/respected_orchestrator
+### src/respected_orchestrator/workflows
 
-#### [`src/respected_orchestrator/roles.py`](../src/respected_orchestrator/roles.py)
+#### [`src/respected_orchestrator/workflows/__init__.py`](../src/respected_orchestrator/workflows/__init__.py)
+
+**Rol:** İş akışı paketi.
+
+**Amaç / sorumluluk:** Motorun üzerindeki görev akışları: MAF kodlama hattı, planlayıcı, rol/model ataması, kampanyalar ve projeler. 2026-10-21'de düz paket bu alt paketlere ayrıldı.
+
+**İlişkiler ve sınır:** Kök paketteki __main__.py ve context.py ile diğer alt paketler tarafından içe aktarılır; Hub yalnızca `python -m respected_orchestrator` çağırır, bu yüzden dışarıdan görünen davranış değişmez.
+
+#### [`src/respected_orchestrator/workflows/campaign.py`](../src/respected_orchestrator/workflows/campaign.py)
+
+**Rol:** Kalıcı çok-repo kampanya supervisor'ı.
+
+**Amaç / sorumluluk:** Claude master'ın devrettiği 1..8 workstream'i detached supervisor ile paralel MAF hatlarına çevirir (ayrı data-root, WriterLock, anahtar ve çalışma alanı; after ile bağımlılık). Non-Git kaynak için gizli dosyalar hariç geçici Git mirror kurar, doğrulanmış patch'i apply_root'a uygulatır ve motoru snapshot'layıp supervisor'ı oradan çalıştırır. Tüm hatlar bitince imzalı result.json yazar, final.claim ile tam bir kez final master başlatır; allow_apply açıksa yalnız 'python -m respected_orchestrator' komutlarına izin verir. (2026-10-21: `src/respected_orchestrator/campaign.py` yolundan taşındı.)
+
+**İlişkiler ve sınır:** runner.create_task/apply_task, maf_workflow.run_maf_coding_task ve processes.execute'u kullanır; workflows/project.py bunu faz başına çağırır; __main__ campaign-* komutlarıyla bağlanır. tests/test_campaign.py kapsar.
+
+#### [`src/respected_orchestrator/workflows/maf_workflow.py`](../src/respected_orchestrator/workflows/maf_workflow.py)
+
+**Rol:** MAF workflow adapter.
+
+**Amaç / sorumluluk:** Microsoft Agent Framework functional workflow ile eş zamanlı worker fan-out, replayable step cache, checkpoint resume, bağımsız review, önceki başarılı patch'i devralan sınırlı correction ve isteğe bağlı deep review sağlar. Review deadline'ı provider-aware tavan ve pipeline deadline ile sınırlıdır, toplam bütçe worker+review tavanlarından türetilir veya açık timeout_seconds sert sınırdır. Reviewer hatası/geçersiz çıktısı fail-closed kalır; escalate_from_round'dan itibaren düzeltmeyi escalate_profile devralır, önceki implementer bağımsız reviewer olur; imzalı maf-result.json yazılır. (2026-10-21: `src/respected_orchestrator/maf_workflow.py` yolundan taşındı.)
+
+**İlişkiler ve sınır:** runner execute_task/create_task/check_result ve vertical_slice run_codex_call adaptörlerini kullanır; __main__ 'maf' komutu ve campaign tarafından çağrılır. tests/test_maf_coding.py kapsar.
+
+#### [`src/respected_orchestrator/workflows/planner.py`](../src/respected_orchestrator/workflows/planner.py)
+
+**Rol:** Planner rolü yürütücüsü.
+
+**Amaç / sorumluluk:** 'planner' rolünü çalıştırılabilir yapar: atanan araç/model bir proje spesifikasyonu taslağı üretir, motor doğrular. Taslak asla başlatılmaz veya motorca düzenlenmez; planlayıcı ataması, kullanım ve doğrulama sonucuyla <data root>/drafts altına kaydedilir ve project-start ile insan/Master onayından sonra başlar. (2026-10-21: `src/respected_orchestrator/planner.py` yolundan taşındı.)
+
+**İlişkiler ve sınır:** interfaces/mcp_server.py (orchestrator_plan) ve Hub tarafından çağrılır; roles, runner, processes ve antigravity_orchestrator'ı kullanır. tests/test_roles.py ve tests/test_project.py ile dolaylı kapsanır.
+
+#### [`src/respected_orchestrator/workflows/project.py`](../src/respected_orchestrator/workflows/project.py)
+
+**Rol:** Kalıcı otonom proje/faz supervisor'ı.
+
+**Amaç / sorumluluk:** Tek seferlik yazılmış proje planını (bağımlı fazlar, workstream'ler, deterministik verify komutları, bütçe) imzalı project.json olarak saklar. Detached supervisor her fazı yeni motor snapshot'ı ve mirror ile campaign olarak çalıştırır; yalnız MASTER_APPROVED ve auto_apply ile önceden yetkilendirilmişse hep-ya-hiç apply eder, gerçek kaynakta verify çalıştırır. Sınırlı düzeltme denemesi, zaman/token bütçesi, iptal dosyası, pid'li tek-supervisor kilidi, resume ve isteğe bağlı final review sağlar. Faz verify komutları sandbox'tan ve temizlenmiş ortamdan (scrub_env, çocuk işareti) geçer. (2026-10-21: `src/respected_orchestrator/project.py` yolundan taşındı.)
+
+**İlişkiler ve sınır:** campaign.create_campaign/run_campaign/_snapshot_engine, runner.apply_task ve processes.execute'u kullanır; __main__ project-* komutlarıyla bağlanır. tests/test_project.py kapsar.
+
+#### [`src/respected_orchestrator/workflows/roles.py`](../src/respected_orchestrator/workflows/roles.py)
 
 **Rol:** Vendor-bağımsız rol ataması.
 
-**Amaç / sorumluluk:** Rolleri (implementer, reviewer, planner vb.) profil ve araçlarla eşler; hiçbir model bir role bağlanmaz. Öncelik: açık görev ataması > Hub varsayılanı > otomatik öneri (isteğe bağlı); açık atama sessizce değiştirilmez, kullanılamazsa kendi yedeği yoksa hata verir. Engelli profil listesi ve Hub ayar alanlarını da yönetir. Profil adı düz model adı karakter kümesiyle sınırlıdır (kabuk/argüman enjeksiyonunu önler). mcp_acceptance_allow ayarı (JSON komut önekleri listesi), doğrulaması ve acceptance_allowed denetimi eklendi.
+**Amaç / sorumluluk:** Rolleri (implementer, reviewer, planner vb.) profil ve araçlarla eşler; hiçbir model bir role bağlanmaz. Öncelik: açık görev ataması > Hub varsayılanı > otomatik öneri (isteğe bağlı); açık atama sessizce değiştirilmez, kullanılamazsa kendi yedeği yoksa hata verir. Engelli profil listesi ve Hub ayar alanlarını da yönetir. Profil adı düz model adı karakter kümesiyle sınırlıdır (kabuk/argüman enjeksiyonunu önler). mcp_acceptance_allow ayarı (JSON komut önekleri listesi), doğrulaması ve acceptance_allowed denetimi eklendi. (2026-10-21: `src/respected_orchestrator/roles.py` yolundan taşındı.)
 
 **İlişkiler ve sınır:** planner, mcp_server, runner, project ve rpp tarafından kullanılır; track_record sıralama verisini kullanır. tests/test_roles.py ile test edilir.
-
-#### [`src/respected_orchestrator/rpp.py`](../src/respected_orchestrator/rpp.py)
-
-**Rol:** RPP v1.0/1.1 protokol girişi.
-
-**Amaç / sorumluluk:** Respected Product Protocol: bir JSON istek alır, tek satır JSON yanıt döner. Hub ve testler için özel modüldür; daemon değildir ve ağ dinlemez. Her hata yapılandırılmış hata üçlüsü olarak döner, fırlatılmaz; yetenekleri, ayar şemasını ve lifecycle/memory/roles/runner işlemlerini yönlendirir.
-
-**İlişkiler ve sınır:** Hub ve testler çağırır; lifecycle, memory, roles, runner, integrations ve context'i kullanır. tests/test_rpp.py ve tests/test_rpp_lifecycle.py ile test edilir.
-
-#### [`src/respected_orchestrator/runner.py`](../src/respected_orchestrator/runner.py)
-
-**Rol:** Tek görev worker yürütücüsü.
-
-**Amaç / sorumluluk:** Create/start/list/inspect/cancel/check/retry ile imzalı yaşam döngüsünü; Codex brief/strict JSONL, scope, acceptance, freshness ve correction patch hash/scope doğrulamasını yürütür. Codex açık --sandbox workspace-write ve approval_policy=never ile çalışır, MiMo profilleri reddedilir, reviewer implementer'dan farklı olmalıdır, .engine-key Windows'ta mevcut kullanıcıya ACL'lenir. apply_task doğrulanmış (gerekirse insan onaylı) patch'i commit etmeden uygular; maf-approve yalnız etkileşimli operatör terminalinde, patch_sha256'ya bağlı ve değiştirilemez onay verir. Kabul komutları sandbox.wrap ile kısıtlı token'da çalışır (kurulamazsa sandbox_unavailable ile fail-closed), kabul öncesi worker'ın bıraktığı __pycache__/.pyc silinir (üretilen dosya sayısı yine raporlanır); Windows'ta .cmd/.bat worker kabukları kullanılamaz, görev metni Windows'ta 20000 karakterle sınırlıdır, bypass bayrağı kontrolü genişletildi, retry açık memory kararını korur, tester/coordinator rolleri ROLE_NOT_EXECUTABLE ile reddedilir.
-
-**İlişkiler ve sınır:** context, processes ve antigravity_orchestrator katmanlarını kullanır; __main__, maf_workflow, campaign ve project tarafından çağrılır. tests/test_engine.py, tests/test_codex_results.py ve tests/test_maf_coding.py kapsar.
-
-#### [`src/respected_orchestrator/sandbox.py`](../src/respected_orchestrator/sandbox.py)
-
-**Rol:** Güvenilmeyen kod sınır katmanı.
-
-**Amaç / sorumluluk:** Motorun kendi çalıştırdığı worker yazımı kodun (kabul ve verify komutları) yetkisini sınırlar: Windows'ta veri kökü başına rastgele bir SID üretir, veri kökünün (workspaces hariç) tüm çocuklarına ve .engine-key dosyasına bu SID için inheritable DENY ACE ekler, OWNER RIGHTS ACE ile sahibin örtük WRITE_DAC hakkını kaldırır ve komutu sandbox_exec üzerinden kısıtlı token ile çalıştıracak biçimde sarar (wrap). Sınır kurulamazsa SandboxError verir (fail-closed); RESPECTED_ORCH_SANDBOX=off yalnızca açık geliştirici anahtarıdır. Karar: docs/decisions/ACCEPTANCE_SANDBOX.md.
-
-**İlişkiler ve sınır:** runner (kabul komutları) ve project (_verify) tarafından çağrılır; anahtar yolunu runner._key_path verir. sandbox_exec ile birlikte çalışır; PowerShell ACL kurulumunu winproc.run ile gizli pencerede yürütür. tests/test_sandbox.py gerçek saldırı denemeleri ve negatif kontrolle sınırı kanıtlar.
-
-#### [`src/respected_orchestrator/sandbox_exec.py`](../src/respected_orchestrator/sandbox_exec.py)
-
-**Rol:** Kısıtlı token ile komut çalıştırıcı.
-
-**Amaç / sorumluluk:** python -m ... sandbox_exec --sid SID -- komut: çağıranın token'ından CreateRestrictedToken ile (kullanıcının tüm SID'leri + veri köküne ait ek SID kısıtlayıcı SID olarak, DISABLE_MAX_PRIVILEGE) yeni bir token üretir ve komutu CreateProcessAsUser ile çağıranın standart tutamaçlarıyla başlatır; çıkış kodunu döndürür. Çağıranın job nesnesi (süreç ağacı sonlandırma, zaman aşımı) çocuk için de geçerlidir. Yalnızca Windows.
-
-**İlişkiler ve sınır:** sandbox.wrap tarafından komut öneki olarak eklenir; processes.execute bunu sıradan bir süreç gibi yönetir. tests/test_sandbox.py ile doğrulanır.
-
-#### [`src/respected_orchestrator/track_record.py`](../src/respected_orchestrator/track_record.py)
-
-**Rol:** Ölçülü araç/profil sicili.
-
-**Amaç / sorumluluk:** (araç, profil) başına başarı, token ve süre sicilini bu kurulumun imzalı run kanıtından okur. Yalnızca imzası doğrulanan kanıt sayılır; imzasız, kurcalanmış veya kısmi kayıt atlanır. Adayları yalnızca sıralar, asla elemez; geçmiş MIN_RUNS altındaysa kullanılabilir geçmiş yoktur.
-
-**İlişkiler ve sınır:** runner._track_record ve roles otomatik atama tarafından çağrılır; runner._load ve EngineContext kullanır. tests/test_roles.py ve tests/test_reviewer_reliability.py ile kapsanır.
-
-#### [`src/respected_orchestrator/vertical_slice.py`](../src/respected_orchestrator/vertical_slice.py)
-
-**Rol:** Autonomous vertical slice.
-
-**Amaç / sorumluluk:** Codex çağrı adaptörünü (run_codex_call, CodexOutcome, diagnose) ve GLM master planı + paralel Codex worker + bounded correction + deterministik test + final gate dikey dilimini sağlar. turn.completed'da beklemeden ilerler; stream_verified_complete turn.failed görülen akışı başarıya çevirmez; diagnose yapılandırılmış JSONL kanıtını stderr regex'inden üstün tutar ve confidence raporlar. MiMo profilleri reddedilir, reviewer süreçleri scrub_env ile çalışır.
-
-**İlişkiler ve sınır:** processes.execute ve context'i kullanır; maf_workflow ve runner Codex çağrıları için buradan yararlanır. tests/test_codex_results.py ve tests/test_maf_coding.py dolaylı kapsar.
-
-#### [`src/respected_orchestrator/winproc.py`](../src/respected_orchestrator/winproc.py)
-
-**Rol:** Windows süreç başlatma yardımcısı.
-
-**Amaç / sorumluluk:** Windows'ta çocuk süreçleri konsol penceresi açmadan başlatır; ayrık supervisor'ların git/python/icacls çağrıları görünür pencere açmasın diye bayraklar tek yerde tutulur. Çıktı, hata, çıkış kodu ve zaman aşımı davranışı değişmez; Windows dışında boş seçenek döner.
-
-**İlişkiler ve sınır:** Paketteki süreç başlatan modüller (memory, runner, processes vb.) tarafından kullanılır. tests/test_windows_processes.py ile test edilir.
 
 ### tests
 
@@ -707,7 +741,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Rol:** Proje adversarial testleri.
 
-**Amaç / sorumluluk:** project.py için kötü niyetli ve çökme senaryolarını doğrular: apply sonrası çökmede ikinci apply olmaması, çakışmada engelleme, ProcessStopped sınırlı deneme, iptal, bütçe, kalıcı deadline ve bozuk kilit, bozuk spec için ValueError, reddedilen lane'in sınırlı yeniden denenmesi.
+**Amaç / sorumluluk:** workflows/project.py için kötü niyetli ve çökme senaryolarını doğrular: apply sonrası çökmede ikinci apply olmaması, çakışmada engelleme, ProcessStopped sınırlı deneme, iptal, bütçe, kalıcı deadline ve bozuk kilit, bozuk spec için ValueError, reddedilen lane'in sınırlı yeniden denenmesi.
 
 **İlişkiler ve sınır:** project, campaign, maf_workflow ve runner'ı kullanır. Karar: docs/decisions/PROJECT_SUPERVISOR_REVIEW.md.
 
@@ -739,7 +773,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Rol:** RPP testleri.
 
-**Amaç / sorumluluk:** rpp.py'nin v1.0 ve v1.1 davranışını doğrular: her yanıtta tüm anahtarlar, bilinmeyen op, sürüm uzlaşması ve sınırları, operation_id şekli, çöp girdide istisna olmaması, manifest, health, ayar şeması, apply idempotansı ve çakışması, secret maskeleme ve receipt okuma. Ayar şemasının mcp_acceptance_allow alanını da içerdiği doğrulanır.
+**Amaç / sorumluluk:** interfaces/rpp.py'nin v1.0 ve v1.1 davranışını doğrular: her yanıtta tüm anahtarlar, bilinmeyen op, sürüm uzlaşması ve sınırları, operation_id şekli, çöp girdide istisna olmaması, manifest, health, ayar şeması, apply idempotansı ve çakışması, secret maskeleme ve receipt okuma. Ayar şemasının mcp_acceptance_allow alanını da içerdiği doğrulanır.
 
 **İlişkiler ve sınır:** rpp ve EngineContext çağrılır. Karar: docs/decisions/RPP_V1.md ve RPP_V1_1.md.
 

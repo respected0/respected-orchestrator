@@ -11,12 +11,12 @@ import sys
 import threading
 from uuid import uuid4
 
-from . import antigravity_orchestrator as agy
-from . import winproc
-from .context import EngineContext, safe_path
-from .processes import execute
+from ..engine import antigravity_orchestrator as agy
+from ..engine import winproc
+from ..context import EngineContext, safe_path
+from ..engine.processes import execute
 from . import roles
-from .runner import SUPPORTED_AGENTS, _track_record, _command, _load, _save, command_for, create_task, tool_available, tool_result
+from ..engine.runner import SUPPORTED_AGENTS, _track_record, _command, _load, _save, command_for, create_task, tool_available, tool_result
 
 LANE_TIMEOUT_DEFAULT = 7200
 FINAL_TIMEOUT_DEFAULT = 1800
@@ -96,7 +96,7 @@ def _snapshot_engine(ctx, source=None):
     """Copy the engine so a campaign can develop the engine itself without touching the code that is running.
 
     `source` lets a long-lived supervisor snapshot the real (possibly just-updated) source instead of its own copy."""
-    source = Path(source).resolve() if source else Path(__file__).resolve().parent
+    source = Path(source).resolve() if source else Path(__file__).resolve().parents[1]  # the package
     files = sorted(p for p in source.rglob("*") if p.is_file() and "__pycache__" not in p.parts)
     digest = hashlib.sha256()
     for path in files:
@@ -172,7 +172,7 @@ def _build_mirror(source, mirror):
 
 def _maf_lane(lane_ctx, run_id, timeout, main_root=None):
     """Real lane: a separate process runs the whole MAF pipeline for one run in its own data root."""
-    engine = Path(__file__).resolve().parents[1]
+    engine = Path(__file__).resolve().parents[2]  # src/, holds the package
     command = [sys.executable, "-m", "respected_orchestrator", "--data-root", str(lane_ctx.data_root), "maf", run_id]
     env = _engine_env(engine)
     if main_root is not None:  # lanes hold no settings.json or memory token; the child resolves them from here
@@ -317,7 +317,7 @@ def _start_final_master(ctx, directory, spec, lanes, project_review=False):
         os.close(descriptor)
     except FileExistsError:
         return
-    engine = Path(__file__).resolve().parents[1]
+    engine = Path(__file__).resolve().parents[2]  # src/, holds the package
     prompt = _final_prompt(spec, directory, lanes, engine, project_review)
     command = [part.replace("{prompt}", prompt) for part in spec["final"]["command"]]
     if Path(command[0]).stem.casefold() == "claude" and "--permission-mode" not in command:

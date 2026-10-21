@@ -7,9 +7,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from respected_orchestrator import maf_workflow, roles
+from respected_orchestrator.workflows import maf_workflow, roles
 from respected_orchestrator.context import EngineContext
-from respected_orchestrator.runner import SUPPORTED_AGENTS, create_task, inspect_task
+from respected_orchestrator.engine.runner import SUPPORTED_AGENTS, create_task, inspect_task
 
 TOOLS = list(SUPPORTED_AGENTS)
 
@@ -62,7 +62,7 @@ class ResolutionTests(unittest.TestCase):
             resolve({"default_reviewer_profile": ""}, {}, ["implementer", "reviewer"])
 
     def test_roles_nothing_can_execute_are_refused_in_a_task(self):
-        from respected_orchestrator import runner
+        from respected_orchestrator.engine import runner
         workflow = dict(reviewer_tool=None, reviewer_profile=None, deep_review_tool=None, deep_review_profile=None)
         with self.assertRaises(roles.RoleError) as caught:
             runner._explicit_roles({"roles": {"tester": {"profile": "x"}}}, workflow)
@@ -100,7 +100,7 @@ class ResolutionTests(unittest.TestCase):
 
 class CommandTests(unittest.TestCase):
     def test_profile_is_the_model_and_only_writers_may_edit(self):
-        from respected_orchestrator import runner
+        from respected_orchestrator.engine import runner
         with mock.patch.object(runner, "get_cli_command", return_value=["tool"]):
             self.assertEqual(runner.command_for("claude", "p", profile="m", write=True),
                              ["tool", "--model", "m", "--permission-mode", "acceptEdits", "--output-format", "json", "-p", "p"])
@@ -112,7 +112,7 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(runner.command_for("custom", "p", ["x", "{prompt}", "{profile}"], "m"), ["x", "p", "m"])
 
     def test_usage_comes_from_each_tools_envelope_and_unknown_is_never_zero(self):
-        from respected_orchestrator.runner import tool_result
+        from respected_orchestrator.engine.runner import tool_result
         claude = json.dumps({"type": "result", "result": "hi", "usage": {
             "input_tokens": 2, "cache_creation_input_tokens": 100, "cache_read_input_tokens": 1000, "output_tokens": 10,
             "output_tokens_details": {"thinking_tokens": 4}}, "modelUsage": {"claude-x": {}}})
@@ -150,7 +150,8 @@ class ReviewPromptTests(unittest.TestCase):
 
 class MasterRoleTests(unittest.TestCase):
     def test_final_master_comes_from_the_master_role_unless_a_command_is_given(self):
-        from respected_orchestrator import campaign, runner
+        from respected_orchestrator.workflows import campaign
+        from respected_orchestrator.engine import runner
         hub = {"default_roles": json.dumps({"master": {"tool": "claude", "profile": "m1"}})}
         with mock.patch.object(runner, "get_cli_command", return_value=["tool"]), \
                 mock.patch.object(campaign, "tool_available", lambda t: True):
@@ -195,7 +196,7 @@ class TaskIntegrationTests(unittest.TestCase):
         self.assertEqual(got["workflow"]["reviewer_profile"], "mine")
 
     def test_applied_dependency_output_is_a_read_only_input_of_the_next_lane(self):
-        from respected_orchestrator.runner import execute_task
+        from respected_orchestrator.engine.runner import execute_task
         (self.repo / "dep.py").write_text("x = 1", encoding="utf8")  # applied by an earlier lane, still uncommitted
         code = "from pathlib import Path; assert Path('dep.py').read_text() == 'x = 1'; Path('a.txt').write_text('ok')"
         results = {}
@@ -207,7 +208,7 @@ class TaskIntegrationTests(unittest.TestCase):
         self.assertEqual(results["without"]["status"], "failed")
 
     def test_parallel_lanes_of_one_git_source_apply_in_turn(self):
-        from respected_orchestrator.runner import apply_task, check_result, execute_task, project_fingerprint
+        from respected_orchestrator.engine.runner import apply_task, check_result, execute_task, project_fingerprint
         runs = []
         for name in ("a.txt", "b.txt"):
             code = f"open('{name}','w').write('x')"
@@ -222,7 +223,7 @@ class TaskIntegrationTests(unittest.TestCase):
         self.assertTrue((self.repo / "b.txt").is_file())
 
     def test_planner_role_drafts_a_validated_spec_and_never_starts_it(self):
-        from respected_orchestrator import planner
+        from respected_orchestrator.workflows import planner
         root = self.root
         repo = root / "plan-repo"
         repo.mkdir()
@@ -255,7 +256,7 @@ class TaskIntegrationTests(unittest.TestCase):
             planner.plan(self.ctx, {"goal": "do it", "project_root": str(repo)})
 
     def test_edit_tool_workers_are_not_told_to_edit_through_the_shell(self):
-        from respected_orchestrator import runner
+        from respected_orchestrator.engine import runner
         with mock.patch.object(runner, "get_cli_command", return_value=["agy"]),                 mock.patch.object(runner, "execute", return_value=SimpleNamespace(returncode=1, stdout="", stderr="")):
             run_id = create_task(self.ctx, self.request(worker="agy"))["run_id"]
             runner.execute_task(self.ctx, run_id)

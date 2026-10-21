@@ -13,7 +13,7 @@ import re
 import sys
 
 from . import lifecycle
-from .context import atomic_write_json, safe_path
+from ..context import atomic_write_json, safe_path
 from .lifecycle import LifecycleError, _atomic_write_text, _now, _read_receipt, _receipt_path
 
 NAME = "respected-orchestrator"

@@ -14,8 +14,10 @@ import time
 from uuid import uuid4
 
 from . import antigravity_orchestrator as agy, sandbox
-from . import budget, memory, roles, winproc
-from .context import EngineContext, atomic_write_json, safe_path, validate_project
+from . import budget, winproc
+from ..interfaces import memory
+from ..workflows import roles
+from ..context import EngineContext, atomic_write_json, safe_path, validate_project
 from .processes import ProcessStopped, execute
 from .vertical_slice import _is_turn_completed, stream_verified_complete
 
@@ -39,7 +41,7 @@ TERMINAL = {"completed", "failed", "cancelled", "timed_out", "interrupted"}
 # Stable 0.162.0/0.162.1 lack OpenAI's active-runtime ACL fix (#51822).
 # the brief travels as one command-line argument; Windows caps a command line at 32 767 characters (audit P1 #18)
 MAX_TASK_CHARS = 20000 if sys.platform == "win32" else 60000
-LOCAL_CODEX = Path(__file__).resolve().parents[2] / ".runtime" / "codex-0.162.0-alpha.20" / "bin" / "codex.exe"
+LOCAL_CODEX = Path(__file__).resolve().parents[3] / ".runtime" / "codex-0.162.0-alpha.20" / "bin" / "codex.exe"
 
 
 def slugify(text: str) -> str:
@@ -775,7 +777,7 @@ def start_task(ctx, run_id):
     _load(ctx, directory / "request.json")
     if _load(ctx, directory / "status.json")["status"] != "queued":
         raise ValueError("Only queued tasks can start")
-    source = str(Path(__file__).resolve().parents[1])
+    source = str(Path(__file__).resolve().parents[2])  # src/
     env = dict(os.environ, PYTHONPATH=source)
     command = [sys.executable, "-m", "respected_orchestrator", "--data-root", str(ctx.data_root), "_execute", run_id]
     pid = agy._spawn_detached(command, ctx.app_root, directory / "supervisor.log", env=env)

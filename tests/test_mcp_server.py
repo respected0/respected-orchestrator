@@ -6,7 +6,9 @@ import sys
 import tempfile
 import unittest
 
-from respected_orchestrator import mcp_server, runner
+from respected_orchestrator.interfaces import mcp_server
+
+from respected_orchestrator.engine import runner
 from respected_orchestrator.context import EngineContext
 
 SRC = str(Path(__file__).resolve().parents[1] / "src")
@@ -69,7 +71,7 @@ class McpServerTest(unittest.TestCase):
         out = call(self.ctx, "orchestrator_project_start", phases)["result"]
         self.assertTrue(out["isError"] and "mcp_acceptance_allow" in out["content"][0]["text"])
         # the user lists a prefix: only commands that start with it pass the gate (they then meet the normal validation)
-        from respected_orchestrator import roles
+        from respected_orchestrator.workflows import roles
         settings = {"mcp_acceptance_allow": _json.dumps([["python", "-m", "pytest"]])}
         self.assertTrue(roles.acceptance_allowed(settings, ["python", "-m", "pytest", "-q"]))
         for command in (["python", "-c", "x"], ["python", "-m", "pip", "install", "x"], ["python", "-m"], ["pytest"], [], "python -m pytest", None, [1]):

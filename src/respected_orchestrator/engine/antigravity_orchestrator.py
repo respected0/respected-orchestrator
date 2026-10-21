@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from . import winproc
-from .context import EngineContext, validate_project, path_within_root
+from ..context import EngineContext, validate_project, path_within_root
 from .processes import execute, ProcessStopped
 from uuid import uuid4
 
@@ -816,7 +816,7 @@ def main(argv: Sequence[str] | None = None, *, ctx: EngineContext | None = None,
     parser = _build_parser()
     args = parser.parse_args(argv)
     if ctx is None:
-        from .context import default_data_root
+        from ..context import default_data_root
         ctx = EngineContext(default_data_root())
     args.ctx = ctx
     args.state_root = ctx.paths.state_dir / "orchestration"
@@ -840,7 +840,7 @@ def main(argv: Sequence[str] | None = None, *, ctx: EngineContext | None = None,
             return _run_cli(args)
         except Exception as error:
             if args.run_id:
-                policy = load_policy(args.policy or Path(__file__).parent / "resources/policy.json")
+                policy = load_policy(args.policy or Path(__file__).resolve().parents[1] / "resources/policy.json")
                 root = args.state_root / args.run_id
                 _write_verification(root, RunStatus.WORKER_FAILED, error=str(error))
             raise
@@ -913,7 +913,7 @@ def _parse_command(value: str) -> tuple[str, ...]:
 
 def _doctor(args: argparse.Namespace) -> int:
     repo_root = args.repo_root.resolve()
-    policy_path = (args.policy or Path(__file__).parent / "resources/policy.json").resolve()
+    policy_path = (args.policy or Path(__file__).resolve().parents[1] / "resources/policy.json").resolve()
     policy = load_policy(policy_path)
     workspace_root = _workspace_root(repo_root, policy) if policy.workspace_root else args.ctx.workspace_root
     for forbidden in (args.ctx.paths.app_root, repo_root):
@@ -937,7 +937,7 @@ def _doctor(args: argparse.Namespace) -> int:
 
 def _run_cli(args: argparse.Namespace) -> int:
     repo_root = args.repo_root.resolve()
-    policy_path = (args.policy or Path(__file__).parent / "resources/policy.json").resolve()
+    policy_path = (args.policy or Path(__file__).resolve().parents[1] / "resources/policy.json").resolve()
     policy = load_policy(policy_path)
     workspace_root = _workspace_root(repo_root, policy) if policy.workspace_root else args.ctx.workspace_root
     for forbidden in (args.ctx.paths.app_root, repo_root):
@@ -1141,7 +1141,7 @@ def _spawn_detached(command: Sequence[str], cwd: Path, log_path: Path, *, env: M
 
 def _start_background(args: argparse.Namespace, argv: list[str]) -> int:
     repo = args.repo_root.resolve()
-    policy = load_policy(args.policy or Path(__file__).parent / "resources/policy.json")
+    policy = load_policy(args.policy or Path(__file__).resolve().parents[1] / "resources/policy.json")
     resolve_agy(policy, os.environ)  # Fail before reserving a run or creating a lane.
     run_id = args.run_id or _new_run_id(args.slug)
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", run_id):

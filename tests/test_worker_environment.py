@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from respected_orchestrator.processes import execute
+from respected_orchestrator.engine.processes import execute
 from tools import run_maf_coding_demo as demo
 
 

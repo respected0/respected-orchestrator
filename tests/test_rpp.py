@@ -4,7 +4,9 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from respected_orchestrator import __version__, rpp
+from respected_orchestrator import __version__
+
+from respected_orchestrator.interfaces import rpp
 from respected_orchestrator.context import EngineContext
 
 OPID = "operation-0001"

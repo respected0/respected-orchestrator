@@ -5,7 +5,8 @@ from pathlib import Path
 import sys
 
 from .context import EngineContext, default_data_root
-from . import roles, runner
+from .workflows import roles
+from .engine import runner
 from . import __version__
 
 
@@ -35,41 +36,41 @@ def main(argv=None):
                 tools=list(runner.SUPPORTED_AGENTS), available=runner.tool_available,
                 history=lambda: runner._track_record(ctx)))
         elif args.command == "plan":  # planner role: draft a project spec (never started); stdin {goal, project_root, ...}
-            from .planner import plan
+            from .workflows.planner import plan
             payload = plan(ctx, _stdin_json())
         elif args.command == "mcp":  # stdio MCP server for Claude Code/Codex/any client; optional args --allow-auto-apply, --allow-privileged
-            from .mcp_server import serve
+            from .interfaces.mcp_server import serve
             return serve(ctx.data_root, allow_auto_apply="--allow-auto-apply" in args.args, allow_privileged="--allow-privileged" in args.args)
         elif args.command == "campaign-start":
-            from .campaign import start_campaign
+            from .workflows.campaign import start_campaign
             payload = start_campaign(ctx, _stdin_json())
         elif args.command == "project-start":
-            from .project import start_project
+            from .workflows.project import start_project
             payload = start_project(ctx, _stdin_json())
         elif args.command == "rpp":
-            from . import rpp
+            from .interfaces import rpp
             return rpp.run(ctx)
         elif args.command == "list":
             payload = runner.list_tasks(ctx)
         elif args.command == "antigravity":
-            from .antigravity_orchestrator import main as legacy_main
+            from .engine.antigravity_orchestrator import main as legacy_main
             return legacy_main(args.args, ctx=ctx)
         else:
             if len(args.args) != 1:
                 raise ValueError("Exactly one run identity is required")
             if args.command == "maf":
-                from .maf_workflow import run_maf_coding_task
+                from .workflows.maf_workflow import run_maf_coding_task
                 payload = run_maf_coding_task(ctx=ctx, run_id=args.args[0])
             elif args.command == "maf-approve":
                 payload = runner.approve_maf_task(ctx, args.args[0])
             elif args.command == "apply":
                 payload = runner.apply_task(ctx, args.args[0])
             elif args.command.startswith("project-"):
-                from . import project
+                from .workflows import project
                 payload = {"project-run": project.run_project, "project-resume": project.resume_project,
                            "project-status": project.project_status, "project-cancel": project.cancel_project}[args.command](ctx, args.args[0])
             elif args.command in {"campaign-run", "campaign-status"}:
-                from . import campaign
+                from .workflows import campaign
                 payload = (campaign.run_campaign if args.command == "campaign-run" else campaign.campaign_status)(ctx, args.args[0])
             else:
                 method = {"start": runner.start_task, "inspect": runner.inspect_task, "cancel": runner.cancel_task,

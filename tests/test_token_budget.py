@@ -4,10 +4,12 @@ from pathlib import Path
 import unittest
 from unittest import mock
 
-from respected_orchestrator import budget, campaign, project, runner
+from respected_orchestrator.engine import budget, runner
+
+from respected_orchestrator.workflows import campaign, project
 from respected_orchestrator.context import EngineContext
-from respected_orchestrator.maf_workflow import run_maf_coding_task
-from respected_orchestrator.runner import _load, _save, create_task, execute_task
+from respected_orchestrator.workflows.maf_workflow import run_maf_coding_task
+from respected_orchestrator.engine.runner import _load, _save, create_task, execute_task
 from tests.test_reviewer_reliability import CodingFixture, outcome
 
 
@@ -57,8 +59,8 @@ class LaneBudgetTests(CodingFixture):
                 "usage": {"estimated_weighted_tokens": weighted, "cached_input_tokens": cached}}
 
     def run_with(self, run_id, calls, weighted=100, cached=0):
-        with mock.patch("respected_orchestrator.maf_workflow.execute_task", return_value=self.completed(run_id, weighted, cached)), \
-             mock.patch("respected_orchestrator.maf_workflow.run_codex_call", side_effect=calls) as codex:
+        with mock.patch("respected_orchestrator.workflows.maf_workflow.execute_task", return_value=self.completed(run_id, weighted, cached)), \
+             mock.patch("respected_orchestrator.workflows.maf_workflow.run_codex_call", side_effect=calls) as codex:
             return run_maf_coding_task(ctx=self.ctx, run_id=run_id), codex
 
     @staticmethod
@@ -111,11 +113,11 @@ class LaneBudgetTests(CodingFixture):
         def spending(ctx, current):
             return dict(execute_task(ctx, current), usage={"estimated_weighted_tokens": 600})
 
-        with mock.patch("respected_orchestrator.maf_workflow.execute_task", side_effect=spending),              mock.patch("respected_orchestrator.maf_workflow.run_codex_call", side_effect=[silent, silent]):
+        with mock.patch("respected_orchestrator.workflows.maf_workflow.execute_task", side_effect=spending),              mock.patch("respected_orchestrator.workflows.maf_workflow.run_codex_call", side_effect=[silent, silent]):
             first = run_maf_coding_task(ctx=self.ctx, run_id=run_id)
         self.assertEqual(first["reason"], "reviewer_timeout")  # 600 + 250 = 850 < 1000 when the retry started
         self.assertEqual(self.worker_runs(), 1)
-        with mock.patch("respected_orchestrator.maf_workflow.execute_task", side_effect=AssertionError("worker re-executed")),              mock.patch("respected_orchestrator.maf_workflow.run_codex_call", side_effect=[self.approved()]) as codex:
+        with mock.patch("respected_orchestrator.workflows.maf_workflow.execute_task", side_effect=AssertionError("worker re-executed")),              mock.patch("respected_orchestrator.workflows.maf_workflow.run_codex_call", side_effect=[self.approved()]) as codex:
             second = run_maf_coding_task(ctx=self.ctx, run_id=run_id)  # re-invocation of the same run
         codex.assert_not_called()  # 600 + 2 x 250 = 1100 >= 1000 across invocations: no review is started
         self.assertEqual((second["status"], second["reason"]), ("FAILED", "token_budget_exceeded"))

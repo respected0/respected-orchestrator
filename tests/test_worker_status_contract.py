@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from respected_orchestrator import antigravity_orchestrator as agy
+from respected_orchestrator.engine import antigravity_orchestrator as agy
 
 
 class WorkerStatusContractTest(unittest.TestCase):

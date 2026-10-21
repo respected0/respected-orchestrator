@@ -14,13 +14,13 @@ import sys
 import time
 from uuid import uuid4
 
-from . import antigravity_orchestrator as agy, runner, sandbox
-from .budget import MAX_BUDGET, UNKNOWN_STEP_TOKENS_DEFAULT
+from ..engine import antigravity_orchestrator as agy, runner, sandbox
+from ..engine.budget import MAX_BUDGET, UNKNOWN_STEP_TOKENS_DEFAULT
 from . import campaign, roles
-from .context import EngineContext, safe_path
-from .processes import ProcessStopped, execute
-from .runner import _command, _load, _save, apply_task
-from .runner import project_fingerprint as runner_fingerprint
+from ..context import EngineContext, safe_path
+from ..engine.processes import ProcessStopped, execute
+from ..engine.runner import _command, _load, _save, apply_task
+from ..engine.runner import project_fingerprint as runner_fingerprint
 
 _NAME = re.compile(r"[a-z0-9][a-z0-9-]{0,39}")
 _MAX_PHASES, _MAX_SECONDS, _MAX_ATTEMPTS = 12, 7 * 86400, 3

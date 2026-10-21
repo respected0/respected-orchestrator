@@ -8,10 +8,10 @@ import threading
 import unittest
 from unittest import mock
 
-from respected_orchestrator import campaign
+from respected_orchestrator.workflows import campaign
 from respected_orchestrator.context import EngineContext
-from respected_orchestrator.maf_workflow import run_maf_coding_task
-from respected_orchestrator.runner import apply_task, check_result
+from respected_orchestrator.workflows.maf_workflow import run_maf_coding_task
+from respected_orchestrator.engine.runner import apply_task, check_result
 
 WRITE = "from pathlib import Path; Path('f.txt').write_text('new\\n')"
 CHECK = "from pathlib import Path; assert Path('f.txt').read_text() == 'new\\n'"
@@ -28,7 +28,7 @@ class CampaignTests(unittest.TestCase):
         self.root = Path(self.temp.name).resolve()
         self.ctx = EngineContext(self.root / "data")
         self.out = self.root / "master.txt"
-        patcher = mock.patch("respected_orchestrator.runner._stdin_is_tty", return_value=True)
+        patcher = mock.patch("respected_orchestrator.engine.runner._stdin_is_tty", return_value=True)
         patcher.start()
         self.addCleanup(patcher.stop)
 

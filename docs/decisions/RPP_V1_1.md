@@ -12,21 +12,21 @@ redesign anything that exists.
 RPP v1.1 adds lifecycle operations, version negotiation across 1.0..1.1, seven new
 typed errors, and a richer `manifest`. The transport is unchanged: one JSON request on
 stdin, one JSON response line on stdout, from the private entry point
-(`src/respected_orchestrator/rpp.py`), reached via
+(`src/respected_orchestrator/interfaces/rpp.py`), reached via
 `python -m respected_orchestrator --data-root DATA rpp`. No daemon, no listener. The
 new surface is implemented in the same allow-list registry pattern the existing ops
-use (`_OPS`, `src/respected_orchestrator/rpp.py:255`).
+use (`_OPS`, `src/respected_orchestrator/interfaces/rpp.py:255`).
 
 ## Version negotiation
 
 - `PROTOCOL_MIN` stays `"1.0"`; `PROTOCOL_MAX` becomes `"1.1"`
-  (`src/respected_orchestrator/rpp.py:19`).
+  (`src/respected_orchestrator/interfaces/rpp.py:19`).
 - A request whose `rpp` is outside `[min, max]` fails with `PROTOCOL_UNSUPPORTED`
   (existing error, unchanged behaviour).
 - The response `rpp` echoes the negotiated version, which is the request version when
   supported. On the current v1.0-only server this remains `"1.0"`; after the max is
   raised, `_response` must use the negotiated request version rather than pinning to
-  `PROTOCOL_MAX` (`src/respected_orchestrator/rpp.py:56`). v1.0 response shape is
+  `PROTOCOL_MAX` (`src/respected_orchestrator/interfaces/rpp.py:56`). v1.0 response shape is
   unchanged, although v1.0 clients can observe advertised protocol and manifest values.
 - Ops introduced in v1.1 (`lifecycle.*`, `operation.receipt`) requested under
   `rpp: `"1.0"` fail with `UNSUPPORTED_OP` and a hint naming the required version;
@@ -46,7 +46,7 @@ Four ops drive the four actions `install`, `update`, `repair`, `uninstall`:
   `irreversible_reason`, so the dry run exposes irreversible steps before apply.
 - `lifecycle.apply` - executes a plan. `operation_id` is required (8..64,
   `[A-Za-z0-9_-]`; reuses the existing `_OPERATION_ID` gate,
-  `src/respected_orchestrator/rpp.py:27`). Applying the same `operation_id` with an
+  `src/respected_orchestrator/interfaces/rpp.py:27`). Applying the same `operation_id` with an
   identical action and target is idempotent: it returns the stored receipt without
   re-running steps. The same `operation_id` with a different action or target fails
   with `LIFECYCLE_CONFLICT`.
@@ -64,7 +64,7 @@ never touches `DATA_ROOT/settings.json` or the workspace.
 
 Every `lifecycle.apply` / `lifecycle.rollback` writes a durable receipt at
 `DATA_ROOT/receipts/<operation_id>.json` via the existing `_receipt_path` +
-`atomic_write_json` helpers (`src/respected_orchestrator/rpp.py:80`,
+`atomic_write_json` helpers (`src/respected_orchestrator/interfaces/rpp.py:80`,
 `src/respected_orchestrator/context.py`), alongside the existing `settings.apply`
 receipts. A lifecycle receipt records, in addition to the v1.0 keys, a lifecycle
 `status` from the enum:
@@ -92,7 +92,7 @@ the same usage shape with all values zero.
 ## New typed errors (v1.1)
 
 Each carries `code`, `message` and `hint`, matching the existing
-`RppError(code, message, hint)` shape (`src/respected_orchestrator/rpp.py:42`).
+`RppError(code, message, hint)` shape (`src/respected_orchestrator/interfaces/rpp.py:42`).
 
 | code | raised when | hint |
 |---|---|---|
@@ -109,7 +109,7 @@ The existing codes `UNKNOWN_OP`, `PROTOCOL_UNSUPPORTED`, `BAD_REQUEST`,
 
 ## Richer manifest (v1.1)
 
-`manifest` (base shape at `src/respected_orchestrator/rpp.py:143`) keeps its v1.0 keys
+`manifest` (base shape at `src/respected_orchestrator/interfaces/rpp.py:143`) keeps its v1.0 keys
 and adds:
 
 - `installed` (bool) - whether the product is installed at the reported roots.
@@ -133,13 +133,13 @@ test evidence is not listed.
   read/write outside the product data root, or an arbitrary target directory. Targets
   are named lifecycle actions only.
 - Ops are an explicit allow-list: only keys present in the op registry
-  (`_OPS`, `src/respected_orchestrator/rpp.py:255`) are dispatchable; anything else is
+  (`_OPS`, `src/respected_orchestrator/interfaces/rpp.py:255`) are dispatchable; anything else is
   `UNKNOWN_OP`. Lifecycle actions are likewise an explicit set
   (`install`/`update`/`repair`/`uninstall`).
 - Receipts live only under `DATA_ROOT/receipts/`, resolved through `safe_path`
   (`src/respected_orchestrator/context.py`) which refuses links/reparse points. No
   receipt is written outside the product data root.
-- Secrets are never returned: `_redact` (`src/respected_orchestrator/rpp.py:88`) still
+- Secrets are never returned: `_redact` (`src/respected_orchestrator/interfaces/rpp.py:88`) still
   applies, and receipts retain only digests/status, never secret values.
 
 ## v1.0 feature -> implementation status

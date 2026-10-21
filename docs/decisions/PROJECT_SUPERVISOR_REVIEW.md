@@ -1,8 +1,8 @@
 ﻿# Project Supervisor Review (adversarial)
 
-Scope: `src/respected_orchestrator/project.py` (autonomous project supervisor), cross-checked against
+Scope: `src/respected_orchestrator/workflows/project.py` (autonomous project supervisor), cross-checked against
 `tests/test_project.py` and the `create_campaign` / `_snapshot_engine` / `_lane_summary` parts of
-`src/respected_orchestrator/campaign.py`. No source was modified. Line numbers are for the current tree.
+`src/respected_orchestrator/workflows/campaign.py`. No source was modified. Line numbers are for the current tree.
 
 Companion tests: `tests/test_project_adversarial.py` (8 tests, all pass against the current code). Each
 asserts an invariant that is currently *correct*; the defects below are documented, not asserted, because a
