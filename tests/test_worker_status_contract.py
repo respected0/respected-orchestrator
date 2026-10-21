@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from respected_orchestrator.engine import antigravity_orchestrator as agy
+from respected_orchestrator.engine import lanes
 
 
 class WorkerStatusContractTest(unittest.TestCase):
@@ -22,7 +22,7 @@ class WorkerStatusContractTest(unittest.TestCase):
                         )
 
                     request = SimpleNamespace(
-                        kind=agy.TaskKind.WRITE,
+                        kind=lanes.TaskKind.WRITE,
                         objective="Update smoke.txt",
                         known_context="",
                         ownership=("smoke.txt",),
@@ -31,7 +31,7 @@ class WorkerStatusContractTest(unittest.TestCase):
                     )
                     lane = SimpleNamespace(repo_root=root, worktree=root)
 
-                    brief = agy.render_brief(request, lane)
+                    brief = lanes.render_brief(request, lane)
 
                     self.assertIn("MACHINE-READABLE STATUS CONTRACT", brief)
                     self.assertIn('"status": "success"', brief)

@@ -12,7 +12,7 @@ from unittest import mock
 from respected_orchestrator.context import EngineContext
 from respected_orchestrator.engine.runner import create_task, execute_task, inspect_task, cancel_task, check_result, start_task, retry_task
 from respected_orchestrator.engine import runner
-from respected_orchestrator.engine import antigravity_orchestrator as agy
+from respected_orchestrator.engine import lanes
 from respected_orchestrator.engine.processes import execute, ProcessStopped
 
 
@@ -376,9 +376,9 @@ class EngineTests(unittest.TestCase):
             execute([sys.executable, "-c", code, str(pid_file)], self.repo, 1)
         pid = int(pid_file.read_text())
         deadline = time.monotonic() + 3
-        while time.monotonic() < deadline and agy._pid_is_alive(pid):
+        while time.monotonic() < deadline and lanes._pid_is_alive(pid):
             time.sleep(0.05)
-        self.assertFalse(agy._pid_is_alive(pid), f"Orphaned descendant {pid}")
+        self.assertFalse(lanes._pid_is_alive(pid), f"Orphaned descendant {pid}")
 
     @unittest.skipUnless(os.name == "nt", "Windows Job Object crash recovery")
     def test_supervisor_crash_kills_owned_descendants(self):
@@ -405,16 +405,16 @@ class EngineTests(unittest.TestCase):
         finally:
             api.CloseHandle(handle)
         deadline = time.monotonic() + 3
-        while time.monotonic() < deadline and agy._pid_is_alive(pid):
+        while time.monotonic() < deadline and lanes._pid_is_alive(pid):
             time.sleep(0.05)
-        self.assertFalse(agy._pid_is_alive(pid))
+        self.assertFalse(lanes._pid_is_alive(pid))
         self.assertEqual(inspect_task(self.ctx, task["run_id"])["status"], "interrupted")
 
     def test_antigravity_permission_bypass_is_refused(self):
-        request = agy.RunRequest("fixture", "fixture", agy.TaskKind.READ, "task", "", ("owned.txt",), (), (), ())
-        lane = agy.Lane(self.repo, self.repo, "fixture", self.root / "run")
+        request = lanes.RunRequest("fixture", "fixture", lanes.TaskKind.READ, "task", "", ("owned.txt",), (), (), ())
+        lane = lanes.Lane(self.repo, self.repo, "fixture", self.root / "run")
         with self.assertRaises(ValueError):
-            agy.run_worker(request, lane, self.root / "fake", dangerously_skip_permissions=True)
+            lanes.run_worker(request, lane, self.root / "fake", dangerously_skip_permissions=True)
 
     def test_new_ignored_file_outside_scope_is_rejected(self):
         (self.repo / '.gitignore').write_text('.env\n')
@@ -440,14 +440,6 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(call('inspect', run_id)['request']['task'], request['task'])
         self.assertEqual(call('check', run_id)['status'], 'verified')
         self.assertEqual(call('list')['runs'][0]['run_id'], run_id)
-
-    def test_compatibility_doctor_uses_product_default_policy(self):
-        from unittest.mock import patch
-        import contextlib,io
-        with patch.object(agy, 'resolve_agy', return_value=Path(sys.executable)), contextlib.redirect_stdout(io.StringIO()) as output:
-            result = agy.main(['doctor', '--repo-root', str(self.repo)], ctx=self.ctx)
-        self.assertEqual(result, 0)
-        self.assertEqual(json.loads(output.getvalue())['workspace_root'], str(self.ctx.workspace_root))
 
 
 if __name__ == "__main__":

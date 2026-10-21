@@ -1,9 +1,7 @@
-#!/usr/bin/env python3
-"""Behavioral tests for guarded Antigravity worker orchestration."""
+"""Behavioral tests for isolated worker lanes (engine/lanes.py)."""
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -18,13 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_orchestrator():
-    from respected_orchestrator.engine import antigravity_orchestrator
-    return antigravity_orchestrator
-
-
-def context_for(root: Path):
-    from respected_orchestrator.context import EngineContext
-    return EngineContext(root / "data")
+    from respected_orchestrator.engine import lanes
+    return lanes
 
 
 def run_git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -633,147 +626,6 @@ class PatchTest(unittest.TestCase):
             conflict = orchestrator.check_patch_against_master(repo, patch.path)
             self.assertEqual(conflict, orchestrator.RunStatus.INTEGRATION_CONFLICT)
             self.assertEqual(owned.read_bytes(), conflict_before)
-
-
-class CLIWorkflowTest(unittest.TestCase):
-    def write_policy(self, repo: Path, workspace: Path, fake_agy: Path) -> Path:
-        policy_path = repo / "policy.json"
-        policy_path.write_text(
-            json.dumps(
-                {
-                    "schema_version": 1,
-                    "worker_executable_candidates": [str(fake_agy)],
-                    "workspace_root": str(workspace),
-                    "max_active_write_workers": 1,
-                    "read_timeout_seconds": 10,
-                    "write_timeout_seconds": 20,
-                    "dangerously_skip_permissions": False,
-                }
-            ),
-            encoding="utf-8",
-        )
-        return policy_path
-
-    def test_write_workflow_preserves_master_until_explicit_apply(self) -> None:
-        orchestrator = load_orchestrator()
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary).resolve()
-            repo = init_repo(root)
-            fake_agy, record = make_fake_agy(root)
-            workspace = root / "worker lanes 🚀"
-            policy = self.write_policy(repo, workspace, fake_agy)
-            original = (repo / "src" / "owned.txt").read_bytes()
-            arguments = [
-                "run-write",
-                "--repo-root",
-                str(repo),
-                "--policy",
-                str(policy),
-                "--run-id",
-                "run-e2e",
-                "--slug",
-                "e2e-change",
-                "--objective",
-                "Change the owned fixture.",
-                "--owner",
-                "src",
-                "--forbid",
-                "other.txt",
-                "--accept",
-                json.dumps([sys.executable, "-c", "from pathlib import Path; assert Path('src/owned.txt').read_text() == 'worker-change\\n'"]),
-            ]
-            with mock.patch.dict(
-                os.environ,
-                {"FAKE_AGY_RECORD": str(record), "FAKE_AGY_MODE": "change"},
-            ):
-                code = orchestrator.main(arguments, ctx=context_for(root), project_root=repo)
-
-            run_root = context_for(root).paths.state_dir / "orchestration" / "run-e2e"
-            verification = json.loads(
-                (run_root / "verification.json").read_text(encoding="utf-8")
-            )
-            process = json.loads((run_root / "process.json").read_text(encoding="utf-8"))
-            patch = run_root / "worker.patch"
-            self.assertEqual(code, 0)
-            self.assertEqual(verification["status"], "COMPLETE")
-            self.assertEqual(process["timeout_seconds"], 20)
-            self.assertTrue(patch.is_file())
-            self.assertEqual((repo / "src" / "owned.txt").read_bytes(), original)
-
-            with self.assertRaisesRegex(ValueError, "Raw patch"):
-                orchestrator.main(
-                    ["apply-patch", "--repo-root", str(repo), "--patch", str(patch)], ctx=context_for(root), project_root=repo
-                )
-            self.assertEqual((repo / "src" / "owned.txt").read_bytes(), original)
-
-    def test_scope_violation_preserves_lane_and_never_applies(self) -> None:
-        orchestrator = load_orchestrator()
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary).resolve()
-            repo = init_repo(root)
-            fake_agy, record = make_fake_agy(root)
-            workspace = root / "workers"
-            policy = self.write_policy(repo, workspace, fake_agy)
-            original = (repo / "other.txt").read_bytes()
-            with mock.patch.dict(
-                os.environ,
-                {"FAKE_AGY_RECORD": str(record), "FAKE_AGY_MODE": "forbidden"},
-            ):
-                code = orchestrator.main(
-                    [
-                        "run-write",
-                        "--repo-root",
-                        str(repo),
-                        "--policy",
-                        str(policy),
-                        "--run-id",
-                        "run-scope",
-                        "--slug",
-                        "scope-violation",
-                        "--objective",
-                        "Attempt a bounded change.",
-                        "--owner",
-                        "src",
-                        "--forbid",
-                        "other.txt",
-                    ], ctx=context_for(root), project_root=repo
-                )
-
-            run_root = context_for(root).paths.state_dir / "orchestration" / "run-scope"
-            verification = json.loads(
-                (run_root / "verification.json").read_text(encoding="utf-8")
-            )
-            self.assertNotEqual(code, 0)
-            self.assertEqual(verification["status"], "SCOPE_VIOLATION")
-            self.assertEqual((repo / "other.txt").read_bytes(), original)
-            self.assertTrue((workspace / "scope-violation").is_dir())
-
-    def test_write_requires_explicit_ownership_and_json_argument_arrays(self) -> None:
-        orchestrator = load_orchestrator()
-        with self.assertRaises(SystemExit):
-            orchestrator.main(
-                [
-                    "run-write",
-                    "--slug",
-                    "missing-owner",
-                    "--objective",
-                    "No ownership supplied.",
-                ]
-            )
-        with self.assertRaises(SystemExit):
-            orchestrator.main(
-                [
-                    "run-write",
-                    "--slug",
-                    "bad-accept",
-                    "--objective",
-                    "Malformed acceptance.",
-                    "--owner",
-                    "src",
-                    "--accept",
-                    "not-json",
-                ]
-            )
 
 
 if __name__ == "__main__":

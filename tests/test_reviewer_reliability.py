@@ -16,7 +16,7 @@ from respected_orchestrator.workflows.maf_workflow import (ReviewerDisconnectedE
                                                  review_timeout_default, run_maf_coding_task)
 from respected_orchestrator.engine.processes import ProcessStopped
 from respected_orchestrator.engine.runner import _load, apply_task, check_result, create_task, execute_task
-from respected_orchestrator.engine.vertical_slice import CodexCall, CodexOutcome, diagnose, run_codex_call
+from respected_orchestrator.engine.codex import CodexCall, CodexOutcome, diagnose, run_codex_call
 
 PY = sys.executable
 # verbatim from stderr.log of the real runs: printed every ~4.5 min by every codex process, whatever the turn is doing
@@ -61,7 +61,7 @@ class DiagnosisAndPolicyTests(unittest.TestCase):
 
     def test_a_real_timed_out_review_is_recorded_as_a_timeout_not_a_disconnect(self):
         stopped = ProcessStopped("timeout", stdout=PARTIAL_STDOUT, stderr=MODELS_NOISE, had_output=True, last_output_age=3.0)
-        with tempfile.TemporaryDirectory() as temporary, mock.patch("respected_orchestrator.engine.vertical_slice.execute", side_effect=stopped):
+        with tempfile.TemporaryDirectory() as temporary, mock.patch("respected_orchestrator.engine.codex.execute", side_effect=stopped):
             root = Path(temporary) / "review-fast-1"
             result = run_codex_call(CodexCall("fast", "deepseek", None, "prompt", root), cwd=Path(temporary), timeout_seconds=1)
             process = json.loads((root / "process.json").read_text(encoding="utf8"))

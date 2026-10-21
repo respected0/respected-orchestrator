@@ -14,7 +14,7 @@ from respected_orchestrator.context import EngineContext
 from respected_orchestrator.__main__ import main
 from respected_orchestrator.workflows.maf_workflow import run_maf_coding_task
 from respected_orchestrator.engine.runner import approve_maf_task, check_result, create_task, inspect_task
-from respected_orchestrator.engine.vertical_slice import CodexOutcome
+from respected_orchestrator.engine.codex import CodexOutcome
 
 
 class MafCodingTaskTest(unittest.TestCase):

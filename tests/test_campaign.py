@@ -55,7 +55,7 @@ class CampaignTests(unittest.TestCase):
                 "final": {"command": [sys.executable, "-c", record, "{prompt}"], "timeout_seconds": 30}}
 
     def start(self, spec):
-        with mock.patch.object(campaign.agy, "_spawn_detached", return_value=4242) as spawn:
+        with mock.patch.object(campaign.lanes, "_spawn_detached", return_value=4242) as spawn:
             started = campaign.start_campaign(self.ctx, spec)
         return started["campaign_id"], spawn
 
@@ -147,7 +147,7 @@ class CampaignTests(unittest.TestCase):
 
     def test_engine_snapshot_is_a_separate_copy(self):
         snapshot = campaign._snapshot_engine(self.ctx)
-        self.assertTrue((snapshot / "respected_orchestrator" / "campaign.py").is_file())
+        self.assertTrue((snapshot / "respected_orchestrator" / "workflows" / "campaign.py").is_file())
         self.assertNotIn("__pycache__", {p.name for p in snapshot.rglob("*")})
         self.assertTrue(snapshot.is_relative_to(self.ctx.data_root))
 

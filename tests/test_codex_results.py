@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from respected_orchestrator.engine import antigravity_orchestrator as agy, runner
+from respected_orchestrator.engine import lanes, runner
 from respected_orchestrator.context import EngineContext
 
 
@@ -32,19 +32,19 @@ class CodexResultTests(unittest.TestCase):
         for payload in ({"status": "blocked"}, {"status": "failed"}, {"status": "pending"},
                         {"status": "ok", "error": "runtime failure"}):
             with self.subTest(payload=payload):
-                self.assertIs(agy.classify_worker_exit(0, json.dumps(payload), "", False),
-                              agy.RunStatus.WORKER_FAILED)
+                self.assertIs(lanes.classify_worker_exit(0, json.dumps(payload), "", False),
+                              lanes.RunStatus.WORKER_FAILED)
 
     def test_provider_errors_and_success_keep_their_classification(self):
         for payload, expected in [
-            ({"status": "blocked", "error": "rate limit"}, agy.RunStatus.LIMIT_EXHAUSTED),
-            ({"status": "failed", "error": "login required"}, agy.RunStatus.AUTH_REQUIRED),
-            ({"status": "success", "remaining_risks": ["quota authentication required"]}, agy.RunStatus.COMPLETE),
+            ({"status": "blocked", "error": "rate limit"}, lanes.RunStatus.LIMIT_EXHAUSTED),
+            ({"status": "failed", "error": "login required"}, lanes.RunStatus.AUTH_REQUIRED),
+            ({"status": "success", "remaining_risks": ["quota authentication required"]}, lanes.RunStatus.COMPLETE),
         ]:
             with self.subTest(payload=payload):
-                self.assertIs(agy.classify_worker_exit(0, json.dumps(payload), "", False), expected)
-        self.assertIs(agy.classify_worker_exit(1, '{"status":"success"}', "", False), agy.RunStatus.WORKER_FAILED)
-        self.assertIs(agy.classify_worker_exit(0, '{"status":"success"}', "", True), agy.RunStatus.TIMEOUT)
+                self.assertIs(lanes.classify_worker_exit(0, json.dumps(payload), "", False), expected)
+        self.assertIs(lanes.classify_worker_exit(1, '{"status":"success"}', "", False), lanes.RunStatus.WORKER_FAILED)
+        self.assertIs(lanes.classify_worker_exit(0, '{"status":"success"}', "", True), lanes.RunStatus.TIMEOUT)
 
     def test_metadata_warning_does_not_override_final_result(self):
         self.assertEqual(runner._codex_payload(codex_stream())["status"], "blocked")
@@ -88,7 +88,7 @@ class CodexResultTests(unittest.TestCase):
             directory.mkdir(parents=True)
             workspace = ctx.workspace_root / run_id
             workspace.mkdir(parents=True)
-            lane = agy.Lane(project, workspace, "fixture", directory, "fixture-baseline")
+            lane = lanes.Lane(project, workspace, "fixture", directory, "fixture-baseline")
             runner._save(ctx, directory / "request.json", dict(
                 run_id=run_id, project_root=str(project), project_fingerprint="fixture",
                 timeout_seconds=10, kind="write", task="Implement add", worker="custom",
@@ -98,12 +98,12 @@ class CodexResultTests(unittest.TestCase):
             ))
             runner._save(ctx, directory / "status.json", {"status": "queued"})
             with mock.patch.object(runner, "project_fingerprint", return_value="fixture"), \
-                    mock.patch.object(agy, "create_lane", return_value=lane), \
-                    mock.patch.object(agy, "overlay_dirty_inputs"), \
-                    mock.patch.object(agy, "commit_lane_baseline"), \
+                    mock.patch.object(lanes, "create_lane", return_value=lane), \
+                    mock.patch.object(lanes, "overlay_dirty_inputs"), \
+                    mock.patch.object(lanes, "commit_lane_baseline"), \
                     mock.patch.object(runner, "execute", return_value=subprocess.CompletedProcess(
                         ["codex.exe"], 0, codex_stream(), "failed to decode models response")) as execute, \
-                    mock.patch.object(agy, "collect_worker_changes") as collect:
+                    mock.patch.object(lanes, "collect_worker_changes") as collect:
                 result = runner.execute_task(ctx, run_id)
             self.assertEqual(result["status"], "failed")
             self.assertEqual(result["reason"], "worker_failed")

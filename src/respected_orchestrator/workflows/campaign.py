@@ -11,7 +11,7 @@ import sys
 import threading
 from uuid import uuid4
 
-from ..engine import antigravity_orchestrator as agy
+from ..engine import lanes
 from ..engine import winproc
 from ..context import EngineContext, safe_path
 from ..engine.processes import execute
@@ -125,7 +125,7 @@ def start_campaign(ctx, request):
     engine = _snapshot_engine(ctx)
     command = [sys.executable, "-m", "respected_orchestrator", "--data-root", str(ctx.data_root),
                "campaign-run", campaign_id]
-    pid = agy._spawn_detached(command, engine, directory / "supervisor.log", env=_engine_env(engine))
+    pid = lanes._spawn_detached(command, engine, directory / "supervisor.log", env=_engine_env(engine))
     _save(ctx, directory / "supervisor.json", dict(campaign_id=campaign_id, pid=pid, engine=str(engine)))
     return dict(campaign_id=campaign_id, status="started", pid=pid)
 
@@ -137,7 +137,7 @@ def campaign_status(ctx, campaign_id):
     if (directory / "events.jsonl").is_file():
         events = [json.loads(line) for line in (directory / "events.jsonl").read_text(encoding="utf8").splitlines() if line]
     supervisor = _load(ctx, directory / "supervisor.json") if (directory / "supervisor.json").is_file() else {}
-    alive = agy._pid_is_alive(supervisor.get("pid", -1)) if supervisor else False
+    alive = lanes._pid_is_alive(supervisor.get("pid", -1)) if supervisor else False
     return dict(campaign_id=campaign_id, status=(result or {}).get("status", "running" if alive else "interrupted"),
                 result=result, events=events, supervisor_alive=alive)
 

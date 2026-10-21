@@ -14,7 +14,7 @@ import sys
 import time
 from uuid import uuid4
 
-from ..engine import antigravity_orchestrator as agy, runner, sandbox
+from ..engine import lanes, runner, sandbox
 from ..engine.budget import MAX_BUDGET, UNKNOWN_STEP_TOKENS_DEFAULT
 from . import campaign, roles
 from ..context import EngineContext, safe_path
@@ -107,7 +107,7 @@ def create_project(ctx, request):
 def _spawn(ctx, project_id, directory, spec):
     engine = campaign._snapshot_engine(ctx, spec["engine_source"])
     command = [sys.executable, "-m", "respected_orchestrator", "--data-root", str(ctx.data_root), "project-run", project_id]
-    pid = agy._spawn_detached(command, engine, directory / "supervisor.log", env=campaign._engine_env(engine))
+    pid = lanes._spawn_detached(command, engine, directory / "supervisor.log", env=campaign._engine_env(engine))
     _save(ctx, directory / "supervisor.json", dict(project_id=project_id, pid=pid, engine=str(engine)))
     return pid
 
@@ -119,7 +119,7 @@ def start_project(ctx, request):
 
 def _supervisor_alive(ctx, directory):
     path = directory / "supervisor.json"
-    return path.is_file() and agy._pid_is_alive(_load(ctx, path).get("pid", -1))
+    return path.is_file() and lanes._pid_is_alive(_load(ctx, path).get("pid", -1))
 
 
 def resume_project(ctx, project_id):
@@ -158,7 +158,7 @@ def _acquire(directory):
                 owner = int(lock.read_text(encoding="utf8") or -1)
             except (OSError, ValueError):
                 owner = -1
-            if owner != os.getpid() and agy._pid_is_alive(owner):
+            if owner != os.getpid() and lanes._pid_is_alive(owner):
                 raise ValueError("Project is already being executed")
             lock.unlink(missing_ok=True)
             continue

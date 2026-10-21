@@ -18,7 +18,7 @@ def _stdin_json():
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=default_data_root())
-    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "campaign-start", "campaign-run", "campaign-status", "project-start", "project-run", "project-resume", "project-status", "project-cancel", "antigravity", "rpp", "roles", "plan", "mcp"])
+    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "campaign-start", "campaign-run", "campaign-status", "project-start", "project-run", "project-resume", "project-status", "project-cancel", "rpp", "roles", "plan", "mcp"])
     parser.add_argument("args", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
     ctx = EngineContext(args.data_root)
@@ -52,9 +52,6 @@ def main(argv=None):
             return rpp.run(ctx)
         elif args.command == "list":
             payload = runner.list_tasks(ctx)
-        elif args.command == "antigravity":
-            from .engine.antigravity_orchestrator import main as legacy_main
-            return legacy_main(args.args, ctx=ctx)
         else:
             if len(args.args) != 1:
                 raise ValueError("Exactly one run identity is required")
