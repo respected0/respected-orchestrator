@@ -10,7 +10,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from respected_orchestrator.engine import antigravity_orchestrator as agy
+from respected_orchestrator.engine import lanes
 from respected_orchestrator.context import EngineContext
 from respected_orchestrator.engine.runner import check_result, create_task, execute_task
 
@@ -42,7 +42,7 @@ class Fixture(unittest.TestCase):
         git(self.repo, "add", ".")
         git(self.repo, "commit", "-m", "baseline")
         self.baseline = git(self.repo, "rev-parse", "HEAD").strip()
-        self.lane = agy.Lane(repo_root=self.repo, worktree=self.repo, branch="x", run_root=self.root / "run", baseline_commit=self.baseline)
+        self.lane = lanes.Lane(repo_root=self.repo, worktree=self.repo, branch="x", run_root=self.root / "run", baseline_commit=self.baseline)
 
     def clutter(self):
         for name in ["build/lib/pkg/__init__.py", "build/lib/pkg/rpp.py", "src/pkg.egg-info/PKG-INFO", "src/pkg.egg-info/SOURCES.txt",
@@ -57,16 +57,16 @@ class ChangeSetTests(Fixture):
         clutter = self.clutter()
         touch(self.repo, "src/pkg/mod.py", "value = 1\n")  # tracked, modified
         touch(self.repo, "src/pkg/rpp.py", "new source\n")  # untracked, a real new file
-        changes = agy.collect_worker_changes(self.lane, ["src/pkg"])
+        changes = lanes.collect_worker_changes(self.lane, ["src/pkg"])
         self.assertEqual(changes.paths, ("src/pkg/mod.py", "src/pkg/rpp.py"))
         self.assertEqual(len(changes.generated), clutter)
         self.assertIn("build/lib/pkg/rpp.py", changes.generated)
-        self.assertTrue(agy.validate_change_scope(changes, ["src/pkg"], []).allowed)
+        self.assertTrue(lanes.validate_change_scope(changes, ["src/pkg"], []).allowed)
 
     def test_legitimate_source_that_only_looks_generated_stays_a_real_change(self):
         for name in ["src/pkg/builder.py", "src/pkg/build.py", "src/pkg/targets.py", "src/pkg/dist_utils.py", "src/pkg/gen.py"]:
             touch(self.repo, name)
-        changes = agy.collect_worker_changes(self.lane, ["src/pkg"])
+        changes = lanes.collect_worker_changes(self.lane, ["src/pkg"])
         self.assertEqual(changes.generated, ())
         self.assertEqual(len(changes.paths), 5)
 
@@ -74,25 +74,25 @@ class ChangeSetTests(Fixture):
         touch(self.repo, "build/keep.txt", "a tracked file inside a directory that is called build\n")
         git(self.repo, "add", ".")
         git(self.repo, "commit", "-m", "track build/keep.txt")
-        lane = agy.Lane(self.repo, self.repo, "x", self.root / "run", git(self.repo, "rev-parse", "HEAD").strip())
+        lane = lanes.Lane(self.repo, self.repo, "x", self.root / "run", git(self.repo, "rev-parse", "HEAD").strip())
         touch(self.repo, "build/keep.txt", "edited\n")  # tracked: always a real change
         touch(self.repo, "build/new.txt")  # untracked, not ignored, in a directory the repository tracks files in
-        changes = agy.collect_worker_changes(lane, ["src/pkg"])
+        changes = lanes.collect_worker_changes(lane, ["src/pkg"])
         self.assertEqual((changes.paths, changes.generated), (("build/keep.txt", "build/new.txt"), ()))
-        scope = agy.validate_change_scope(changes, ["src/pkg"], [])
+        scope = lanes.validate_change_scope(changes, ["src/pkg"], [])
         self.assertFalse(scope.allowed)  # unowned real changes still fail closed
         self.assertEqual(scope.violations, ("build/keep.txt", "build/new.txt"))
         # the repository says build/lib is output: now that path is generated, the rest stays source
         touch(self.repo, ".gitignore", "build/lib/\n")
         touch(self.repo, "build/lib/pkg/a.py")
-        again = agy.collect_worker_changes(lane, ["src/pkg"])
+        again = lanes.collect_worker_changes(lane, ["src/pkg"])
         self.assertEqual(again.generated, ("build/lib/pkg/a.py",))
         self.assertIn("build/new.txt", again.paths)
 
     def test_an_ownership_entry_that_names_the_location_authorises_it(self):
         touch(self.repo, "dist/notes.md")
         touch(self.repo, "dist/other.bin")
-        changes = agy.collect_worker_changes(self.lane, ["dist/notes.md"])
+        changes = lanes.collect_worker_changes(self.lane, ["dist/notes.md"])
         self.assertEqual(changes.paths, ("dist/notes.md",))
         self.assertEqual(changes.generated, ("dist/other.bin",))  # only what was named is source
 
@@ -100,7 +100,7 @@ class ChangeSetTests(Fixture):
         touch(self.repo, "src/pkg/__pycache__/x.pyc")
         touch(self.repo, "src/pkg/stray.pyc")
         touch(self.repo, "src/.pytest_cache/v/cache/lastfailed")
-        changes = agy.collect_worker_changes(self.lane, ["src"])
+        changes = lanes.collect_worker_changes(self.lane, ["src"])
         self.assertEqual(changes.paths, ())
         self.assertEqual(len(changes.generated), 3)
 
@@ -108,9 +108,9 @@ class ChangeSetTests(Fixture):
         touch(self.repo, "src/pkg/tracked.pyc")
         git(self.repo, "add", "-f", "src/pkg/tracked.pyc")
         git(self.repo, "commit", "-m", "track a pyc")
-        lane = agy.Lane(self.repo, self.repo, "x", self.root / "run", git(self.repo, "rev-parse", "HEAD").strip())
+        lane = lanes.Lane(self.repo, self.repo, "x", self.root / "run", git(self.repo, "rev-parse", "HEAD").strip())
         touch(self.repo, "src/pkg/tracked.pyc", "changed\n")
-        self.assertEqual(agy.collect_worker_changes(lane, ["src"]).paths, ("src/pkg/tracked.pyc",))
+        self.assertEqual(lanes.collect_worker_changes(lane, ["src"]).paths, ("src/pkg/tracked.pyc",))
 
     def test_a_link_leaving_the_worktree_is_never_hidden_as_generated(self):
         outside = self.root / "outside-dir"
@@ -124,10 +124,10 @@ class ChangeSetTests(Fixture):
             made = subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(outside)], capture_output=True)
             if made.returncode:
                 self.skipTest("neither symlinks nor junctions can be created here")
-        changes = agy.collect_worker_changes(self.lane, ["src/pkg"])
+        changes = lanes.collect_worker_changes(self.lane, ["src/pkg"])
         self.assertTrue(changes.unsafe_paths, changes)  # whatever git lists under the link resolves outside the worktree
         self.assertTrue(all(path.startswith("build/lib/escape") for path in changes.unsafe_paths))
-        self.assertFalse(agy.validate_change_scope(changes, ["src/pkg"], []).allowed)
+        self.assertFalse(lanes.validate_change_scope(changes, ["src/pkg"], []).allowed)
 
 
 class PatchTests(Fixture):
@@ -135,7 +135,7 @@ class PatchTests(Fixture):
         self.clutter()
         touch(self.repo, "src/pkg/mod.py", "value = 1\n")
         touch(self.repo, "src/pkg/rpp.py", "new source\n")
-        patch = agy.export_worker_patch(self.lane, self.root / "worker.patch", ["src/pkg"])
+        patch = lanes.export_worker_patch(self.lane, self.root / "worker.patch", ["src/pkg"])
         text = patch.path.read_text(encoding="utf8")
         self.assertIn("src/pkg/rpp.py", text)
         self.assertIn("src/pkg/mod.py", text)
@@ -144,31 +144,31 @@ class PatchTests(Fixture):
         clean = self.root / "clean"
         subprocess.run(["git", "clone", "-q", str(self.repo), str(clean)], capture_output=True, check=True)
         git(clean, "checkout", "-q", self.baseline)
-        self.assertIs(agy.check_patch_against_master(clean, patch.path), agy.RunStatus.COMPLETE)
+        self.assertIs(lanes.check_patch_against_master(clean, patch.path), lanes.RunStatus.COMPLETE)
 
     def test_an_ignored_path_the_ownership_names_is_exported_but_other_ignored_files_fail_closed(self):
         # found by the independent reviewer: git refuses "add -N" for ignored paths, so an authorised dist/ file was lost
         touch(self.repo, ".gitignore", "dist/" + chr(10) + ".env" + chr(10))
         git(self.repo, "add", ".gitignore")
         git(self.repo, "commit", "-m", "ignore dist and .env")
-        lane = agy.Lane(self.repo, self.repo, "x", self.root / "run", git(self.repo, "rev-parse", "HEAD").strip())
+        lane = lanes.Lane(self.repo, self.repo, "x", self.root / "run", git(self.repo, "rev-parse", "HEAD").strip())
         touch(self.repo, "dist/notes.md", "named by the ownership" + chr(10))
-        patch = agy.export_worker_patch(lane, self.root / "named.patch", ["dist/notes.md"])
+        patch = lanes.export_worker_patch(lane, self.root / "named.patch", ["dist/notes.md"])
         self.assertIn("dist/notes.md", patch.path.read_text(encoding="utf8"))
         git(self.repo, "reset", "-q")  # drop the intent-to-add from the first export
         touch(self.repo, "src/pkg/.env", "SECRET=1" + chr(10))  # ignored, inside a broadly owned directory, never named
-        with self.assertRaises(agy.LaneError):
-            agy.export_worker_patch(lane, self.root / "leak.patch", ["src/pkg"])
+        with self.assertRaises(lanes.LaneError):
+            lanes.export_worker_patch(lane, self.root / "leak.patch", ["src/pkg"])
         self.assertFalse((self.root / "leak.patch").exists())  # nothing ignored is written into a patch
 
     def test_a_real_integration_conflict_still_fails_closed(self):
         touch(self.repo, "src/pkg/mod.py", "value = 1\n")
-        patch = agy.export_worker_patch(self.lane, self.root / "worker.patch", ["src/pkg"])
+        patch = lanes.export_worker_patch(self.lane, self.root / "worker.patch", ["src/pkg"])
         master = self.root / "master"
         subprocess.run(["git", "clone", "-q", str(self.repo), str(master)], capture_output=True, check=True)
         git(master, "checkout", "-q", self.baseline)
         touch(master, "src/pkg/mod.py", "value = 99\n")  # master moved on under the patch
-        self.assertIs(agy.check_patch_against_master(master, patch.path), agy.RunStatus.INTEGRATION_CONFLICT)
+        self.assertIs(lanes.check_patch_against_master(master, patch.path), lanes.RunStatus.INTEGRATION_CONFLICT)
 
 
 class EndToEndTests(Fixture):

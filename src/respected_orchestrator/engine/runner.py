@@ -13,13 +13,13 @@ import sys
 import time
 from uuid import uuid4
 
-from . import antigravity_orchestrator as agy, sandbox
+from . import lanes, sandbox
 from . import budget, winproc
 from ..interfaces import memory
 from ..workflows import roles
 from ..context import EngineContext, atomic_write_json, safe_path, validate_project
 from .processes import ProcessStopped, execute
-from .vertical_slice import _is_turn_completed, stream_verified_complete
+from .codex import _is_turn_completed, stream_verified_complete
 
 SUPPORTED_AGENTS = ("claude", "gemini", "antigravity", "agy", "codex", "cursor", "custom")
 SELF_CHECK = (
@@ -77,7 +77,7 @@ def command_for(worker, prompt, custom=(), profile=None, write=False):
         return [part.replace("{prompt}", prompt).replace("{profile}", profile or "") for part in custom]
     command = get_cli_command(worker)
     if command is None:
-        raise agy.WorkerUnavailableError(f"Worker CLI '{worker}' unavailable")
+        raise lanes.WorkerUnavailableError(f"Worker CLI '{worker}' unavailable")
     if worker in _MODEL_FLAG:
         envelope = {"claude": ["--output-format", "json"], "gemini": ["-o", "json"],
                     "agy": ["--output-format", "json"], "antigravity": ["--output-format", "json"]}.get(worker, [])
@@ -134,14 +134,14 @@ def tool_result(tool, stdout):
 
 
 def _final_json(text):
-    payload = agy._parse_json_object(text)
+    payload = lanes._parse_json_object(text)
     if payload is not None:
         return payload
     # Accept prose around exactly one fenced block; any other fence is ambiguous.
     if text.count("```") != 2:
         return None
     match = re.search(r"```json[ \t]*\r?\n(.*?)\r?\n?```", text, re.DOTALL | re.IGNORECASE)
-    return agy._parse_json_object(match.group(1)) if match else None
+    return lanes._parse_json_object(match.group(1)) if match else None
 
 
 def _codex_payload(stdout):
@@ -290,7 +290,7 @@ def _scope(project, values):
         if Path(value).is_absolute() or ".." in Path(value).parts or Path(value) == Path("."):
             raise ValueError("Scope must be bounded relative paths")
         safe_path(project / value)
-        normalized = agy.normalize_repo_path(project, value)
+        normalized = lanes.normalize_repo_path(project, value)
         if normalized == ".git" or normalized.startswith(".git/"):
             raise ValueError("Git administration is outside task scope")
         output.append(normalized)
@@ -369,7 +369,7 @@ def project_fingerprint(project):
     for args in [("rev-parse", "HEAD"), ("diff", "--binary", "--full-index", "HEAD", "--")]:
         result = winproc.run(["git", *args], cwd=project, capture_output=True, check=True, timeout=30)
         digest.update(result.stdout)
-    for name in agy._git_path_list(project, "ls-files", "--others", "--exclude-standard", "-z"):
+    for name in lanes._git_path_list(project, "ls-files", "--others", "--exclude-standard", "-z"):
         path = safe_path(project / name)
         digest.update(name.encode("utf8"))
         if path.is_file():
@@ -451,7 +451,7 @@ def create_task(ctx: EngineContext, request: dict, *, settings: dict | None = No
     if not isinstance(request, dict):
         raise ValueError("Task request must be a JSON object")
     project = validate_project(ctx, Path(request.get("project_root", "")))
-    if Path(agy._git(project, "rev-parse", "--show-toplevel").stdout.strip()).resolve() != project:
+    if Path(lanes._git(project, "rev-parse", "--show-toplevel").stdout.strip()).resolve() != project:
         raise ValueError("Select the Git project root")
     task = request.get("task")
     worker, kind = request.get("worker", "codex"), request.get("kind", "write")
@@ -525,19 +525,19 @@ def create_task(ctx: EngineContext, request: dict, *, settings: dict | None = No
         raise ValueError("Untracked ownership inclusion must be a boolean")
     include = _scope(project, request.get("include_untracked", []))
     context_paths = _scope(project, request.get("context_paths", []))
-    if len(context_paths) > 200 or any(agy._path_is_owned(name, forbidden) for name in context_paths):
+    if len(context_paths) > 200 or any(lanes._path_is_owned(name, forbidden) for name in context_paths):
         raise ValueError("Context paths must be at most 200 files and outside the forbidden scope")
     if include_untracked_owned and (project / ".git").exists():
         # untracked files inside the allowed scope are real inputs (like dirty tracked ones); a lane built from HEAD alone
         # would recreate them from scratch and produce a patch that cannot integrate ("new file ... already exists").
-        listed = agy._git_path_list(project, "ls-files", "--others", "--exclude-standard", "-z")
+        listed = lanes._git_path_list(project, "ls-files", "--others", "--exclude-standard", "-z")
         found = [name for name in listed
-                 if agy._path_is_owned(name, ownership) and not agy._path_is_owned(name, forbidden)]
+                 if lanes._path_is_owned(name, ownership) and not lanes._path_is_owned(name, forbidden)]
         if len(found) > 200:
             raise ValueError("Too many untracked inputs in scope; list them explicitly in include_untracked")
         include = sorted({*include, *_scope(project, found)})
     for name in include:
-        if not agy._path_is_owned(name, ownership) or agy._path_is_owned(name, forbidden):
+        if not lanes._path_is_owned(name, ownership) or lanes._path_is_owned(name, forbidden):
             raise ValueError("Selected untracked input must be within allowed scope")
     if worker != "custom" and get_cli_command(worker) is None:
         raise ValueError(f"Worker CLI '{worker}' unavailable")
@@ -592,7 +592,7 @@ def _validated_inherited_patch(ctx: EngineContext, request: dict, project: Path)
     patch = safe_path(prior_directory / "worker.patch")
     if not patch.is_file() or hashlib.sha256(patch.read_bytes()).hexdigest() != expected_sha256:
         raise ValueError("Inherited patch is missing or tampered")
-    if patch.stat().st_size and agy.check_patch_against_master(project, patch) is not agy.RunStatus.COMPLETE:
+    if patch.stat().st_size and lanes.check_patch_against_master(project, patch) is not lanes.RunStatus.COMPLETE:
         raise ValueError("Inherited patch conflicts with the current project")
     return patch
 
@@ -644,16 +644,16 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
         if request["project_fingerprint"] != project_fingerprint(project):
             raise ValueError("Project changed since submission; task is stale")
         # One active task per data root. Stale locks are preserved for inspection.
-        lock = agy.WriterLock.acquire(safe_path(ctx.state_dir), run_id, request["kind"], ctx.workspace_root / run_id)
+        lock = lanes.WriterLock.acquire(safe_path(ctx.state_dir), run_id, request["kind"], ctx.workspace_root / run_id)
         _write_status(ctx, directory, "running", pid=os.getpid(), phase="preparing")
-        paths = agy.RunPaths(project, safe_path(ctx.workspace_root), ctx.state_dir, directory)
+        paths = lanes.RunPaths(project, safe_path(ctx.workspace_root), ctx.state_dir, directory)
         known_context = "Explicit local task; no required memory integration."
         block, summary = _memory_context(ctx, directory, request)
         if summary:
             details["memory"] = summary
         if block:
             known_context += "\n\n" + block
-        run_request = agy.RunRequest(run_id, run_id, agy.TaskKind(request["kind"]), request["task"],
+        run_request = lanes.RunRequest(run_id, run_id, lanes.TaskKind(request["kind"]), request["task"],
                                     known_context, tuple(request["ownership"]),
                                     tuple(request["forbidden"]), tuple(tuple(c) for c in request["acceptance"]),
                                     tuple(request["include_untracked"]), tuple(request.get("context_paths", [])))
@@ -661,22 +661,22 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
             # Git for Windows rejects worktree paths over ~260 characters ("'$GIT_DIR' too big") once nested files are added.
             raise ValueError(f"Data root path is too long for Git worktrees ({len(str(ctx.workspace_root / run_id))} chars "
                              "for the workspace root, limit 200); use a shorter --data-root")
-        lane = agy.create_lane(run_request, paths)
+        lane = lanes.create_lane(run_request, paths)
         details["workspace"] = str(lane.worktree)
-        manifest = agy.overlay_dirty_inputs(lane, run_request.ownership, run_request.include_untracked,
+        manifest = lanes.overlay_dirty_inputs(lane, run_request.ownership, run_request.include_untracked,
                                               run_request.context_paths)
-        agy.commit_lane_baseline(lane, manifest)
+        lanes.commit_lane_baseline(lane, manifest)
         def scope_ok():
-            changes = agy.collect_worker_changes(lane, run_request.ownership)
-            scope = agy.validate_change_scope(changes, run_request.ownership, run_request.forbidden)
+            changes = lanes.collect_worker_changes(lane, run_request.ownership)
+            scope = lanes.validate_change_scope(changes, run_request.ownership, run_request.forbidden)
             return changes, scope.allowed and (request["kind"] != "read" or not changes.paths)
 
         inherited_patch = (_validated_inherited_patch(ctx, request, project)
                            if request.get("inherited_patch_run_id") is not None else None)
         if inherited_patch is not None and inherited_patch.stat().st_size:
             try:
-                agy._git(lane.worktree, "apply", "--check", "--binary", "--whitespace=nowarn", str(inherited_patch))
-                agy._git(lane.worktree, "apply", "--binary", "--whitespace=nowarn", str(inherited_patch))
+                lanes._git(lane.worktree, "apply", "--check", "--binary", "--whitespace=nowarn", str(inherited_patch))
+                lanes._git(lane.worktree, "apply", "--binary", "--whitespace=nowarn", str(inherited_patch))
             except subprocess.CalledProcessError as error:
                 return _write_status(ctx, directory, "failed", reason="inherited_patch_conflict",
                                      error=error.stderr, **details)
@@ -685,7 +685,7 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
                 return _write_status(ctx, directory, "failed", reason="scope_violation",
                                      changed_files=list(changes.paths), **details)
         brief = directory / "brief.md"
-        text = agy.render_brief(run_request, lane)
+        text = lanes.render_brief(run_request, lane)
         if request["worker"] in _EDIT_FLAGS:
             # These CLIs edit through their own file tools and get no shell approval; the shared contract tells the
             # Codex worker to edit with shell commands, which would be denied here and end the turn with nothing written.
@@ -701,27 +701,27 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
                               request.get("worker_profile"), write=request["kind"] == "write")
         def live_output(name, line):
             with safe_path(directory / f'{name}.log').open('a', encoding='utf8') as handle:
-                handle.write(agy._redact(line))
+                handle.write(lanes._redact(line))
         codex_json = "--json" in command and (request["worker"] == "codex" or Path(command[0]).stem.casefold() == "codex")
         completed = execute(command, lane.worktree, deadline - time.monotonic(), cancel_path=cancel, on_output=live_output,
                             complete_when=_is_turn_completed if codex_json else None,
                             verify_complete=stream_verified_complete if codex_json else None,
                             scrub_env=True)
-        (directory / "stdout.log").write_text(agy._redact(completed.stdout), encoding="utf8")
-        (directory / "stderr.log").write_text(agy._redact(completed.stderr), encoding="utf8")
+        (directory / "stdout.log").write_text(lanes._redact(completed.stdout), encoding="utf8")
+        (directory / "stderr.log").write_text(lanes._redact(completed.stderr), encoding="utf8")
         text, tool_usage, tool_model, tool_error = tool_result(request["worker"], completed.stdout)
         if tool_usage is not None or tool_model:
             details.update(usage=tool_usage, model=tool_model)
-        payload = _codex_payload(completed.stdout) if codex_json else agy._parse_json_object(
+        payload = _codex_payload(completed.stdout) if codex_json else lanes._parse_json_object(
             completed.stdout if request["worker"] in ("agy", "antigravity") else text)
         if codex_json:
             details.update(_codex_metadata(completed.stdout))
         if tool_error:
             return _write_status(ctx, directory, "failed", reason="worker_failed", exit_code=completed.returncode,
                                  provider_status=tool_error, **details)
-        classification = agy.classify_worker_exit(completed.returncode, json.dumps(payload) if codex_json else text, completed.stderr, False)
+        classification = lanes.classify_worker_exit(completed.returncode, json.dumps(payload) if codex_json else text, completed.stderr, False)
         logical_failure = payload is not None and (payload.get("error") or ("status" in payload and str(payload["status"]).casefold() not in {"success", "complete", "completed", "ok"}))
-        if completed.returncode != 0 or classification is not agy.RunStatus.COMPLETE or logical_failure:
+        if completed.returncode != 0 or classification is not lanes.RunStatus.COMPLETE or logical_failure:
             return _write_status(ctx, directory, "failed", reason="worker_failed", exit_code=completed.returncode, provider_status=classification.value, **details)
         if request["worker"] in ("agy", "antigravity") and (payload is None or "status" not in payload):
             return _write_status(ctx, directory, "failed", reason="invalid_worker_result", **details)
@@ -739,7 +739,7 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
             return _write_status(ctx, directory, "failed", reason="sandbox_unavailable", detail=str(error)[:300], **details)
         for index, (command, wrapped) in enumerate(zip(request["acceptance"], sandboxed), 1):
             check = execute(wrapped, lane.worktree, deadline - time.monotonic(), cancel_path=cancel, scrub_env=True)
-            (directory / f"check-{index}.log").write_text(agy._redact(check.stdout + "\n" + check.stderr), encoding="utf8")
+            (directory / f"check-{index}.log").write_text(lanes._redact(check.stdout + "\n" + check.stderr), encoding="utf8")
             checks.append(dict(command=command, returncode=check.returncode))
             if check.returncode:
                 return _write_status(ctx, directory, "failed", reason="test_failed", checks=checks, **details)
@@ -748,10 +748,10 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
             return _write_status(ctx, directory, "failed", reason="scope_violation", changed_files=list(changes.paths), **details)
         if cancel.exists():
             raise ProcessStopped("cancelled")
-        patch = agy.export_worker_patch(lane, safe_path(directory / "worker.patch"), run_request.ownership)
+        patch = lanes.export_worker_patch(lane, safe_path(directory / "worker.patch"), run_request.ownership)
         if project_fingerprint(project) != request["project_fingerprint"]:
             return _write_status(ctx, directory, "failed", reason="stale_project", **details)
-        if patch.path.stat().st_size and agy.check_patch_against_master(project, patch.path) is not agy.RunStatus.COMPLETE:
+        if patch.path.stat().st_size and lanes.check_patch_against_master(project, patch.path) is not lanes.RunStatus.COMPLETE:
             return _write_status(ctx, directory, "failed", reason="integration_conflict", **details)
         result = dict(run_id=run_id, status="completed", checks=checks, changed_files=list(changes.paths),
                       generated_artifacts=generated_seen[:100], generated_artifact_count=len(generated_seen),
@@ -760,7 +760,7 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
         _save(ctx, directory / "result.json", result)
         return _write_status(ctx, directory, "completed", **{k: v for k, v in result.items() if k not in {"run_id", "status"}})
     except ProcessStopped as error:
-        (directory / "stopped.log").write_text(agy._redact(error.stdout + "\n" + error.stderr), encoding="utf8")
+        (directory / "stopped.log").write_text(lanes._redact(error.stdout + "\n" + error.stderr), encoding="utf8")
         if details.get("workspace") and '"turn.completed"' not in error.stdout:
             # A worker stopped before turn.completed is never success, even if files changed.
             details["worker_incomplete"] = "no_turn_completed"
@@ -780,7 +780,7 @@ def start_task(ctx, run_id):
     source = str(Path(__file__).resolve().parents[2])  # src/
     env = dict(os.environ, PYTHONPATH=source)
     command = [sys.executable, "-m", "respected_orchestrator", "--data-root", str(ctx.data_root), "_execute", run_id]
-    pid = agy._spawn_detached(command, ctx.app_root, directory / "supervisor.log", env=env)
+    pid = lanes._spawn_detached(command, ctx.app_root, directory / "supervisor.log", env=env)
     _save(ctx, directory / "supervisor.json", dict(run_id=run_id, pid=pid))
     return dict(run_id=run_id, status="queued", pid=pid)
 
@@ -798,11 +798,11 @@ def inspect_task(ctx, run_id):
     directory = ctx.run_dir(run_id)
     request = _load(ctx, directory / "request.json")
     status = _load(ctx, directory / "status.json")
-    if status["status"] == "running" and not agy._pid_is_alive(status.get("pid", -1)):
+    if status["status"] == "running" and not lanes._pid_is_alive(status.get("pid", -1)):
         status = {**status, "status": "interrupted", "reason": "supervisor_exited"}
     elif status["status"] == "queued" and (directory / "supervisor.json").is_file():
         supervisor = _load(ctx, directory / "supervisor.json")
-        if not agy._pid_is_alive(supervisor.get("pid", -1)):
+        if not lanes._pid_is_alive(supervisor.get("pid", -1)):
             status = {**status, "status": "interrupted", "reason": "supervisor_exited"}
     logs = {}
     for path in sorted(directory.glob("*.log")):
@@ -863,7 +863,7 @@ def check_result(ctx, run_id, *, maf_gate=True, accepted_fingerprints=()):
     # accepted_fingerprints: states the supervisor itself created by applying verified sibling lanes of the same stage.
     if current != result["project_fingerprint"] and current not in accepted_fingerprints:
         raise ValueError("Result is stale: project changed")
-    if patch.stat().st_size and agy.check_patch_against_master(project, patch) is not agy.RunStatus.COMPLETE:
+    if patch.stat().st_size and lanes.check_patch_against_master(project, patch) is not lanes.RunStatus.COMPLETE:
         raise ValueError("Patch conflicts with current project")
     return dict(run_id=run_id, status="verified", patch=str(patch), changed_files=result["changed_files"])
 
@@ -886,8 +886,8 @@ def apply_task(ctx, run_id, accepted_fingerprints=()):
     patch = Path(verified["patch"])
     if patch.stat().st_size:
         # --check first: a changed source (stale context) must fail before anything is written.
-        agy._git(project, "apply", "--check", "--binary", "--whitespace=nowarn", str(patch))
-        agy._git(project, "apply", "--binary", "--whitespace=nowarn", str(patch))
+        lanes._git(project, "apply", "--check", "--binary", "--whitespace=nowarn", str(patch))
+        lanes._git(project, "apply", "--binary", "--whitespace=nowarn", str(patch))
     applied = dict(run_id=run_id, patch_sha256=_load(ctx, directory / "result.json")["patch_sha256"],
                    changed_files=verified["changed_files"], applied_at=dt.datetime.now(dt.timezone.utc).isoformat())
     _save(ctx, marker, applied)

@@ -14,7 +14,7 @@ import time
 import unittest
 from unittest import mock
 
-from respected_orchestrator.engine import antigravity_orchestrator as agy, winproc
+from respected_orchestrator.engine import lanes, winproc
 from respected_orchestrator.engine.processes import ProcessStopped, execute
 
 PY = sys.executable
@@ -23,7 +23,7 @@ WINDOWS = os.name == "nt"
 
 
 def alive(pid):
-    return agy._pid_is_alive(pid)
+    return lanes._pid_is_alive(pid)
 
 
 def wait_dead(pid, seconds=10):
@@ -40,10 +40,10 @@ class SpawnSitesTests(unittest.TestCase):
         raw = re.compile(r"subprocess\.(run|Popen|call|check_call|check_output)\(")
         found = {path.name: len(raw.findall(path.read_text(encoding="utf8"))) for path in SRC.rglob("*.py")}
         found = {name: count for name, count in found.items() if count}
-        # winproc.run wraps subprocess.run; processes.execute and agy._spawn_detached each own their Popen call(s)
-        self.assertEqual(found, {"winproc.py": 1, "processes.py": 1, "antigravity_orchestrator.py": 2})
-        self.assertIn("winproc.hidden_options", inspect.getsource(agy._spawn_detached))
-        self.assertNotIn("subprocess.DETACHED_PROCESS", inspect.getsource(agy._spawn_detached))  # a detached process has no console to share
+        # winproc.run wraps subprocess.run; processes.execute and lanes._spawn_detached each own their Popen call(s)
+        self.assertEqual(found, {"winproc.py": 1, "processes.py": 1, "lanes.py": 2})
+        self.assertIn("winproc.hidden_options", inspect.getsource(lanes._spawn_detached))
+        self.assertNotIn("subprocess.DETACHED_PROCESS", inspect.getsource(lanes._spawn_detached))  # a detached process has no console to share
         self.assertIn("winproc.hidden_options", (SRC / "engine" / "processes.py").read_text(encoding="utf8"))
 
     @unittest.skipUnless(WINDOWS, "Windows console behaviour")
@@ -80,7 +80,7 @@ class DetachedSupervisorTests(unittest.TestCase):
             (root / "probe.py").write_text(PROBE, encoding="utf8")
             result = root / "result.json"
             env = dict(os.environ, PYTHONPATH=str(SRC.parent))
-            pid = agy._spawn_detached([PY, str(root / "probe.py"), str(result)], root, root / "probe.log", env=env)
+            pid = lanes._spawn_detached([PY, str(root / "probe.py"), str(result)], root, root / "probe.log", env=env)
             deadline = time.monotonic() + 30
             while not result.exists() and time.monotonic() < deadline:
                 time.sleep(0.2)
@@ -136,6 +136,20 @@ class ProcessLifecycleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             with self.assertRaises(OSError):
                 execute(["definitely-not-a-real-program-xyz"], Path(temporary), 5)
+
+    @unittest.skipUnless(os.name == "nt", "Windows PowerShell environment regression")
+    def test_child_does_not_inherit_powershell_module_path(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            for spelling in ("PSModulePath", "PSMODULEPATH"):
+                env = {k: v for k, v in os.environ.items() if k.casefold() != "psmodulepath"}
+                env[spelling] = "fixture-parent-PowerShell-modules"
+                env["RESPECTED_ENV_FIXTURE"] = "preserved"
+                command = [sys.executable, "-B", "-c",
+                           "import os,json; print(json.dumps([os.getenv('PSModulePath'),os.getenv('RESPECTED_ENV_FIXTURE')]))"]
+                result = execute(command, Path(temporary), 10, env=env)
+                self.assertEqual(result.returncode, 0)
+                self.assertEqual(json.loads(result.stdout), [None, "preserved"])
+                self.assertEqual(env[spelling], "fixture-parent-PowerShell-modules")
 
 
 if __name__ == "__main__":

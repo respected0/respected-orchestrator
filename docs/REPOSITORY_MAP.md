@@ -2,12 +2,13 @@
 
 > Bu belge `tools/repository_map.py` tarafından `docs/repository_inventory.json` içindeki gözden geçirilmiş açıklamalardan üretilir. Doğrudan bu Markdown dosyasını düzenlemeyin.
 
-**Kapsam:** 89 proje dosyası. Git çalıştırmadan dosya sistemi ve kök ignore kurallarıyla keşfedilen bağımsız ürün kaynağıdır. Bağımlılık/üretim önbellekleri ayrı kategoriler olarak açıklanır.
+**Kapsam:** 86 proje dosyası. Git çalıştırmadan dosya sistemi ve kök ignore kurallarıyla keşfedilen bağımsız ürün kaynağıdır. Bağımlılık/üretim önbellekleri ayrı kategoriler olarak açıklanır.
 
 ## Eksiksiz kaynak ağacı
 
 ```text
 respected-orchestrator/
+├── .gitattributes
 ├── .gitignore
 ├── AGENTS.md
 ├── README.md
@@ -50,14 +51,14 @@ respected-orchestrator/
 │       ├── context.py
 │       ├── engine/
 │       │   ├── __init__.py
-│       │   ├── antigravity_orchestrator.py
 │       │   ├── budget.py
+│       │   ├── codex.py
+│       │   ├── lanes.py
 │       │   ├── processes.py
 │       │   ├── runner.py
 │       │   ├── sandbox.py
 │       │   ├── sandbox_exec.py
 │       │   ├── track_record.py
-│       │   ├── vertical_slice.py
 │       │   └── winproc.py
 │       ├── interfaces/
 │       │   ├── __init__.py
@@ -81,15 +82,14 @@ respected-orchestrator/
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py
-│   ├── test_antigravity.py
 │   ├── test_campaign.py
 │   ├── test_codex_results.py
 │   ├── test_completion_deadlines.py
 │   ├── test_engine.py
 │   ├── test_generated_artifacts.py
 │   ├── test_integrations.py
+│   ├── test_lanes.py
 │   ├── test_maf_coding.py
-│   ├── test_maf_coding_demo.py
 │   ├── test_maf_workflow.py
 │   ├── test_mcp_server.py
 │   ├── test_memory.py
@@ -104,13 +104,10 @@ respected-orchestrator/
 │   ├── test_sandbox.py
 │   ├── test_test_isolation.py
 │   ├── test_token_budget.py
-│   ├── test_vertical_slice.py
 │   ├── test_windows_processes.py
-│   ├── test_worker_environment.py
 │   └── test_worker_status_contract.py
 └── tools/
-    ├── repository_map.py
-    └── run_maf_coding_demo.py
+    └── repository_map.py
 ```
 
 ## Dosya dosya sorumluluk ve ilişkiler
@@ -118,6 +115,14 @@ respected-orchestrator/
 Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyaları da dahildir. Aşağıdaki yollar depo köküne göredir. Tarihsel belgeler canlı davranışın yetkili kaynağı değildir.
 
 ### Depo kökü
+
+#### [`.gitattributes`](../.gitattributes)
+
+**Rol:** Satır sonu kuralı.
+
+**Amaç / sorumluluk:** Depodaki metinleri LF olarak normalleştirir; .ps1/.bat/.cmd/.iss CRLF, görseller ve exe ikili kalır.
+
+**İlişkiler ve sınır:** Git tarafından okunur; çalışma zamanı etkisi yoktur.
 
 #### [`.gitignore`](../.gitignore)
 
@@ -393,9 +398,9 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Rol:** Private JSON giriş.
 
-**Amaç / sorumluluk:** Hub ve testler için özel JSON girişidir (herkese açık CLI değil). status/create/start/list/inspect/cancel/check/retry/apply, maf/maf-approve, campaign-*, project-*, roles, plan, rpp, mcp ve antigravity komutlarını ilgili modüle yönlendirir. stdin JSON'u UTF-8 BOM'lu da kabul eder; hatalar JSON error olarak döner, başarısız _execute sonucu exit 1 verir. mcp alt komutu --allow-auto-apply ve ayrı --allow-privileged anahtarlarını sunucuya iletir.
+**Amaç / sorumluluk:** Hub ve testler için özel JSON girişidir (herkese açık CLI değil). status/create/start/list/inspect/cancel/check/retry/apply, maf/maf-approve, campaign-*, project-*, roles, plan, rpp ve mcp komutlarını ilgili modüle yönlendirir. stdin JSON'u UTF-8 BOM'lu da kabul eder; hatalar JSON error olarak döner, başarısız _execute sonucu exit 1 verir. mcp alt komutu --allow-auto-apply ve ayrı --allow-privileged anahtarlarını sunucuya iletir.
 
-**İlişkiler ve sınır:** runner, roles, campaign, project, maf_workflow, planner, mcp_server, rpp ve antigravity_orchestrator'ı çağırır; Brain launcher/vault gerektirmez. tests/test_engine.py ve tests/test_maf_coding.py private JSON sözleşmesini doğrular.
+**İlişkiler ve sınır:** runner, roles, campaign, project, maf_workflow, planner, mcp_server, rpp ve lanes'ı çağırır; Brain launcher/vault gerektirmez. tests/test_engine.py ve tests/test_maf_coding.py private JSON sözleşmesini doğrular.
 
 #### [`src/respected_orchestrator/context.py`](../src/respected_orchestrator/context.py)
 
@@ -411,17 +416,9 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Rol:** Worker yürütme paketi.
 
-**Amaç / sorumluluk:** AI worker CLI'larını güvenle çalıştıran katman: süreç ve Windows süreç denetimi, kabul sandbox'ı, izole worktree başlatıcısı (antigravity_orchestrator), görev koşucusu (runner), token bütçesi ve başarı kaydı. 2026-10-21'de düz paket bu alt paketlere ayrıldı.
+**Amaç / sorumluluk:** AI worker CLI'larını güvenle çalıştıran katman: süreç ve Windows süreç denetimi, kabul sandbox'ı, izole worktree lane motoru (lanes), Codex çağrı katmanı (codex), görev koşucusu (runner), token bütçesi ve başarı kaydı. 2026-10-21'de düz paket bu alt paketlere ayrıldı.
 
 **İlişkiler ve sınır:** Kök paketteki __main__.py ve context.py ile diğer alt paketler tarafından içe aktarılır; Hub yalnızca `python -m respected_orchestrator` çağırır, bu yüzden dışarıdan görünen davranış değişmez.
-
-#### [`src/respected_orchestrator/engine/antigravity_orchestrator.py`](../src/respected_orchestrator/engine/antigravity_orchestrator.py)
-
-**Rol:** Çıkarılmış worktree motoru.
-
-**Amaç / sorumluluk:** Policy, lane/worktree, dirty-input overlay, baseline commit, brief, WriterLock, kapsam kontrolü, acceptance ve binary patch dışa aktarımı yardımcılarını ve ortak worker çıkış sınıflandırmasını (sıfır exit'li açık failure reddi dahil) korur. İzin atlatan (permission bypass) komutlar reddedilir; ham apply kapalıdır. WriterLock sahibi ölmüş kilidi geri alır; yaşayan sahip varsa reddeder. (2026-10-21: `src/respected_orchestrator/antigravity_orchestrator.py` yolundan taşındı.)
-
-**İlişkiler ve sınır:** runner ve processes/context tarafından ortak katman olarak kullanılır; 'antigravity' alt komutu uyumluluk girişi olarak __main__'den çağrılır. tests/test_engine.py ve tests/test_codex_results.py kapsar.
 
 #### [`src/respected_orchestrator/engine/budget.py`](../src/respected_orchestrator/engine/budget.py)
 
@@ -431,13 +428,29 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **İlişkiler ve sınır:** Proje/kampanya bütçe kontrolleri ve runner tarafından çağrılır; engine sonuçlarındaki usage alanlarını okur. tests/test_token_budget.py ile test edilir.
 
+#### [`src/respected_orchestrator/engine/codex.py`](../src/respected_orchestrator/engine/codex.py)
+
+**Rol:** Codex CLI çağrı katmanı.
+
+**Amaç / sorumluluk:** Tek sınırlı `codex exec --json` turunu çalıştırır (run_codex_call, CodexCall, CodexOutcome); JSONL akışını ayrıştırır, turn.completed doğrulaması (stream_verified_complete), bağlantı kopması/zaman aşımı/başarısızlık tanısı (diagnose), kullanım/token hesabı ve gizli bilgi maskelemesi yapar. Etkin çıktı penceresi dolmadan zaman aşımını ilerleme kabul etmez.
+
+**İlişkiler ve sınır:** processes.execute ve context.atomic_write_json kullanır. runner (turn tamamlanma kontrolü) ve maf_workflow (Codex çağrıları) buradan içe aktarır. tests/test_reviewer_reliability.py, test_completion_deadlines.py ve test_maf_coding.py kapsar.
+
+#### [`src/respected_orchestrator/engine/lanes.py`](../src/respected_orchestrator/engine/lanes.py)
+
+**Rol:** Yalıtılmış worker lane motoru.
+
+**Amaç / sorumluluk:** Policy yükleme, git worktree lane oluşturma, sahipli kirli girdilerin bindirilmesi ve baseline commit, brief, tek yazar kilidi (ölü sahipli kilidi geri alır), worker çalıştırma ve çıkış sınıflandırması (sıfır exit'li açık hata reddi), değişiklik toplama (üretilmiş çıktı ayrımı), kapsam doğrulama, acceptance ve binary patch dışa aktarımı/ana dala karşı kontrol. İzin atlatan komutlar reddedilir; ham patch uygulama yoktur.
+
+**İlişkiler ve sınır:** runner, workflows/project, workflows/campaign ve planner tarafından kullanılır; winproc, processes ve context'e dayanır. tests/test_lanes.py, test_engine.py, test_codex_results.py, test_generated_artifacts.py ve test_worker_status_contract.py kapsar.
+
 #### [`src/respected_orchestrator/engine/processes.py`](../src/respected_orchestrator/engine/processes.py)
 
 **Rol:** Worker süreç yönetimi.
 
 **Amaç / sorumluluk:** Windows suspended child/job ve POSIX process group ile deadline, cancel, process-tree temizliği ve çıktı akışı sağlar. complete_when/verify_complete ile doğrulanmış completion event'inde ağacı temizleyip ilerler; iptal geç completion'dan üstündür. scrub_environment anahtar/token/secret benzeri değişkenleri çocuğa geçirmez (RESPECTED_WORKER_ENV_ALLOW hariç), çocuğa RESPECTED_ORCH_CHILD=1 koyar ve izole test modunda Codex API çağrılarını reddeder. (2026-10-21: `src/respected_orchestrator/processes.py` yolundan taşındı.)
 
-**İlişkiler ve sınır:** runner, antigravity_orchestrator, campaign, project ve vertical_slice worker/acceptance/master süreçlerini buradan çalıştırır. tests/test_engine.py (tree cleanup, ortam sızıntısı) ve tests/test_codex_results.py dolaylı kapsar.
+**İlişkiler ve sınır:** runner, lanes, campaign, project ve codex worker/acceptance/master süreçlerini buradan çalıştırır. tests/test_engine.py (tree cleanup, ortam sızıntısı) ve tests/test_codex_results.py dolaylı kapsar.
 
 #### [`src/respected_orchestrator/engine/runner.py`](../src/respected_orchestrator/engine/runner.py)
 
@@ -445,7 +458,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** Create/start/list/inspect/cancel/check/retry ile imzalı yaşam döngüsünü; Codex brief/strict JSONL, scope, acceptance, freshness ve correction patch hash/scope doğrulamasını yürütür. Codex açık --sandbox workspace-write ve approval_policy=never ile çalışır, MiMo profilleri reddedilir, reviewer implementer'dan farklı olmalıdır, .engine-key Windows'ta mevcut kullanıcıya ACL'lenir. apply_task doğrulanmış (gerekirse insan onaylı) patch'i commit etmeden uygular; maf-approve yalnız etkileşimli operatör terminalinde, patch_sha256'ya bağlı ve değiştirilemez onay verir. Kabul komutları sandbox.wrap ile kısıtlı token'da çalışır (kurulamazsa sandbox_unavailable ile fail-closed), kabul öncesi worker'ın bıraktığı __pycache__/.pyc silinir (üretilen dosya sayısı yine raporlanır); Windows'ta .cmd/.bat worker kabukları kullanılamaz, görev metni Windows'ta 20000 karakterle sınırlıdır, bypass bayrağı kontrolü genişletildi, retry açık memory kararını korur, tester/coordinator rolleri ROLE_NOT_EXECUTABLE ile reddedilir. (2026-10-21: `src/respected_orchestrator/runner.py` yolundan taşındı.)
 
-**İlişkiler ve sınır:** context, processes ve antigravity_orchestrator katmanlarını kullanır; __main__, maf_workflow, campaign ve project tarafından çağrılır. tests/test_engine.py, tests/test_codex_results.py ve tests/test_maf_coding.py kapsar.
+**İlişkiler ve sınır:** context, processes ve lanes katmanlarını kullanır; __main__, maf_workflow, campaign ve project tarafından çağrılır. tests/test_engine.py, tests/test_codex_results.py ve tests/test_maf_coding.py kapsar.
 
 #### [`src/respected_orchestrator/engine/sandbox.py`](../src/respected_orchestrator/engine/sandbox.py)
 
@@ -470,14 +483,6 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 **Amaç / sorumluluk:** (araç, profil) başına başarı, token ve süre sicilini bu kurulumun imzalı run kanıtından okur. Yalnızca imzası doğrulanan kanıt sayılır; imzasız, kurcalanmış veya kısmi kayıt atlanır. Adayları yalnızca sıralar, asla elemez; geçmiş MIN_RUNS altındaysa kullanılabilir geçmiş yoktur. (2026-10-21: `src/respected_orchestrator/track_record.py` yolundan taşındı.)
 
 **İlişkiler ve sınır:** runner._track_record ve roles otomatik atama tarafından çağrılır; runner._load ve EngineContext kullanır. tests/test_roles.py ve tests/test_reviewer_reliability.py ile kapsanır.
-
-#### [`src/respected_orchestrator/engine/vertical_slice.py`](../src/respected_orchestrator/engine/vertical_slice.py)
-
-**Rol:** Autonomous vertical slice.
-
-**Amaç / sorumluluk:** Codex çağrı adaptörünü (run_codex_call, CodexOutcome, diagnose) ve GLM master planı + paralel Codex worker + bounded correction + deterministik test + final gate dikey dilimini sağlar. turn.completed'da beklemeden ilerler; stream_verified_complete turn.failed görülen akışı başarıya çevirmez; diagnose yapılandırılmış JSONL kanıtını stderr regex'inden üstün tutar ve confidence raporlar. MiMo profilleri reddedilir, reviewer süreçleri scrub_env ile çalışır. (2026-10-21: `src/respected_orchestrator/vertical_slice.py` yolundan taşındı.)
-
-**İlişkiler ve sınır:** processes.execute ve context'i kullanır; maf_workflow ve runner Codex çağrıları için buradan yararlanır. tests/test_codex_results.py ve tests/test_maf_coding.py dolaylı kapsar.
 
 #### [`src/respected_orchestrator/engine/winproc.py`](../src/respected_orchestrator/engine/winproc.py)
 
@@ -581,7 +586,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** Microsoft Agent Framework functional workflow ile eş zamanlı worker fan-out, replayable step cache, checkpoint resume, bağımsız review, önceki başarılı patch'i devralan sınırlı correction ve isteğe bağlı deep review sağlar. Review deadline'ı provider-aware tavan ve pipeline deadline ile sınırlıdır, toplam bütçe worker+review tavanlarından türetilir veya açık timeout_seconds sert sınırdır. Reviewer hatası/geçersiz çıktısı fail-closed kalır; escalate_from_round'dan itibaren düzeltmeyi escalate_profile devralır, önceki implementer bağımsız reviewer olur; imzalı maf-result.json yazılır. (2026-10-21: `src/respected_orchestrator/maf_workflow.py` yolundan taşındı.)
 
-**İlişkiler ve sınır:** runner execute_task/create_task/check_result ve vertical_slice run_codex_call adaptörlerini kullanır; __main__ 'maf' komutu ve campaign tarafından çağrılır. tests/test_maf_coding.py kapsar.
+**İlişkiler ve sınır:** runner execute_task/create_task/check_result ve codex run_codex_call adaptörlerini kullanır; __main__ 'maf' komutu ve campaign tarafından çağrılır. tests/test_maf_coding.py kapsar.
 
 #### [`src/respected_orchestrator/workflows/planner.py`](../src/respected_orchestrator/workflows/planner.py)
 
@@ -589,7 +594,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** 'planner' rolünü çalıştırılabilir yapar: atanan araç/model bir proje spesifikasyonu taslağı üretir, motor doğrular. Taslak asla başlatılmaz veya motorca düzenlenmez; planlayıcı ataması, kullanım ve doğrulama sonucuyla <data root>/drafts altına kaydedilir ve project-start ile insan/Master onayından sonra başlar. (2026-10-21: `src/respected_orchestrator/planner.py` yolundan taşındı.)
 
-**İlişkiler ve sınır:** interfaces/mcp_server.py (orchestrator_plan) ve Hub tarafından çağrılır; roles, runner, processes ve antigravity_orchestrator'ı kullanır. tests/test_roles.py ve tests/test_project.py ile dolaylı kapsanır.
+**İlişkiler ve sınır:** interfaces/mcp_server.py (orchestrator_plan) ve Hub tarafından çağrılır; roles, runner, processes ve lanes'ı kullanır. tests/test_roles.py ve tests/test_project.py ile dolaylı kapsanır.
 
 #### [`src/respected_orchestrator/workflows/project.py`](../src/respected_orchestrator/workflows/project.py)
 
@@ -625,14 +630,6 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **İlişkiler ve sınır:** pytest test süreçlerini etkiler; processes execute guard'ı bu işareti okur.
 
-#### [`tests/test_antigravity.py`](../tests/test_antigravity.py)
-
-**Rol:** Korunmuş regresyonlar.
-
-**Amaç / sorumluluk:** 26 Antigravity testini independent context, bypass=false ve raw-apply reddiyle uyarlayıp lane/scope/patch sözleşmesini sınar. Ölü sahipli yazar kilidinin geri alındığı durum test edilir.
-
-**İlişkiler ve sınır:** Temporary Git/fake worker kullanır; Brain veya canlı provider ayarı gerekmez.
-
 #### [`tests/test_campaign.py`](../tests/test_campaign.py)
 
 **Rol:** Kampanya testleri.
@@ -647,7 +644,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** Sıfır exit'te açık failure, provider hata sınıflandırması, metadata uyarısı, eksik/başarısız stream reddi, reconnect bildirimi, blocked worker'ın imzalı failure state'i ve Windows proje-local Codex CLI tercihini doğrular.
 
-**İlişkiler ve sınır:** runner ve antigravity_orchestrator kodunu geçici teknik veriyle çalıştırır; Git ve worker alt süreci taklit edilir, canlı model çağrılmaz.
+**İlişkiler ve sınır:** runner ve lanes kodunu geçici teknik veriyle çalıştırır; Git ve worker alt süreci taklit edilir, canlı model çağrılmaz.
 
 #### [`tests/test_completion_deadlines.py`](../tests/test_completion_deadlines.py)
 
@@ -655,7 +652,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** Gerçek yerel alt süreçlerle temsili Codex JSONL akışlarını (completion+hang, crash, turn.failed, reconnect, sessiz, aktif, stall, stderr disconnect) tekrarlar; verified completion'ın beklemeden ilerlemesini, başarısız/belirsiz sürecin asla başarı olmamasını, iptalin üstünlüğünü, tanı belirsizliğini ve deadline politikası doğrulamasını sınar.
 
-**İlişkiler ve sınır:** processes.execute, vertical_slice completion/cause yardımcıları, maf_workflow review_timeout_default ve runner._workflow ile model çağrısı olmadan çalışır.
+**İlişkiler ve sınır:** processes.execute, codex completion/cause yardımcıları, maf_workflow review_timeout_default ve runner._workflow ile model çağrısı olmadan çalışır.
 
 #### [`tests/test_engine.py`](../tests/test_engine.py)
 
@@ -671,7 +668,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** Gerçek git depolarında collect_worker_changes ve export_worker_patch'in üretilmiş çıktıyı (build, egg-info, bytecode) kaynak değişiklikten ayırdığını, takip edilen veya sahiplikle adı geçen yolları gerçek sayıp symlink kaçışı, entegrasyon çakışması ve scope ihlalini kapalı-başarısız bıraktığını doğrular.
 
-**İlişkiler ve sınır:** antigravity_orchestrator ve runner (create_task, execute_task, check_result) uçtan uca kullanılır. Kayıt: A3_A4_ENGINE.md.
+**İlişkiler ve sınır:** lanes ve runner (create_task, execute_task, check_result) uçtan uca kullanılır. Kayıt: A3_A4_ENGINE.md.
 
 #### [`tests/test_integrations.py`](../tests/test_integrations.py)
 
@@ -681,6 +678,14 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **İlişkiler ve sınır:** integrations ve rpp modüllerini çağırır; RPP op'ları yalnız v1.1'de listelenir. RPP_V1_1.md lifecycle sözleşmesiyle uyumludur.
 
+#### [`tests/test_lanes.py`](../tests/test_lanes.py)
+
+**Rol:** Lane motoru davranış testleri.
+
+**Amaç / sorumluluk:** Policy dosyaları, yürütülebilir çözümleme, yol güvenliği, yazar kilidi, git lane oluşturma ve kirli girdi bindirme, worker çağrısı ve devre kesici, kapsam ihlali, acceptance zaman aşımı ve yalnız worker farkını içeren patch dışa aktarımını sahte worker ve geçici Git depolarıyla sınar.
+
+**İlişkiler ve sınır:** engine/lanes.py'yi doğrudan test eder; canlı provider veya Brain gerekmez.
+
 #### [`tests/test_maf_coding.py`](../tests/test_maf_coding.py)
 
 **Rol:** MAF coding testleri.
@@ -688,14 +693,6 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 **Amaç / sorumluluk:** Fake worker/reviewer ile MAF adapterinin completed/failed, checkpoint replay, fresh-run correction ve patch devralma, escalation, sınırlı retry, deep review, reviewer timeout/geçersiz çıktı, token ve bütçe muhasebesi, insan onayı (tahrif, çapraz-run, operatör-yalnız reddi) ve private JSON yönlendirmesini doğrular.
 
 **İlişkiler ve sınır:** maf_workflow, runner create/execute/check/approve ve __main__ maf/maf-approve sözleşmelerini geçici Git fixture'larıyla canlı model çağrısı olmadan sınar.
-
-#### [`tests/test_maf_coding_demo.py`](../tests/test_maf_coding_demo.py)
-
-**Rol:** Model ve Git çağırmayan demo kabul regresyonu.
-
-**Amaç / sorumluluk:** Demo named MiMo profile argv ve gerçek temporary Python acceptance sonucunun ownership dışında bytecode üretmediğini doğrular.
-
-**İlişkiler ve sınır:** demo preflight/Git/AI sınırları taklit edilir; acceptance gerçek child Python ile -B kullanır.
 
 #### [`tests/test_maf_workflow.py`](../tests/test_maf_workflow.py)
 
@@ -759,7 +756,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** Review hata teşhisini (zararsız modeller-yenileme satırı), sağlayıcıya duyarlı zaman aşımlarını, sınırlı yeniden denemeyi, yalnız review yeniden çalıştırmada worker'ın tekrar çalışmaması ve token geçmişinin korunmasını, tahrif edilmiş veya değişmiş proje patch'inin yeniden kullanılmamasını doğrular.
 
-**İlişkiler ve sınır:** maf_workflow, vertical_slice, project, campaign ve runner'ı kullanır; modeller sahte çağrılarla taklit edilir. Kayıt: A1_A2_RELIABILITY.md.
+**İlişkiler ve sınır:** maf_workflow, codex, project, campaign ve runner'ı kullanır; modeller sahte çağrılarla taklit edilir. Kayıt: A1_A2_RELIABILITY.md.
 
 #### [`tests/test_roles.py`](../tests/test_roles.py)
 
@@ -809,29 +806,13 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **İlişkiler ve sınır:** budget, campaign, project, runner ve maf_workflow kullanır. Kayıt: A3_A4_ENGINE.md.
 
-#### [`tests/test_vertical_slice.py`](../tests/test_vertical_slice.py)
-
-**Rol:** Vertical slice testleri.
-
-**Amaç / sorumluluk:** Usage ayrımı, paralel worker ve zero-poll ile tek turlu correction/second Master approval geçişlerini sahte Codex çağrılarıyla sınar.
-
-**İlişkiler ve sınır:** vertical_slice davranışını canlı model olmadan doğrular; canlı EVREN/GPT demo state ayrı tutulur.
-
 #### [`tests/test_windows_processes.py`](../tests/test_windows_processes.py)
 
 **Rol:** Windows süreç yönetimi testleri.
 
-**Amaç / sorumluluk:** Hiçbir modülün gizli pencere yardımcısı olmadan süreç başlatmadığını, ayrık süpervizör ve çocuklarının görünür konsol açmadığını, zaman aşımı ve iptalde tüm süreç ağacının öldürüldüğünü, yetim süreçlerin temizlendiğini ve eksik yürütülebilirin sızıntısız raporlandığını doğrular.
+**Amaç / sorumluluk:** Hiçbir modülün gizli pencere yardımcısı olmadan süreç başlatmadığını, ayrık süpervizör ve çocuklarının görünür konsol açmadığını, zaman aşımı ve iptalde tüm süreç ağacının öldürüldüğünü, yetim süreçlerin temizlendiğini, eksik yürütülebilirin sızıntısız raporlandığını ve çocuk süreçlerin PSModulePath devralmadığını doğrular.
 
-**İlişkiler ve sınır:** winproc, processes ve antigravity_orchestrator'ı kullanır. Kayıt: A1_A2_RELIABILITY.md konsol penceresi sızıntısı düzeltmesi.
-
-#### [`tests/test_worker_environment.py`](../tests/test_worker_environment.py)
-
-**Rol:** Ücretsiz Windows ortam ve preflight regresyonları.
-
-**Amaç / sorumluluk:** Child PSModulePath casing/parent korumasını, mevcut auth helper/config no-write davranışını ve bozuk marker durumunda auth/Git/AI öncesi durmayı doğrular.
-
-**İlişkiler ve sınır:** processes.execute gerçek temporary Python child çalıştırır; demo auth sınırı taklit edilir; sandbox marker yalnız temporary fixture içinde yazılır, gerçek Codex/runtime çalıştırılmaz.
+**İlişkiler ve sınır:** winproc, processes ve lanes'i kullanır. Kayıt: A1_A2_RELIABILITY.md konsol penceresi sızıntısı düzeltmesi.
 
 #### [`tests/test_worker_status_contract.py`](../tests/test_worker_status_contract.py)
 
@@ -839,7 +820,7 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 
 **Amaç / sorumluluk:** render_brief çıktısının makine-okunur status sözleşmesini, apply_patch yasağını ve final JSON talimatını doğrular.
 
-**İlişkiler ve sınır:** antigravity_orchestrator.render_brief ile temporary template dizinlerini kullanır; worker çalıştırmaz.
+**İlişkiler ve sınır:** lanes.render_brief ile temporary template dizinlerini kullanır; worker çalıştırmaz.
 
 ### tools
 
@@ -850,14 +831,6 @@ Her kayıt bir dosyayı açıklar; boş `.gitkeep` ve paket `__init__.py` dosyal
 **Amaç / sorumluluk:** Bağımsız ürün adıyla metadata/hash denetimi ve no-Git filesystem keşfi sağlar.
 
 **İlişkiler ve sınır:** Brain aracının bağımsız kopyasıdır; dış repo importu yoktur, normal Git CI modu korunur.
-
-#### [`tools/run_maf_coding_demo.py`](../tools/run_maf_coding_demo.py)
-
-**Rol:** Sınırlı canlı MAF coding demo.
-
-**Amaç / sorumluluk:** Tek MiMo/evren1 worker için CLI çözer; Windows mevcut marker/auth preflight ile erken durur; disposable Git fixture ve bytecode üretmeyen acceptance çalıştırır.
-
-**İlişkiler ve sınır:** maf_workflow/runner/processes fail-closed kapılarını kullanır; mevcut named profile/home korunur ve explicit config yazılmaz; Codex provisioning yan etkileri evidence kaydında ayrı risk olarak belirtilir. test_maf_coding_demo argv/acceptance; test_worker_environment auth/marker/child ortamını model çağırmadan doğrular.
 
 ## Haritayı güncel tutma sözleşmesi
 

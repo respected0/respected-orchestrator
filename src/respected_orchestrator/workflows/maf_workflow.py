@@ -19,7 +19,7 @@ from ..engine.runner import (SUPPORTED_AGENTS, tool_result, command_for, tool_av
 from ..engine import budget as tokens
 from . import roles
 from ..engine.processes import ProcessStopped, execute
-from ..engine.vertical_slice import CodexCall, CodexOutcome, _redact, run_codex_call
+from ..engine.codex import CodexCall, CodexOutcome, _redact, run_codex_call
 
 
 WorkerResult = Mapping[str, Any]

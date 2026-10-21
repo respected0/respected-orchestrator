@@ -1,14 +1,11 @@
-#!/usr/bin/env python3
-"""Guarded launcher for isolated Antigravity repository workers."""
+"""Isolated worker lanes: git worktree per run, guarded worker launch, change scope, acceptance and patch export."""
 
 from __future__ import annotations
 
 from . import winproc
-from ..context import EngineContext, validate_project, path_within_root
+from ..context import path_within_root
 from .processes import execute, ProcessStopped
-from uuid import uuid4
 
-import argparse
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -19,7 +16,6 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
-import sys
 import time
 from typing import Mapping, Sequence
 
@@ -98,11 +94,6 @@ class Lane:
 class BaselineManifest:
     paths: tuple[str, ...]
     hashes: Mapping[str, str | None]
-
-
-@dataclass(frozen=True)
-class GitStatus:
-    porcelain: str
 
 
 @dataclass(frozen=True)
@@ -240,10 +231,6 @@ def normalize_repo_path(repo_root: Path, value: str) -> str:
     if relative == Path("."):
         raise ValueError("repository root is not a bounded ownership path")
     return relative.as_posix()
-
-
-def git_status(repo_root: Path) -> GitStatus:
-    return GitStatus(_git(repo_root, "status", "--porcelain=v1").stdout)
 
 
 def create_lane(request: RunRequest, paths: RunPaths) -> Lane:
@@ -812,267 +799,6 @@ def check_patch_against_master(repo_root: Path, patch: Path) -> RunStatus:
     return RunStatus.COMPLETE if completed.returncode == 0 else RunStatus.INTEGRATION_CONFLICT
 
 
-def main(argv: Sequence[str] | None = None, *, ctx: EngineContext | None = None, project_root: Path | None = None) -> int:
-    parser = _build_parser()
-    args = parser.parse_args(argv)
-    if ctx is None:
-        from ..context import default_data_root
-        ctx = EngineContext(default_data_root())
-    args.ctx = ctx
-    args.state_root = ctx.paths.state_dir / "orchestration"
-    if hasattr(args, "repo_root"):
-        if project_root is not None and args.repo_root is not None and args.repo_root.resolve() != project_root.resolve():
-            raise ValueError("--repo-root must match the explicit code project")
-        selected = project_root or args.repo_root
-        if selected is None:
-            raise ValueError("An explicit code project is required")
-        args.repo_root = validate_project(ctx, selected)
-        if project_root is not None and selected.resolve() != project_root.resolve():
-            raise ValueError("--repo-root must match the explicit code project")
-    if getattr(args, "run_id", None) and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", args.run_id):
-        raise ValueError("Invalid orchestration run identity")
-    if args.command == "doctor":
-        return _doctor(args)
-    if args.command in {"run-read", "run-write"}:
-        if args.background:
-            return _start_background(args, list(argv) if argv is not None else sys.argv[1:])
-        try:
-            return _run_cli(args)
-        except Exception as error:
-            if args.run_id:
-                policy = load_policy(args.policy or Path(__file__).resolve().parents[1] / "resources/policy.json")
-                root = args.state_root / args.run_id
-                _write_verification(root, RunStatus.WORKER_FAILED, error=str(error))
-            raise
-    if args.command == "inspect":
-        terminal = args.run_root / "verification.json"
-        if terminal.exists():
-            payload = json.loads(terminal.read_text(encoding="utf-8"))
-        else:
-            supervisor = args.run_root / "supervisor.json"
-            metadata = json.loads(supervisor.read_text(encoding="utf-8")) if supervisor.exists() else {}
-            alive = _pid_is_alive(int(metadata.get("pid", -1)))
-            payload = {"status": "RUNNING" if alive else "WORKER_FAILED", "supervisor": metadata}
-        _print_json(payload)
-        return 0
-    if args.command == "check-patch":
-        status = check_patch_against_master(args.repo_root.resolve(), args.patch.resolve())
-        print(status.value)
-        return 0 if status is RunStatus.COMPLETE else 21
-    if args.command == "apply-patch":
-        raise ValueError("Raw patch application is disabled; inspect and verify the owned task result in Hub")
-    parser.error("unsupported command")
-    return 2
-
-
-def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__)
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    doctor = subparsers.add_parser("doctor")
-    _add_repo_policy_arguments(doctor)
-
-    for command_name, kind in (("run-read", TaskKind.READ), ("run-write", TaskKind.WRITE)):
-        command = subparsers.add_parser(command_name)
-        _add_repo_policy_arguments(command)
-        command.set_defaults(task_kind=kind)
-        command.add_argument("--run-id")
-        command.add_argument("--background", action="store_true", help="Detach from the calling tool session; inspect the returned run_root.")
-        command.add_argument("--timeout-seconds", type=int, help="Bound worker and acceptance duration.")
-        command.add_argument("--slug", required=True)
-        command.add_argument("--objective", required=True)
-        command.add_argument("--known-context", default="No additional context.")
-        command.add_argument("--owner", action="append", required=True)
-        command.add_argument("--forbid", action="append", default=[])
-        command.add_argument("--accept", action="append", type=_parse_command, default=[])
-        command.add_argument("--include-untracked", action="append", default=[])
-
-    inspect = subparsers.add_parser("inspect")
-    inspect.add_argument("--run-root", type=Path, required=True)
-    for command_name in ("check-patch", "apply-patch"):
-        command = subparsers.add_parser(command_name)
-        command.add_argument("--repo-root", type=Path, default=None)
-        command.add_argument("--patch", type=Path, required=True)
-    return parser
-
-
-def _add_repo_policy_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--repo-root", type=Path, default=None)
-    parser.add_argument("--policy", type=Path)
-
-
-def _parse_command(value: str) -> tuple[str, ...]:
-    try:
-        parsed = json.loads(value)
-    except json.JSONDecodeError as error:
-        raise argparse.ArgumentTypeError("acceptance command must be a JSON array") from error
-    if not isinstance(parsed, list) or not parsed or not all(isinstance(item, str) for item in parsed):
-        raise argparse.ArgumentTypeError("acceptance command must be a non-empty JSON string array")
-    return tuple(parsed)
-
-
-def _doctor(args: argparse.Namespace) -> int:
-    repo_root = args.repo_root.resolve()
-    policy_path = (args.policy or Path(__file__).resolve().parents[1] / "resources/policy.json").resolve()
-    policy = load_policy(policy_path)
-    workspace_root = _workspace_root(repo_root, policy) if policy.workspace_root else args.ctx.workspace_root
-    for forbidden in (args.ctx.paths.app_root, repo_root):
-        if workspace_root.is_relative_to(forbidden) or forbidden.is_relative_to(workspace_root):
-            raise ValueError("Worker workspace must be separate from program, data and vault")
-    payload: dict[str, object] = {
-        "status": RunStatus.COMPLETE.value,
-        "repo_root": str(repo_root),
-        "policy": str(policy_path),
-        "workspace_root": str(workspace_root),
-        "git": shutil.which("git"),
-    }
-    try:
-        payload["agy"] = str(resolve_agy(policy, os.environ))
-    except WorkerUnavailableError as error:
-        payload["status"] = RunStatus.WORKER_FAILED.value
-        payload["agy_error"] = str(error)
-    _print_json(payload)
-    return 0 if payload["status"] == RunStatus.COMPLETE.value else 20
-
-
-def _run_cli(args: argparse.Namespace) -> int:
-    repo_root = args.repo_root.resolve()
-    policy_path = (args.policy or Path(__file__).resolve().parents[1] / "resources/policy.json").resolve()
-    policy = load_policy(policy_path)
-    workspace_root = _workspace_root(repo_root, policy) if policy.workspace_root else args.ctx.workspace_root
-    for forbidden in (args.ctx.paths.app_root, repo_root):
-        if workspace_root.is_relative_to(forbidden) or forbidden.is_relative_to(workspace_root):
-            raise ValueError("Worker workspace must be separate from program, data and vault")
-    run_id = args.run_id or _new_run_id(args.slug)
-    paths = RunPaths(
-        repo_root=repo_root,
-        workspace_root=workspace_root,
-        state_root=args.state_root,
-        run_root=args.state_root / run_id,
-    )
-    request = RunRequest(
-        run_id=run_id,
-        slug=args.slug,
-        kind=args.task_kind,
-        objective=args.objective,
-        known_context=args.known_context,
-        ownership=tuple(normalize_repo_path(repo_root, item) for item in args.owner),
-        forbidden=tuple(normalize_repo_path(repo_root, item) for item in args.forbid),
-        acceptance=tuple(args.accept),
-        include_untracked=tuple(args.include_untracked),
-    )
-    lock: WriterLock | None = None
-    if request.kind is TaskKind.WRITE:
-        lock = WriterLock.acquire(paths.state_root, run_id, request.kind.value, workspace_root / request.slug)
-    try:
-        lane = create_lane(request, paths)
-        manifest = overlay_dirty_inputs(lane, request.ownership, request.include_untracked)
-        commit_lane_baseline(lane, manifest)
-        try:
-            agy_path = resolve_agy(policy, os.environ)
-        except WorkerUnavailableError as error:
-            _write_verification(lane.run_root, RunStatus.WORKER_FAILED, error=str(error))
-            return 20
-        worker_timeout = (
-            policy.read_timeout_seconds
-            if request.kind is TaskKind.READ
-            else policy.write_timeout_seconds
-        )
-        if args.timeout_seconds is not None:
-            if args.timeout_seconds <= 0:
-                raise ValueError("timeout must be positive")
-            worker_timeout = min(worker_timeout, args.timeout_seconds)
-        worker = run_worker(request, lane, agy_path, timeout_seconds=worker_timeout,
-                            dangerously_skip_permissions=policy.dangerously_skip_permissions)
-        if worker.status is not RunStatus.COMPLETE:
-            _write_verification(lane.run_root, worker.status)
-            return 20
-
-        changes = collect_worker_changes(lane, request.ownership)
-        scope = validate_change_scope(changes, request.ownership, request.forbidden)
-        if request.kind is TaskKind.READ and changes.paths:
-            scope = ScopeResult(False, changes.paths)
-        if not scope.allowed:
-            _write_verification(
-                lane.run_root,
-                RunStatus.SCOPE_VIOLATION,
-                changed_files=list(changes.paths),
-                violations=list(scope.violations),
-            )
-            return 21
-
-        checks = run_acceptance(
-            lane,
-            request.acceptance,
-            timeout_seconds=worker_timeout,
-        )
-        if any(check.returncode != 0 for check in checks):
-            _write_verification(
-                lane.run_root,
-                RunStatus.TEST_FAILED,
-                changed_files=list(changes.paths),
-            )
-            return 21
-
-        # Acceptance commands may mutate files after the initial scope check.
-        changes = collect_worker_changes(lane, request.ownership)
-        scope = validate_change_scope(changes, request.ownership, request.forbidden)
-        if request.kind is TaskKind.READ and changes.paths:
-            scope = ScopeResult(False, changes.paths)
-        if not scope.allowed:
-            _write_verification(lane.run_root, RunStatus.SCOPE_VIOLATION,
-                                changed_files=list(changes.paths), violations=list(scope.violations))
-            return 21
-
-        if request.kind is TaskKind.WRITE:
-            patch = export_worker_patch(lane, lane.run_root / "worker.patch", request.ownership)
-            patch_status = check_patch_against_master(repo_root, patch.path)
-            if patch_status is not RunStatus.COMPLETE:
-                _write_verification(
-                    lane.run_root,
-                    patch_status,
-                    changed_files=list(changes.paths),
-                    patch=str(patch.path),
-                )
-                return 21
-            _write_verification(
-                lane.run_root,
-                RunStatus.COMPLETE,
-                changed_files=list(changes.paths),
-                patch=str(patch.path),
-                patch_sha256=patch.sha256,
-            )
-        else:
-            _write_verification(lane.run_root, RunStatus.COMPLETE, changed_files=[])
-        _print_json({"status": RunStatus.COMPLETE.value, "run_root": str(lane.run_root)})
-        return 0
-    finally:
-        if lock is not None:
-            lock.release()
-
-
-def _workspace_root(repo_root: Path, policy: Policy) -> Path:
-    configured = Path(_expand_environment(policy.workspace_root, os.environ))
-    return configured.resolve() if configured.is_absolute() else (repo_root / configured).resolve()
-
-
-def _new_run_id(slug: str) -> str:
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    return f"{stamp}-{slug}-{uuid4().hex[:12]}"
-
-
-def _write_verification(run_root: Path, status: RunStatus, **details: object) -> None:
-    run_root.mkdir(parents=True, exist_ok=True)
-    payload = {"status": status.value, **details}
-    (run_root / "verification.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
-
-
-def _print_json(payload: Mapping[str, object]) -> None:
-    print(json.dumps(payload, ensure_ascii=True, indent=2))
-
-
 def _expand_environment(value: str, environ: Mapping[str, str]) -> str:
     def replace(match: re.Match[str]) -> str:
         name = match.group(1) or match.group(2)
@@ -1137,31 +863,6 @@ def _spawn_detached(command: Sequence[str], cwd: Path, log_path: Path, *, env: M
     import threading
     threading.Thread(target=process.wait, daemon=True).start()
     return process.pid
-
-
-def _start_background(args: argparse.Namespace, argv: list[str]) -> int:
-    repo = args.repo_root.resolve()
-    policy = load_policy(args.policy or Path(__file__).resolve().parents[1] / "resources/policy.json")
-    resolve_agy(policy, os.environ)  # Fail before reserving a run or creating a lane.
-    run_id = args.run_id or _new_run_id(args.slug)
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", run_id):
-        raise ValueError("invalid run id")
-    root = args.state_root / run_id
-    root.mkdir(parents=True, exist_ok=False)
-    child_args = [item for item in argv if item != "--background"]
-    if not args.run_id:
-        child_args.extend(["--run-id", run_id])
-    try:
-        command = [sys.executable, "-m", "respected_orchestrator", "--data-root", str(args.ctx.data_root),
-                   "antigravity", *child_args]
-        env = dict(os.environ)
-        pid = _spawn_detached(command, repo, root / "launcher.log", env=env)
-    except Exception as error:
-        _write_verification(root, RunStatus.WORKER_FAILED, error=str(error))
-        raise
-    (root / "supervisor.json").write_text(json.dumps({"pid": pid, "run_id": run_id}), encoding="utf-8")
-    _print_json({"status": "STARTED", "pid": pid, "run_root": str(root)})
-    return 0
 
 
 def _path_is_owned(path: str, ownership: Sequence[str]) -> bool:
