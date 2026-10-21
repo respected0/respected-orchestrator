@@ -1,6 +1,6 @@
 """Build the packaged Orchestrator: one self-contained folder that needs no Python on the machine.
 
-    python tools/build_dist.py [--output DIR]   ->   DIR/RespectedOrchestrator/{respected-orchestrator.exe, app/, distribution.json}
+    python packaging/build_dist.py [--output DIR]   ->   DIR/RespectedOrchestrator/{respected-orchestrator.exe, app/, distribution.json}
 
 PyInstaller onedir build of the private JSON entry point (RPP, MCP, task/campaign/project commands); distribution.json
 lists every file with its sha256 so the installer (the Hub) and the product's own install record can verify the copy.

@@ -2,7 +2,7 @@
 
 Status: implemented 2026-10-21 (user decision: the Orchestrator ships like SecondBrain, no Python on the machine).
 
-* `tools/build_dist.py` freezes the private entry point with PyInstaller (onedir, contents in `app/`) into
+* `packaging/build_dist.py` freezes the private entry point with PyInstaller (onedir, contents in `app/`) into
   `RespectedOrchestrator/` with `respected-orchestrator.exe` and `distribution.json` (sha256 of every file, version read
   from the source). Agent Framework's lazy submodules are collected; installed packages outside the declared dependency
   closure are excluded, so a local build contains what a clean CI build contains.
