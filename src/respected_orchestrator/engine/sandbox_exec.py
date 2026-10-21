@@ -1,6 +1,6 @@
 """Run one command under a restricted token (see sandbox.py). Windows only.
 
-    python -m respected_orchestrator.engine.sandbox_exec --sid S-1-5-21-... -- <command...>
+    respected-orchestrator.exe _sandbox-exec --sid S-1-5-21-... -- <command...>   (sandbox.py boots it from source otherwise)
 
 Runs as the trusted user, builds the token, starts the command with this process's standard handles and returns its
 exit code. The caller's job object (process-tree kill, timeouts) covers the child because job membership is inherited.
@@ -115,7 +115,3 @@ def main(argv=None):
         parser.error("no command")
     sys.stdout.flush()
     return run(args.sid, command)
-
-
-if __name__ == "__main__":
-    sys.exit(main())
