@@ -14,8 +14,8 @@ import time
 import unittest
 from unittest import mock
 
-from respected_orchestrator import antigravity_orchestrator as agy, winproc
-from respected_orchestrator.processes import ProcessStopped, execute
+from respected_orchestrator.engine import antigravity_orchestrator as agy, winproc
+from respected_orchestrator.engine.processes import ProcessStopped, execute
 
 PY = sys.executable
 SRC = Path(__file__).resolve().parents[1] / "src" / "respected_orchestrator"
@@ -38,20 +38,20 @@ def wait_dead(pid, seconds=10):
 class SpawnSitesTests(unittest.TestCase):
     def test_no_module_starts_a_process_without_the_hidden_window_helper(self):
         raw = re.compile(r"subprocess\.(run|Popen|call|check_call|check_output)\(")
-        found = {path.name: len(raw.findall(path.read_text(encoding="utf8"))) for path in SRC.glob("*.py")}
+        found = {path.name: len(raw.findall(path.read_text(encoding="utf8"))) for path in SRC.rglob("*.py")}
         found = {name: count for name, count in found.items() if count}
         # winproc.run wraps subprocess.run; processes.execute and agy._spawn_detached each own their Popen call(s)
         self.assertEqual(found, {"winproc.py": 1, "processes.py": 1, "antigravity_orchestrator.py": 2})
         self.assertIn("winproc.hidden_options", inspect.getsource(agy._spawn_detached))
         self.assertNotIn("subprocess.DETACHED_PROCESS", inspect.getsource(agy._spawn_detached))  # a detached process has no console to share
-        self.assertIn("winproc.hidden_options", (SRC / "processes.py").read_text(encoding="utf8"))
+        self.assertIn("winproc.hidden_options", (SRC / "engine" / "processes.py").read_text(encoding="utf8"))
 
     @unittest.skipUnless(WINDOWS, "Windows console behaviour")
     def test_hidden_options_hide_the_window_and_keep_caller_flags(self):
         options = winproc.hidden_options(0x200)  # CREATE_NEW_PROCESS_GROUP
         self.assertTrue(options["creationflags"] & winproc.NO_WINDOW and options["creationflags"] & 0x200)
         self.assertEqual(options["startupinfo"].wShowWindow, 0)  # SW_HIDE
-        with mock.patch("respected_orchestrator.winproc.subprocess.run") as run:
+        with mock.patch("respected_orchestrator.engine.winproc.subprocess.run") as run:
             winproc.run(["git", "--version"], creationflags=0x200, capture_output=True)
         flags = run.call_args.kwargs["creationflags"]
         self.assertTrue(flags & winproc.NO_WINDOW and flags & 0x200)
@@ -66,7 +66,7 @@ PROBE = ("import ctypes, json, subprocess, sys\n"
          "def console():\n"
          "    handle = ctypes.windll.kernel32.GetConsoleWindow()\n"
          "    return [int(handle or 0), bool(handle and ctypes.windll.user32.IsWindowVisible(handle))]\n"
-         "from respected_orchestrator import winproc\n"
+         "from respected_orchestrator.engine import winproc\n"
          "probe = 'import ctypes; h = ctypes.windll.kernel32.GetConsoleWindow(); print(int(h or 0), bool(h and ctypes.windll.user32.IsWindowVisible(h)))'\n"
          "child = winproc.run([sys.executable, '-c', probe], capture_output=True, text=True).stdout.split()\n"
          "json.dump({'own': console(), 'child': child}, open(sys.argv[1], 'w'))\n")

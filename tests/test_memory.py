@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from respected_orchestrator import memory
+from respected_orchestrator.interfaces import memory
 
 TOKEN = "rbm_" + "A1b2C3d4" * 4
 GOOD = {"path": "notes/a.md", "title": "A", "category": "c", "tags": [], "snippet": "hello", "score": 1.5}
@@ -138,7 +138,7 @@ class MemoryTests(unittest.TestCase):
         self.assertIsNone(memory.load_token(self.root))
 
     def test_the_file_is_restricted_while_still_empty(self):
-        from respected_orchestrator import runner
+        from respected_orchestrator.engine import runner
         seen = []
         root = Path(tempfile.mkdtemp())
         with unittest.mock.patch.object(runner, "_restrict_key", lambda path: seen.append(Path(path).read_bytes())):

@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_orchestrator():
-    from respected_orchestrator import antigravity_orchestrator
+    from respected_orchestrator.engine import antigravity_orchestrator
     return antigravity_orchestrator
 
 

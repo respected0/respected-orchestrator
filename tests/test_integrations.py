@@ -6,7 +6,7 @@ import tomllib
 import unittest
 from unittest import mock
 
-from respected_orchestrator import integrations as sil, rpp
+from respected_orchestrator.interfaces import integrations as sil, rpp
 from respected_orchestrator.context import EngineContext
 
 LAUNCH = {"command": "cmd", "args": ["/c", "C:/x/launch.cmd"]}

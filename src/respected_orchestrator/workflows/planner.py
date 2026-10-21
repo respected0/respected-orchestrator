@@ -8,10 +8,10 @@ from pathlib import Path
 import tempfile
 
 from . import roles
-from .context import EngineContext, atomic_write_json
-from .processes import ProcessStopped, execute
-from .runner import SUPPORTED_AGENTS, _track_record, command_for, tool_available, tool_result
-from .antigravity_orchestrator import _git_path_list
+from ..context import EngineContext, atomic_write_json
+from ..engine.processes import ProcessStopped, execute
+from ..engine.runner import SUPPORTED_AGENTS, _track_record, command_for, tool_available, tool_result
+from ..engine.antigravity_orchestrator import _git_path_list
 
 CONTEXT_FILE_BYTES = 20_000
 FILE_LIST_LIMIT = 300

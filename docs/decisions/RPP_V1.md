@@ -7,7 +7,7 @@ v1.0 request, response or op behaviour.
 ## Decision
 
 The Respected Orchestrator exposes the Respected Product Protocol (RPP) v1.0 from a
-private entry point in `src/respected_orchestrator/rpp.py`, reached through
+private entry point in `src/respected_orchestrator/interfaces/rpp.py`, reached through
 `python -m respected_orchestrator --data-root DATA rpp` with one JSON request on stdin
 and one JSON response line on stdout. RPP is a request/response contract, not MCP and
 not a daemon: there is no network listener and no public CLI script.

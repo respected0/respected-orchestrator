@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from . import winproc
+from ..engine import winproc
 
 TOKEN_FILE = "memory-token"
 TOKEN_RE = re.compile(r"^rbm_[A-Za-z0-9_-]{20,100}\Z")
@@ -37,7 +37,7 @@ def _token_path(data_root):
 def store_token(data_root, token):
     if not isinstance(token, str) or not TOKEN_RE.match(token):
         raise ValueError("Invalid memory token format")
-    from . import runner  # lazy: avoids an import cycle
+    from ..engine import runner  # lazy: avoids an import cycle
 
     path = _token_path(data_root)
     path.parent.mkdir(parents=True, exist_ok=True)

@@ -6,7 +6,7 @@ and result) and "read" (review attempts). Nothing here ever excludes a candidate
 from pathlib import Path
 from typing import Any
 
-from .context import EngineContext
+from ..context import EngineContext
 from .runner import _load
 
 MIN_RUNS = 3  # below this a candidate has no usable history

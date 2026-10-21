@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from respected_orchestrator import antigravity_orchestrator as agy, runner
+from respected_orchestrator.engine import antigravity_orchestrator as agy, runner
 from respected_orchestrator.context import EngineContext
 
 

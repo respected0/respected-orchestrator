@@ -12,8 +12,8 @@ from pathlib import Path
 import shutil
 import tempfile
 
-from . import __version__
-from .context import atomic_write_json, path_within_root, safe_path
+from .. import __version__
+from ..context import atomic_write_json, path_within_root, safe_path
 
 PRODUCT_ID = "respected-orchestrator"
 ACTIONS = ("install", "update", "repair", "uninstall")

@@ -10,10 +10,10 @@ import unittest
 from unittest import mock
 
 from respected_orchestrator.context import EngineContext
-from respected_orchestrator.runner import create_task, execute_task, inspect_task, cancel_task, check_result, start_task, retry_task
-from respected_orchestrator import runner
-from respected_orchestrator import antigravity_orchestrator as agy
-from respected_orchestrator.processes import execute, ProcessStopped
+from respected_orchestrator.engine.runner import create_task, execute_task, inspect_task, cancel_task, check_result, start_task, retry_task
+from respected_orchestrator.engine import runner
+from respected_orchestrator.engine import antigravity_orchestrator as agy
+from respected_orchestrator.engine.processes import execute, ProcessStopped
 
 
 class EngineTests(unittest.TestCase):
@@ -140,7 +140,7 @@ class EngineTests(unittest.TestCase):
 
     def test_detached_supervisor_survives_submission_process_exit(self):
         task = self.task()
-        env = dict(os.environ, PYTHONPATH=str(Path(runner.__file__).resolve().parents[1]))
+        env = dict(os.environ, PYTHONPATH=str(Path(runner.__file__).resolve().parents[2]))
         submission = subprocess.run([sys.executable, "-m", "respected_orchestrator", "--data-root", str(self.ctx.data_root),
                                      "start", task["run_id"]], env=env, cwd=self.root, capture_output=True, text=True, timeout=5)
         self.assertEqual(submission.returncode, 0, submission.stdout + submission.stderr)
@@ -306,7 +306,7 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(runner.command_for("codex", "p", profile="glm")[-4:-1], ["-p", "glm", "--json"])
 
     def test_worker_environment_drops_secrets_unless_allowed(self):
-        from respected_orchestrator.processes import scrub_environment
+        from respected_orchestrator.engine.processes import scrub_environment
         env = {"PATH": "x", "ANTHROPIC_API_KEY": "s", "GH_TOKEN": "s", "SSH_AUTH_SOCK": "s", "KEEP_TOKEN": "s",
                "RESPECTED_WORKER_ENV_ALLOW": "keep_token"}
         self.assertEqual(set(scrub_environment(env)), {"PATH", "KEEP_TOKEN", "RESPECTED_WORKER_ENV_ALLOW"})
@@ -424,7 +424,7 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(execute_task(self.ctx, task['run_id'])['reason'], 'scope_violation')
 
     def test_private_json_submission_status_inspection_and_check(self):
-        env = dict(os.environ, PYTHONPATH=str(Path(runner.__file__).resolve().parents[1]))
+        env = dict(os.environ, PYTHONPATH=str(Path(runner.__file__).resolve().parents[2]))
         command = [sys.executable, '-m', 'respected_orchestrator', '--data-root', str(self.ctx.data_root)]
         request = dict(project_root=str(self.repo), task='JSON bridge read task', kind='read', worker='custom',
                        ownership=['owned.txt'], forbidden=['outside.txt'], acceptance=[], timeout_seconds=10,

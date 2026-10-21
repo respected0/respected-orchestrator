@@ -6,9 +6,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from respected_orchestrator import runner, sandbox
+from respected_orchestrator.engine import runner, sandbox
 from respected_orchestrator.context import EngineContext
-from respected_orchestrator.processes import execute
+from respected_orchestrator.engine.processes import execute
 
 # Everything an attacker-controlled acceptance command would try. Each entry is "name: outcome".
 PROBE = r'''
@@ -108,10 +108,10 @@ class SandboxBoundaryTest(unittest.TestCase):
         payload = {"run_id": "run-1", "status": "approved"}
         genuine = runner._signature(self.ctx, payload)
         self.assertEqual(len(genuine), 64)
-        script = ("import sys; sys.path.insert(0, sys.argv[1]); from respected_orchestrator import runner;"
+        script = ("import sys; sys.path.insert(0, sys.argv[1]); from respected_orchestrator.engine import runner;"
                   "from respected_orchestrator.context import EngineContext; from pathlib import Path;"
                   "runner._signature(EngineContext(Path(sys.argv[2])), {'x': 1})")
-        src = str(Path(runner.__file__).resolve().parents[1])
+        src = str(Path(runner.__file__).resolve().parents[2])
         command = sandbox.wrap(self.ctx.data_root, self.key_path, [sys.executable, "-c", script, src, str(self.ctx.data_root)])
         done = execute(command, self.worktree, 120)
         self.assertNotEqual(done.returncode, 0, "the sandboxed engine call must not obtain the signing key")

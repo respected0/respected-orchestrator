@@ -10,7 +10,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from .context import safe_path
+from ..context import safe_path
 
 ROLE_RE = re.compile(r"[a-z][a-z0-9_]{0,39}\Z")
 KNOWN_ROLES = ("master", "planner", "implementer", "reviewer", "deep_reviewer", "debugger", "tester", "coordinator")
@@ -181,7 +181,7 @@ def recommend(role, pool, settings, available, fallback_tool, peers, history):
     smoothed success rate, then using a profile no other role already uses (soft), then lower average tokens, then pool
     order. With fewer than MIN_RUNS recorded runs for every candidate there is no evidence: the first candidate is
     returned and the reason says it is only the first listed, not a recommendation."""
-    from .track_record import MIN_RUNS
+    from ..engine.track_record import MIN_RUNS
     family = "write" if role in WRITE_ROLES else "read"
     table = history() if history else {}
     rows, excluded = [], []
