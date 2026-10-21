@@ -10,7 +10,7 @@ from respected_orchestrator.workflows import campaign, project
 from respected_orchestrator.context import EngineContext
 from respected_orchestrator.workflows.maf_workflow import run_maf_coding_task
 from respected_orchestrator.engine.runner import _load, _save, create_task, execute_task
-from tests.test_reviewer_reliability import CodingFixture, outcome
+from tests.workflows.test_reviewer_reliability import CodingFixture, outcome
 
 
 class BudgetModuleTests(unittest.TestCase):

@@ -11,7 +11,7 @@ from respected_orchestrator.interfaces import mcp_server
 from respected_orchestrator.engine import runner
 from respected_orchestrator.context import EngineContext
 
-SRC = str(Path(__file__).resolve().parents[1] / "src")
+SRC = str(Path(__file__).resolve().parents[2] / "src")
 
 
 def call(ctx, name, args, **kw):
