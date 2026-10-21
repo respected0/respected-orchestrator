@@ -9,7 +9,7 @@ process-tree cleanup, failed/stale/tampered-result rejection and explicit bounde
 
 Every spawn of the engine goes through `context.engine_command` (it must keep working in the packaged exe); every
 child process goes through `engine/winproc`. Run `python -m unittest discover -s tests -t .` and, for packaging changes,
-`python tools/build_dist.py` plus `tests.packaging.test_frozen_build`.
+`python packaging/build_dist.py` plus `tests.packaging.test_frozen_build`.
 
 Binding decisions live in `docs/decisions/`; keep them true to the code in the same change. No folders named after
 process tools.

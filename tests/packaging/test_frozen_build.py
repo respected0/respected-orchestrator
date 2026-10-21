@@ -1,7 +1,7 @@
 """The packaged engine works with no Python on PATH: RPP, MCP, and a real write task through its detached supervisor
 and the restricted-token acceptance sandbox (the two paths that start the engine again from inside itself).
 
-Needs a build in dist/ (python tools/build_dist.py) or RESPECTED_ORCH_DIST; skipped locally without one, required in CI.
+Needs a build in dist/ (python packaging/build_dist.py) or RESPECTED_ORCH_DIST; skipped locally without one, required in CI.
 """
 import json
 import os
@@ -24,7 +24,7 @@ class FrozenBuildTest(unittest.TestCase):
         if not EXE.is_file():
             if os.environ.get("CI"):
                 self.fail(f"packaged build missing: {EXE}")
-            self.skipTest("no packaged build in dist/ (python tools/build_dist.py)")
+            self.skipTest("no packaged build in dist/ (python packaging/build_dist.py)")
         temporary = tempfile.TemporaryDirectory(prefix="orch-frozen-")
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name).resolve()

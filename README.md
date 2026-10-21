@@ -15,7 +15,7 @@ People use it through **Respected Hub** (workspace, task list, evidence, MCP acc
 | `src/respected_orchestrator/workflows/` | MAF coding workflow, campaigns, autonomous projects, planner, role assignment |
 | `src/respected_orchestrator/interfaces/` | RPP server (Hub protocol), lifecycle records, MCP server, SecondBrain memory client, AI-client integrations |
 | `src/respected_orchestrator/__main__.py` | private JSON entry point for the Hub and tests (not a public CLI) |
-| `tools/build_dist.py`, `packaging/` | packaged build (PyInstaller onedir + `distribution.json`) |
+| `packaging/` (incl. `build_dist.py`) | packaged build (PyInstaller onedir + `distribution.json`) |
 | `tests/` | `engine/`, `workflows/`, `interfaces/` mirror the package; `packaging/` drives the built exe |
 | `docs/decisions/` | binding design decisions (RPP, sandbox, MCP permissions, roles, memory, campaigns, Codex results) |
 
@@ -24,7 +24,7 @@ People use it through **Respected Hub** (workspace, task list, evidence, MCP acc
 ```powershell
 python -m pip install -e ".[dev]"
 python -m unittest discover -s tests -t .          # temp repos and fake workers only; HOME is sandboxed
-python tools/build_dist.py                          # -> dist/RespectedOrchestrator/respected-orchestrator.exe
+python packaging/build_dist.py                          # -> dist/RespectedOrchestrator/respected-orchestrator.exe
 python -m unittest tests.packaging.test_frozen_build # the built exe with no Python on PATH
 ```
 
