@@ -10,6 +10,17 @@ import subprocess
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 
+_SYSTEM_TOOLS = {"powershell": r"System32\WindowsPowerShell\v1.0\powershell.exe", "icacls": r"System32\icacls.exe"}
+
+
+def system_tool(name: str) -> str:
+    """Absolute path of a Windows system tool, so a trimmed or hijacked PATH can neither hide nor replace it."""
+    root = os.environ.get("SystemRoot")
+    if os.name == "nt" and root and name in _SYSTEM_TOOLS and os.path.isfile(os.path.join(root, _SYSTEM_TOOLS[name])):
+        return os.path.join(root, _SYSTEM_TOOLS[name])
+    return name
+
+
 def hidden_options(creationflags: int = 0) -> dict:
     """Popen/run keyword arguments that start a child without a visible window (empty on non-Windows)."""
     if os.name != "nt":

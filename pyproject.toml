@@ -11,6 +11,9 @@ dependencies = [
     "agent-framework-core==1.21.0",
 ]
 
+[project.optional-dependencies]
+dev = ["pyinstaller>=6"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

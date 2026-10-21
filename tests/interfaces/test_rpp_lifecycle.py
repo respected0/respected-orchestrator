@@ -163,5 +163,61 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(response["error"]["code"], "BAD_REQUEST")
 
 
+class DistributionRecordTests(LifecycleTests.__bases__[0]):
+    """A packaged (frozen) install is recorded from its own distribution.json, never sent as text."""
+
+    def setUp(self):
+        LifecycleTests.setUp(self)
+        self.binary = b"MZ\x90\x00\xff\xfe binary"
+        (self.app / "app").mkdir(parents=True)
+        (self.app / "respected-orchestrator.exe").write_bytes(self.binary)
+        (self.app / "app" / "base_library.zip").write_bytes(b"PK\x03\x04")
+        self.write_distribution()
+
+    call = LifecycleTests.call
+
+    def write_distribution(self, extra=None):
+        import hashlib
+        files = {p.relative_to(self.app).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+                 for p in sorted(self.app.rglob("*")) if p.is_file() and p.name != "distribution.json"}
+        files.update(extra or {})
+        (self.app / "distribution.json").write_text(json.dumps({"version": __version__, "files": files}), encoding="utf-8")
+
+    def record(self, operation_id=OPID, action="install"):
+        return self.call("lifecycle.apply", {"action": action, "target": {"app_root": str(self.app), "distribution": True}},
+                         operation_id=operation_id)
+
+    def test_intact_distribution_is_recorded_and_tampering_is_detected(self):
+        from respected_orchestrator.interfaces import lifecycle
+        response = self.record()
+        self.assertTrue(response["ok"], response)
+        self.assertEqual(lifecycle.verify(self.app)["install_state"], "installed")
+        self.assertEqual((self.app / "respected-orchestrator.exe").read_bytes(), self.binary, "recording never rewrites program files")
+        (self.app / "respected-orchestrator.exe").write_bytes(self.binary + b"!")
+        self.assertEqual(lifecycle.verify(self.app)["install_state"], "repair-needed")
+
+    def test_a_copy_that_no_longer_matches_its_build_is_refused_without_a_record(self):
+        (self.app / "app" / "base_library.zip").write_bytes(b"changed after the build")
+        response = self.record()
+        self.assertEqual(response["error"]["code"], "VERIFY_FAILED")
+        self.assertFalse((self.app / ".respected" / "install.json").exists())
+
+    def test_distribution_paths_cannot_escape_the_app_root(self):
+        (self.root / "outside.txt").write_text("x", encoding="utf-8")
+        self.write_distribution({"../outside.txt": "0" * 64})
+        self.assertEqual(self.record()["error"]["code"], "BAD_REQUEST")
+
+    def test_missing_distribution_json_is_a_typed_error(self):
+        (self.app / "distribution.json").unlink()
+        self.assertEqual(self.record()["error"]["code"], "BAD_REQUEST")
+
+    def test_uninstall_drops_the_record_but_leaves_the_program_to_its_installer(self):
+        self.assertTrue(self.record()["ok"])
+        response = self.call("lifecycle.apply", {"action": "uninstall", "target": {"app_root": str(self.app)}}, operation_id=OPID2)
+        self.assertTrue(response["ok"], response)
+        self.assertFalse((self.app / ".respected" / "install.json").exists())
+        self.assertEqual((self.app / "respected-orchestrator.exe").read_bytes(), self.binary)
+
+
 if __name__ == "__main__":
     unittest.main()

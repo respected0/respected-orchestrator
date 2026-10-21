@@ -17,11 +17,11 @@
     {
       "path": ".github/workflows/ci.yml",
       "role": "Sürekli entegrasyon",
-      "purpose": "Windows'ta Python 3.13 ile paketi kurar, atlas kapısını (repository_map --check) ve tam unittest keşfini (birim, entegrasyon ve adversarial testler) çalıştırır.",
+      "purpose": "Windows'ta Python 3.13 ile paketi ve build araçlarını kurar, atlas kapısını çalıştırır, paketlenmiş motoru (tools/build_dist.py) derler, tam unittest keşfini (paketlenmiş exe'yi Python'suz PATH ile süren testler CI'da zorunludur) çalıştırır ve exe klasörünü artifact olarak yükler.",
       "relationships": [
         "Yalnız Windows: kabul sandbox'ı, süreç ağacı denetimi ve worker shim'leri Windows kod yollarıdır."
       ],
-      "review_sha256": "ab043dbd4cd1fabd1e4d88616791c1f82dd816775eedc1bee7121ba86222126d"
+      "review_sha256": "66e7647700d07d852e147b2d81daf790cfc94936ae536df788e0c40cbd9e9f8b"
     },
     {
       "path": ".gitignore",
@@ -313,13 +313,22 @@
       "review_sha256": "generated"
     },
     {
+      "path": "packaging/entrypoint.py",
+      "role": "Paketleme giriş noktası",
+      "purpose": "PyInstaller'ın dondurduğu programın girişidir: respected_orchestrator.__main__.main'i çalıştırır ve çıkış kodunu döndürür.",
+      "relationships": [
+        "tools/build_dist.py tarafından kullanılır; ürün mantığı içermez."
+      ],
+      "review_sha256": "3c851545a226248f43c3dd6af8d1164503299cbe2ae6eab95b03f4aa9bd1d760"
+    },
+    {
       "path": "pyproject.toml",
       "role": "Python paket tarifi",
-      "purpose": "respected-orchestrator kimliği, Python tabanı ve policy/skill wheel kaynaklarını tanımlar.",
+      "purpose": "respected-orchestrator kimliği, Python tabanı ve policy/skill wheel kaynaklarını tanımlar. dev ekstrası PyInstaller'ı getirir (tools/build_dist.py).",
       "relationships": [
         "Setuptools bağımsız wheel üretir; public console script ve Brain bağımlılığı yoktur."
       ],
-      "review_sha256": "854b9b900b9e6acba9858c9be45a5accc04e18a8b1f2e3f2665caad2647d9a7f"
+      "review_sha256": "1cae088621476e6f7e5a4eb3501f9f5cd1eaa406108a93dc358c3b66ca680172"
     },
     {
       "path": "src/respected_orchestrator/__init__.py",
@@ -333,21 +342,21 @@
     {
       "path": "src/respected_orchestrator/__main__.py",
       "role": "Private JSON giriş",
-      "purpose": "Hub ve testler için özel JSON girişidir (herkese açık CLI değil). status/create/start/list/inspect/cancel/check/retry/apply, maf/maf-approve, campaign-*, project-*, roles, plan, rpp ve mcp komutlarını ilgili modüle yönlendirir. stdin JSON'u UTF-8 BOM'lu da kabul eder; hatalar JSON error olarak döner, başarısız _execute sonucu exit 1 verir. mcp alt komutu --allow-auto-apply ve ayrı --allow-privileged anahtarlarını sunucuya iletir.",
+      "purpose": "Hub ve testler için özel JSON girişidir (herkese açık CLI değil). status/create/start/list/inspect/cancel/check/retry/apply, maf/maf-approve, campaign-*, project-*, roles, plan, rpp ve mcp komutlarını ilgili modüle yönlendirir. stdin JSON'u UTF-8 BOM'lu da kabul eder; hatalar JSON error olarak döner, başarısız _execute sonucu exit 1 verir. mcp alt komutu --allow-auto-apply ve ayrı --allow-privileged anahtarlarını sunucuya iletir. _selfcheck tüm motor modüllerini ve Agent Framework'ü yükleyerek paketlenmiş exe'nin eksiksiz olduğunu kanıtlar; _sandbox-exec veri kökü oluşturmadan kısıtlı token başlatıcısına geçer.",
       "relationships": [
         "runner, roles, campaign, project, maf_workflow, planner, mcp_server, rpp ve lanes'ı çağırır; Brain launcher/vault gerektirmez.",
         "tests/engine/test_runner.py ve tests/workflows/test_maf_coding.py private JSON sözleşmesini doğrular."
       ],
-      "review_sha256": "be7bffc71224c9e18e3ba345b3e0dffb53c8e7fbede18c10bc919f2769849edc"
+      "review_sha256": "59a24e263e0da901efd8d367fa852e79e014cfbb13ac86e3ad1f9490aa68cc38"
     },
     {
       "path": "src/respected_orchestrator/context.py",
       "role": "Bağımsız roots/state",
-      "purpose": "EngineContext DataRoot/state/workspace ve AppRoot ayrımı, no-link path ve atomik JSON yazısını sağlar. Windows varsayılan DataRoot'u tek Respected klasöründedir: `%LOCALAPPDATA%/Respected/RespectedOrchestrator/data`.",
+      "purpose": "EngineContext DataRoot/state/workspace ve AppRoot ayrımı, no-link path ve atomik JSON yazısını sağlar. Windows varsayılan DataRoot'u tek Respected klasöründedir: `%LOCALAPPDATA%/Respected/RespectedOrchestrator/data`. FROZEN ve engine_command: paketlenmiş exe içinde motor kendini exe ile, kaynakta `python -m respected_orchestrator` ile yeniden başlatır; frozen modda app_root exe'nin klasörüdür (distribution.json ve kurulum kaydı orada).",
       "relationships": [
         "runner ve çıkarılmış motor kullanır; Brain context/vault/lease bağı yoktur."
       ],
-      "review_sha256": "14834508b876df40314d5fec4b3316d510eb94e9fb7b9367935272e71a4b51ff"
+      "review_sha256": "57c0b84fb5d1062a804b69cd0ff5a3a2c8b23783524c397b2de41380cc04be15"
     },
     {
       "path": "src/respected_orchestrator/engine/__init__.py",
@@ -402,23 +411,23 @@
     {
       "path": "src/respected_orchestrator/engine/runner.py",
       "role": "Tek görev worker yürütücüsü",
-      "purpose": "Create/start/list/inspect/cancel/check/retry ile imzalı yaşam döngüsünü; Codex brief/strict JSONL, scope, acceptance, freshness ve correction patch hash/scope doğrulamasını yürütür. Codex açık --sandbox workspace-write ve approval_policy=never ile çalışır, MiMo profilleri reddedilir, reviewer implementer'dan farklı olmalıdır, .engine-key Windows'ta mevcut kullanıcıya ACL'lenir. apply_task doğrulanmış (gerekirse insan onaylı) patch'i commit etmeden uygular; maf-approve yalnız etkileşimli operatör terminalinde, patch_sha256'ya bağlı ve değiştirilemez onay verir. Kabul komutları sandbox.wrap ile kısıtlı token'da çalışır (kurulamazsa sandbox_unavailable ile fail-closed), kabul öncesi worker'ın bıraktığı __pycache__/.pyc silinir (üretilen dosya sayısı yine raporlanır); Windows'ta .cmd/.bat worker kabukları kullanılamaz, görev metni Windows'ta 20000 karakterle sınırlıdır, bypass bayrağı kontrolü genişletildi, retry açık memory kararını korur, tester/coordinator rolleri ROLE_NOT_EXECUTABLE ile reddedilir. (2026-10-21: `src/respected_orchestrator/runner.py` yolundan taşındı.)",
+      "purpose": "Create/start/list/inspect/cancel/check/retry ile imzalı yaşam döngüsünü; Codex brief/strict JSONL, scope, acceptance, freshness ve correction patch hash/scope doğrulamasını yürütür. Codex açık --sandbox workspace-write ve approval_policy=never ile çalışır, MiMo profilleri reddedilir, reviewer implementer'dan farklı olmalıdır, .engine-key Windows'ta mevcut kullanıcıya ACL'lenir. apply_task doğrulanmış (gerekirse insan onaylı) patch'i commit etmeden uygular; maf-approve yalnız etkileşimli operatör terminalinde, patch_sha256'ya bağlı ve değiştirilemez onay verir. Kabul komutları sandbox.wrap ile kısıtlı token'da çalışır (kurulamazsa sandbox_unavailable ile fail-closed), kabul öncesi worker'ın bıraktığı __pycache__/.pyc silinir (üretilen dosya sayısı yine raporlanır); Windows'ta .cmd/.bat worker kabukları kullanılamaz, görev metni Windows'ta 20000 karakterle sınırlıdır, bypass bayrağı kontrolü genişletildi, retry açık memory kararını korur, tester/coordinator rolleri ROLE_NOT_EXECUTABLE ile reddedilir. (2026-10-21: `src/respected_orchestrator/runner.py` yolundan taşındı.) Ayrık süpervizör context.engine_command ile başlar (exe veya kaynak); icacls mutlak yoldan çağrılır.",
       "relationships": [
         "context, processes ve lanes katmanlarını kullanır; __main__, maf_workflow, campaign ve project tarafından çağrılır.",
         "tests/engine/test_runner.py, tests/engine/test_codex_results.py ve tests/workflows/test_maf_coding.py kapsar."
       ],
-      "review_sha256": "20a0f7845765a113f9f33615d1c37021c9a377019c804fe880a95844a20792d4"
+      "review_sha256": "52fa62496be4e84271786880b4ddb90c3b2e539ebe8199600611d62453138a49"
     },
     {
       "path": "src/respected_orchestrator/engine/sandbox.py",
       "role": "Güvenilmeyen kod sınır katmanı",
-      "purpose": "Motorun kendi çalıştırdığı worker yazımı kodun (kabul ve verify komutları) yetkisini sınırlar: Windows'ta veri kökü başına rastgele bir SID üretir, veri kökünün (workspaces hariç) tüm çocuklarına ve .engine-key dosyasına bu SID için inheritable DENY ACE ekler, OWNER RIGHTS ACE ile sahibin örtük WRITE_DAC hakkını kaldırır ve komutu sandbox_exec üzerinden kısıtlı token ile çalıştıracak biçimde sarar (wrap). Sınır kurulamazsa SandboxError verir (fail-closed); RESPECTED_ORCH_SANDBOX=off yalnızca açık geliştirici anahtarıdır. Karar: docs/decisions/ACCEPTANCE_SANDBOX.md. (2026-10-21: `src/respected_orchestrator/sandbox.py` yolundan taşındı.)",
+      "purpose": "Motorun kendi çalıştırdığı worker yazımı kodun (kabul ve verify komutları) yetkisini sınırlar: Windows'ta veri kökü başına rastgele bir SID üretir, veri kökünün (workspaces hariç) tüm çocuklarına ve .engine-key dosyasına bu SID için inheritable DENY ACE ekler, OWNER RIGHTS ACE ile sahibin örtük WRITE_DAC hakkını kaldırır ve komutu sandbox_exec üzerinden kısıtlı token ile çalıştıracak biçimde sarar (wrap). Sınır kurulamazsa SandboxError verir (fail-closed); RESPECTED_ORCH_SANDBOX=off yalnızca açık geliştirici anahtarıdır. Karar: docs/decisions/ACCEPTANCE_SANDBOX.md. (2026-10-21: `src/respected_orchestrator/sandbox.py` yolundan taşındı.) Paketlenmiş exe'de kısıtlı token başlatıcısı `_sandbox-exec` özel alt komutuyla çalışır; PowerShell ACL kurulumu mutlak sistem yoluyla çağrılır.",
       "relationships": [
         "runner (kabul komutları) ve project (_verify) tarafından çağrılır; anahtar yolunu runner._key_path verir.",
         "sandbox_exec ile birlikte çalışır; PowerShell ACL kurulumunu winproc.run ile gizli pencerede yürütür.",
         "tests/engine/test_sandbox.py gerçek saldırı denemeleri ve negatif kontrolle sınırı kanıtlar."
       ],
-      "review_sha256": "d3097c73d02ab18619ec25289316eca6d56cc14ffb4e6dd3c2e5165e4b264027"
+      "review_sha256": "2f451ec92644595277e7b704eef71cba188ae5988b7ac3f6c70228fe7652c6e6"
     },
     {
       "path": "src/respected_orchestrator/engine/sandbox_exec.py",
@@ -443,12 +452,12 @@
     {
       "path": "src/respected_orchestrator/engine/winproc.py",
       "role": "Windows süreç başlatma yardımcısı",
-      "purpose": "Windows'ta çocuk süreçleri konsol penceresi açmadan başlatır; ayrık supervisor'ların git/python/icacls çağrıları görünür pencere açmasın diye bayraklar tek yerde tutulur. Çıktı, hata, çıkış kodu ve zaman aşımı davranışı değişmez; Windows dışında boş seçenek döner. (2026-10-21: `src/respected_orchestrator/winproc.py` yolundan taşındı.)",
+      "purpose": "Windows'ta çocuk süreçleri konsol penceresi açmadan başlatır; ayrık supervisor'ların git/python/icacls çağrıları görünür pencere açmasın diye bayraklar tek yerde tutulur. Çıktı, hata, çıkış kodu ve zaman aşımı davranışı değişmez; Windows dışında boş seçenek döner. (2026-10-21: `src/respected_orchestrator/winproc.py` yolundan taşındı.) system_tool: PowerShell ve icacls'ı SystemRoot altındaki mutlak yoldan verir; kırpılmış veya ele geçirilmiş PATH onları gizleyemez ya da değiştiremez.",
       "relationships": [
         "Paketteki süreç başlatan modüller (memory, runner, processes vb.) tarafından kullanılır.",
         "tests/engine/test_windows_processes.py ile test edilir."
       ],
-      "review_sha256": "993ec6f1b5232d556db4cfded70a0ecbcb882ba4cb56cc12b2babf1f7db4e7ed"
+      "review_sha256": "ea0ddc31514a4f2ba7cebcb28bc01df03fb601171657967cea9fa73f4a91b1f2"
     },
     {
       "path": "src/respected_orchestrator/interfaces/__init__.py",
@@ -472,12 +481,12 @@
     {
       "path": "src/respected_orchestrator/interfaces/lifecycle.py",
       "role": "RPP yaşam döngüsü durumu",
-      "purpose": "Sürümlü kurulum manifestosu, planlar, günlük ve rollback için RPP v1.1 yaşam döngüsü durumunu yönetir (install/update/repair/uninstall). Yalnızca açık kökler üzerinde safe_path ile sınırlı yerel dosya işlemi yapar; kabuk ve ağ yoktur, hatalar LifecycleError üçlüsüyle döner. (2026-10-21: `src/respected_orchestrator/lifecycle.py` yolundan taşındı.)",
+      "purpose": "Sürümlü kurulum manifestosu, planlar, günlük ve rollback için RPP v1.1 yaşam döngüsü durumunu yönetir (install/update/repair/uninstall). Yalnızca açık kökler üzerinde safe_path ile sınırlı yerel dosya işlemi yapar; kabuk ve ağ yoktur, hatalar LifecycleError üçlüsüyle döner. (2026-10-21: `src/respected_orchestrator/lifecycle.py` yolundan taşındı.) target.distribution=true: paketlenmiş (frozen) kurulum metin olarak gönderilmez; ürün distribution.json'daki her dosyanın hash'ini diskte doğrular ve kaydı bundan yazar (program dosyalarına dokunmaz). Böyle bir kaydın uninstall'u yalnız kaydı kaldırır; klasörün sahibi kuran taraftır (Hub).",
       "relationships": [
         "interfaces/rpp.py ve interfaces/integrations.py tarafından kullanılır; context'teki safe_path ve atomic_write_json'a dayanır.",
         "tests/interfaces/test_rpp_lifecycle.py ile test edilir."
       ],
-      "review_sha256": "5ff177ab47cdefb5855002bb995be04c360ea0bbed4f33461e963a13e5b0ee5d"
+      "review_sha256": "24fe8a376d5d9e63a690296319072b1dc9cddbf30971fcd9647a4ad0a61e58ca"
     },
     {
       "path": "src/respected_orchestrator/interfaces/mcp_server.py",
@@ -521,11 +530,11 @@
     {
       "path": "src/respected_orchestrator/resources/skills/kod-orkestrasyon/SKILL.md",
       "role": "Çıkarılmış skill",
-      "purpose": "Orchestrator'a ait kod-orkestrasyon skill'i (2026-10-21'de SecondBrain'den taşındı). Kurallar bölümü MCP araçlarının kullanımını (task_start, progress, evidence, onaylı apply, memory_note) anlatır ve mcp_server tarafından `instructions` olarak verilir; ayrı Claude Master kampanya bölümü CLI döngüsünü (campaign-start/status, apply, allow_apply, MiMo yasağı) anlatır.",
+      "purpose": "Orchestrator'a ait kod-orkestrasyon skill'i (2026-10-21'de SecondBrain'den taşındı). Kurallar bölümü MCP araçlarının kullanımını (task_start, progress, evidence, onaylı apply, memory_note) anlatır ve mcp_server tarafından `instructions` olarak verilir; ayrı Claude Master kampanya bölümü CLI döngüsünü (campaign-start/status, apply, allow_apply, MiMo yasağı) anlatır. Kampanya komutu paketlenmiş exe ile (kaynakta python -m ile) verilir.",
       "relationships": [
         "mcp_server._instructions okur; pyproject package-data ile paketlenir. Global provider skill ayarı değiştirilmez."
       ],
-      "review_sha256": "16594310efec3f4c78757d3184aa559a9f4480477f374adfe9eb81b878d9e04f"
+      "review_sha256": "019e77098bbeeaf1d221d39f6f188aaf88c5b13a3a641c29bfb7e89102507666"
     },
     {
       "path": "src/respected_orchestrator/workflows/__init__.py",
@@ -539,12 +548,12 @@
     {
       "path": "src/respected_orchestrator/workflows/campaign.py",
       "role": "Kalıcı çok-repo kampanya supervisor'ı",
-      "purpose": "Claude master'ın devrettiği 1..8 workstream'i detached supervisor ile paralel MAF hatlarına çevirir (ayrı data-root, WriterLock, anahtar ve çalışma alanı; after ile bağımlılık). Non-Git kaynak için gizli dosyalar hariç geçici Git mirror kurar, doğrulanmış patch'i apply_root'a uygulatır ve motoru snapshot'layıp supervisor'ı oradan çalıştırır. Tüm hatlar bitince imzalı result.json yazar, final.claim ile tam bir kez final master başlatır; allow_apply açıksa yalnız 'python -m respected_orchestrator' komutlarına izin verir. (2026-10-21: `src/respected_orchestrator/campaign.py` yolundan taşındı.)",
+      "purpose": "Claude master'ın devrettiği 1..8 workstream'i detached supervisor ile paralel MAF hatlarına çevirir (ayrı data-root, WriterLock, anahtar ve çalışma alanı; after ile bağımlılık). Non-Git kaynak için gizli dosyalar hariç geçici Git mirror kurar, doğrulanmış patch'i apply_root'a uygulatır ve motoru snapshot'layıp supervisor'ı oradan çalıştırır. Tüm hatlar bitince imzalı result.json yazar, final.claim ile tam bir kez final master başlatır; allow_apply açıksa yalnız 'python -m respected_orchestrator' komutlarına izin verir. (2026-10-21: `src/respected_orchestrator/campaign.py` yolundan taşındı.) Paketlenmiş exe'de motor anlık görüntüsü kopyalanmaz (exe zaten değişmez kopya); master'a önerilen uygulama komutu ve izinli araç deseni çalışan motorun gerçek CLI'ıdır (ENGINE_CLI).",
       "relationships": [
         "runner.create_task/apply_task, maf_workflow.run_maf_coding_task ve processes.execute'u kullanır; workflows/project.py bunu faz başına çağırır; __main__ campaign-* komutlarıyla bağlanır.",
         "tests/workflows/test_campaign.py kapsar."
       ],
-      "review_sha256": "9639c723cb5026ad5d8ac24c57c9efde812d339c9991dcc7cdfd6666625b249b"
+      "review_sha256": "32f2712bbb32e1c5256eeb9a29a58f16d2f0a64a22924f9d21f226bb8e15f275"
     },
     {
       "path": "src/respected_orchestrator/workflows/maf_workflow.py",
@@ -569,12 +578,12 @@
     {
       "path": "src/respected_orchestrator/workflows/project.py",
       "role": "Kalıcı otonom proje/faz supervisor'ı",
-      "purpose": "Tek seferlik yazılmış proje planını (bağımlı fazlar, workstream'ler, deterministik verify komutları, bütçe) imzalı project.json olarak saklar. Detached supervisor her fazı yeni motor snapshot'ı ve mirror ile campaign olarak çalıştırır; yalnız MASTER_APPROVED ve auto_apply ile önceden yetkilendirilmişse hep-ya-hiç apply eder, gerçek kaynakta verify çalıştırır. Sınırlı düzeltme denemesi, zaman/token bütçesi, iptal dosyası, pid'li tek-supervisor kilidi, resume ve isteğe bağlı final review sağlar. Faz verify komutları sandbox'tan ve temizlenmiş ortamdan (scrub_env, çocuk işareti) geçer. (2026-10-21: `src/respected_orchestrator/project.py` yolundan taşındı.)",
+      "purpose": "Tek seferlik yazılmış proje planını (bağımlı fazlar, workstream'ler, deterministik verify komutları, bütçe) imzalı project.json olarak saklar. Detached supervisor her fazı yeni motor snapshot'ı ve mirror ile campaign olarak çalıştırır; yalnız MASTER_APPROVED ve auto_apply ile önceden yetkilendirilmişse hep-ya-hiç apply eder, gerçek kaynakta verify çalıştırır. Sınırlı düzeltme denemesi, zaman/token bütçesi, iptal dosyası, pid'li tek-supervisor kilidi, resume ve isteğe bağlı final review sağlar. Faz verify komutları sandbox'tan ve temizlenmiş ortamdan (scrub_env, çocuk işareti) geçer. (2026-10-21: `src/respected_orchestrator/project.py` yolundan taşındı.) Proje ve kampanya süpervizörleri context.engine_command ile başlar (exe veya kaynak).",
       "relationships": [
         "campaign.create_campaign/run_campaign/_snapshot_engine, runner.apply_task ve processes.execute'u kullanır; __main__ project-* komutlarıyla bağlanır.",
         "tests/workflows/test_project.py kapsar."
       ],
-      "review_sha256": "a8ad8dc64dd7fb9658a145e8c562197db8fa9932d7e24d98253dbb1c99b2a1a9"
+      "review_sha256": "10c2326e62fb8f5521886118a489a1ed00ec83b83e98323255dffcef856a4c7f"
     },
     {
       "path": "src/respected_orchestrator/workflows/roles.py",
@@ -681,12 +690,12 @@
     {
       "path": "tests/engine/test_windows_processes.py",
       "role": "Windows süreç yönetimi testleri",
-      "purpose": "Hiçbir modülün gizli pencere yardımcısı olmadan süreç başlatmadığını, ayrık süpervizör ve çocuklarının görünür konsol açmadığını, zaman aşımı ve iptalde tüm süreç ağacının öldürüldüğünü, yetim süreçlerin temizlendiğini, eksik yürütülebilirin sızıntısız raporlandığını ve çocuk süreçlerin PSModulePath devralmadığını doğrular.",
+      "purpose": "Hiçbir modülün gizli pencere yardımcısı olmadan süreç başlatmadığını, ayrık süpervizör ve çocuklarının görünür konsol açmadığını, zaman aşımı ve iptalde tüm süreç ağacının öldürüldüğünü, yetim süreçlerin temizlendiğini, eksik yürütülebilirin sızıntısız raporlandığını ve çocuk süreçlerin PSModulePath devralmadığını doğrular. Sistem araçlarının PATH'ten bağımsız mutlak yol çözümünü ve frozen modda motorun kendini exe ile (supervisor ve sandbox başlatıcısı) yeniden başlattığını da sınar.",
       "relationships": [
         "winproc, processes ve lanes'i kullanır.",
         "Kayıt: A1_A2_RELIABILITY.md konsol penceresi sızıntısı düzeltmesi."
       ],
-      "review_sha256": "1f8becb7cde8c6c04b3eddaa14659fa218f9f0d0b9af47739aca266c0617ce1a"
+      "review_sha256": "2b2c1ee2b45d503256184f2352389e88f7878699ff3d4e338406f1b08d5176ca"
     },
     {
       "path": "tests/engine/test_worker_status_contract.py",
@@ -759,12 +768,30 @@
     {
       "path": "tests/interfaces/test_rpp_lifecycle.py",
       "role": "RPP lifecycle testleri",
-      "purpose": "lifecycle op'larını doğrular: plan salt okunurdur, apply dosya ve receipt yazar, operation_id başına idempotenttir, çakışma, çökme journal'ından devam, uninstall yalnız sahip olunan dosyaları siler, rollback önceki içeriği geri verir, güvensiz yol reddedilir.",
+      "purpose": "lifecycle op'larını doğrular: plan salt okunurdur, apply dosya ve receipt yazar, operation_id başına idempotenttir, çakışma, çökme journal'ından devam, uninstall yalnız sahip olunan dosyaları siler, rollback önceki içeriği geri verir, güvensiz yol reddedilir. DistributionRecordTests: bütün paketin kaydı ve sonradan kurcalanan ikili dosyanın repair-needed görünmesi, build'den sapmış kopyanın kayıtsız reddi, distribution.json ile kökten kaçışın reddi, eksik distribution.json için tipli hata ve kaydı kaldırıp program dosyalarını koruyan uninstall.",
       "relationships": [
         "rpp ve lifecycle modüllerini çağırır.",
         "Karar: docs/decisions/RPP_V1_1.md; durum: RPP_V11_STATUS.md."
       ],
-      "review_sha256": "5718ef732bbb5d6022856573e3e5cf83094f48c2601e20cdc3157438237c00c9"
+      "review_sha256": "28e25aa0a94d445d785b266aec76ce6e6798b8f60fe564c6c12788ae89bf4cbc"
+    },
+    {
+      "path": "tests/packaging/__init__.py",
+      "role": "Test paketi işaretçisi",
+      "purpose": "Paketlenmiş build testlerini unittest keşfi için paket yapar; içerik taşımaz.",
+      "relationships": [
+        "python -m unittest discover -s tests -t . ve CI tarafından keşfedilir."
+      ],
+      "review_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "tests/packaging/test_frozen_build.py",
+      "role": "Paketlenmiş exe uçtan uca testi",
+      "purpose": "dist/ (veya RESPECTED_ORCH_DIST) içindeki paketlenmiş motoru PATH'te Python yokken sürer: _selfcheck ve status, RPP manifest/health, MCP tools/list ve geçici git deposunda gerçek bir yazma görevini ayrık süpervizör (_execute) ve kısıtlı token'lı kabul (_sandbox-exec) üzerinden sonuna kadar çalıştırıp doğrular. Build yoksa yerelde atlanır, CI'da zorunludur.",
+      "relationships": [
+        "tools/build_dist.py çıktısını kullanır; motorun kendini yeniden başlattığı iki yolu (supervisor, sandbox) frozen modda kanıtlar."
+      ],
+      "review_sha256": "3d2e8ad56daa6fd3ddfa99409ce8eefe5b68c473b59bdcea111b883d825560d4"
     },
     {
       "path": "tests/workflows/__init__.py",
@@ -850,6 +877,15 @@
         "Karar: docs/decisions/ROLE_ASSIGNMENT.md."
       ],
       "review_sha256": "ae7b4e95f395c3df7661d0518c3b9fdee4b83c211ac3a1b1867036bff21b96b6"
+    },
+    {
+      "path": "tools/build_dist.py",
+      "role": "Paketlenmiş motor build aracı",
+      "purpose": "PyInstaller onedir ile Python gerektirmeyen tek klasör üretir: respected-orchestrator.exe, app/ ve her dosyanın sha256'sını listeleyen distribution.json. Agent Framework'ün tembel alt modüllerini toplar; bildirilen bağımlılık kapanışı dışındaki kurulu paketleri dışlar ki yerel build temiz CI build'iyle aynı olsun (yaklaşık 29 MB). Sürüm kaynaktaki __version__'dan okunur.",
+      "relationships": [
+        "packaging/entrypoint.py'yi dondurur; Hub release/tools/build_bundle.py bunu çağırıp imzalı katalog paketi yapar; tests/packaging/test_frozen_build.py çıktıyı sınar."
+      ],
+      "review_sha256": "83b7bc88d00972d8c0cf245b10eaf32e3b2860e0179cff2a6be7270cb2c2cbe4"
     },
     {
       "path": "tools/repository_map.py",

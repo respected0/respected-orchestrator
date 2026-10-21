@@ -119,6 +119,27 @@ def _file_targets(app_root, files):
     return items
 
 
+def _distribution_record(app_root):
+    """Hashes of a packaged (frozen) install, each checked against the file on disk now.
+
+    A binary distribution cannot travel as text in target.files; its build wrote distribution.json instead, and the
+    install record is that list once every file is proven to match."""
+    try:
+        document = json.loads(_safe(app_root / "distribution.json").read_text("utf-8"))
+        files = document["files"]
+        if not isinstance(files, dict) or not files:
+            raise ValueError("no files")
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise LifecycleError("BAD_REQUEST", "distribution.json is missing or unreadable.",
+                             "Install a complete packaged Orchestrator.") from exc
+    for rel, digest in files.items():
+        path = _file_targets(app_root, {rel: ""})[0][1]
+        if not isinstance(digest, str) or not path.is_file() or _sha256_file(path) != digest:
+            raise LifecycleError("VERIFY_FAILED", f"{rel} does not match distribution.json.",
+                                 "Repair or reinstall the Orchestrator from the Hub.")
+    return dict(files)
+
+
 def _load_manifest(app_root):
     path = _safe(app_root / MANIFEST_NAME)
     if not path.is_file():
@@ -155,8 +176,11 @@ def _step(step_id, action, summary, reversible, reason):
             "reversible": reversible, "irreversible_reason": reason}
 
 
-def _plan_steps(action, app_root, files, purge):
+def _plan_steps(action, app_root, files, purge, distribution=False):
     steps = []
+    if distribution and action in ("install", "update", "repair"):
+        _distribution_record(app_root)  # fail before planning when the copy is not intact
+        return [_step("manifest", "manifest", "record the verified packaged install", True, None)]
     if action in ("install", "update", "repair"):
         items = _file_targets(app_root, files)
         if action == "repair" and _load_manifest(app_root) is None:
@@ -173,7 +197,8 @@ def _plan_steps(action, app_root, files, purge):
         if manifest is None:
             raise LifecycleError("BAD_REQUEST", "uninstall needs an existing install record.",
                                  "Nothing is installed at this app root.")
-        for rel in sorted(manifest["files"]):
+        # a packaged install's folder belongs to whoever installed it (the Hub): only the record goes
+        for rel in ([] if manifest.get("distribution") else sorted(manifest["files"])):
             steps.append(_step("remove:" + rel, "remove", f"remove {rel}", True, None))
         steps.append(_step("manifest", "manifest", "remove install record", True, None))
         if purge:
@@ -187,7 +212,7 @@ def plan(action, target):
     _check_action(action)
     app_root = _app_root(target)
     files = target.get("files") if isinstance(target.get("files"), dict) else {}
-    steps = _plan_steps(action, app_root, files, bool(target.get("purge")))
+    steps = _plan_steps(action, app_root, files, bool(target.get("purge")), target.get("distribution") is True)
     return {"action": action, "target": target, "dry_run": True, "plan": {"steps": steps}}
 
 def _receipt_path(ctx, operation_id):
@@ -217,10 +242,12 @@ def receipt(ctx, operation_id):
     return data
 
 
-def _fingerprint(action, app_root, files, purge):
+def _fingerprint(action, app_root, files, purge, distribution=False):
     safe_files = {key: _sha256_text(value) for key, value in files.items()
                   if isinstance(key, str) and isinstance(value, str)}
     payload = {"action": action, "app_root": str(app_root), "purge": purge, "files": safe_files}
+    if distribution:
+        payload["distribution"] = True
     return hashlib.sha256(_canonical(payload).encode("utf-8")).hexdigest()
 
 
@@ -255,7 +282,7 @@ def _purge_data_root(ctx):
                              "Grant the required permission and retry.") from exc
 
 
-def _execute_step(ctx, action, app_root, step, items, purge, receipt):
+def _execute_step(ctx, action, app_root, step, items, purge, receipt, record=None):
     kind = step.get("action")
     key = _step_key(step)
     if kind == "write":
@@ -277,8 +304,10 @@ def _execute_step(ctx, action, app_root, step, items, purge, receipt):
             previous = _load_manifest(app_root) or {}
             manifest = {"product_id": PRODUCT_ID, "product_version": __version__,
                         "installed_at": previous.get("installed_at") or _now(),
-                        "files": {rel: _sha256_text(content)
-                                  for rel, (_path, content) in items.items()}}
+                        "files": record if record is not None else
+                                 {rel: _sha256_text(content) for rel, (_path, content) in items.items()}}
+            if record is not None:
+                manifest["distribution"] = True
             atomic_write_json(path, manifest)
     elif kind == "purge":
         _purge_data_root(ctx)
@@ -290,7 +319,7 @@ def _verified(action, app_root):
     return state == "absent" if action == "uninstall" else state == "installed"
 
 
-def _run(ctx, receipt_path, receipt, action, app_root, items, purge):
+def _run(ctx, receipt_path, receipt, action, app_root, items, purge, record=None):
     receipt["status"] = "in_progress"
     _journal(receipt_path, receipt)
     done = set(receipt.get("completed", []))
@@ -298,7 +327,7 @@ def _run(ctx, receipt_path, receipt, action, app_root, items, purge):
         for step in receipt["steps"]:
             if step.get("id") in done:
                 continue
-            _execute_step(ctx, action, app_root, step, items, purge, receipt)
+            _execute_step(ctx, action, app_root, step, items, purge, receipt, record)
             receipt.setdefault("completed", []).append(step["id"])
             _journal(receipt_path, receipt)
     except LifecycleError:
@@ -330,10 +359,13 @@ def apply(ctx, operation_id, action, target):
     app_root = _app_root(target)
     files = target.get("files") if isinstance(target.get("files"), dict) else {}
     purge = bool(target.get("purge"))
-    items = {}
-    if action in ("install", "update", "repair"):
+    distribution = target.get("distribution") is True and action != "uninstall"
+    items, record = {}, None
+    if distribution:
+        record = _distribution_record(app_root)
+    elif action in ("install", "update", "repair"):
         items = {rel: (path, content) for rel, path, content in _file_targets(app_root, files)}
-    fingerprint = _fingerprint(action, app_root, files, purge)
+    fingerprint = _fingerprint(action, app_root, files, purge, distribution)
     receipt_path = _receipt_path(ctx, operation_id)
     existing = _read_receipt(receipt_path)
     if existing is not None:
@@ -343,16 +375,16 @@ def apply(ctx, operation_id, action, target):
                                  "Use a new operation_id for a different lifecycle action.")
         if existing.get("status") in ("applied", "rolled_back"):
             return existing
-        steps = existing.get("steps") or _plan_steps(action, app_root, files, purge)
+        steps = existing.get("steps") or _plan_steps(action, app_root, files, purge, distribution)
         existing["steps"] = steps
     else:
-        steps = _plan_steps(action, app_root, files, purge)
+        steps = _plan_steps(action, app_root, files, purge, distribution)
         existing = {"operation_id": operation_id, "op": "lifecycle.apply", "action": action,
                     "target_sha256": fingerprint, "app_root": str(app_root),
                     "status": "in_progress", "started_at": _now(), "steps": steps,
                     "completed": [], "backup": {}, "irreversible_applied": False,
                     "usage": usage_zero()}
-    return _run(ctx, receipt_path, existing, action, app_root, items, purge)
+    return _run(ctx, receipt_path, existing, action, app_root, items, purge, record)
 
 
 def _restore_step(app_root, step, backup):

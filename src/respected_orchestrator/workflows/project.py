@@ -17,7 +17,7 @@ from uuid import uuid4
 from ..engine import lanes, runner, sandbox
 from ..engine.budget import MAX_BUDGET, UNKNOWN_STEP_TOKENS_DEFAULT
 from . import campaign, roles
-from ..context import EngineContext, safe_path
+from ..context import EngineContext, engine_command, safe_path
 from ..engine.processes import ProcessStopped, execute
 from ..engine.runner import _command, _load, _save, apply_task
 from ..engine.runner import project_fingerprint as runner_fingerprint
@@ -106,7 +106,7 @@ def create_project(ctx, request):
 
 def _spawn(ctx, project_id, directory, spec):
     engine = campaign._snapshot_engine(ctx, spec["engine_source"])
-    command = [sys.executable, "-m", "respected_orchestrator", "--data-root", str(ctx.data_root), "project-run", project_id]
+    command = engine_command("--data-root", str(ctx.data_root), "project-run", project_id)
     pid = lanes._spawn_detached(command, engine, directory / "supervisor.log", env=campaign._engine_env(engine))
     _save(ctx, directory / "supervisor.json", dict(project_id=project_id, pid=pid, engine=str(engine)))
     return pid
@@ -170,7 +170,7 @@ def _acquire(directory):
 
 def _default_campaign_runner(ctx, campaign_id, timeout, cancel, engine_source):
     engine = campaign._snapshot_engine(ctx, engine_source)  # re-snapshot: earlier phases may have changed the engine
-    command = [sys.executable, "-m", "respected_orchestrator", "--data-root", str(ctx.data_root), "campaign-run", campaign_id]
+    command = engine_command("--data-root", str(ctx.data_root), "campaign-run", campaign_id)
     execute(command, engine, timeout, cancel_path=cancel, mark_child=False, env=campaign._engine_env(engine), scrub_env=True)
 
 

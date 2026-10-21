@@ -137,6 +137,25 @@ class ProcessLifecycleTests(unittest.TestCase):
             with self.assertRaises(OSError):
                 execute(["definitely-not-a-real-program-xyz"], Path(temporary), 5)
 
+    @unittest.skipUnless(WINDOWS, "Windows system tools")
+    def test_system_tools_resolve_to_absolute_paths_whatever_path_says(self):
+        with mock.patch.dict(os.environ, {"PATH": ""}):
+            for name in ("powershell", "icacls"):
+                resolved = Path(winproc.system_tool(name))
+                self.assertTrue(resolved.is_absolute() and resolved.is_file(), resolved)
+        self.assertEqual(winproc.system_tool("git"), "git")
+
+    def test_the_engine_restarts_itself_through_the_packaged_executable_when_frozen(self):
+        from respected_orchestrator import context
+        from respected_orchestrator.engine import sandbox
+        self.assertEqual(context.engine_command("rpp"), [sys.executable, "-m", "respected_orchestrator", "rpp"])
+        with mock.patch.object(context, "FROZEN", True):
+            self.assertEqual(context.engine_command("--data-root", "D", "_execute", "run-x"), [sys.executable, "--data-root", "D", "_execute", "run-x"])
+        with mock.patch.object(sandbox, "FROZEN", True), mock.patch.object(sandbox, "enabled", return_value=True), \
+                mock.patch.object(sandbox, "protect", return_value="S-1-5-21-1"):
+            self.assertEqual(sandbox.wrap(Path("D"), Path("K"), ["git", "status"]),
+                             [sys.executable, "_sandbox-exec", "--sid", "S-1-5-21-1", "--", "git", "status"])
+
     @unittest.skipUnless(os.name == "nt", "Windows PowerShell environment regression")
     def test_child_does_not_inherit_powershell_module_path(self):
         with tempfile.TemporaryDirectory() as temporary:

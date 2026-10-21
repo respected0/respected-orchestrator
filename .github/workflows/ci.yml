@@ -28,9 +28,17 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
-      - name: Install package
-        run: python -m pip install -e .
+      - name: Install package and build tools
+        run: python -m pip install -e ".[dev]"
       - name: Repository atlas
         run: python tools/repository_map.py --check
-      - name: Unit, integration and adversarial tests
+      - name: Build the packaged engine
+        run: python tools/build_dist.py --output dist
+      - name: Unit, integration, adversarial and packaged-build tests
+        # tests/packaging runs the built exe with no Python on PATH and is required here (CI is set)
         run: python -m unittest discover -s tests -t .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orchestrator-windows
+          path: dist/RespectedOrchestrator
+          if-no-files-found: error

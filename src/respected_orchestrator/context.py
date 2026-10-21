@@ -3,7 +3,15 @@ from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
+import sys
 import tempfile
+
+FROZEN = bool(getattr(sys, "frozen", False))  # running as the packaged respected-orchestrator.exe
+
+
+def engine_command(*args: str) -> list[str]:
+    """Command line that starts this engine again: the packaged executable itself, or `python -m respected_orchestrator`."""
+    return [sys.executable, *args] if FROZEN else [sys.executable, "-m", "respected_orchestrator", *args]
 
 
 def safe_path(path: Path) -> Path:
@@ -65,6 +73,8 @@ class EngineContext:
 
     @property
     def app_root(self):
+        if FROZEN:  # the distribution folder: the executable, distribution.json and the install record live there
+            return Path(sys.executable).resolve().parent
         package_parent = Path(__file__).resolve().parents[1]
         return package_parent.parent if package_parent.name == 'src' else package_parent
 

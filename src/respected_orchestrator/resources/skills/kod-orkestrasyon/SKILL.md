@@ -21,7 +21,7 @@ Orchestrator MCP bağlı değilse kullanıcıdan Hub'da bağlamasını iste.
 
 Planla, tek JSON ile devret, kapan; bekleme ve polling yapma:
 
-`python -m respected_orchestrator --data-root DATA campaign-start < spec.json`
+`respected-orchestrator.exe --data-root DATA campaign-start < spec.json` (kaynaktan çalışırken: `python -m respected_orchestrator ...`)
 
 Spec: `goal`, `workstreams` (1..8; her biri `name`, `after`, `request` = create isteği;
 `worker=codex`, `worker_profile=deepseek`, `workflow.reviewer_profile=glm`,
