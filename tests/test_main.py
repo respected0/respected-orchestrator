@@ -59,6 +59,28 @@ class MainTests(unittest.TestCase):
         with mock.patch("respected_orchestrator.workflows.campaign.list_campaigns", return_value={"campaigns": []}):
             self.assertEqual(json.loads(call(*self.root, "campaign-list")[1]), {"campaigns": []})
 
+    def test_version_and_lifecycle_commands(self):
+        from respected_orchestrator import __version__
+        self.assertEqual(call("--version"), (0, f"respected-orchestrator {__version__}\n"))
+        for name in ("setup", "update", "repair", "uninstall"):
+            self.assertEqual(call(*self.root, name, "--help")[0], 0)
+        app = Path(tempfile.mkdtemp())
+        self.addCleanup(lambda: __import__("shutil").rmtree(app, ignore_errors=True))
+        (app / "respected-orchestrator.exe").write_bytes(b"exe")
+        digest = __import__("hashlib").sha256(b"exe").hexdigest()
+        (app / "distribution.json").write_text(json.dumps({"files": {"respected-orchestrator.exe": digest}}), encoding="utf-8")
+        record = app / ".respected" / "install.json"
+        with mock.patch.object(cli.EngineContext, "app_root", new_callable=mock.PropertyMock, return_value=app):
+            for name in ("setup", "update", "repair"):
+                code, text = call(*self.root, name)
+                self.assertEqual((code, json.loads(text)["status"]), (0, "applied"), text)
+                self.assertTrue(record.is_file())
+            self.assertEqual(call(*self.root, "setup", "--purge")[0], 1)  # --purge belongs to uninstall only
+            code, text = call(*self.root, "uninstall")
+            self.assertEqual((code, json.loads(text)["status"]), (0, "applied"), text)
+            self.assertFalse(record.exists())
+            self.assertTrue((app / "respected-orchestrator.exe").is_file())  # the folder belongs to whoever installed it
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,8 +1,9 @@
-"""Private JSON entry point for Hub and developer verification; no public CLI script."""
+"""Private JSON entry point for Hub and developer verification; the only user-facing commands are --version and the product-contract lifecycle commands (setup, update, repair, uninstall)."""
 import argparse
 import json
 from pathlib import Path
 import sys
+import uuid
 
 from .context import EngineContext, default_data_root
 from .workflows import roles
@@ -26,20 +27,41 @@ def _selfcheck():
     return dict(status="ok", version=__version__, modules=len(names))
 
 
+LIFECYCLE_ACTIONS = {"setup": "install", "update": "update", "repair": "repair", "uninstall": "uninstall"}
+LIFECYCLE_USAGE = "usage: respected-orchestrator {setup|update|repair|uninstall} [--purge (uninstall only)]\nRecords, re-verifies or removes the install record of this program folder; --purge also deletes the data root."
+
+
+def _lifecycle_command(ctx, command, extra):
+    """Product-contract lifecycle commands over lifecycle.apply; the program folder itself belongs to whoever installed it."""
+    if extra not in ([], ["--purge"]) or (extra and command != "uninstall"):
+        raise ValueError(LIFECYCLE_USAGE)
+    from .interfaces import lifecycle
+    target = {"app_root": str(ctx.app_root), "distribution": True, "purge": bool(extra)}
+    return lifecycle.apply(ctx, "operation-" + uuid.uuid4().hex[:16], LIFECYCLE_ACTIONS[command], target)
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv[:1] == ["_sandbox-exec"]:  # restricted-token launcher of the packaged build: touches no data root
         from .engine import sandbox_exec
         return sandbox_exec.main(argv[1:])
+    if argv[:1] == ["--version"]:
+        print(f"respected-orchestrator {__version__}")
+        return 0
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=default_data_root())
-    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "campaign-start", "campaign-run", "campaign-status", "campaign-list", "project-start", "project-run", "project-resume", "project-status", "project-cancel", "rpp", "roles", "plan", "mcp", "_selfcheck"])
+    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "campaign-start", "campaign-run", "campaign-status", "campaign-list", "project-start", "project-run", "project-resume", "project-status", "project-cancel", "rpp", "roles", "plan", "mcp", "setup", "update", "repair", "uninstall", "_selfcheck"])
     parser.add_argument("args", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
     ctx = EngineContext(args.data_root)
     try:
         if args.command == "_selfcheck":
             payload = _selfcheck()
+        elif args.command in LIFECYCLE_ACTIONS:
+            if args.args[:1] in (["--help"], ["-h"]):
+                print(LIFECYCLE_USAGE)
+                return 0
+            payload = _lifecycle_command(ctx, args.command, args.args)
         elif args.command == "status":
             payload = dict(product="respected-orchestrator", version=__version__, data_root=str(ctx.data_root),
                            workers={worker: runner.get_cli_command(worker) for worker in runner.SUPPORTED_AGENTS if worker != "custom"},

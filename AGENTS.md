@@ -2,7 +2,8 @@
 
 This is the independent Respected Orchestrator source. Do not import SecondBrain internals, require a vault, install
 global dependencies, edit AI configs or modify live user data. The private JSON entry point is for the Hub and tests,
-not a separate user-facing CLI. Worker fixtures and Git operations belong in temporary projects.
+not a separate user-facing CLI; the only public commands are `--version` and the product-contract lifecycle commands
+(`setup`, `update`, `repair`, `uninstall`: install record only, see `docs/PRODUCT_CONTRACT.md` in the ecosystem root). Worker fixtures and Git operations belong in temporary projects.
 
 No Git commits, pushes or parallel agents unless the user explicitly asks. Preserve scope checks, deadlines,
 process-tree cleanup, failed/stale/tampered-result rejection and explicit bounded retries.
