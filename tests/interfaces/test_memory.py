@@ -141,7 +141,7 @@ class MemoryTests(unittest.TestCase):
         from respected_orchestrator.engine import runner
         seen = []
         root = Path(tempfile.mkdtemp())
-        with unittest.mock.patch.object(runner, "_restrict_key", lambda path: seen.append(Path(path).read_bytes())):
+        with unittest.mock.patch.object(memory, "restrict_key", lambda path: seen.append(Path(path).read_bytes())):
             memory.store_token(root, "rbm_" + "A1b2C3d4" * 4)
         self.assertEqual(seen, [b""])  # the secret is written only after the ACL is closed
         self.assertTrue(memory.token_set(root))

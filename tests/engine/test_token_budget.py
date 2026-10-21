@@ -9,7 +9,8 @@ from respected_orchestrator.engine import budget, runner
 from respected_orchestrator.workflows import campaign, project
 from respected_orchestrator.context import EngineContext
 from respected_orchestrator.workflows.maf_workflow import run_maf_coding_task
-from respected_orchestrator.engine.runner import _load, _save, create_task, execute_task
+from respected_orchestrator.engine.runner import create_task, execute_task
+from respected_orchestrator.engine.evidence import load_signed, save_signed
 from tests.workflows.test_reviewer_reliability import CodingFixture, outcome
 
 
@@ -74,7 +75,7 @@ class LaneBudgetTests(CodingFixture):
         codex.assert_not_called()  # no paid review is started once the budget is gone
         self.assertTrue(output["token_budget"]["exceeded"])
         self.assertEqual(output["token_budget"]["known_weighted_tokens"], 1200)
-        self.assertNotEqual(_load(self.ctx, self.ctx.run_dir(run_id) / "maf-result.json")["status"], "MASTER_APPROVED")
+        self.assertNotEqual(load_signed(self.ctx, self.ctx.run_dir(run_id) / "maf-result.json")["status"], "MASTER_APPROVED")
 
     def test_within_budget_the_lane_completes_and_reports_the_spend(self):
         run_id = self.create_run(max_weighted_tokens=100_000)
@@ -128,7 +129,7 @@ class LaneBudgetTests(CodingFixture):
         run_id = self.create_run(reviewer_profile="deepseek")
         output, _ = self.run_with(run_id, [self.approved()], weighted=100, cached=2000)
         self.assertEqual(output["cached_cost_share"], round(60 / 107, 3))  # 60 of (100 worker + 7 review) weighted tokens
-        ledger = _load(self.ctx, self.ctx.run_dir(run_id) / "maf-usage.json")["invocations"][-1]
+        ledger = load_signed(self.ctx, self.ctx.run_dir(run_id) / "maf-usage.json")["invocations"][-1]
         self.assertEqual(ledger["cached_cost_share"], output["cached_cost_share"])
 
     def test_signed_history_is_not_rewritten_by_a_budget_stop(self):
@@ -144,7 +145,7 @@ class ReasonClassificationTests(CodingFixture):
     def test_budget_and_scope_reasons_survive_into_the_lane_summary(self):
         lane_ctx = EngineContext(self.root / "lane")
         run_id = "run-20260101000000-budget00"
-        _save(lane_ctx, lane_ctx.run_dir(run_id) / "status.json", {"run_id": run_id, "status": "failed", "reason": "scope_violation"})
+        save_signed(lane_ctx, lane_ctx.run_dir(run_id) / "status.json", {"run_id": run_id, "status": "failed", "reason": "scope_violation"})
         kept = campaign._lane_summary("a", lane_ctx, {"status": "FAILED", "reason": "token_budget_exceeded", "final_run_id": run_id,
                                                       "usage_status": "PARTIAL", "unknown_usage_steps": 2})
         self.assertEqual((kept["reason"], kept["token_usage_status"], kept["unknown_usage_steps"]), ("token_budget_exceeded", "PARTIAL", 2))
@@ -163,8 +164,8 @@ class ProjectBudgetTests(CodingFixture):
         def run(ctx, campaign_id, timeout, cancel):
             cdir = campaign.campaign_dir(ctx, campaign_id)
             if requests is not None:
-                requests.append(_load(ctx, cdir / "campaign.json")["workstreams"][0]["request"]["workflow"].get("max_weighted_tokens"))
-            _save(ctx, cdir / "result.json", {"campaign_id": campaign_id, "status": "LANES_NEED_REVIEW", "lanes": [
+                requests.append(load_signed(ctx, cdir / "campaign.json")["workstreams"][0]["request"]["workflow"].get("max_weighted_tokens"))
+            save_signed(ctx, cdir / "result.json", {"campaign_id": campaign_id, "status": "LANES_NEED_REVIEW", "lanes": [
                 {"name": "lane", "status": "FAILED", "reason": "test_failed", "final_run_id": "run-20260101000000-aaaa1111",
                  "token_usage": {"estimated_weighted_tokens": spend}, "unknown_usage_steps": unknown,
                  "lane_data_root": str(ctx.data_root), "changed_files": []}]})

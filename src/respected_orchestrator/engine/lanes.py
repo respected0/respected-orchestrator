@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from . import winproc
 from ..context import path_within_root
-from .processes import execute, ProcessStopped
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -37,7 +36,7 @@ class TaskKind(str, Enum):
 
 
 class WorkerUnavailableError(RuntimeError):
-    """Raised when no configured Antigravity executable can be resolved."""
+    """Raised when the requested worker CLI is not installed."""
 
 
 class WriterLockError(RuntimeError):
@@ -46,17 +45,6 @@ class WriterLockError(RuntimeError):
 
 class LaneError(RuntimeError):
     """Raised when a worktree lane cannot be created or safely prepared."""
-
-
-@dataclass(frozen=True)
-class Policy:
-    schema_version: int
-    worker_executable_candidates: tuple[str, ...]
-    workspace_root: str
-    max_active_write_workers: int
-    read_timeout_seconds: int
-    write_timeout_seconds: int
-    dangerously_skip_permissions: bool
 
 
 @dataclass(frozen=True)
@@ -121,16 +109,6 @@ class ScopeResult:
 
 
 @dataclass(frozen=True)
-class CheckResult:
-    command: tuple[str, ...]
-    returncode: int
-    timed_out: bool
-    duration_seconds: float
-    stdout_path: Path
-    stderr_path: Path
-
-
-@dataclass(frozen=True)
 class PatchResult:
     path: Path
     sha256: str
@@ -180,44 +158,6 @@ class WriterLock:
         if metadata.get("run_id") != self.run_id:
             raise WriterLockError(f"writer lock ownership changed: {self.path}")
         self.path.unlink()
-
-
-def load_policy(path: Path) -> Policy:
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if data.get("schema_version") != 1:
-        raise ValueError("unsupported orchestration policy schema")
-    if type(data.get('dangerously_skip_permissions')) is not bool:
-        raise ValueError('Permission bypass policy must be a boolean')
-    if data['dangerously_skip_permissions']:
-        raise ValueError('Permission bypass is disabled in the independent engine')
-    return Policy(
-        schema_version=1,
-        worker_executable_candidates=tuple(data["worker_executable_candidates"]),
-        workspace_root=str(data["workspace_root"]),
-        max_active_write_workers=int(data["max_active_write_workers"]),
-        read_timeout_seconds=int(data["read_timeout_seconds"]),
-        write_timeout_seconds=int(data["write_timeout_seconds"]),
-        dangerously_skip_permissions=bool(data["dangerously_skip_permissions"]),
-    )
-
-
-def resolve_agy(policy: Policy, environ: Mapping[str, str]) -> Path:
-    search_path = environ.get("PATH", "")
-    for candidate in policy.worker_executable_candidates:
-        expanded = _expand_environment(candidate, environ)
-        has_separator = "/" in expanded or "\\" in expanded
-        if has_separator:
-            path = Path(expanded)
-            try:
-                if path.is_file():
-                    return path.resolve()
-            except OSError:
-                continue
-        else:
-            found = shutil.which(expanded, path=search_path)
-            if found:
-                return Path(found).resolve()
-    raise WorkerUnavailableError("Antigravity executable not found")
 
 
 def normalize_repo_path(repo_root: Path, value: str) -> str:
@@ -345,7 +285,7 @@ def commit_lane_baseline(lane: Lane, manifest: BaselineManifest) -> str:
     return commit
 
 
-DEFAULT_READ_TEMPLATE = """# Antigravity Read Worker Brief
+DEFAULT_READ_TEMPLATE = """# Read Worker Brief
 
 ## ROLE
 You are an isolated repository investigation worker.
@@ -383,7 +323,7 @@ Read only the minimum repository scope needed for the objective:
 Return JSON with: `status`, `root_cause`, `files_examined`, `checks`, and `remaining_risks`.
 """
 
-DEFAULT_WRITE_TEMPLATE = """# Antigravity Write Worker Brief
+DEFAULT_WRITE_TEMPLATE = """# Write Worker Brief
 
 ## ROLE
 You are an isolated implementation worker.
@@ -454,117 +394,6 @@ def render_brief(request: RunRequest, lane: Lane) -> str:
         "After the edit and acceptance checks pass, immediately emit the final JSON and stop; "
         "do not start background processes."
     )
-
-
-def run_worker(
-    request: RunRequest,
-    lane: Lane,
-    agy_path: Path,
-    timeout_seconds: float | None = None,
-    *, dangerously_skip_permissions: bool = False,
-) -> WorkerResult:
-    if dangerously_skip_permissions:
-        raise ValueError('Permission bypass is disabled in the independent engine')
-    lane.run_root.mkdir(parents=True, exist_ok=True)
-    brief = render_brief(request, lane)
-    brief_path = lane.run_root / "brief.md"
-    brief_path.write_text(brief, encoding="utf-8")
-    if timeout_seconds is None:
-        timeout_seconds = 900 if request.kind is TaskKind.READ else 1800
-    print_timeout = f"{max(1, (int(timeout_seconds) + 59) // 60)}m"
-    command = [
-        str(agy_path),
-        "-p",
-        f"Read and follow the complete worker brief at: {brief_path}",
-        "--output-format",
-        "json",
-        "--print-timeout",
-        print_timeout,
-    ]
-    if dangerously_skip_permissions:
-        command.append('--dangerously-skip-permissions')
-    timed_out = False
-    returncode: int | None
-    stdout = ""
-    stderr = ""
-    process_path = lane.run_root / "process.json"
-    started_at = datetime.now(timezone.utc).isoformat()
-    process_metadata: dict[str, object] = {
-        "run_id": request.run_id,
-        "task_kind": request.kind.value,
-        "pid": None,
-        "state": "RUNNING",
-        "started_at": started_at,
-        "executable": str(agy_path),
-        "cwd": str(lane.worktree),
-        "timeout_seconds": timeout_seconds,
-    }
-    process_path.write_text(
-        json.dumps(process_metadata, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    def record_process(pid):
-        process_metadata['pid'] = pid
-        process_path.write_text(json.dumps(process_metadata, indent=2), encoding='utf8')
-    try:
-        process = execute(command, lane.worktree, timeout_seconds, on_started=record_process)
-        stdout, stderr = process.stdout, process.stderr
-        returncode = process.returncode
-    except ProcessStopped as error:
-        timed_out = True
-        returncode = 124
-        stdout, stderr = error.stdout, error.stderr
-
-    process_metadata.update(
-        {
-            "state": "TIMEOUT" if timed_out else "FINISHED",
-            "ended_at": datetime.now(timezone.utc).isoformat(),
-            "returncode": returncode,
-        }
-    )
-    process_path.write_text(
-        json.dumps(process_metadata, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-
-    status = classify_worker_exit(returncode or 0, stdout, stderr, timed_out)
-    payload = _parse_json_object(stdout)
-    if status is RunStatus.COMPLETE and payload is None:
-        status = RunStatus.WORKER_FAILED
-    if status is RunStatus.COMPLETE and payload is not None and "status" in payload:
-        payload_status = str(payload["status"]).casefold()
-        if payload_status not in {"success", "complete", "completed", "ok"}:
-            status = RunStatus.WORKER_FAILED
-
-    stdout_path = lane.run_root / "stdout.log"
-    stderr_path = lane.run_root / "stderr.log"
-    stdout_path.write_text(_redact(stdout), encoding="utf-8")
-    stderr_path.write_text(_redact(stderr), encoding="utf-8")
-    result = WorkerResult(
-        status=status,
-        returncode=returncode,
-        timed_out=timed_out,
-        payload=payload,
-        stdout_path=stdout_path,
-        stderr_path=stderr_path,
-    )
-    (lane.run_root / "worker-result.json").write_text(
-        json.dumps(
-            {
-                "status": result.status.value,
-                "returncode": result.returncode,
-                "timed_out": result.timed_out,
-                "payload": result.payload,
-                "stdout_path": str(stdout_path),
-                "stderr_path": str(stderr_path),
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    return result
 
 
 def classify_worker_exit(
@@ -698,69 +527,6 @@ def validate_change_scope(
     return ScopeResult(allowed=not ordered, violations=ordered)
 
 
-def run_acceptance(
-    lane: Lane,
-    commands: Sequence[Sequence[str]],
-    timeout_seconds: float | None = None,
-) -> tuple[CheckResult, ...]:
-    checks_root = lane.run_root / "checks"
-    checks_root.mkdir(parents=True, exist_ok=True)
-    results: list[CheckResult] = []
-    for index, raw_command in enumerate(commands, start=1):
-        command = tuple(str(part) for part in raw_command)
-        if not command:
-            raise ValueError("acceptance command cannot be empty")
-        started = time.monotonic()
-        timed_out = False
-        try:
-            completed = execute(command, lane.worktree, timeout_seconds if timeout_seconds is not None else 1800)
-            returncode = completed.returncode
-            stdout = completed.stdout
-            stderr = completed.stderr
-        except ProcessStopped as error:
-            timed_out = True
-            returncode = 124
-            stdout = _coerce_output(error.stdout)
-            stderr = _coerce_output(error.stderr)
-            stderr += f"\nAcceptance command timed out after {timeout_seconds} seconds.\n"
-        duration = time.monotonic() - started
-        stdout_path = checks_root / f"{index:02d}-stdout.log"
-        stderr_path = checks_root / f"{index:02d}-stderr.log"
-        stdout_path.write_text(_redact(stdout), encoding="utf-8")
-        stderr_path.write_text(_redact(stderr), encoding="utf-8")
-        result = CheckResult(
-            command=command,
-            returncode=returncode,
-            timed_out=timed_out,
-            duration_seconds=duration,
-            stdout_path=stdout_path,
-            stderr_path=stderr_path,
-        )
-        results.append(result)
-        if returncode != 0:
-            break
-    (lane.run_root / "checks.json").write_text(
-        json.dumps(
-            [
-                {
-                    "command": list(item.command),
-                    "returncode": item.returncode,
-                    "timed_out": item.timed_out,
-                    "duration_seconds": item.duration_seconds,
-                    "stdout_path": str(item.stdout_path),
-                    "stderr_path": str(item.stderr_path),
-                }
-                for item in results
-            ],
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    return tuple(results)
-
-
 def export_worker_patch(lane: Lane, output: Path, ownership: Sequence[str] = ()) -> PatchResult:
     if not lane.baseline_commit:
         raise LaneError("lane baseline commit is missing")
@@ -797,14 +563,6 @@ def check_patch_against_master(repo_root: Path, patch: Path) -> RunStatus:
         check=False,
     )
     return RunStatus.COMPLETE if completed.returncode == 0 else RunStatus.INTEGRATION_CONFLICT
-
-
-def _expand_environment(value: str, environ: Mapping[str, str]) -> str:
-    def replace(match: re.Match[str]) -> str:
-        name = match.group(1) or match.group(2)
-        return environ.get(name, match.group(0))
-
-    return re.sub(r"%([^%]+)%|\$\{([^}]+)\}", replace, value)
 
 
 def _pid_is_alive(pid: int) -> bool:
@@ -893,12 +651,6 @@ def _parse_json_object(value: str) -> Mapping[str, object] | None:
     except json.JSONDecodeError:
         return None
     return parsed if isinstance(parsed, dict) else None
-
-
-def _coerce_output(value: str | bytes | None) -> str:
-    if value is None:
-        return ""
-    return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else value
 
 
 def _redact(value: str) -> str:

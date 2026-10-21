@@ -15,6 +15,7 @@ from .. import __version__
 from ..workflows import campaign, project, roles
 from ..engine import runner
 from ..context import EngineContext
+from ..engine.evidence import load_signed
 
 DELEGATED = "RESPECTED_ORCH_DELEGATED"  # set on everything the engine spawns (see campaign._engine_env)
 _RUN, _PROJECT, _CAMPAIGN = (re.compile(p) for p in (r"run-[A-Za-z0-9-]{1,80}", r"proj-[a-z0-9-]{1,60}", r"camp-[a-z0-9-]{1,60}"))
@@ -154,10 +155,10 @@ def _dispatch(ctx, name, args, allow_auto_apply, allow_privileged=False):
         return _trim(runner.inspect_task(ctx, _check_id(ident, _RUN)))
     if name == "orchestrator_evidence":
         directory = ctx.run_dir(_check_id(ident, _RUN))
-        out = {"status": runner._load(ctx, directory / "status.json")}
+        out = {"status": load_signed(ctx, directory / "status.json")}
         for key in ("result", "maf-result", "maf-approval", "review-attempts"):
             if (directory / f"{key}.json").is_file():
-                out[key] = runner._load(ctx, directory / f"{key}.json")
+                out[key] = load_signed(ctx, directory / f"{key}.json")
         out["patch_preview"] = runner.inspect_task(ctx, ident)["patch_preview"][:_LOG_TAIL]
         return out
     if name == "orchestrator_resume":
@@ -178,7 +179,7 @@ def _dispatch(ctx, name, args, allow_auto_apply, allow_privileged=False):
                                  operation_id="note-" + hashlib.sha256(key.encode("utf-8")).hexdigest()[:24])
     if name == "orchestrator_apply":
         run_id = _check_id(ident, _RUN)
-        recorded = runner._load(ctx, ctx.run_dir(run_id) / "result.json").get("patch_sha256")
+        recorded = load_signed(ctx, ctx.run_dir(run_id) / "result.json").get("patch_sha256")
         if not recorded or args.get("patch_sha256") != recorded:
             raise ValueError("patch_sha256 does not match the verified patch; read orchestrator_evidence first")
         return runner.apply_task(ctx, run_id)

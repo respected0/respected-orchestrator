@@ -14,8 +14,8 @@ from typing import Any
 from agent_framework import CheckpointStorage, step, workflow
 
 from ..context import EngineContext, safe_path
-from ..engine.runner import (SUPPORTED_AGENTS, tool_result, command_for, tool_available, _load, _save, check_result, create_task, execute_task, get_cli_command,
-                     inspect_task, project_fingerprint)
+from ..engine.runner import SUPPORTED_AGENTS, tool_result, command_for, tool_available, check_result, create_task, execute_task, get_cli_command, inspect_task, project_fingerprint
+from ..engine.evidence import load_signed, save_signed
 from ..engine import budget as tokens
 from . import roles
 from ..engine.processes import ProcessStopped, execute
@@ -329,8 +329,8 @@ def _fresh_root(base: Path) -> Path:
 
 def _record_review_attempt(ctx: EngineContext, run_id: str, entry: dict[str, Any]) -> None:
     path = ctx.run_dir(run_id) / "review-attempts.json"
-    attempts = _load(ctx, path)["attempts"] if path.is_file() else []
-    _save(ctx, path, {"attempts": [*attempts, entry]})
+    attempts = load_signed(ctx, path)["attempts"] if path.is_file() else []
+    save_signed(ctx, path, {"attempts": [*attempts, entry]})
 
 
 def _run_tool_call(tool: str, profile: str, prompt: str, run_root: Path, timeout_seconds: float) -> CodexOutcome:
@@ -471,13 +471,6 @@ def _sum_usage(usages) -> dict[str, int]:
     return totals
 
 
-def _usage_total(reviews: list[Mapping[str, Any]], worker_results: Mapping[str, WorkerResult]) -> dict[str, int]:
-    return _sum_usage([
-        *(review.get("usage") for review in reviews),
-        *(result.get("engine_result", {}).get("usage") for result in worker_results.values() if not result.get("reused")),
-    ])
-
-
 def _review_assignment(source_request, workflow, injected, codex_path):
     """(reviewer tool, profile, deep tool, deep profile), checked before any paid step. An injected reviewer callable
     (tests, custom review) needs no assignment. Runs recorded before role assignment existed carry their reviewer in
@@ -540,7 +533,7 @@ def run_maf_coding_task(
     state = SimpleNamespace(attempts=[], deadline=time.monotonic() + total_budget)
     attempts_path = ctx.run_dir(run_id) / "maf-attempts.json"
     if attempts_path.is_file():
-        state.attempts = _load(ctx, attempts_path)["attempts"]
+        state.attempts = load_signed(ctx, attempts_path)["attempts"]
     if not isinstance(state.attempts, list):
         raise ValueError("Invalid MAF attempt history")
     # Plain ints captured by the step closures would change the workflow signature between invocations and break
@@ -550,7 +543,7 @@ def run_maf_coding_task(
     invocation_reviews: list[dict[str, Any]] = []  # every review call of THIS invocation, failed ones included
     initial_maf_result = ctx.run_dir(run_id) / "maf-result.json"
     if not initial_maf_result.is_file():
-        _save(ctx, initial_maf_result, {
+        save_signed(ctx, initial_maf_result, {
             "root_run_id": run_id,
             "status": "PENDING",
             "human_approval_required": False,
@@ -558,7 +551,7 @@ def run_maf_coding_task(
 
     def record_attempt(entry: dict[str, Any]) -> None:
         state.attempts.append(entry)
-        _save(ctx, attempts_path, {"attempts": state.attempts})
+        save_signed(ctx, attempts_path, {"attempts": state.attempts})
 
     lane_budget = workflow.get("max_weighted_tokens")  # run-level and lifetime: a retry or re-invocation never resets it
     unknown_charge = workflow.get("unknown_step_tokens", tokens.UNKNOWN_STEP_TOKENS_DEFAULT)
@@ -567,7 +560,7 @@ def run_maf_coding_task(
         steps = [tokens.worker_step(attempt.get("engine_result") or {}) for attempt in state.attempts]
         reviews_path = ctx.run_dir(run_id) / "review-attempts.json"
         if reviews_path.is_file():
-            steps.extend(tokens.review_step(entry) for entry in _load(ctx, reviews_path)["attempts"])
+            steps.extend(tokens.review_step(entry) for entry in load_signed(ctx, reviews_path)["attempts"])
         return tokens.summarize(steps)
 
     def budget_exceeded() -> dict[str, Any] | None:
@@ -644,7 +637,7 @@ def run_maf_coding_task(
             )
             try:
                 current_run_id = create_task(ctx, child_request)["run_id"]
-                _save(ctx, ctx.run_dir(current_run_id) / "maf-result.json", {
+                save_signed(ctx, ctx.run_dir(current_run_id) / "maf-result.json", {
                     "root_run_id": run_id,
                     "status": "PENDING",
                     "human_approval_required": False,
@@ -796,11 +789,11 @@ def run_maf_coding_task(
                               "exceeded": lane_budget is not None and basis >= lane_budget}
     final_path = ctx.run_dir(result["final_run_id"] or run_id) / "maf-result.json"
     if final_path.is_file():  # a re-invocation never erases the earlier outcome: it moves to maf-history/
-        prior = _load(ctx, final_path)
+        prior = load_signed(ctx, final_path)
         if prior.get("status") != "PENDING":
             history = final_path.parent / "maf-history"
-            _save(ctx, history / f"maf-result-{len(list(history.glob('*.json'))) + 1}.json", prior)
-    _save(ctx, final_path, {
+            save_signed(ctx, history / f"maf-result-{len(list(history.glob('*.json'))) + 1}.json", prior)
+    save_signed(ctx, final_path, {
         "root_run_id": run_id,
         "status": result["status"],
         "human_approval_required": result["status"] == "HUMAN_APPROVAL_REQUIRED",
@@ -827,12 +820,12 @@ def run_maf_coding_task(
     new_steps += [tokens.review_step(review) for review in result.get("reviews", []) if "usage" in review and not invocation_reviews]
     this_invocation = tokens.summarize(new_steps)
     ledger_path = ctx.run_dir(run_id) / "maf-usage.json"
-    invocations = _load(ctx, ledger_path)["invocations"] if ledger_path.is_file() else []
+    invocations = load_signed(ctx, ledger_path)["invocations"] if ledger_path.is_file() else []
     invocations.append({"at": datetime.now(timezone.utc).isoformat(), "usage": spent,
                         "reused_attempts": state.preexisting, "review_calls": len(invocation_reviews),
                         "usage_status": this_invocation["usage_status"], "unknown_steps": this_invocation["unknown_steps"],
                         "cached_cost_share": tokens.cached_cost_share(spent)})
-    _save(ctx, ledger_path, {"invocations": invocations})
+    save_signed(ctx, ledger_path, {"invocations": invocations})
     result["token_usage"] = spent
     result["unknown_usage_steps"] = this_invocation["unknown_steps"]  # steps of THIS invocation that ran but reported nothing
     result["cached_cost_share"] = tokens.cached_cost_share(spent)

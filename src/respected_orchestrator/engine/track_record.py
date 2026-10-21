@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from ..context import EngineContext
-from .runner import _load
+from .evidence import load_signed
 
 MIN_RUNS = 3  # below this a candidate has no usable history
 
@@ -37,8 +37,8 @@ def stats(data_root: Path, limit: int = 400) -> dict[tuple[str, str, str], dict[
                 break
             seen += 1
             try:
-                request, status = _load(ctx, directory / "request.json"), _load(ctx, directory / "status.json")
-                result = _load(ctx, directory / "result.json") if (directory / "result.json").is_file() else {}
+                request, status = load_signed(ctx, directory / "request.json"), load_signed(ctx, directory / "status.json")
+                result = load_signed(ctx, directory / "result.json") if (directory / "result.json").is_file() else {}
                 if status.get("status") in ("queued", "running"):
                     continue
                 if request.get("kind") == "write" and request.get("worker") != "custom":
@@ -48,7 +48,7 @@ def stats(data_root: Path, limit: int = 400) -> dict[tuple[str, str, str], dict[
                           result.get("duration_seconds"))
                 reviews = directory / "review-attempts.json"
                 if reviews.is_file():
-                    for entry in _load(ctx, reviews).get("attempts", []):
+                    for entry in load_signed(ctx, reviews).get("attempts", []):
                         _bump(table, ("read", entry.get("tool") or "codex", entry.get("profile") or ""),
                               entry.get("status") == "COMPLETE", (entry.get("usage") or {}).get("estimated_weighted_tokens"),
                               entry.get("duration_seconds"))

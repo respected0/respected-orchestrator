@@ -8,6 +8,7 @@ from unittest import mock
 
 from respected_orchestrator.engine import lanes, runner
 from respected_orchestrator.context import EngineContext
+from respected_orchestrator.engine.evidence import load_signed, save_signed
 
 
 def codex_stream(status="blocked"):
@@ -89,14 +90,14 @@ class CodexResultTests(unittest.TestCase):
             workspace = ctx.workspace_root / run_id
             workspace.mkdir(parents=True)
             lane = lanes.Lane(project, workspace, "fixture", directory, "fixture-baseline")
-            runner._save(ctx, directory / "request.json", dict(
+            save_signed(ctx, directory / "request.json", dict(
                 run_id=run_id, project_root=str(project), project_fingerprint="fixture",
                 timeout_seconds=10, kind="write", task="Implement add", worker="custom",
                 command=["codex.exe", "exec", "--json", "{prompt}"],
                 ownership=["calculator.py"], forbidden=["secret.txt"],
                 acceptance=[["acceptance-must-not-run"]], include_untracked=[],
             ))
-            runner._save(ctx, directory / "status.json", {"status": "queued"})
+            save_signed(ctx, directory / "status.json", {"status": "queued"})
             with mock.patch.object(runner, "project_fingerprint", return_value="fixture"), \
                     mock.patch.object(lanes, "create_lane", return_value=lane), \
                     mock.patch.object(lanes, "overlay_dirty_inputs"), \
@@ -109,7 +110,7 @@ class CodexResultTests(unittest.TestCase):
             self.assertEqual(result["reason"], "worker_failed")
             self.assertEqual(result["exit_code"], 0)
             self.assertEqual(result["provider_status"], "WORKER_FAILED")
-            self.assertEqual(runner._load(ctx, directory / "status.json"), result)
+            self.assertEqual(load_signed(ctx, directory / "status.json"), result)
             execute.assert_called_once()
             collect.assert_not_called()
             self.assertEqual(execute.call_args.args[1], workspace)

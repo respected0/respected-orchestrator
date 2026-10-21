@@ -400,8 +400,8 @@ class MafCodingTaskTest(unittest.TestCase):
                             reviewer=lambda results: {"decision": "APPROVED"})
         approve_maf_task(self.ctx, run_id)
         path = self.ctx.run_dir(run_id) / "maf-approval.json"
-        from respected_orchestrator.engine.runner import _save
-        _save(self.ctx, path, dict(run_id="run-other", root_run_id=run_id, approved_at="x"))
+        from respected_orchestrator.engine.evidence import save_signed
+        save_signed(self.ctx, path, dict(run_id="run-other", root_run_id=run_id, approved_at="x"))
         with self.assertRaisesRegex(ValueError, "does not belong"):
             check_result(self.ctx, run_id)
 
@@ -422,10 +422,10 @@ class MafCodingTaskTest(unittest.TestCase):
             approve_maf_task(self.ctx, run_id)
 
     def test_approval_without_patch_binding_or_for_tampered_result_is_rejected(self) -> None:
-        from respected_orchestrator.engine.runner import _save
+        from respected_orchestrator.engine.evidence import save_signed
         run_id = self.approvable_run()
         path = self.ctx.run_dir(run_id) / "maf-approval.json"
-        _save(self.ctx, path, dict(run_id=run_id, root_run_id=run_id, approved_at="x"))
+        save_signed(self.ctx, path, dict(run_id=run_id, root_run_id=run_id, approved_at="x"))
         with self.assertRaisesRegex(ValueError, "not bound"):
             check_result(self.ctx, run_id)
         path.unlink()

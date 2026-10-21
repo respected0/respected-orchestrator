@@ -14,6 +14,8 @@ from respected_orchestrator.engine.runner import create_task, execute_task, insp
 from respected_orchestrator.engine import runner
 from respected_orchestrator.engine import lanes
 from respected_orchestrator.engine.processes import execute, ProcessStopped
+from respected_orchestrator.engine.evidence import RESTRICTED_KEYS, signing_key
+from respected_orchestrator.engine import evidence
 
 
 class EngineTests(unittest.TestCase):
@@ -329,17 +331,17 @@ class EngineTests(unittest.TestCase):
     def test_engine_key_is_restricted_to_current_user(self):
         if os.name != "nt":
             self.skipTest("ACL check is Windows specific")
-        runner._RESTRICTED_KEYS.clear()
-        runner._key(self.ctx)
+        RESTRICTED_KEYS.clear()
+        signing_key(self.ctx)
         acl = subprocess.run(["icacls", str(self.ctx.data_root / ".engine-key")], capture_output=True, text=True).stdout
         self.assertNotIn("BUILTIN\\Users", acl)
         self.assertNotIn("Authenticated Users", acl)
 
     def test_engine_key_is_restricted_before_secret_is_written(self):
         seen = []
-        runner._RESTRICTED_KEYS.clear()
-        with mock.patch.object(runner, "_restrict_key", lambda path: seen.append(Path(path).read_bytes())):
-            key = runner._key(self.ctx)
+        RESTRICTED_KEYS.clear()
+        with mock.patch.object(evidence, "restrict_key", lambda path: seen.append(Path(path).read_bytes())):
+            key = signing_key(self.ctx)
         self.assertEqual(seen[0], b"")  # ACL is closed while the temp file is still empty
         self.assertEqual((self.ctx.data_root / ".engine-key").read_bytes(), key)
         self.assertEqual(len(key), 32)
@@ -409,12 +411,6 @@ class EngineTests(unittest.TestCase):
             time.sleep(0.05)
         self.assertFalse(lanes._pid_is_alive(pid))
         self.assertEqual(inspect_task(self.ctx, task["run_id"])["status"], "interrupted")
-
-    def test_antigravity_permission_bypass_is_refused(self):
-        request = lanes.RunRequest("fixture", "fixture", lanes.TaskKind.READ, "task", "", ("owned.txt",), (), (), ())
-        lane = lanes.Lane(self.repo, self.repo, "fixture", self.root / "run")
-        with self.assertRaises(ValueError):
-            lanes.run_worker(request, lane, self.root / "fake", dangerously_skip_permissions=True)
 
     def test_new_ignored_file_outside_scope_is_rejected(self):
         (self.repo / '.gitignore').write_text('.env\n')
