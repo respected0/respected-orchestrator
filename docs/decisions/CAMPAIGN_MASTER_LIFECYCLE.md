@@ -11,12 +11,13 @@ parallel DeepSeek/GLM lanes → completion event → new Claude cycle operationa
 - The completion event is the supervisor joining all lane threads. It writes the
   signed `result.json` and starts the final master exactly once (`final.claim`).
   Default final master is `claude -p {prompt}`; `final.allow_apply` is opt-in and
-  only whitelists `python -m respected_orchestrator` commands.
+  only whitelists the engine's own CLI (`respected-orchestrator.exe`, or `python -m respected_orchestrator` from source).
 - Non-Git sources (Hub, Orchestrator today) are developed in a throwaway Git mirror
   under the campaign directory (secrets and heavy directories excluded). `apply`
   re-runs `check_result`, `git apply --check`, then applies to `apply_root`; it never
   commits and is refused inside worker processes.
-- The supervisor runs from an engine snapshot so the engine can develop itself.
+- From a source checkout the supervisor runs from an engine snapshot so the engine can develop itself; the packaged
+  executable is already an immutable copy and is used as is.
 - Codex workers are launched with explicit `--sandbox workspace-write` and
   `approval_policy="never"`; the user's `danger-full-access` config is not inherited.
   Worker/check/reviewer environments drop secret-looking variables

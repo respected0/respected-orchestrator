@@ -1,36 +1,54 @@
 # Respected Orchestrator
 
-Independent local AI task engine. Python >=3.10 and Git are required for worktree
-execution. No Brain install, vault, Hub process, global service or provider config
-write is required. Source `src/respected_orchestrator/` is independently packaged
-by `pyproject.toml`; it has no `respectedbrain` imports or package dependencies.
+Independent local AI task engine: it runs coding agents (Codex, Claude, Gemini, Antigravity, Cursor or a custom command)
+in isolated Git worktrees, checks their result (scope, acceptance commands, signed evidence, patch freshness) and never
+changes your project unless you apply a verified result. It needs no SecondBrain, vault, Hub process or global service.
 
-The user-facing entry is **Respected Hub**. There is no public console script or
-setup wizard. Until native Hub acceptance, the private JSON entry below is the
-developer/test path. This is a development engine, not a signed distribution.
+People use it through **Respected Hub** (workspace, task list, evidence, MCP access for AI clients). The engine ships as
+`respected-orchestrator.exe`, a packaged folder that needs no Python on the machine; Git must be installed for worktrees.
 
-## Developer path
+## Layout
 
-From this directory, set `PYTHONPATH` to its absolute `src` path. Use an explicit
-isolated data root for development; do not point it at a user's vault or live app.
+| Path | What it is |
+| --- | --- |
+| `src/respected_orchestrator/engine/` | worktree lanes, task runner, Codex call layer, acceptance sandbox, process control, token budget |
+| `src/respected_orchestrator/workflows/` | MAF coding workflow, campaigns, autonomous projects, planner, role assignment |
+| `src/respected_orchestrator/interfaces/` | RPP server (Hub protocol), lifecycle records, MCP server, SecondBrain memory client, AI-client integrations |
+| `src/respected_orchestrator/__main__.py` | private JSON entry point for the Hub and tests (not a public CLI) |
+| `tools/build_dist.py`, `packaging/` | packaged build (PyInstaller onedir + `distribution.json`) |
+| `tests/` | `engine/`, `workflows/`, `interfaces/` mirror the package; `packaging/` drives the built exe |
+| `docs/decisions/` | binding design decisions (RPP, sandbox, MCP permissions, roles, memory, campaigns, Codex results) |
+
+## Develop
 
 ```powershell
-$env:PYTHONPATH = (Join-Path (Get-Location) 'src')
-python -m respected_orchestrator --data-root ABSOLUTE_TEMP_DATA_ROOT status
-# Submit the JSON request on stdin (example below), then use its returned run_id.
-Get-Content -Raw ABSOLUTE_REQUEST_JSON | python -m respected_orchestrator --data-root ABSOLUTE_TEMP_DATA_ROOT create
-python -m respected_orchestrator --data-root ABSOLUTE_TEMP_DATA_ROOT start RUN_ID
-python -m respected_orchestrator --data-root ABSOLUTE_TEMP_DATA_ROOT inspect RUN_ID
-python -m respected_orchestrator --data-root ABSOLUTE_TEMP_DATA_ROOT check RUN_ID
-python -m respected_orchestrator --data-root ABSOLUTE_TEMP_DATA_ROOT cancel RUN_ID
+python -m pip install -e ".[dev]"
+python -m unittest discover -s tests -t .          # temp repos and fake workers only; HOME is sandboxed
+python tools/build_dist.py                          # -> dist/RespectedOrchestrator/respected-orchestrator.exe
+python -m unittest tests.packaging.test_frozen_build # the built exe with no Python on PATH
 ```
 
-Request for a read investigation (replace the project path with a disposable Git
-project; choose an installed CLI):
+The private entry point takes one JSON request on stdin per command and prints one JSON line; use an explicit,
+disposable data root during development:
+
+```powershell
+$data = "$env:TEMP\orch-dev"
+python -m respected_orchestrator --data-root $data status
+Get-Content -Raw request.json | python -m respected_orchestrator --data-root $data create   # -> run_id
+python -m respected_orchestrator --data-root $data start RUN_ID     # detached supervisor
+python -m respected_orchestrator --data-root $data inspect RUN_ID
+python -m respected_orchestrator --data-root $data check RUN_ID     # re-verifies signed evidence and freshness
+```
+
+The packaged build answers the same commands: `respected-orchestrator.exe --data-root DATA status`. Other commands:
+`rpp` (Hub protocol), `mcp` (stdio MCP server), `plan`, `roles`, `maf`, `apply`, `retry`, `cancel`,
+`campaign-*`, `project-*`.
+
+A read task request:
 
 ```json
 {
-  "project_root": "ABSOLUTE_GIT_PROJECT_ROOT",
+  "project_root": "C:/path/to/a/git/project",
   "task": "Inspect src and explain its public entry points. Do not change files.",
   "worker": "codex",
   "kind": "read",
@@ -41,50 +59,15 @@ project; choose an installed CLI):
 }
 ```
 
-Write tasks require at least one `acceptance` command as a JSON argv array, for
-example `[["python", "-m", "unittest", "discover", "-s", "tests"]]`. Include
-test/code paths in ownership. `custom` workers use `command: ["tool", "{prompt}"]`;
-no shell parsing is added. Auth and OS approval remain the CLI's responsibility.
-Optional `include_untracked` selects nonignored, owned inputs explicitly.
+Write tasks need at least one `acceptance` command as a JSON argv array and ownership that covers the files they may
+change. Nothing is applied automatically; pending, failed, stale or tampered results never pass `check`; retries are
+explicit and bounded.
 
-`start` detaches the supervisor from Hub/the caller. State and workspaces belong
-to DataRoot, not the project. Status is queued/running until worker, tests, scope
-and patch compatibility succeed. Inspection includes live redacted worker logs,
-check logs and patch preview. `check` revalidates signed evidence, patch hash and
-project freshness. Nothing is automatically applied. Pending/failed/tampered
-results cannot pass `check`; retry is explicit and bounded to two retries.
+## Safety limits
 
-Stale writer locks are preserved after a supervisor crash. Inspect the interrupted
-run and preserve evidence; recovery/cleanup of those lanes is a remaining lifecycle
-task. A retry may report the stale lock instead of starting. Do not delete user
-workspaces to hide this state.
-
-## Safety and extraction limits
-
-Windows workers start suspended, join a kill-on-close Job Object, then resume;
-timeout/cancel/supervisor death removes the owned process tree. POSIX normal
-timeout/cancel uses a new process group. macOS/Linux native acceptance and abrupt
-supervisor-death containment remain unverified.
-
-Scope validation is a post-execution file check, not a full OS read/write sandbox.
-The worker runs with the user's permissions. HMAC detects evidence edits without
-the independent local key; it is not a security boundary against another process
-with full access to the same account. Logs are redacted for recognized key/token
-patterns, not guaranteed to contain every possible secret format.
-
-Antigravity lane/brief/overlay/check/patch helpers and their adapted tests were
-extracted from Brain. A private `antigravity` compatibility route remains for
-developer tooling; raw apply is disabled and its older evidence is separate from
-the signed Hub task lifecycle. Generic adapter construction was retained for
-Codex, Claude, Gemini, Antigravity and Cursor; live provider acceptance is pending.
-Brain integration is optional and is not invoked automatically. Cleanup, manual
-patch integration, multi-worker scheduling and product lifecycle are tracked in
-the [extraction record](../secondbrain/docs/records/2026-10-product-extraction/IMPLEMENTATION.md).
-
-```powershell
-python -m unittest discover -s tests -p 'test_*.py' -v
-python tools/repository_map.py --filesystem-only --check
-```
-
-The standalone [source atlas](docs/REPOSITORY_MAP.md) describes every product file.
-Tests use temporary repositories and fake worker executables, not live AI configs.
+* Windows workers run in a kill-on-close Job Object; timeout, cancel or supervisor death removes the whole process tree.
+* Acceptance commands run under a Windows restricted token that cannot read the engine key or rewrite run evidence
+  (`docs/decisions/ACCEPTANCE_SANDBOX.md`). Scope validation is a post-execution file check, not an OS sandbox for the
+  worker itself, which runs with the user's permissions.
+* Logs are redacted for recognised key/token patterns, not for every possible secret format.
+* Windows is the supported platform for the beta; macOS/Linux code paths exist but are not verified.

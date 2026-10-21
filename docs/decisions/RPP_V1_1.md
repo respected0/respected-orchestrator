@@ -13,7 +13,7 @@ RPP v1.1 adds lifecycle operations, version negotiation across 1.0..1.1, seven n
 typed errors, and a richer `manifest`. The transport is unchanged: one JSON request on
 stdin, one JSON response line on stdout, from the private entry point
 (`src/respected_orchestrator/interfaces/rpp.py`), reached via
-`python -m respected_orchestrator --data-root DATA rpp`. No daemon, no listener. The
+`respected-orchestrator.exe --data-root DATA rpp` (from source: `python -m respected_orchestrator ...`). No daemon, no listener. The
 new surface is implemented in the same allow-list registry pattern the existing ops
 use (`_OPS`, `src/respected_orchestrator/interfaces/rpp.py:255`).
 
