@@ -129,5 +129,17 @@ class SandboxBoundaryTest(unittest.TestCase):
             del os.environ["RESPECTED_ORCH_SANDBOX"]
 
 
+@unittest.skipUnless(os.name == "nt", "restricted tokens are Windows only")
+class SandboxExecArgumentTests(unittest.TestCase):
+    def test_main_strips_separator_and_rejects_empty_command(self):
+        from unittest import mock
+        from respected_orchestrator.engine import sandbox_exec
+        with mock.patch.object(sandbox_exec, "run", return_value=7) as run:
+            self.assertEqual(sandbox_exec.main(["--sid", "S-1", "--", "cmd", "/c", "echo"]), 7)
+        run.assert_called_once_with("S-1", ["cmd", "/c", "echo"])
+        with self.assertRaises(SystemExit):
+            sandbox_exec.main(["--sid", "S-1", "--"])
+
+
 if __name__ == "__main__":
     unittest.main()
