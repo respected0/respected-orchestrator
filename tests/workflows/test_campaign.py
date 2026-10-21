@@ -32,6 +32,15 @@ class CampaignTests(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
+    def test_campaign_list_names_only_real_campaign_folders_newest_first(self):
+        campaigns = self.ctx.data_root / "campaigns"
+        self.assertEqual(campaign.list_campaigns(self.ctx), {"campaigns": []})
+        for name in ("camp-20260101000000-aaaaaaaa", "camp-20260202000000-bbbbbbbb", "not-a-campaign", "camp-UPPER"):
+            (campaigns / name).mkdir(parents=True)
+        (campaigns / "camp-20260303000000-cccccccc").write_text("a file, not a folder")
+        self.assertEqual(campaign.list_campaigns(self.ctx),
+                         {"campaigns": ["camp-20260202000000-bbbbbbbb", "camp-20260101000000-aaaaaaaa"]})
+
     def source(self, name, git=True):
         path = self.root / name
         path.mkdir()

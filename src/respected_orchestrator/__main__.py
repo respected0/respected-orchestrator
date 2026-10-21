@@ -33,7 +33,7 @@ def main(argv=None):
         return sandbox_exec.main(argv[1:])
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=default_data_root())
-    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "campaign-start", "campaign-run", "campaign-status", "project-start", "project-run", "project-resume", "project-status", "project-cancel", "rpp", "roles", "plan", "mcp", "_selfcheck"])
+    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "campaign-start", "campaign-run", "campaign-status", "campaign-list", "project-start", "project-run", "project-resume", "project-status", "project-cancel", "rpp", "roles", "plan", "mcp", "_selfcheck"])
     parser.add_argument("args", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
     ctx = EngineContext(args.data_root)
@@ -61,6 +61,9 @@ def main(argv=None):
         elif args.command == "campaign-start":
             from .workflows.campaign import start_campaign
             payload = start_campaign(ctx, _stdin_json())
+        elif args.command == "campaign-list":
+            from .workflows.campaign import list_campaigns
+            payload = list_campaigns(ctx)
         elif args.command == "project-start":
             from .workflows.project import start_project
             payload = start_project(ctx, _stdin_json())

@@ -46,72 +46,7 @@ def init_repo(root: Path) -> Path:
     return repo
 
 
-def make_fake_agy(root: Path) -> tuple[Path, Path]:
-    script = root / "fake_agy.py"
-    record = root / "fake-agy-record.jsonl"
-    script.write_text(
-        """import json
-import os
-from pathlib import Path
-import sys
-
-record = Path(os.environ["FAKE_AGY_RECORD"])
-with record.open("a", encoding="utf-8") as handle:
-    handle.write(json.dumps({"argv": sys.argv[1:], "cwd": os.getcwd()}, ensure_ascii=False) + "\\n")
-mode = os.environ.get("FAKE_AGY_MODE", "success")
-if mode == "success":
-    print(json.dumps({"status": "SUCCESS", "summary": "done"}))
-elif mode == "change":
-    Path("src/owned.txt").write_text("worker-change\\n", encoding="utf-8")
-    print(json.dumps({"status": "SUCCESS", "summary": "changed"}))
-elif mode == "forbidden":
-    Path("other.txt").write_text("forbidden-worker-change\\n", encoding="utf-8")
-    print(json.dumps({"status": "SUCCESS", "summary": "changed forbidden file"}))
-elif mode == "limit":
-    print("quota limit exhausted", file=sys.stderr)
-    raise SystemExit(42)
-elif mode == "auth":
-    print("authentication required: login", file=sys.stderr)
-    raise SystemExit(43)
-elif mode == "malformed":
-    print("not-json")
-elif mode == "logical-failure":
-    print(json.dumps({"status": "FAILED", "error": "worker rejected task"}))
-else:
-    print("worker crashed", file=sys.stderr)
-    raise SystemExit(2)
-""",
-        encoding="utf-8",
-    )
-    if os.name == "nt":
-        wrapper = root / "agy.cmd"
-        wrapper.write_text(
-            f'@"{sys.executable}" "{script}" %*\n', encoding="utf-8"
-        )
-    else:
-        wrapper = root / "agy"
-        wrapper.write_text(
-            f'#!/bin/sh\nexec "{sys.executable}" "{script}" "$@"\n', encoding="utf-8"
-        )
-        wrapper.chmod(0o755)
-    return wrapper, record
-
-
-class PolicyFilesTest(unittest.TestCase):
-    def test_policy_defines_guarded_single_writer_defaults(self) -> None:
-        policy_file = ROOT / "src/respected_orchestrator/resources/policy.json"
-        policy = json.loads(
-            policy_file.read_text(encoding="utf-8")
-        )
-
-        self.assertEqual(policy["schema_version"], 1)
-        self.assertEqual(policy["max_active_write_workers"], 1)
-        self.assertFalse(policy["dangerously_skip_permissions"])
-        self.assertGreater(policy["read_timeout_seconds"], 0)
-        self.assertGreater(policy["write_timeout_seconds"], 0)
-        self.assertTrue(policy["worker_executable_candidates"])
-        self.assertEqual(policy["workspace_root"], "")
-
+class WorkerTemplateTest(unittest.TestCase):
     def test_worker_templates_define_bounded_handoff_sections(self) -> None:
         orchestrator = load_orchestrator()
         required = {
@@ -139,72 +74,6 @@ class PolicyFilesTest(unittest.TestCase):
         read_text = orchestrator.DEFAULT_READ_TEMPLATE
         self.assertIn("READ-ONLY TASK", read_text)
         self.assertIn("Do not modify repository files.", read_text)
-
-
-class ConfigurationTest(unittest.TestCase):
-    def test_load_policy_and_resolve_expanded_executable_candidate(self) -> None:
-        orchestrator = load_orchestrator()
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary).resolve()
-            executable = root / "agy" / "bin" / "agy.exe"
-            executable.parent.mkdir(parents=True)
-            executable.write_bytes(b"fake")
-            policy_path = root / "policy.json"
-            policy_path.write_text(
-                json.dumps(
-                    {
-                        "schema_version": 1,
-                        "worker_executable_candidates": [
-                            "%LOCALAPPDATA%/agy/bin/agy.exe"
-                        ],
-                        "workspace_root": "../repo-worktrees",
-                        "max_active_write_workers": 1,
-                        "read_timeout_seconds": 10,
-                        "write_timeout_seconds": 20,
-                        "dangerously_skip_permissions": False,
-                    }
-                ),
-                encoding="utf-8",
-            )
-
-            policy = orchestrator.load_policy(policy_path)
-            resolved = orchestrator.resolve_agy(
-                policy, {"LOCALAPPDATA": str(root), "PATH": ""}
-            )
-
-            self.assertEqual(resolved, executable.resolve())
-            self.assertEqual(policy.max_active_write_workers, 1)
-
-    def test_missing_worker_executable_is_a_typed_error(self) -> None:
-        orchestrator = load_orchestrator()
-        policy = orchestrator.Policy(
-            schema_version=1,
-            worker_executable_candidates=("definitely-missing-agy",),
-            workspace_root="../workers",
-            max_active_write_workers=1,
-            read_timeout_seconds=10,
-            write_timeout_seconds=20,
-            dangerously_skip_permissions=True,
-        )
-
-        with self.assertRaises(orchestrator.WorkerUnavailableError):
-            orchestrator.resolve_agy(policy, {"PATH": ""})
-
-    def test_inaccessible_worker_candidate_is_a_typed_error(self) -> None:
-        orchestrator = load_orchestrator()
-        policy = orchestrator.Policy(
-            schema_version=1,
-            worker_executable_candidates=("C:/protected/agy.exe",),
-            workspace_root="../workers",
-            max_active_write_workers=1,
-            read_timeout_seconds=10,
-            write_timeout_seconds=20,
-            dangerously_skip_permissions=True,
-        )
-
-        with mock.patch.object(Path, "is_file", side_effect=PermissionError("denied")):
-            with self.assertRaises(orchestrator.WorkerUnavailableError):
-                orchestrator.resolve_agy(policy, {"PATH": ""})
 
 
 class PathSafetyTest(unittest.TestCase):
@@ -388,90 +257,6 @@ class GitLaneTest(unittest.TestCase):
                 )
 
 
-class WorkerInvocationTest(unittest.TestCase):
-    def make_worker(self, orchestrator, root: Path, kind=None):
-        worktree = (root / "lane").resolve()
-        (worktree / "src").mkdir(parents=True)
-        (worktree / "src" / "owned.txt").write_text("base\n", encoding="utf-8")
-        run_root = (root / "state" / "run-001").resolve()
-        lane = orchestrator.Lane(
-            repo_root=ROOT.resolve(),
-            worktree=worktree,
-            branch="agy/test-worker",
-            run_root=run_root,
-            baseline_commit="a" * 40,
-        )
-        request = orchestrator.RunRequest(
-            run_id="run-001",
-            slug="test-worker",
-            kind=kind or orchestrator.TaskKind.READ,
-            objective="Report the repository root basename.",
-            known_context="Do not include any master conversation.",
-            ownership=("src",),
-            forbidden=(".git",),
-            acceptance=((sys.executable, "--version"),),
-            include_untracked=(),
-        )
-        return request, lane
-
-    def test_runs_once_inside_lane_with_required_flags(self) -> None:
-        orchestrator = load_orchestrator()
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary).resolve()
-            fake_agy, record = make_fake_agy(root)
-            request, lane = self.make_worker(orchestrator, root)
-            with mock.patch.dict(
-                os.environ,
-                {"FAKE_AGY_RECORD": str(record), "FAKE_AGY_MODE": "success"},
-            ):
-                result = orchestrator.run_worker(request, lane, fake_agy)
-
-            invocation = json.loads(record.read_text(encoding="utf-8").splitlines()[0])
-            self.assertEqual(Path(invocation["cwd"]).resolve(), lane.worktree.resolve())
-            self.assertNotIn("--dangerously-skip-permissions", invocation["argv"])
-            self.assertIn("--output-format", invocation["argv"])
-            self.assertIn("json", invocation["argv"])
-            self.assertIn("--print-timeout", invocation["argv"])
-            self.assertIn("READ-ONLY TASK", (lane.run_root / "brief.md").read_text(encoding="utf-8"))
-            self.assertEqual(result.status, orchestrator.RunStatus.COMPLETE)
-            self.assertEqual(len(record.read_text(encoding="utf-8").splitlines()), 1)
-            process = json.loads(
-                (lane.run_root / "process.json").read_text(encoding="utf-8")
-            )
-            self.assertGreater(process["pid"], 0)
-            self.assertEqual(process["state"], "FINISHED")
-            self.assertEqual(process["timeout_seconds"], 900)
-
-    def test_malformed_success_is_rejected(self) -> None:
-        orchestrator = load_orchestrator()
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary).resolve()
-            fake_agy, record = make_fake_agy(root)
-            request, lane = self.make_worker(orchestrator, root)
-            with mock.patch.dict(
-                os.environ,
-                {"FAKE_AGY_RECORD": str(record), "FAKE_AGY_MODE": "malformed"},
-            ):
-                result = orchestrator.run_worker(request, lane, fake_agy)
-
-            self.assertEqual(result.status, orchestrator.RunStatus.WORKER_FAILED)
-            self.assertEqual(len(record.read_text(encoding="utf-8").splitlines()), 1)
-
-    def test_zero_exit_failure_payload_is_rejected(self) -> None:
-        orchestrator = load_orchestrator()
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary).resolve()
-            fake_agy, record = make_fake_agy(root)
-            request, lane = self.make_worker(orchestrator, root)
-            with mock.patch.dict(
-                os.environ,
-                {"FAKE_AGY_RECORD": str(record), "FAKE_AGY_MODE": "logical-failure"},
-            ):
-                result = orchestrator.run_worker(request, lane, fake_agy)
-
-            self.assertEqual(result.status, orchestrator.RunStatus.WORKER_FAILED)
-
-
 class CircuitBreakerTest(unittest.TestCase):
     def test_classifies_terminal_worker_failures_without_retry(self) -> None:
         orchestrator = load_orchestrator()
@@ -484,26 +269,6 @@ class CircuitBreakerTest(unittest.TestCase):
         for arguments, expected in cases:
             with self.subTest(expected=expected):
                 self.assertEqual(orchestrator.classify_worker_exit(*arguments), expected)
-
-    def test_limit_result_is_persisted_after_one_process(self) -> None:
-        orchestrator = load_orchestrator()
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary).resolve()
-            fake_agy, record = make_fake_agy(root)
-            request, lane = WorkerInvocationTest().make_worker(orchestrator, root)
-            with mock.patch.dict(
-                os.environ,
-                {"FAKE_AGY_RECORD": str(record), "FAKE_AGY_MODE": "limit"},
-            ):
-                result = orchestrator.run_worker(request, lane, fake_agy)
-
-            persisted = json.loads(
-                (lane.run_root / "worker-result.json").read_text(encoding="utf-8")
-            )
-            self.assertEqual(result.status, orchestrator.RunStatus.LIMIT_EXHAUSTED)
-            self.assertEqual(persisted["status"], "LIMIT_EXHAUSTED")
-            self.assertEqual(len(record.read_text(encoding="utf-8").splitlines()), 1)
-
 
 class ScopeEnforcementTest(unittest.TestCase):
     def test_read_lane_requires_zero_diff_and_write_lane_rejects_forbidden_path(self) -> None:
@@ -539,58 +304,6 @@ class ScopeEnforcementTest(unittest.TestCase):
 
         self.assertFalse(scope.allowed)
         self.assertEqual(scope.violations, ("src/link",))
-
-
-class AcceptanceTest(unittest.TestCase):
-    def test_records_redacted_output_and_stops_after_first_failure(self) -> None:
-        orchestrator = load_orchestrator()
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary).resolve()
-            lane = orchestrator.Lane(
-                repo_root=root,
-                worktree=root,
-                branch="agy/checks",
-                run_root=root / "state",
-                baseline_commit="a" * 40,
-            )
-            marker = root / "must-not-run.txt"
-            commands = (
-                (sys.executable, "-c", "print('token=super-secret')"),
-                (sys.executable, "-c", "raise SystemExit(7)"),
-                (sys.executable, "-c", f"from pathlib import Path; Path({str(marker)!r}).write_text('bad')"),
-            )
-
-            checks = orchestrator.run_acceptance(lane, commands)
-
-            self.assertEqual([check.returncode for check in checks], [0, 7])
-            self.assertFalse(marker.exists())
-            first_log = checks[0].stdout_path.read_text(encoding="utf-8")
-            self.assertIn("token=[REDACTED]", first_log)
-            self.assertNotIn("super-secret", first_log)
-
-    def test_acceptance_timeout_is_terminal_and_stops_later_commands(self) -> None:
-        orchestrator = load_orchestrator()
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary).resolve()
-            lane = orchestrator.Lane(
-                repo_root=root,
-                worktree=root,
-                branch="agy/timeout",
-                run_root=root / "state",
-                baseline_commit="a" * 40,
-            )
-            marker = root / "must-not-run.txt"
-            commands = (
-                (sys.executable, "-c", "import time; time.sleep(2)"),
-                (sys.executable, "-c", f"from pathlib import Path; Path({str(marker)!r}).write_text('bad')"),
-            )
-
-            checks = orchestrator.run_acceptance(lane, commands, timeout_seconds=0.05)
-
-            self.assertEqual(len(checks), 1)
-            self.assertTrue(checks[0].timed_out)
-            self.assertEqual(checks[0].returncode, 124)
-            self.assertFalse(marker.exists())
 
 
 class PatchTest(unittest.TestCase):

@@ -9,7 +9,7 @@ from unittest import mock
 from respected_orchestrator.workflows import campaign, project
 from respected_orchestrator.context import EngineContext
 from respected_orchestrator.workflows.maf_workflow import run_maf_coding_task
-from respected_orchestrator.engine.runner import _load
+from respected_orchestrator.engine.evidence import load_signed
 
 PY = sys.executable
 
@@ -55,7 +55,7 @@ class ProjectTests(unittest.TestCase):
         return project_id
 
     def state(self, project_id):
-        return _load(self.ctx, project.project_dir(self.ctx, project_id) / "project.json")
+        return load_signed(self.ctx, project.project_dir(self.ctx, project_id) / "project.json")
 
     def test_two_dependent_phases_finish_without_a_new_prompt(self):
         one = self.phase("one", "f.txt", write_if("", "f.txt", "new\n"), check_file("f.txt", "new\n"))

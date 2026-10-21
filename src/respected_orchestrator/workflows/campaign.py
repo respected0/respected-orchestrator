@@ -16,7 +16,8 @@ from ..engine import winproc
 from ..context import FROZEN, EngineContext, engine_command, safe_path
 from ..engine.processes import execute
 from . import roles
-from ..engine.runner import SUPPORTED_AGENTS, _track_record, _command, _load, _save, command_for, create_task, tool_available, tool_result
+from ..engine.runner import SUPPORTED_AGENTS, _track_record, _command, command_for, create_task, tool_available, tool_result
+from ..engine.evidence import load_signed, save_signed
 
 LANE_TIMEOUT_DEFAULT = 7200
 FINAL_TIMEOUT_DEFAULT = 1800
@@ -127,7 +128,7 @@ def create_campaign(ctx, request):
     campaign_id = f"camp-{dt.datetime.now(dt.timezone.utc):%Y%m%d%H%M%S}-{uuid4().hex[:8]}"
     directory = campaign_dir(ctx, campaign_id)
     directory.mkdir(parents=True, exist_ok=False)
-    _save(ctx, directory / "campaign.json", dict(spec, campaign_id=campaign_id, created_at=_now()))
+    save_signed(ctx, directory / "campaign.json", dict(spec, campaign_id=campaign_id, created_at=_now()))
     return campaign_id, directory
 
 
@@ -137,17 +138,27 @@ def start_campaign(ctx, request):
     command = engine_command("--data-root", str(ctx.data_root),
                "campaign-run", campaign_id)
     pid = lanes._spawn_detached(command, engine, directory / "supervisor.log", env=_engine_env(engine))
-    _save(ctx, directory / "supervisor.json", dict(campaign_id=campaign_id, pid=pid, engine=str(engine)))
+    save_signed(ctx, directory / "supervisor.json", dict(campaign_id=campaign_id, pid=pid, engine=str(engine)))
     return dict(campaign_id=campaign_id, status="started", pid=pid)
+
+
+def list_campaigns(ctx, limit=30):
+    """Newest-first identities of the campaign folders in this data root (a link or a plain file is never a campaign)."""
+    root = safe_path(ctx.data_root / "campaigns")
+    if not root.is_dir():
+        return dict(campaigns=[])
+    names = [entry.name for entry in root.iterdir()
+             if re.fullmatch(r"camp-[a-z0-9-]{1,60}", entry.name) and entry.is_dir() and not entry.is_symlink()]
+    return dict(campaigns=sorted(names, reverse=True)[:limit])
 
 
 def campaign_status(ctx, campaign_id):
     directory = campaign_dir(ctx, campaign_id)
-    result = _load(ctx, directory / "result.json") if (directory / "result.json").is_file() else None
+    result = load_signed(ctx, directory / "result.json") if (directory / "result.json").is_file() else None
     events = []
     if (directory / "events.jsonl").is_file():
         events = [json.loads(line) for line in (directory / "events.jsonl").read_text(encoding="utf8").splitlines() if line]
-    supervisor = _load(ctx, directory / "supervisor.json") if (directory / "supervisor.json").is_file() else {}
+    supervisor = load_signed(ctx, directory / "supervisor.json") if (directory / "supervisor.json").is_file() else {}
     alive = lanes._pid_is_alive(supervisor.get("pid", -1)) if supervisor else False
     return dict(campaign_id=campaign_id, status=(result or {}).get("status", "running" if alive else "interrupted"),
                 result=result, events=events, supervisor_alive=alive)
@@ -202,7 +213,7 @@ def _lane_summary(name, lane_ctx, output):
     generic = reason
     if reason in (None, "worker_failed") and output.get("status") != "MASTER_APPROVED" and output.get("final_run_id"):
         try:  # MAF labels every incomplete worker 'worker_failed'; the signed run status knows the cause (scope_violation, test_failed ...)
-            signed = _load(lane_ctx, lane_ctx.run_dir(output["final_run_id"]) / "status.json")
+            signed = load_signed(lane_ctx, lane_ctx.run_dir(output["final_run_id"]) / "status.json")
         except (OSError, ValueError):
             signed = {}
         if signed.get("run_id") != output["final_run_id"]:
@@ -252,9 +263,9 @@ def _final_prompt(spec, directory, lanes, engine, project_review=False):
 
 def run_campaign(ctx, campaign_id, lane_runner=None):
     directory = campaign_dir(ctx, campaign_id)
-    spec = _load(ctx, directory / "campaign.json")
+    spec = load_signed(ctx, directory / "campaign.json")
     if (directory / "result.json").is_file():
-        result = _load(ctx, directory / "result.json")
+        result = load_signed(ctx, directory / "result.json")
         _start_final_master(ctx, directory, spec, result["lanes"])  # no-op once claimed
         return result
     timeout = spec["lane_timeout_seconds"]
@@ -284,7 +295,7 @@ def run_campaign(ctx, campaign_id, lane_runner=None):
                     return
             record = lane_ctx.data_root / "lane.json"
             if record.is_file():
-                done = _load(lane_ctx, record)
+                done = load_signed(lane_ctx, record)
             else:
                 request = dict(lane["request"])
                 source = Path(request["project_root"])
@@ -294,7 +305,7 @@ def run_campaign(ctx, campaign_id, lane_runner=None):
                 request.setdefault("master", "claude")
                 done = {"run_id": create_task(lane_ctx, request, settings=roles.read_settings(ctx.data_root), main_root=ctx.data_root,
                                                    history=lambda: _track_record(ctx))["run_id"]}
-                _save(lane_ctx, record, done)
+                save_signed(lane_ctx, record, done)
             event("lane.started", lane=name, run_id=done["run_id"], resumed=bool(resume))
             output = lane_runner(lane_ctx, done["run_id"])
             summaries[name] = _lane_summary(name, lane_ctx, output)
@@ -313,7 +324,7 @@ def run_campaign(ctx, campaign_id, lane_runner=None):
     approved = all(lane["status"] == "MASTER_APPROVED" for lane in lanes)
     result = dict(campaign_id=campaign_id, status="LANES_APPROVED" if approved else "LANES_NEED_REVIEW",
                   lanes=lanes, completed_at=_now())
-    _save(ctx, directory / "result.json", result)
+    save_signed(ctx, directory / "result.json", result)
     event("campaign.completed", status=result["status"])
     _start_final_master(ctx, directory, spec, lanes)
     return result
@@ -347,6 +358,6 @@ def _start_final_master(ctx, directory, spec, lanes, project_review=False):
         (directory / "final-review.err.log").write_text(completed.stderr[-4000:], encoding="utf8")
     except Exception as error:
         outcome = dict(status="BLOCKED", error=str(error)[:500])
-    _save(ctx, directory / "final.json", dict(outcome, finished_at=_now()))
+    save_signed(ctx, directory / "final.json", dict(outcome, finished_at=_now()))
     with (directory / "events.jsonl").open("a", encoding="utf8") as handle:
         handle.write(json.dumps(dict(event="master.finished", at=_now(), **outcome)) + "\n")

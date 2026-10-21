@@ -9,7 +9,7 @@ from unittest import mock
 from respected_orchestrator.workflows import campaign, project
 from respected_orchestrator.context import EngineContext
 from respected_orchestrator.workflows.maf_workflow import run_maf_coding_task
-from respected_orchestrator.engine.runner import _load, _save
+from respected_orchestrator.engine.evidence import load_signed, save_signed
 
 PY = sys.executable
 
@@ -52,7 +52,7 @@ class ProjectRecoveryTests(unittest.TestCase):
         return project_id
 
     def state(self, project_id):
-        return _load(self.ctx, project.project_dir(self.ctx, project_id) / "project.json")
+        return load_signed(self.ctx, project.project_dir(self.ctx, project_id) / "project.json")
 
     def approve(self, lane_ctx, run_id):
         return run_maf_coding_task(ctx=lane_ctx, run_id=run_id, reviewer=lambda results: {"decision": "APPROVED"})
@@ -76,7 +76,7 @@ class ProjectRecoveryTests(unittest.TestCase):
 
         def lane_runner(ctx, campaign_id, timeout, cancel):
             self.runs.append(campaign_id)
-            _save(ctx, campaign.campaign_dir(ctx, campaign_id) / "result.json", dict(status="LANES_NEED_REVIEW", lanes=[
+            save_signed(ctx, campaign.campaign_dir(ctx, campaign_id) / "result.json", dict(status="LANES_NEED_REVIEW", lanes=[
                 {"name": "a", "status": "FAILED", "reason": "timed_out/no_turn_completed",
                  "final_run_id": "run-20260101000000-aaaa1111", "token_usage": {"estimated_weighted_tokens": 7},
                  "lane_data_root": str(ctx.data_root), "changed_files": []},
@@ -131,7 +131,7 @@ class ProjectRecoveryTests(unittest.TestCase):
 
         def lane_runner(lane_ctx, run_id):
             name = Path(lane_ctx.data_root).name
-            task = _load(lane_ctx, lane_ctx.run_dir(run_id) / "request.json")["task"]
+            task = load_signed(lane_ctx, lane_ctx.run_dir(run_id) / "request.json")["task"]
             seen.append((name, task))
             if name == "a":
                 return self.approve(lane_ctx, run_id)
@@ -188,7 +188,7 @@ class ProjectRecoveryTests(unittest.TestCase):
     def test_a_timed_out_lane_reports_a_non_null_reason(self):
         lane_ctx = EngineContext(self.root / "lane")
         run_id = "run-20260101000000-time0out"
-        _save(lane_ctx, lane_ctx.run_dir(run_id) / "status.json",
+        save_signed(lane_ctx, lane_ctx.run_dir(run_id) / "status.json",
               {"run_id": run_id, "status": "timed_out", "worker_incomplete": "no_turn_completed"})
         summary = campaign._lane_summary("one", lane_ctx, {"status": "FAILED", "reason": None, "final_run_id": run_id})
         self.assertEqual(summary["reason"], "timed_out/no_turn_completed")
@@ -198,7 +198,7 @@ class ProjectRecoveryTests(unittest.TestCase):
     def test_a_scope_violation_is_not_reported_as_the_generic_worker_failed(self):
         lane_ctx = EngineContext(self.root / "lane")
         run_id = "run-20260101000000-scope000"
-        _save(lane_ctx, lane_ctx.run_dir(run_id) / "status.json",
+        save_signed(lane_ctx, lane_ctx.run_dir(run_id) / "status.json",
               {"run_id": run_id, "status": "failed", "reason": "scope_violation"})
         summary = campaign._lane_summary("one", lane_ctx, {"status": "FAILED", "reason": "worker_failed", "final_run_id": run_id})
         self.assertEqual(summary["reason"], "scope_violation")
@@ -208,7 +208,7 @@ class ProjectRecoveryTests(unittest.TestCase):
     def test_a_signed_worker_failure_keeps_worker_failed(self):
         lane_ctx = EngineContext(self.root / "lane")
         run_id = "run-20260101000000-genuine0"
-        _save(lane_ctx, lane_ctx.run_dir(run_id) / "status.json",
+        save_signed(lane_ctx, lane_ctx.run_dir(run_id) / "status.json",
               {"run_id": run_id, "status": "failed", "reason": "worker_failed"})
         summary = campaign._lane_summary("one", lane_ctx, {"status": "FAILED", "reason": "worker_failed", "final_run_id": run_id})
         self.assertEqual(summary["reason"], "worker_failed")
@@ -218,12 +218,12 @@ class ProjectRecoveryTests(unittest.TestCase):
         run_id = "run-20260101000000-bound000"
         status_path = lane_ctx.run_dir(run_id) / "status.json"
         payload = {"run_id": run_id, "status": "failed", "reason": "scope_violation"}
-        _save(lane_ctx, status_path, payload)
+        save_signed(lane_ctx, status_path, payload)
         status_path.write_text(json.dumps({"payload": payload, "signature": "tampered"}), encoding="utf8")
         tampered = campaign._lane_summary("one", lane_ctx, {"status": "FAILED", "reason": "worker_failed", "final_run_id": run_id})
         self.assertEqual(tampered["reason"], "worker_failed")
 
-        _save(lane_ctx, status_path, {"run_id": "run-20260101000000-other00", "status": "failed", "reason": "scope_violation"})
+        save_signed(lane_ctx, status_path, {"run_id": "run-20260101000000-other00", "status": "failed", "reason": "scope_violation"})
         misbound = campaign._lane_summary("one", lane_ctx, {"status": "FAILED", "reason": "worker_failed", "final_run_id": run_id})
         self.assertEqual(misbound["reason"], "worker_failed")
 

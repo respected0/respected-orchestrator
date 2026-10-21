@@ -14,6 +14,7 @@ from respected_orchestrator.workflows import campaign
 from respected_orchestrator.interfaces import memory, rpp
 
 from respected_orchestrator.engine import runner
+from respected_orchestrator.engine.evidence import load_signed
 from respected_orchestrator.context import EngineContext
 
 TOKEN = "rbm_" + "A1b2C3d4" * 4
@@ -167,7 +168,7 @@ class TaskTests(Base):
         return runner.create_task(self.ctx, request, settings=settings)
 
     def policy(self, created):
-        return runner._load(self.ctx, self.ctx.run_dir(created["run_id"]) / "request.json")["memory_policy"]
+        return load_signed(self.ctx, self.ctx.run_dir(created["run_id"]) / "request.json")["memory_policy"]
 
     def test_policy_matrix(self):
         with self.assertRaisesRegex(ValueError, "memory requested but SecondBrain access is not enabled"):
@@ -191,7 +192,7 @@ class TaskTests(Base):
         with self.assertRaisesRegex(ValueError, "not enabled"):
             runner.create_task(lane_ctx, request, settings=settings)
         created = runner.create_task(lane_ctx, request, settings=settings, main_root=self.ctx.data_root)
-        policy = runner._load(lane_ctx, lane_ctx.run_dir(created["run_id"]) / "request.json")["memory_policy"]
+        policy = load_signed(lane_ctx, lane_ctx.run_dir(created["run_id"]) / "request.json")["memory_policy"]
         self.assertEqual(policy, {"use": True, "source": "explicit"})
 
     def test_policy_rejects_bad_requests(self):
@@ -215,7 +216,7 @@ class TaskTests(Base):
         self.assertIn(HEADER, brief)
         self.assertIn("notes/a.md", brief)
         self.assertNotIn(TOKEN, brief)
-        evidence = runner._load(self.ctx, directory / "memory-context.json")
+        evidence = load_signed(self.ctx, directory / "memory-context.json")
         self.assertEqual(set(evidence), {"status", "count", "paths", "scores", "index_state", "dropped",
                                          "dropped_stale", "query_terms", "grant_id"})
         self.assertEqual((evidence["count"], evidence["dropped"], evidence["dropped_stale"]), (3, 2, 1))
@@ -235,7 +236,7 @@ class TaskTests(Base):
                 self.assertEqual(result["status"], "completed", result)
                 self.assertEqual(result["memory"]["status"], status)
                 self.assertNotIn(HEADER, (directory / "brief.md").read_text("utf-8"))
-                self.assertEqual(runner._load(self.ctx, directory / "memory-context.json")["status"], status)
+                self.assertEqual(load_signed(self.ctx, directory / "memory-context.json")["status"], status)
 
     def test_disabled_after_creation_runs_without_memory(self):
         settings = self.hub()

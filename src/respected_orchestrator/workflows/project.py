@@ -10,7 +10,6 @@ import json
 import os
 from pathlib import Path
 import re
-import sys
 import time
 from uuid import uuid4
 
@@ -19,8 +18,10 @@ from ..engine.budget import MAX_BUDGET, UNKNOWN_STEP_TOKENS_DEFAULT
 from . import campaign, roles
 from ..context import EngineContext, engine_command, safe_path
 from ..engine.processes import ProcessStopped, execute
-from ..engine.runner import _command, _load, _save, apply_task
+from ..engine.runner import _command, apply_task
+from ..engine.evidence import load_signed, save_signed
 from ..engine.runner import project_fingerprint as runner_fingerprint
+from ..engine.evidence import key_path
 
 _NAME = re.compile(r"[a-z0-9][a-z0-9-]{0,39}")
 _MAX_PHASES, _MAX_SECONDS, _MAX_ATTEMPTS = 12, 7 * 86400, 3
@@ -98,7 +99,7 @@ def create_project(ctx, request):
     directory = project_dir(ctx, project_id)
     directory.mkdir(parents=True, exist_ok=False)
     phases = {p["name"]: dict(status="pending", attempts=[], applied=[], applied_lanes={}) for p in spec["phases"]}
-    _save(ctx, directory / "project.json", dict(project_id=project_id, spec=spec, status="created", phases=phases,
+    save_signed(ctx, directory / "project.json", dict(project_id=project_id, spec=spec, status="created", phases=phases,
                                                  weighted_tokens=0, unknown_usage_steps=0, created_at=_now(),
                                                  deadline_epoch=time.time() + spec["budget"]["max_seconds"]))
     return project_id, directory
@@ -108,23 +109,23 @@ def _spawn(ctx, project_id, directory, spec):
     engine = campaign._snapshot_engine(ctx, spec["engine_source"])
     command = engine_command("--data-root", str(ctx.data_root), "project-run", project_id)
     pid = lanes._spawn_detached(command, engine, directory / "supervisor.log", env=campaign._engine_env(engine))
-    _save(ctx, directory / "supervisor.json", dict(project_id=project_id, pid=pid, engine=str(engine)))
+    save_signed(ctx, directory / "supervisor.json", dict(project_id=project_id, pid=pid, engine=str(engine)))
     return pid
 
 
 def start_project(ctx, request):
     project_id, directory = create_project(ctx, request)
-    return dict(project_id=project_id, status="started", pid=_spawn(ctx, project_id, directory, _load(ctx, directory / "project.json")["spec"]))
+    return dict(project_id=project_id, status="started", pid=_spawn(ctx, project_id, directory, load_signed(ctx, directory / "project.json")["spec"]))
 
 
 def _supervisor_alive(ctx, directory):
     path = directory / "supervisor.json"
-    return path.is_file() and lanes._pid_is_alive(_load(ctx, path).get("pid", -1))
+    return path.is_file() and lanes._pid_is_alive(load_signed(ctx, path).get("pid", -1))
 
 
 def resume_project(ctx, project_id):
     directory = project_dir(ctx, project_id)
-    state = _load(ctx, directory / "project.json")
+    state = load_signed(ctx, directory / "project.json")
     if state["status"] in _TERMINAL:
         raise ValueError(f"Project is {state['status']}; nothing to resume")
     if _supervisor_alive(ctx, directory):
@@ -134,7 +135,7 @@ def resume_project(ctx, project_id):
 
 def project_status(ctx, project_id):
     directory = project_dir(ctx, project_id)
-    state = _load(ctx, directory / "project.json")
+    state = load_signed(ctx, directory / "project.json")
     state.pop("spec")
     return dict(state, alive=_supervisor_alive(ctx, directory))
 
@@ -177,7 +178,7 @@ def _default_campaign_runner(ctx, campaign_id, timeout, cancel, engine_source):
 def _verify(ctx, phase, cancel):
     for check in phase["verify"]:
         try:
-            command = sandbox.wrap(ctx.data_root, runner._key_path(ctx), check["command"])  # applied worker code: no engine authority
+            command = sandbox.wrap(ctx.data_root, key_path(ctx), check["command"])  # applied worker code: no engine authority
         except sandbox.SandboxError as error:
             return f"verify refused, sandbox unavailable: {str(error)[:200]}"
         done = execute(command, Path(check["cwd"]), check["timeout_seconds"], cancel_path=cancel, scrub_env=True)
@@ -212,7 +213,7 @@ def _lane_spent(ctx, record, assumed):
             result = campaign.campaign_dir(ctx, stage["campaign_id"]) / "result.json" if stage.get("campaign_id") else None
             if result is None or not result.is_file():
                 continue
-            for lane in _load(ctx, result)["lanes"]:
+            for lane in load_signed(ctx, result)["lanes"]:
                 usage = lane.get("token_usage") if isinstance(lane.get("token_usage"), dict) else {}
                 spent[lane["name"]] = (spent.get(lane["name"], 0) + (usage.get("estimated_weighted_tokens") or 0)
                                        + int(lane.get("unknown_usage_steps") or 0) * assumed)
@@ -232,7 +233,7 @@ def _review_retry_roots(ctx, record):
             result = campaign.campaign_dir(ctx, stage["campaign_id"]) / "result.json" if stage.get("campaign_id") else None
             if result is None or not result.is_file():
                 continue
-            for lane in _load(ctx, result)["lanes"]:
+            for lane in load_signed(ctx, result)["lanes"]:
                 if lane.get("reason") in _REVIEW_RETRYABLE and lane.get("final_run_id") and lane.get("lane_data_root"):
                     found[lane["name"]] = lane["lane_data_root"]
                 else:
@@ -295,7 +296,7 @@ def _attempt(ctx, directory, state, phase, attempt, note, runner, cancel):
                 limit = (by_lane[name]["request"].get("workflow") or {}).get("max_weighted_tokens") or phase.get("lane_token_budget")
                 if limit and name not in review_roots and limit - lane_spent.get(name, 0) < 1000:
                     stages.pop()  # nothing was launched for this stage
-                    _save(ctx, directory / "project.json", state)
+                    save_signed(ctx, directory / "project.json", state)
                     return "blocked", f"lane {name} exhausted its token budget ({lane_spent.get(name, 0)} of {limit}); raise it explicitly"
             campaign_id, _ = campaign.create_campaign(ctx, {
                 "goal": f"{spec['goal']} / {phase['name']}",
@@ -306,13 +307,13 @@ def _attempt(ctx, directory, state, phase, attempt, note, runner, cancel):
             attempt.setdefault("started_at", _now())
             if "engine_snapshot" not in attempt:  # one snapshot name per attempt, not one per stage
                 attempt["engine_snapshot"] = campaign._snapshot_engine(ctx, spec["engine_source"]).name
-            _save(ctx, directory / "project.json", state)
+            save_signed(ctx, directory / "project.json", state)
         cdir = campaign.campaign_dir(ctx, stage["campaign_id"])
         if not (cdir / "result.json").is_file():
             runner(ctx, stage["campaign_id"], phase["lane_timeout_seconds"] * len(stage["lanes"]) + 600, cancel)
         if not (cdir / "result.json").is_file():
             return "failed", "campaign produced no result (interrupted or timed out)"
-        lanes = _load(ctx, cdir / "result.json")["lanes"]
+        lanes = load_signed(ctx, cdir / "result.json")["lanes"]
         if "weighted_tokens" not in stage:  # account every started lane once, and persist before any early return
             unaccounted = [lane["name"] for lane in lanes
                            if lane.get("final_run_id") and not isinstance(lane.get("token_usage"), dict)]
@@ -326,9 +327,9 @@ def _attempt(ctx, directory, state, phase, attempt, note, runner, cancel):
             state["unknown_usage_steps"] = state.get("unknown_usage_steps", 0) + unknown_steps
             if unaccounted:
                 attempt["unaccounted"] = unaccounted
-                _save(ctx, directory / "project.json", state)
+                save_signed(ctx, directory / "project.json", state)
                 return "blocked", f"token usage unknown for lane {unaccounted[0]}"
-            _save(ctx, directory / "project.json", state)
+            save_signed(ctx, directory / "project.json", state)
         _merge_lanes(attempt, lanes)
         bad = [lane for lane in lanes if lane["status"] != "MASTER_APPROVED"]
         applied_so_far = attempt.setdefault("applied", [])
@@ -355,10 +356,10 @@ def _attempt(ctx, directory, state, phase, attempt, note, runner, cancel):
                 stage["applied"].append(lane["name"])
                 if lane["name"] not in applied_so_far:
                     applied_so_far.append(lane["name"])
-                _save(ctx, directory / "project.json", state)
+                save_signed(ctx, directory / "project.json", state)
         if bad:
             attempt["failed_lanes"] = [lane["name"] for lane in bad]
-            _save(ctx, directory / "project.json", state)
+            save_signed(ctx, directory / "project.json", state)
             return "failed", "lanes not approved: " + "; ".join(
                 f"{lane['name']}: {lane['status']}/{lane.get('reason')}" for lane in bad)
         if not phase["auto_apply"]:
@@ -367,7 +368,7 @@ def _attempt(ctx, directory, state, phase, attempt, note, runner, cancel):
             return "blocked", "token budget exceeded"
         index += 1
         attempt["stage_index"] = index
-        _save(ctx, directory / "project.json", state)
+        save_signed(ctx, directory / "project.json", state)
     problem = _verify(ctx, phase, cancel)
     return ("failed", problem) if problem else ("done", "")
 
@@ -377,13 +378,13 @@ def run_project(ctx, project_id, campaign_runner=None, clock=time.time):
     lock = _acquire(directory)
     cancel = directory / "cancel"
     try:
-        state = _load(ctx, directory / "project.json")
+        state = load_signed(ctx, directory / "project.json")
         spec = state["spec"]
         runner = campaign_runner or (lambda c, cid, timeout, cancel_path: _default_campaign_runner(c, cid, timeout, cancel_path, spec["engine_source"]))
 
         def finish(status, reason=None):
             state.update(status=status, reason=reason, finished_at=_now())
-            _save(ctx, directory / "project.json", state)
+            save_signed(ctx, directory / "project.json", state)
             return state
 
         if state["status"] in _TERMINAL:
@@ -392,7 +393,7 @@ def run_project(ctx, project_id, campaign_runner=None, clock=time.time):
             return state
         state["status"] = "running"
         while True:
-            _save(ctx, directory / "project.json", state)
+            save_signed(ctx, directory / "project.json", state)
             if cancel.exists():
                 return finish("cancelled")
             if clock() > state["deadline_epoch"]:
@@ -443,7 +444,7 @@ def run_project(ctx, project_id, campaign_runner=None, clock=time.time):
 def final_review(ctx, project_id):
     """Fresh Claude Master over the verified outcome (read-only, no apply). Exactly once."""
     directory = project_dir(ctx, project_id)
-    state = _load(ctx, directory / "project.json")
+    state = load_signed(ctx, directory / "project.json")
     if state["spec"]["final_review"] and state["status"] == "completed":
         lanes = []
         roots = {lane["request"]["project_root"] for phase in state["spec"]["phases"] for lane in phase["workstreams"]}

@@ -11,6 +11,7 @@ import tempfile
 from pathlib import Path
 
 from ..engine import winproc
+from ..engine.evidence import restrict_key
 
 TOKEN_FILE = "memory-token"
 TOKEN_RE = re.compile(r"^rbm_[A-Za-z0-9_-]{20,100}\Z")
@@ -37,8 +38,6 @@ def _token_path(data_root):
 def store_token(data_root, token):
     if not isinstance(token, str) or not TOKEN_RE.match(token):
         raise ValueError("Invalid memory token format")
-    from ..engine import runner  # lazy: avoids an import cycle
-
     path = _token_path(data_root)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f"{TOKEN_FILE}.{os.getpid()}.{os.urandom(4).hex()}.tmp")
@@ -46,7 +45,7 @@ def store_token(data_root, token):
     try:
         # Restrict the EMPTY file first: on Windows os.open's mode is ignored, so the file starts with the folder's inherited ACL,
         # and writing the secret before icacls ran (about 100 ms) would leave a window where other local users could read it.
-        runner._restrict_key(tmp)
+        restrict_key(tmp)
         with open(tmp, "wb") as handle:
             handle.write(token.encode("ascii"))
             handle.flush()

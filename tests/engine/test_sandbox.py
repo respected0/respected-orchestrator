@@ -9,10 +9,12 @@ from pathlib import Path
 from respected_orchestrator.engine import runner, sandbox
 from respected_orchestrator.context import EngineContext
 from respected_orchestrator.engine.processes import execute
+from respected_orchestrator.engine.evidence import signature, signing_key
 
 # Everything an attacker-controlled acceptance command would try. Each entry is "name: outcome".
 PROBE = r'''
 import json, os, subprocess, sys
+from respected_orchestrator.engine.evidence import signature, signing_key
 data, key, worktree = sys.argv[1:4]
 out = {}
 def attempt(name, action):
@@ -65,7 +67,7 @@ class SandboxBoundaryTest(unittest.TestCase):
         run.mkdir(parents=True)
         (run / "result.json").write_text('{"status": "ok"}', encoding="utf-8")
         self.key_path = self.ctx.data_root / ".engine-key"
-        runner._key(self.ctx)                      # created the way the engine does (private ACL)
+        signing_key(self.ctx)                      # created the way the engine does (private ACL)
         self.worktree = self.ctx.data_root / "workspaces" / "lane"
         self.worktree.mkdir(parents=True)
         self.addCleanup(lambda: __import__("shutil").rmtree(self.root, ignore_errors=True))
@@ -84,7 +86,7 @@ class SandboxBoundaryTest(unittest.TestCase):
                      "read_key_via_long_path_prefix", "hardlink_key_into_worktree", "read_key_via_junction", "take_ownership"):
             self.assertTrue(result[name].startswith("denied"), f"{name}: {result[name]}")
         # untouched afterwards, and the engine itself (no restricting SID) still works as before
-        self.assertEqual(len(runner._key(self.ctx)), 32)
+        self.assertEqual(len(signing_key(self.ctx)), 32)
         self.assertEqual(json.loads((self.ctx.data_root / "state" / "run-1" / "result.json").read_text("utf-8")), {"status": "ok"})
         self.assertFalse((self.ctx.data_root / "state" / "run-1" / "maf-approval.json").exists())
         self.assertFalse((self.ctx.data_root / "planted.json").exists())
@@ -106,11 +108,11 @@ class SandboxBoundaryTest(unittest.TestCase):
 
     def test_signed_evidence_cannot_be_forged_without_the_key(self):
         payload = {"run_id": "run-1", "status": "approved"}
-        genuine = runner._signature(self.ctx, payload)
+        genuine = signature(self.ctx, payload)
         self.assertEqual(len(genuine), 64)
         script = ("import sys; sys.path.insert(0, sys.argv[1]); from respected_orchestrator.engine import runner;"
                   "from respected_orchestrator.context import EngineContext; from pathlib import Path;"
-                  "runner._signature(EngineContext(Path(sys.argv[2])), {'x': 1})")
+                  "signature(EngineContext(Path(sys.argv[2])), {'x': 1})")
         src = str(Path(runner.__file__).resolve().parents[2])
         command = sandbox.wrap(self.ctx.data_root, self.key_path, [sys.executable, "-c", script, src, str(self.ctx.data_root)])
         done = execute(command, self.worktree, 120)

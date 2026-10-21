@@ -10,7 +10,7 @@ from respected_orchestrator.workflows import campaign, project
 from respected_orchestrator.context import EngineContext
 from respected_orchestrator.workflows.maf_workflow import run_maf_coding_task
 from respected_orchestrator.engine.processes import ProcessStopped
-from respected_orchestrator.engine.runner import _load, _save
+from respected_orchestrator.engine.evidence import load_signed, save_signed
 
 PY = sys.executable
 
@@ -56,7 +56,7 @@ class ProjectAdversarialTests(unittest.TestCase):
         return project_id
 
     def state(self, project_id):
-        return _load(self.ctx, project.project_dir(self.ctx, project_id) / "project.json")
+        return load_signed(self.ctx, project.project_dir(self.ctx, project_id) / "project.json")
 
     def test_crash_right_after_apply_resumes_without_a_second_apply(self):
         phase = self.phase("one", "f.txt", write_if("", "f.txt", "new\n"), check_file("f.txt", "new\n"))
@@ -129,7 +129,7 @@ class ProjectAdversarialTests(unittest.TestCase):
         directory = project.project_dir(self.ctx, project_id)
         state = self.state(project_id)
         state["weighted_tokens"] = 6
-        _save(self.ctx, directory / "project.json", state)
+        save_signed(self.ctx, directory / "project.json", state)
         called = []
         result = project.run_project(self.ctx, project_id, campaign_runner=lambda *a: called.append(a))
         self.assertEqual((result["status"], result["reason"]), ("blocked", "token budget exceeded"))
@@ -142,7 +142,7 @@ class ProjectAdversarialTests(unittest.TestCase):
         directory = project.project_dir(self.ctx, late)
         state = self.state(late)
         state["deadline_epoch"] = 1.0
-        _save(self.ctx, directory / "project.json", state)
+        save_signed(self.ctx, directory / "project.json", state)
         blocked = project.run_project(self.ctx, late, campaign_runner=self.runner)
         self.assertEqual((blocked["status"], blocked["reason"]), ("blocked", "time budget exceeded"))
         self.assertEqual(self.runs, [])

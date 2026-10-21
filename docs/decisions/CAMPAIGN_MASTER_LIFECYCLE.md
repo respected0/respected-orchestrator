@@ -5,6 +5,8 @@ parallel DeepSeek/GLM lanes → completion event → new Claude cycle operationa
 
 - `campaign-start` persists a signed spec, snapshots the engine and detaches a
   supervisor (`campaign-run`). The caller (the Claude master) exits; nothing polls.
+- `campaign-list` names the campaigns of a data root, newest first (the Hub asks the engine instead of reading its folders);
+  `campaign-status <id>` reports one of them.
 - Each workstream is a separate DataRoot (own WriterLock, key, state, worktrees),
   so lanes run as real parallel processes; `after` expresses dependencies. A lane
   whose dependency is not `MASTER_APPROVED` is `SKIPPED`.

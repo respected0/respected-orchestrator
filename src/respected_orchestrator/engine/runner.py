@@ -2,7 +2,6 @@
 import datetime as dt
 import getpass
 import hashlib
-import hmac
 import json
 import os
 from pathlib import Path
@@ -14,10 +13,11 @@ import time
 from uuid import uuid4
 
 from . import lanes, sandbox
-from . import budget, winproc
+from . import budget, track_record, winproc
+from .evidence import key_path, load_signed, save_signed
 from ..interfaces import memory
 from ..workflows import roles
-from ..context import EngineContext, atomic_write_json, engine_command, safe_path, validate_project
+from ..context import EngineContext, engine_command, safe_path, validate_project
 from .processes import ProcessStopped, execute
 from .codex import _is_turn_completed, stream_verified_complete
 
@@ -42,11 +42,6 @@ TERMINAL = {"completed", "failed", "cancelled", "timed_out", "interrupted"}
 # the brief travels as one command-line argument; Windows caps a command line at 32 767 characters (audit P1 #18)
 MAX_TASK_CHARS = 20000 if sys.platform == "win32" else 60000
 LOCAL_CODEX = Path(__file__).resolve().parents[3] / ".runtime" / "codex-0.162.0-alpha.20" / "bin" / "codex.exe"
-
-
-def slugify(text: str) -> str:
-    cleaned = re.sub(r"[^\w\s-]", "", text.lower())
-    return re.sub(r"[-\s]+", "-", cleaned).strip("-")[:40] or "task"
 
 
 def get_cli_command(agent: str) -> list[str] | None:
@@ -200,71 +195,6 @@ def _codex_metadata(stdout):
     }
 
 
-_RESTRICTED_KEYS = set()
-
-
-def _restrict_key(path):
-    # Windows: drop inherited ACEs so only this user (not the Codex sandbox users) can read the key.
-    if os.name != "nt" or path in _RESTRICTED_KEYS:
-        return
-    user = f"{os.environ.get('USERDOMAIN', '')}\\{os.environ['USERNAME']}".lstrip("\\")
-    winproc.run([winproc.system_tool("icacls"), str(path), "/inheritance:r", "/grant:r", f"{user}:(F)"],
-                   capture_output=True, check=True, timeout=30)
-    _RESTRICTED_KEYS.add(path)
-
-
-def _key_path(ctx):
-    _key(ctx)  # makes sure it exists with its private ACL before the sandbox denies itself access
-    return safe_path(ctx.data_root / ".engine-key")
-
-
-def _key(ctx):
-    path = safe_path(ctx.data_root / ".engine-key")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not path.exists():
-        # Create privately, close the ACL while the file is still empty, write the secret, then publish atomically:
-        # the key path never exists with secret bytes under an inherited ACL, nor half-written.
-        tmp = path.with_name(f".engine-key.{os.getpid()}.{os.urandom(4).hex()}.tmp")
-        descriptor = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        try:
-            with os.fdopen(descriptor, "wb") as handle:
-                _restrict_key(tmp)
-                handle.write(os.urandom(32))
-                handle.flush()
-                os.fsync(handle.fileno())
-            os.link(tmp, path)  # fails if another process published first: then its key wins
-        except FileExistsError:
-            pass
-        finally:
-            _RESTRICTED_KEYS.discard(tmp)
-            tmp.unlink(missing_ok=True)
-    _restrict_key(path)
-    key = path.read_bytes()
-    if os.name != "nt" and path.stat().st_mode & 0o077:
-        path.chmod(0o600)  # POSIX only; Windows relies on the user-profile ACL of the data root
-    if len(key) != 32:
-        raise ValueError("Invalid engine key; preserve existing evidence")
-    return key
-
-
-def _signature(ctx, payload):
-    return hmac.new(_key(ctx), json.dumps(payload, sort_keys=True, ensure_ascii=True).encode(), hashlib.sha256).hexdigest()
-
-
-def _save(ctx, path, payload):
-    atomic_write_json(path, {"payload": payload, "signature": _signature(ctx, payload)})
-
-
-def _load(ctx, path):
-    envelope = json.loads(safe_path(path).read_text(encoding="utf8"))
-    if not isinstance(envelope, dict) or not isinstance(envelope.get("payload"), dict):
-        raise ValueError("Invalid owned evidence")
-    payload = envelope["payload"]
-    if not hmac.compare_digest(str(envelope.get("signature", "")), _signature(ctx, payload)):
-        raise ValueError("Evidence tampered")
-    return payload
-
-
 def _drop_bytecode(root):
     for path in Path(root).rglob("__pycache__"):
         if path.is_dir() and not path.is_symlink():
@@ -403,7 +333,6 @@ def _explicit_roles(request, workflow):
 
 
 def _track_record(ctx):
-    from . import track_record  # imports runner, so it is loaded only when automatic assignment needs it
     return track_record.stats(ctx.data_root)
 
 
@@ -553,14 +482,14 @@ def create_task(ctx: EngineContext, request: dict, *, settings: dict | None = No
                    correction_round=correction_round,
                    inherited_patch_run_id=inherited_patch_run_id,
                    inherited_patch_sha256=inherited_patch_sha256, apply_root=apply_root, memory_policy=memory_policy)
-    _save(ctx, directory / "request.json", payload)
-    _save(ctx, directory / "status.json", {"run_id": run_id, "status": "queued"})
+    save_signed(ctx, directory / "request.json", payload)
+    save_signed(ctx, directory / "status.json", {"run_id": run_id, "status": "queued"})
     return {"run_id": run_id, "status": "queued"}
 
 
 def _write_status(ctx, directory, status, **details):
     payload = dict(run_id=directory.name, status=status, updated_at=dt.datetime.now(dt.timezone.utc).isoformat(), **details)
-    _save(ctx, directory / "status.json", payload)
+    save_signed(ctx, directory / "status.json", payload)
     return payload
 
 
@@ -572,9 +501,9 @@ def _validated_inherited_patch(ctx: EngineContext, request: dict, project: Path)
     if not isinstance(expected_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_sha256):
         raise ValueError("Inherited patch hash is invalid")
     prior_directory = ctx.run_dir(prior_run_id)
-    prior_request = _load(ctx, prior_directory / "request.json")
-    prior_status = _load(ctx, prior_directory / "status.json")
-    prior_result = _load(ctx, prior_directory / "result.json")
+    prior_request = load_signed(ctx, prior_directory / "request.json")
+    prior_status = load_signed(ctx, prior_directory / "status.json")
+    prior_result = load_signed(ctx, prior_directory / "result.json")
     prior_parent = prior_request.get("correction_of")
     valid_parent = (
         prior_parent == request["correction_of"]
@@ -614,7 +543,7 @@ def _memory_context(ctx, directory, request):
                     "grant_id": result.get("grant_id")}
         if result.get("code"):
             evidence["code"] = result["code"]
-        _save(ctx, directory / "memory-context.json", evidence)
+        save_signed(ctx, directory / "memory-context.json", evidence)
         return memory.context_block(result), {"status": evidence["status"], "count": evidence["count"]}
     except Exception:
         return "", {"status": "error", "count": 0}
@@ -622,8 +551,8 @@ def _memory_context(ctx, directory, request):
 
 def execute_task(ctx: EngineContext, run_id: str) -> dict:
     directory = ctx.run_dir(run_id)
-    request = _load(ctx, directory / "request.json")
-    status = _load(ctx, directory / "status.json")
+    request = load_signed(ctx, directory / "request.json")
+    status = load_signed(ctx, directory / "status.json")
     if status["status"] in TERMINAL:
         return status
     claim = safe_path(directory / ".execute-claim")
@@ -734,7 +663,7 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
         generated_seen = list(changes.generated)  # what the worker left, reported even though bytecode is dropped below
         _drop_bytecode(lane.worktree)  # worker-planted bytecode is excluded from the patch, so it must not decide acceptance (audit P1 #19)
         try:
-            sandboxed = [sandbox.wrap(ctx.data_root, _key_path(ctx), command) for command in request["acceptance"]]
+            sandboxed = [sandbox.wrap(ctx.data_root, key_path(ctx), command) for command in request["acceptance"]]
         except sandbox.SandboxError as error:  # fail closed: worker-written code never runs with the engine's authority
             return _write_status(ctx, directory, "failed", reason="sandbox_unavailable", detail=str(error)[:300], **details)
         for index, (command, wrapped) in enumerate(zip(request["acceptance"], sandboxed), 1):
@@ -757,7 +686,7 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
                       generated_artifacts=generated_seen[:100], generated_artifact_count=len(generated_seen),
                       patch_sha256=patch.sha256, project_fingerprint=request["project_fingerprint"],
                       duration_seconds=round(time.monotonic() - started, 3), **details)
-        _save(ctx, directory / "result.json", result)
+        save_signed(ctx, directory / "result.json", result)
         return _write_status(ctx, directory, "completed", **{k: v for k, v in result.items() if k not in {"run_id", "status"}})
     except ProcessStopped as error:
         (directory / "stopped.log").write_text(lanes._redact(error.stdout + "\n" + error.stderr), encoding="utf8")
@@ -774,20 +703,20 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
 
 def start_task(ctx, run_id):
     directory = ctx.run_dir(run_id)
-    _load(ctx, directory / "request.json")
-    if _load(ctx, directory / "status.json")["status"] != "queued":
+    load_signed(ctx, directory / "request.json")
+    if load_signed(ctx, directory / "status.json")["status"] != "queued":
         raise ValueError("Only queued tasks can start")
     source = str(Path(__file__).resolve().parents[2])  # src/
     env = dict(os.environ, PYTHONPATH=source)
     command = engine_command("--data-root", str(ctx.data_root), "_execute", run_id)
     pid = lanes._spawn_detached(command, ctx.app_root, directory / "supervisor.log", env=env)
-    _save(ctx, directory / "supervisor.json", dict(run_id=run_id, pid=pid))
+    save_signed(ctx, directory / "supervisor.json", dict(run_id=run_id, pid=pid))
     return dict(run_id=run_id, status="queued", pid=pid)
 
 
 def cancel_task(ctx, run_id):
     directory = ctx.run_dir(run_id)
-    status = _load(ctx, directory / "status.json")
+    status = load_signed(ctx, directory / "status.json")
     if status["status"] in TERMINAL:
         return status
     safe_path(directory / "cancel.request").touch(exist_ok=True)
@@ -796,12 +725,12 @@ def cancel_task(ctx, run_id):
 
 def inspect_task(ctx, run_id):
     directory = ctx.run_dir(run_id)
-    request = _load(ctx, directory / "request.json")
-    status = _load(ctx, directory / "status.json")
+    request = load_signed(ctx, directory / "request.json")
+    status = load_signed(ctx, directory / "status.json")
     if status["status"] == "running" and not lanes._pid_is_alive(status.get("pid", -1)):
         status = {**status, "status": "interrupted", "reason": "supervisor_exited"}
     elif status["status"] == "queued" and (directory / "supervisor.json").is_file():
-        supervisor = _load(ctx, directory / "supervisor.json")
+        supervisor = load_signed(ctx, directory / "supervisor.json")
         if not lanes._pid_is_alive(supervisor.get("pid", -1)):
             status = {**status, "status": "interrupted", "reason": "supervisor_exited"}
     logs = {}
@@ -833,9 +762,9 @@ def list_tasks(ctx):
 
 def check_result(ctx, run_id, *, maf_gate=True, accepted_fingerprints=()):
     directory = ctx.run_dir(run_id)
-    request = _load(ctx, directory / "request.json")
-    status = _load(ctx, directory / "status.json")
-    result = _load(ctx, directory / "result.json") if (directory / "result.json").is_file() else {}
+    request = load_signed(ctx, directory / "request.json")
+    status = load_signed(ctx, directory / "status.json")
+    result = load_signed(ctx, directory / "result.json") if (directory / "result.json").is_file() else {}
     if status["status"] != "completed" or result.get("status") != "completed":
         raise ValueError("Unsuccessful or pending result cannot be accepted")
     if result.get("run_id") != run_id or result.get("project_fingerprint") != request["project_fingerprint"]:
@@ -844,12 +773,12 @@ def check_result(ctx, run_id, *, maf_gate=True, accepted_fingerprints=()):
         raise ValueError("Result has no successful acceptance evidence")
     maf_result_path = directory / "maf-result.json"
     if maf_gate and maf_result_path.is_file():  # maf_gate=False: re-verify a completed worker before it is (re)reviewed
-        maf_result = _load(ctx, maf_result_path)
+        maf_result = load_signed(ctx, maf_result_path)
         if maf_result["status"] != "MASTER_APPROVED":
             approval_path = directory / "maf-approval.json"
             if maf_result["status"] != "HUMAN_APPROVAL_REQUIRED" or not approval_path.is_file():
                 raise ValueError("MAF approval is required before acceptance")
-            approval = _load(ctx, approval_path)
+            approval = load_signed(ctx, approval_path)
             if (approval.get("run_id") != run_id
                     or approval.get("root_run_id") != maf_result.get("root_run_id")):
                 raise ValueError("MAF approval does not belong to this run")
@@ -881,16 +810,16 @@ def apply_task(ctx, run_id, accepted_fingerprints=()):
     if marker.is_file():
         raise ValueError("Patch already applied")
     verified = check_result(ctx, run_id, accepted_fingerprints=accepted_fingerprints)
-    request = _load(ctx, directory / "request.json")
+    request = load_signed(ctx, directory / "request.json")
     project = validate_project(ctx, Path(request.get("apply_root") or request["project_root"]))
     patch = Path(verified["patch"])
     if patch.stat().st_size:
         # --check first: a changed source (stale context) must fail before anything is written.
         lanes._git(project, "apply", "--check", "--binary", "--whitespace=nowarn", str(patch))
         lanes._git(project, "apply", "--binary", "--whitespace=nowarn", str(patch))
-    applied = dict(run_id=run_id, patch_sha256=_load(ctx, directory / "result.json")["patch_sha256"],
+    applied = dict(run_id=run_id, patch_sha256=load_signed(ctx, directory / "result.json")["patch_sha256"],
                    changed_files=verified["changed_files"], applied_at=dt.datetime.now(dt.timezone.utc).isoformat())
-    _save(ctx, marker, applied)
+    save_signed(ctx, marker, applied)
     return dict(applied, status="applied")
 
 
@@ -903,14 +832,14 @@ def approve_maf_task(ctx, run_id):
     if not _stdin_is_tty():
         raise ValueError("Human approval requires an interactive terminal")
     directory = ctx.run_dir(run_id)
-    maf_result = _load(ctx, directory / "maf-result.json")
+    maf_result = load_signed(ctx, directory / "maf-result.json")
     if maf_result["status"] != "HUMAN_APPROVAL_REQUIRED":
         raise ValueError("Only human-approval-required MAF results can be approved")
     if (directory / "maf-approval.json").is_file():
         raise ValueError("MAF approval already recorded; it is immutable")
     # Bind the approval to the exact reviewed result so it cannot be replayed onto a changed patch.
-    status = _load(ctx, directory / "status.json")
-    result = _load(ctx, directory / "result.json") if (directory / "result.json").is_file() else {}
+    status = load_signed(ctx, directory / "status.json")
+    result = load_signed(ctx, directory / "result.json") if (directory / "result.json").is_file() else {}
     patch = safe_path(directory / "worker.patch")
     if (status.get("status") != "completed" or result.get("status") != "completed"
             or result.get("run_id") != run_id or not patch.is_file()
@@ -918,7 +847,7 @@ def approve_maf_task(ctx, run_id):
         raise ValueError("Only an intact completed result can be approved")
     approval = dict(run_id=run_id, root_run_id=maf_result["root_run_id"], patch_sha256=result["patch_sha256"],
                     approved_by=getpass.getuser(), approved_at=dt.datetime.now(dt.timezone.utc).isoformat())
-    _save(ctx, directory / "maf-approval.json", approval)
+    save_signed(ctx, directory / "maf-approval.json", approval)
     return approval
 
 
@@ -942,10 +871,10 @@ def retry_task(ctx, run_id):
             again["memory"] = {k: policy[k] for k in ("use", "query") if k in policy}
         created = create_task(ctx, again)
         directory = ctx.run_dir(created["run_id"])
-        next_request = _load(ctx, directory / "request.json")
+        next_request = load_signed(ctx, directory / "request.json")
         next_request.update(retry_of=run_id, retry_depth=request["retry_depth"] + 1)
-        _save(ctx, directory / "request.json", next_request)
-        _save(ctx, ctx.run_dir(run_id) / 'retry.json', dict(run_id=run_id, retry_run_id=created['run_id']))
+        save_signed(ctx, directory / "request.json", next_request)
+        save_signed(ctx, ctx.run_dir(run_id) / 'retry.json', dict(run_id=run_id, retry_run_id=created['run_id']))
         return created
     except Exception:
         claim.unlink()

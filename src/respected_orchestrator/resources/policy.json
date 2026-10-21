@@ -1,9 +1,0 @@
-{
-  "schema_version": 1,
-  "worker_executable_candidates": ["agy", "agy.exe", "agy.cmd"],
-  "workspace_root": "",
-  "max_active_write_workers": 1,
-  "read_timeout_seconds": 900,
-  "write_timeout_seconds": 1800,
-  "dangerously_skip_permissions": false
-}

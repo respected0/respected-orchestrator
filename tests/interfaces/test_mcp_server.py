@@ -10,6 +10,7 @@ from respected_orchestrator.interfaces import mcp_server
 
 from respected_orchestrator.engine import runner
 from respected_orchestrator.context import EngineContext
+from respected_orchestrator.engine.evidence import save_signed
 
 SRC = str(Path(__file__).resolve().parents[2] / "src")
 
@@ -38,7 +39,7 @@ class McpServerTest(unittest.TestCase):
     def test_apply_needs_the_verified_digest_and_ids_are_validated(self):
         run = self.ctx.run_dir("run-x1")
         run.mkdir(parents=True)
-        runner._save(self.ctx, run / "result.json", {"patch_sha256": "abc"})
+        save_signed(self.ctx, run / "result.json", {"patch_sha256": "abc"})
         bad = call(self.ctx, "orchestrator_apply", {"run_id": "run-x1", "patch_sha256": "zzz"})["result"]
         self.assertTrue(bad["isError"])
         self.assertIn("does not match", bad["content"][0]["text"])

@@ -10,10 +10,10 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
+from ..engine.track_record import MIN_RUNS
 from ..context import safe_path
 
 ROLE_RE = re.compile(r"[a-z][a-z0-9_]{0,39}\Z")
-KNOWN_ROLES = ("master", "planner", "implementer", "reviewer", "deep_reviewer", "debugger", "tester", "coordinator")
 SOURCES = ("explicit", "hub_default", "auto")
 DEFAULT_TOOL = "codex"
 DEFAULT_BLOCKED = "mimo"  # a user-editable deny list for whole profiles, never a model-to-role rule
@@ -137,7 +137,7 @@ def validate_settings(settings: Mapping[str, Any], tools: list[str]) -> list[dic
 
 
 def _hub_defaults(settings: Mapping[str, Any], tools: list[str]) -> dict[str, dict[str, Any]]:
-    """Role -> assignment configured in the Hub. Legacy keys map to implementer/reviewer; default_roles wins."""
+    """Role -> assignment configured in the Hub. The simple default_worker/default_reviewer settings map to implementer/reviewer; default_roles wins."""
     defaults = {
         "implementer": {"tool": settings.get("default_worker") or DEFAULT_TOOL,
                         "profile": settings.get("default_worker_profile") or "", "fallbacks": []},
@@ -181,7 +181,6 @@ def recommend(role, pool, settings, available, fallback_tool, peers, history):
     smoothed success rate, then using a profile no other role already uses (soft), then lower average tokens, then pool
     order. With fewer than MIN_RUNS recorded runs for every candidate there is no evidence: the first candidate is
     returned and the reason says it is only the first listed, not a recommendation."""
-    from ..engine.track_record import MIN_RUNS
     family = "write" if role in WRITE_ROLES else "read"
     table = history() if history else {}
     rows, excluded = [], []

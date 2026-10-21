@@ -15,7 +15,8 @@ from respected_orchestrator.context import EngineContext
 from respected_orchestrator.workflows.maf_workflow import (ReviewerDisconnectedError, ReviewerTimeoutError, review_attempt_timeouts,
                                                  review_timeout_default, run_maf_coding_task)
 from respected_orchestrator.engine.processes import ProcessStopped
-from respected_orchestrator.engine.runner import _load, apply_task, check_result, create_task, execute_task
+from respected_orchestrator.engine.runner import apply_task, check_result, create_task, execute_task
+from respected_orchestrator.engine.evidence import load_signed
 from respected_orchestrator.engine.codex import CodexCall, CodexOutcome, diagnose, run_codex_call
 
 PY = sys.executable
@@ -138,7 +139,7 @@ class MockedReviewTests(CodingFixture):
         self.assertEqual(output["status"], "MASTER_APPROVED")
         first, second = (call.kwargs["timeout_seconds"] for call in codex.call_args_list)
         self.assertEqual((first, second), (600, 900))
-        attempts = _load(self.ctx, self.ctx.run_dir(run_id) / "review-attempts.json")["attempts"]
+        attempts = load_signed(self.ctx, self.ctx.run_dir(run_id) / "review-attempts.json")["attempts"]
         self.assertEqual([a["status"] for a in attempts], ["reviewer_timeout", "COMPLETE"])
         self.assertEqual(len({a["evidence"] for a in attempts}), 2)  # a retry never overwrites the failed review's evidence
         self.assertEqual(output["token_usage"]["estimated_weighted_tokens"], 100 + 5 + 7)  # worker + failed review + review
@@ -152,7 +153,7 @@ class MockedReviewTests(CodingFixture):
         failure = output["review_failure"]
         self.assertEqual((failure["cause"], failure["retryable"], len(failure["attempts"])), ("timeout_stalled_after_output", True, 2))
         self.assertEqual(output["token_usage"]["estimated_weighted_tokens"], 100 + 5 + 5)  # failed reviews still cost tokens
-        saved = _load(self.ctx, self.ctx.run_dir(run_id) / "maf-result.json")
+        saved = load_signed(self.ctx, self.ctx.run_dir(run_id) / "maf-result.json")
         self.assertEqual((saved["status"], saved["reason"]), ("FAILED", "reviewer_timeout"))
 
     def test_a_lost_connection_is_a_distinct_retryable_failure(self):
@@ -220,7 +221,7 @@ class ReviewOnlyRetryTests(CodingFixture):
         self.assertEqual(check_result(self.ctx, run_id)["status"], "verified")
         history = sorted((self.ctx.run_dir(run_id) / "maf-history").glob("*.json"))
         self.assertEqual(len(history), 1)  # the failed outcome is kept, not overwritten
-        self.assertEqual(_load(self.ctx, history[0])["reason"], "reviewer_timeout")
+        self.assertEqual(load_signed(self.ctx, history[0])["reason"], "reviewer_timeout")
         self.assertEqual(first["token_usage"]["estimated_weighted_tokens"], 100)  # the invocation that coded it
         self.assertEqual(second["token_usage"]["estimated_weighted_tokens"], 0)  # the retry spent no worker tokens
         self.assertEqual(second["token_usage_lifetime"]["estimated_weighted_tokens"], 100)  # and nothing is counted twice
@@ -246,7 +247,7 @@ class ReviewOnlyRetryTests(CodingFixture):
             output = run_maf_coding_task(ctx=self.ctx, run_id=run_id, reviewer=self.approve)
         self.assertEqual((output["status"], output["reason"]), ("FAILED", "reuse_verification_failed"))
         self.assertEqual(self.worker_runs(), 1)
-        saved = _load(self.ctx, self.ctx.run_dir(run_id) / "maf-result.json")
+        saved = load_signed(self.ctx, self.ctx.run_dir(run_id) / "maf-result.json")
         self.assertNotEqual(saved["status"], "MASTER_APPROVED")
 
     def test_a_project_that_changed_meanwhile_is_not_reused(self):
