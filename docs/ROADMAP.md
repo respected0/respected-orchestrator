@@ -34,3 +34,8 @@
 
 - [ ] Hata ve ipucu metinleri Hub kuruluysa "Hub'da açın", değilse ürünün kendi komutunu söylemeli
   (`engine/runner.py` hafıza hatası, `workflows/roles.py`, `resources/skills/kod-orkestrasyon/SKILL.md`).
+
+## Güncelleme
+
+- [ ] `repair` içinde veri taşıma adımı yok: ayar/kayıt dosyaları `schema_version` farklıysa hata veriyor. Biçim değişen
+  ilk sürümden önce eski biçimi yerinde taşıyan adım eklenmeli (sözleşme §başı, "kişinin verisi" istisnası).
