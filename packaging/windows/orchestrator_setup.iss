@@ -32,9 +32,15 @@ UninstallDisplayIcon={app}\respected-orchestrator.exe
 CloseApplications=yes
 SetupLogging=yes
 WizardStyle=modern
+InfoBeforeFile=orchestrator_info.txt
 
 [Languages]
 Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
+
+[Messages]
+; the ready page's button is "Kur", not "Sonraki"
+turkish.ReadyLabel2a=Kuruluma devam etmek için Kur düğmesine, ayarları gözden geçirmek ya da değiştirmek için Önceki düğmesine tıklayın.
+turkish.ReadyLabel2b=Kuruluma başlamak için Kur düğmesine tıklayın.
 
 [Files]
 Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
