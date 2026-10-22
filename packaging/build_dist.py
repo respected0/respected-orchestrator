@@ -25,8 +25,9 @@ LAUNCHER = "respected-orchestrator.exe" if os.name == "nt" else "respected-orche
 
 def source_version() -> str:
     """The version of the source being frozen (not of whatever copy happens to be pip-installed)."""
-    text = (ROOT / "src/respected_orchestrator/__init__.py").read_text(encoding="utf-8")
-    return re.search(r'__version__\s*=\s*"([^"]+)"', text).group(1)
+    from packaging.version import Version
+    text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    return str(Version(re.search(r'^version\s*=\s*"([^"]+)"', text, re.M).group(1)))  # the PEP 440 form the package metadata reports
 
 
 def foreign_modules() -> list[str]:
