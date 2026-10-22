@@ -18,8 +18,8 @@ from . import memory
 from ..workflows import roles
 from ..engine import runner
 from ..context import atomic_write_json, safe_path
+from . import RPP
 
-RPP = "1"
 PRODUCT_ID = "respected-orchestrator"
 
 _OPERATION_ID = re.compile(r"[A-Za-z0-9_-]{8,64}\Z")

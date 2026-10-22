@@ -99,7 +99,7 @@ istekte `role_assignments` olarak saklanır.
 - Tüketilen roller: `implementer`, `reviewer`, `deep_reviewer` (her görev), `debugger` (atandıysa düzeltme turları),
   `master` (kampanya/proje son incelemesi; açık `final.command` önceliklidir, ikisi birden `ROLE_CONFLICT`), `planner`
   (`plan` komutu: atanan araçla bir proje taslağı çıkarır, motorla doğrular, `drafts/`'a kaydeder, başlatmaz). `tester` ve
-  `coordinator` henüz hiçbir aşamada kullanılmaz.
+  `coordinator` için henüz aşama yoktur; açıkça atanırlarsa `ROLE_NOT_EXECUTABLE` döner (`engine/runner.py`).
 
 Kod: `workflows/roles.py`, `engine/runner.create_task`, `workflows/maf_workflow._review_assignment`, `interfaces/rpp.py`;
 testler `tests/workflows/test_roles.py`.
