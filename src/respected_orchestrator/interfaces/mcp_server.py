@@ -203,7 +203,7 @@ def handle(ctx, message, *, delegated=False, allow_auto_apply=False, allow_privi
     if method == "initialize":
         version = (message.get("params") or {}).get("protocolVersion", "2025-03-26")
         return reply(result={"protocolVersion": version, "capabilities": {"tools": {}},
-                             "serverInfo": {"name": "respected-orchestrator", "version": __version__},
+                             "serverInfo": {"name": "Respected Orchestrator", "title": "Respected Orchestrator", "version": __version__},
                              "instructions": _instructions()})
     if method == "ping":
         return reply(result={})
