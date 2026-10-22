@@ -6,7 +6,7 @@ Bu, bağımsız Respected Orchestrator kaynağıdır. Belgeler: `README.md` (gir
 
 ## Yasaklar
 
-- SecondBrain'in kodunu içe aktarma (onunla yalnızca `rpp` komutuyla konuş), not kasası isteme, global bağımlılık kurma,
+- Brain'in kodunu içe aktarma (onunla yalnızca `rpp` komutuyla konuş), not kasası isteme, global bağımlılık kurma,
   kişinin gerçek verisini değiştirme.
 - Kullanıcı açıkça istemedikçe commit, push ya da paralel ajan yok.
 - Geçiş dönemi, eski sürüm desteği, takma ad ya da uyumluluk katmanı ekleme.
@@ -16,7 +16,7 @@ Bu, bağımsız Respected Orchestrator kaynağıdır. Belgeler: `README.md` (gir
 - Ortak komutlar: `--version`, `setup`, `repair`, `uninstall [--purge]`, `config [get|set]`, `health`,
   `memory connect|disconnect|status`, `integrations [set]`, `rpp`, `mcp`. Çıktı JSON, hata `{"error": {code, message, hint}}`,
   çıkış kodu 0/1/2.
-- Program dosyaları kurucunundur (`packaging/windows/orchestrator_setup.iss`; ortak bölümleri SecondBrain'inkinden
+- Program dosyaları kurucunundur (`packaging/windows/orchestrator_setup.iss`; ortak bölümleri Brain'inkinden
   üretilir). `update` komutu ve protokol üzerinden kurma işlemi yoktur.
 - `--data-root` yalnızca motorun kendi alt süreçleri içindir; kişiler `RESPECTED_DATA_DIR` kullanır.
 - Kapsam denetimleri, süre sınırları, süreç ağacı temizliği, başarısız/bayat/kurcalanmış sonuçların reddi ve açık sınırlı

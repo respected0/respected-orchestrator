@@ -104,14 +104,14 @@ class InstallationTests(unittest.TestCase):
 
 
 class MemoryLinkTests(unittest.TestCase):
-    """`memory connect` without the Hub: a fake SecondBrain answers memory.grant/revoke over its rpp command."""
+    """`memory connect` without the Hub: a fake Brain answers memory.grant/revoke over its rpp command."""
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         root = Path(self.temp.name).resolve()
         self.ctx = EngineContext(root / "data")
-        self.exe = root / "respectedbrain.exe"
+        self.exe = root / "respected-brain.exe"
         self.exe.write_bytes(b"fake")
         self.calls = []
 
@@ -125,7 +125,7 @@ class MemoryLinkTests(unittest.TestCase):
                      "error": None if ok else {"code": "DENIED", "message": "no", "hint": ""}}
             return mock.Mock(stdout=json.dumps(reply).encode("utf-8"))
         from types import SimpleNamespace
-        # only the SecondBrain call is faked; the token file's own permission tools still run for real
+        # only the Brain call is faked; the token file's own permission tools still run for real
         return mock.patch("respected_orchestrator.interfaces.memory_link.winproc", SimpleNamespace(run=run))
 
     def test_connect_stores_the_grant_and_disconnect_revokes_it(self):
@@ -142,7 +142,7 @@ class MemoryLinkTests(unittest.TestCase):
         self.assertFalse(memory.token_set(self.ctx.data_root))
         self.assertFalse(memory_link.status(self.ctx)["connected"])
 
-    def test_a_refused_grant_or_a_missing_secondbrain_changes_nothing(self):
+    def test_a_refused_grant_or_a_missing_brain_changes_nothing(self):
         from respected_orchestrator.interfaces import memory_link
         with self.fake(ok=False), self.assertRaises(OperationError):
             memory_link.connect(self.ctx, exe=self.exe)

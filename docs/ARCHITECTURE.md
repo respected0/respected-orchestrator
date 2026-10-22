@@ -142,25 +142,25 @@ ağaç yalnızca doğrulanmış `patch_sha256` ile `orchestrator_apply` üzerind
 Sınırlar: listelenen bir önek her argümana izin verir (`pytest -p eklenti` projeden kod çalıştırır); dar önekler yazın.
 Aracı çağırıp çağırmamaya yine istemcinin kendi izin sorusu karar verir. `verify` girdisinin `cwd`'si kısıtlanmaz.
 
-## 7. SecondBrain hafızası
+## 7. Brain hafızası
 
-Orchestrator SecondBrain'e hiçbir zaman bağımlı değildir; bağlantı yoksa aşağıdakilerin hiçbiri çalışmaz.
+Orchestrator Brain'e hiçbir zaman bağımlı değildir; bağlantı yoksa aşağıdakilerin hiçbiri çalışmaz.
 
-- **Bağlanma:** `memory connect [--write]` kurulu SecondBrain'in `rpp` sunucusundan `memory.grant` ile izin alır ve
-  `memory_enabled`, `memory_write`, `memory_grant_id`, `memory_command` (`{"argv": [<respectedbrain.exe>, "rpp"], "env": {}}`)
+- **Bağlanma:** `memory connect [--write]` kurulu Brain'in `rpp` sunucusundan `memory.grant` ile izin alır ve
+  `memory_enabled`, `memory_write`, `memory_grant_id`, `memory_command` (`{"argv": [<respected-brain.exe>, "rpp"], "env": {}}`)
   ve yalnızca yazılabilen `memory_token` ayarlarını `config set` ile aynı kodla yazar. Ayar yazılamazsa izin hemen iptal
   edilir; yarım bağlantı kalmaz. `memory disconnect` izni iptal eder ve alanları temizler.
 - **Kullanım bir izindir, varsayılan değil:** `memory: {use: true, query?}` demeyen görev hafızayı okumaz. Bağlantı yokken
   `use: true` görev oluşturulurken hatadır. Çalışma anında yapılandırma yeniden denetlenir (kopan bağlantı kuyruktaki
-  görevleri hemen etkiler), SecondBrain'e `memory.recall` sorulur (alt süreç, stdin'de bir istek, stdout'ta bir yanıt) ve en
+  görevleri hemen etkiler), Brain'e `memory.recall` sorulur (alt süreç, stdin'de bir istek, stdout'ta bir yanıt) ve en
   fazla yaklaşık 3000 karakterlik parça, güvenilmeyen veri olduğunu belirten bir başlık altında görev metnine eklenir.
   Sorgu `memory.query` ya da görevin ayırt edici kelimeleri (en fazla 12). Her hata yalnızca "hafıza yok" demektir.
 - **Anahtar:** yalnızca `<veri kökü>/memory-token` dosyasındadır (`.engine-key` gibi ACL'li; Codex kum havuzu kullanıcıları
   okuyamaz). `settings.json`'da, makbuzlarda, istekte, durumda, kanıtta, günlükte, hata metninde ve görev metninde yer
   almaz; okumada `***set***` görünür. Alt sürece yalnızca stdin'den, en az ortamla verilir. `memory-context.json` yalnızca
   durum, sayı, göreli yollar, puanlar ve dizin durumunu kaydeder.
-- **Yazma:** `orchestrator_memory_note` MCP aracı, her iki izin varsa (bağlantı `--write` ile ve SecondBrain tarafında yazma
-  izni) yeniden kullanılabilir bilgiyi `memory.write` ile SecondBrain'in gelen kutusuna yeni not olarak yazar. Görev
+- **Yazma:** `orchestrator_memory_note` MCP aracı, her iki izin varsa (bağlantı `--write` ile ve Brain tarafında yazma
+  izni) yeniden kullanılabilir bilgiyi `memory.write` ile Brain'in gelen kutusuna yeni not olarak yazar. Görev
   geçmişi yazılmaz.
 - Kalan risk: parçalar o çalışmanın `brief.md` dosyasındadır (çalışan model görmek zorunda) ve çalışan, kişinin dosya
   erişimine sahip bir modeldir. Hafızayı yalnızca not parçalarının o modele gitmesini kabul ettiğiniz projelerde açın.
@@ -179,12 +179,12 @@ anahtar hatadır.
 |---|---|
 | `tests/engine/` | çalıştırıcı, çalışma ağaçları, Codex sonuçları, süre sınırları, kum havuzu, Windows süreçleri, bütçe, geçmiş |
 | `tests/workflows/` | MAF iş akışı, kampanyalar, rol atama |
-| `tests/interfaces/` | RPP, kurulum ve hafıza bağlantısı, MCP sunucusu ve izinleri, SecondBrain hafızası, AI aracı kayıtları |
+| `tests/interfaces/` | RPP, kurulum ve hafıza bağlantısı, MCP sunucusu ve izinleri, Brain hafızası, AI aracı kayıtları |
 | `tests/packaging/` | derlenmiş exe, PATH'te Python yokken: RPP, MCP, ayrık denetleyiciyle gerçek bir yazma görevi, kum havuzlu doğrulama |
 | `tests/test_main.py` | komut satırı, ortak komutlar, hata biçimi |
 
 Testler geçici depolarda ve sahte çalışanlarla çalışır; HOME yalıtılır. Paketleme testleri önce `packaging/build_dist.py`
-ister; SecondBrain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi üretir ve iki takımı da zorunlu tutar.
+ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi üretir ve iki takımı da zorunlu tutar.
 
 ## 10. Açık sınırlar
 

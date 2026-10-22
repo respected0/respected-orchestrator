@@ -1,6 +1,6 @@
-"""Connecting to SecondBrain's memory without the Hub: SecondBrain grants, the Orchestrator stores the grant.
+"""Connecting to Brain's memory without the Hub: Brain grants, the Orchestrator stores the grant.
 
-`connect` asks the installed SecondBrain (its own `rpp` server at its standard place) for a grant and writes the
+`connect` asks the installed Brain (its own `rpp` server at its standard place) for a grant and writes the
 Orchestrator's memory settings through the same code as `config set`; `disconnect` revokes it and clears them.
 The grant token exists only between the two calls and is never returned or logged.
 """
@@ -17,12 +17,12 @@ from .installation import OperationError
 
 
 def brain_exe():
-    """SecondBrain's program at its standard place (the one its installer uses)."""
+    """Brain's program at its standard place (the one its installer uses)."""
     if os.name == "nt":
-        return Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local")) / "Respected/RespectedBrain/app/respectedbrain.exe"
+        return Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local")) / "Respected/RespectedBrain/app/respected-brain.exe"
     if sys.platform == "darwin":
-        return Path.home() / "Applications/RespectedBrain.app/Contents/MacOS/respectedbrain"
-    return Path.home() / ".local/lib/respectedbrain/respectedbrain"
+        return Path.home() / "Applications/RespectedBrain.app/Contents/MacOS/respected-brain"
+    return Path.home() / ".local/lib/respected-brain/respected-brain"
 
 
 def _call(exe, op, payload=None, *, operation=False):
@@ -35,7 +35,7 @@ def _call(exe, op, payload=None, *, operation=False):
         lines = [line for line in done.stdout.decode("utf-8", "replace").splitlines() if line.strip().startswith("{")]
         return json.loads(lines[-1])
     except (OSError, subprocess.TimeoutExpired, ValueError, IndexError):
-        return {"ok": False, "error": {"code": "BRAIN_UNREACHABLE", "message": "SecondBrain yanıt vermedi.", "hint": "SecondBrain kurulumunu onarın."}}
+        return {"ok": False, "error": {"code": "BRAIN_UNREACHABLE", "message": "Brain yanıt vermedi.", "hint": "Brain kurulumunu onarın."}}
 
 
 def _failure(reply, what):
@@ -65,7 +65,7 @@ def status(ctx):
 def connect(ctx, *, write=False, exe=None):
     exe = Path(exe or brain_exe())
     if not exe.is_file():
-        raise OperationError("NOT_INSTALLED", "SecondBrain bu bilgisayarda kurulu değil.", "Önce SecondBrain'i kurun.")
+        raise OperationError("NOT_INSTALLED", "Brain bu bilgisayarda kurulu değil.", "Önce Brain'i kurun.")
     current = _settings(ctx)
     if current["memory_enabled"] is True and current["memory_grant_id"] and current["memory_write"] is write:
         return status(ctx)
@@ -73,7 +73,7 @@ def connect(ctx, *, write=False, exe=None):
         _call(exe, "memory.revoke", {"grant_id": current["memory_grant_id"]})
     granted = _call(exe, "memory.grant", {"label": "Orchestrator", "write": write}, operation=True)
     if granted.get("ok") is not True:
-        raise _failure(granted, "SecondBrain izin vermedi")
+        raise _failure(granted, "Brain izin vermedi")
     grant_id, token = granted["result"].get("grant_id"), granted["result"].get("token")
     try:
         _apply(ctx, {"memory_enabled": True, "memory_write": write, "memory_grant_id": grant_id, "memory_token": token,
@@ -91,7 +91,7 @@ def disconnect(ctx, *, exe=None):
     if current["memory_grant_id"] and exe.is_file():
         revoked = _call(exe, "memory.revoke", {"grant_id": current["memory_grant_id"]}).get("ok") is True
     values = {"memory_enabled": False, "memory_write": False, "memory_command": "", "memory_token": ""}
-    if revoked or not exe.is_file():  # keep the grant id while SecondBrain is there but could not revoke, so it can be retried
+    if revoked or not exe.is_file():  # keep the grant id while Brain is there but could not revoke, so it can be retried
         values["memory_grant_id"] = ""
     _apply(ctx, values)
     return {**status(ctx), "revoked": revoked}

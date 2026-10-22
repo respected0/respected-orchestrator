@@ -366,7 +366,7 @@ def _memory_policy(request, settings, root):
         raise ValueError("memory.query must be 1..200 characters")
     ready = memory.configured(settings, root)
     if use is True and not ready:
-        raise ValueError("memory requested but SecondBrain access is not enabled in the Hub")
+        raise ValueError("memory requested but Brain access is not enabled in the Hub")
     if use is not None:
         policy = {"use": use, "source": "explicit"}
     else:  # enabling memory in the Hub is a permission, not a default: every task opts in with memory.use
@@ -527,7 +527,7 @@ def _validated_inherited_patch(ctx: EngineContext, request: dict, project: Path)
 
 
 def _memory_context(ctx, directory, request):
-    """Optional SecondBrain recall; never raises. Evidence holds no snippets, titles, token or command."""
+    """Optional Brain recall; never raises. Evidence holds no snippets, titles, token or command."""
     if (request.get("memory_policy") or {}).get("use") is not True:
         return "", None
     try:
