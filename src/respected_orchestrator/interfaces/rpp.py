@@ -222,24 +222,27 @@ def _data_root_writable(ctx):
         return False
 
 
-def _engine_key_ok(ctx):
+def _engine_key_state(ctx):
+    """(ok, detail). The key is created with the first signed result, so a fresh install without it is healthy; one that exists must be readable."""
     path = ctx.data_root / ".engine-key"
     try:
-        return path.is_file() and os.access(path, os.R_OK)
+        if not path.exists():
+            return True, "engine key is created with the first task"
+        return path.is_file() and os.access(path, os.R_OK), "engine key present and readable"
     except OSError:
-        return False
+        return False, "engine key unreadable"
 
 
 def health(ctx, operation_id=None, payload=None):
     workers = [agent for agent in _WORKER_CHOICES if runner.get_cli_command(agent)]
     git = runner.shutil.which("git")
     writable = _data_root_writable(ctx)
-    key_ok = _engine_key_ok(ctx)
+    key_ok, key_detail = _engine_key_state(ctx)
     checks = [
         {"name": "data_root_writable", "ok": writable, "detail": "data root accepts writes" if writable else "data root is not writable"},
         {"name": "git_available", "ok": bool(git), "detail": git or "git not found on PATH"},
         {"name": "worker_cli", "ok": bool(workers), "detail": ", ".join(workers) if workers else "no supported worker CLI resolved"},
-        {"name": "engine_key", "ok": key_ok, "detail": "engine key present and readable" if key_ok else "engine key missing or unreadable"},
+        {"name": "engine_key", "ok": key_ok, "detail": key_detail if key_ok else "engine key unreadable"},
     ]
     if not checks[0]["ok"]:
         status = "unhealthy"
