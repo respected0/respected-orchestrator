@@ -1,7 +1,7 @@
 ; Respected Orchestrator - per-user Windows installer (no administrator rights); works without the Hub.
 ; Built by packaging/build_installer.py. The installer owns the program files in {app}; the product's own commands own
 ; everything else: `setup` (install record, data folder), `repair`, `config`, `memory connect`, `uninstall` (docs/PRODUCT_CONTRACT.md).
-; Shared with the SecondBrain installer: the install-path page, the Hub download, the maintenance page, /SET= and /PURGE=1.
+; Shared with the Brain installer: the install-path page, the Hub download, the maintenance page, /SET= and /PURGE=1.
 #ifndef AppVersion
   #define AppVersion "0.1.0-beta.1"
 #endif
@@ -61,7 +61,7 @@ var
   DownloadPage: TDownloadWizardPage;
   Maintenance, SettingsMode, Leaving, PurgeData: Boolean;
 
-{ ---- shared with the SecondBrain installer ---- }
+{ ---- shared with the Brain installer ---- }
 
 // /NAME=value command-line switches (silent installs, the Hub, tests)
 function CommandValue(Name: String; Default: String): String;
@@ -246,9 +246,9 @@ begin
   Result := Copy(Rest, 1, P - 1);
 end;
 
-function SecondBrainInstalled(): Boolean;
+function BrainInstalled(): Boolean;
 begin
-  Result := FileExists(ExpandConstant('{localappdata}\Respected\RespectedBrain\app\respectedbrain.exe'));
+  Result := FileExists(ExpandConstant('{localappdata}\Respected\RespectedBrain\app\respected-brain.exe'));
 end;
 
 procedure InitializeWizard;
@@ -261,10 +261,10 @@ begin
     'Komut satırı aracının bu bilgisayarda kurulu olması gerekir; her görevde ayrıca seçilebilir ve sonradan "respected-orchestrator config set default_worker=..." ile değişir.', True, False);
   for I := 0 to 5 do WorkerPage.Add(WorkerName(I));
   WorkerPage.SelectedValueIndex := 0;
-  MemoryPage := CreateInputOptionPage(WorkerPage.ID, 'SecondBrain hafızası', 'Orchestrator hafızanı kullanabilsin mi?',
-    'Açarsan görevler, SecondBrain kasandaki ilgili notlardan kısa özetler okuyabilir. İstediğin zaman "respected-orchestrator memory disconnect" ile kapanır.', False, False);
-  MemoryPage.Add('SecondBrain hafızasını oku (SecondBrain kurulu olmalı)');
-  MemoryPage.Add('Yeniden kullanılabilir notları SecondBrain gelen kutusuna yazabilsin');
+  MemoryPage := CreateInputOptionPage(WorkerPage.ID, 'Brain hafızası', 'Orchestrator hafızanı kullanabilsin mi?',
+    'Açarsan görevler, Brain kasandaki ilgili notlardan kısa özetler okuyabilir. İstediğin zaman "respected-orchestrator memory disconnect" ile kapanır.', False, False);
+  MemoryPage.Add('Brain hafızasını oku (Brain kurulu olmalı)');
+  MemoryPage.Add('Yeniden kullanılabilir notları Brain gelen kutusuna yazabilsin');
 end;
 
 // the page answers as the product's own `config set` arguments
@@ -285,12 +285,12 @@ begin
   MemoryPage.Values[1] := CurrentSetting('memory_write') = 'true';
 end;
 
-// connect or disconnect the SecondBrain memory as the page says; failures are reported, never fatal
+// connect or disconnect the Brain memory as the page says; failures are reported, never fatal
 procedure ApplyMemoryChoice;
 var
   Output: TExecOutput;
 begin
-  if MemoryPage.Values[0] and SecondBrainInstalled() then begin
+  if MemoryPage.Values[0] and BrainInstalled() then begin
     if MemoryPage.Values[1] then RunProduct('memory connect --write', Output) else RunProduct('memory connect', Output);
   end else if SettingsMode then
     RunProduct('memory disconnect', Output);

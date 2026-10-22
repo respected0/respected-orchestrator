@@ -1,4 +1,4 @@
-"""Optional SecondBrain memory wired into settings, task policy, execution and campaign lanes (fake RPP child only)."""
+"""Optional Brain memory wired into settings, task policy, execution and campaign lanes (fake RPP child only)."""
 import json
 import os
 from pathlib import Path
@@ -19,7 +19,7 @@ from respected_orchestrator.context import EngineContext
 
 TOKEN = "rbm_" + "A1b2C3d4" * 4
 OTHER_TOKEN = "rbm_" + "Z9y8X7w6" * 4
-HEADER = "Reference notes from the user's SecondBrain memory"
+HEADER = "Reference notes from the user's Brain memory"
 
 FAKE = r'''
 import json, sys
@@ -171,7 +171,7 @@ class TaskTests(Base):
         return load_signed(self.ctx, self.ctx.run_dir(created["run_id"]) / "request.json")["memory_policy"]
 
     def test_policy_matrix(self):
-        with self.assertRaisesRegex(ValueError, "memory requested but SecondBrain access is not enabled"):
+        with self.assertRaisesRegex(ValueError, "memory requested but Brain access is not enabled"):
             self.create(settings={}, memory={"use": True})
         self.assertEqual(self.policy(self.create(settings={}, memory={"use": False})),
                          {"use": False, "source": "explicit"})

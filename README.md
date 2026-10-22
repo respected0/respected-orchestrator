@@ -2,8 +2,8 @@
 
 Yerel AI görev motoru. Kodlama ajanlarını (Codex, Claude, Gemini, Antigravity, Cursor ya da kendi komutunuz) projenizin
 yalıtılmış Git çalışma ağaçlarında çalıştırır, sonucu denetler (kapsam, doğrulama komutları, imzalı kanıt, yamanın
-güncelliği) ve siz onaylamadan projenize hiçbir şey uygulamaz. SecondBrain, not kasası, Hub ya da sürekli çalışan bir
-servis gerektirmez; SecondBrain hafızası isteğe bağlıdır.
+güncelliği) ve siz onaylamadan projenize hiçbir şey uygulamaz. Brain, not kasası, Hub ya da sürekli çalışan bir
+servis gerektirmez; Brain hafızası isteğe bağlıdır.
 
 ## Kurulum
 
@@ -23,7 +23,7 @@ Hepsi JSON yazar; hata `{"error": {"code", "message", "hint"}}`, çıkış kodu 
 Tam liste ve istek biçimleri: [docs/COMMANDS.md](docs/COMMANDS.md).
 
 - **Kurulum ve bakım:** `setup`, `repair`, `uninstall [--purge]`, `config [get|set]`, `health`, `status`.
-- **Bağlantılar:** `memory connect [--write] | disconnect | status` (SecondBrain hafızası),
+- **Bağlantılar:** `memory connect [--write] | disconnect | status` (Brain hafızası),
   `integrations [set İSTEMCİ=on|off]` (AI araçlarına MCP kaydı), `mcp`, `rpp`.
 - **Görevler:** `create` → `start` → `inspect` → `check` → `apply`; ayrıca `list`, `retry`, `cancel`, `maf`, `maf-approve`,
   `roles`, `plan`.
@@ -45,7 +45,7 @@ $env:RESPECTED_DATA_DIR = "$env:TEMP\orch-dev"; python -m respected_orchestrator
 
 Kaynak: `src/respected_orchestrator/engine/` (çalışma ağaçları, çalıştırıcı, Codex katmanı, doğrulama kum havuzu, süreç
 denetimi, belirteç bütçesi), `workflows/` (MAF iş akışı, kampanyalar, projeler, planlayıcı, rol atama), `interfaces/`
-(RPP, kurulum, MCP sunucusu, SecondBrain hafızası, AI aracı kayıtları). Kurucu: `packaging/windows/orchestrator_setup.iss`.
+(RPP, kurulum, MCP sunucusu, Brain hafızası, AI aracı kayıtları). Kurucu: `packaging/windows/orchestrator_setup.iss`.
 Üç ürünün ortak sözleşmesi ekosistem kökündeki `docs/PRODUCT_CONTRACT.md` dosyasındadır.
 
 ## Lisans

@@ -53,7 +53,7 @@ TOOLS = {
                               _schema(run_id=_ID), True),
     "orchestrator_resume": ("Resume an interrupted project, or retry a failed/interrupted task (bounded retry budget).", _schema(id=_ID), False),
     "orchestrator_cancel": ("Request cancellation of a run or project.", _schema(id=_ID), False),
-    "orchestrator_memory_note": ("Save one reusable note (decision, convention, finding; not task history) to the user's SecondBrain inbox. Works only if the "
+    "orchestrator_memory_note": ("Save one reusable note (decision, convention, finding; not task history) to the user's Brain inbox. Works only if the "
                                  "user enabled memory writes in the Hub; the note is a new file the user can revert. Same title+body is idempotent.",
                                  {"type": "object", "properties": {"title": {"type": "string"}, "body": {"type": "string"}, "tags": _STRINGS},
                                   "required": ["title", "body"], "additionalProperties": False}, False),

@@ -9,7 +9,7 @@ Kurulumdan kaldırmaya kadar kişinin yapacağı her şey. Komutların tam liste
 - **Git**: her görev projenin yalıtılmış bir Git çalışma ağacında çalışır; proje bir Git deposu olmalıdır.
 - Görevleri yapacak en az bir AI aracının komut satırı, **oturumu açık** olarak: Codex, Claude Code, Gemini CLI,
   Antigravity ya da Cursor. Kota ve hesap o aracındır.
-- Python gerekmez. SecondBrain ve Hub isteğe bağlıdır.
+- Python gerekmez. Brain ve Hub isteğe bağlıdır.
 
 ## 2. Kurulum
 
@@ -18,8 +18,8 @@ Kurulumdan kaldırmaya kadar kişinin yapacağı her şey. Komutların tam liste
 - **Respected Hub ile devam et (önerilen):** kurucu Hub'ı indirip kurar ve Orchestrator'ı Hub'ın kurulum sayfasında açar.
 - **Yalnızca Orchestrator:** kurucu sırayla sorar:
   - **Varsayılan çalışan:** görevleri hangi AI aracının yapacağı. Her görevde ayrıca seçilebilir.
-  - **SecondBrain hafızası:** görevler SecondBrain kasandaki notlardan kısa parçalar okuyabilsin mi; isterseniz ayrıca
-    yeniden kullanılabilir notları SecondBrain'in gelen kutusuna yazabilsin mi. SecondBrain kurulu olmalıdır.
+  - **Brain hafızası:** görevler Brain kasandaki notlardan kısa parçalar okuyabilsin mi; isterseniz ayrıca
+    yeniden kullanılabilir notları Brain'in gelen kutusuna yazabilsin mi. Brain kurulu olmalıdır.
 
 Kurucu programı `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app` altına yazar ve ürünün `setup` komutunu çalıştırır.
 Ayarlar ve görev çalışmaları `...\RespectedOrchestrator\data` altındadır. Yüklü uygulamalar girdisini kurucu yazar.
@@ -114,7 +114,7 @@ Hub → Orchestrator çalışma alanı:
 | Kanıtlar | Seçilen çalışmanın kanıtı, incelemeleri ve sonraki adım |
 | Kampanyalar | Kampanyaların ve hatlarının durumu |
 | Görevler | **Yeni görev** formu (proje, görev, çalışan, iş türü, izin verilen ve yasak yollar, doğrulama komutları, süre), görev listesi, loglar, sonuç/yama; Başlat, Durdur, Yeniden dene, Sonucu doğrula |
-| Ayarlar | Ayarlar formu, "SecondBrain hafıza erişimi", "AI araçlarından kullan (MCP)" |
+| Ayarlar | Ayarlar formu, "Brain hafıza erişimi", "AI araçlarından kullan (MCP)" |
 
 Hub'da yama uygulama düğmesi yoktur; doğrulanan yamayı `apply RUN_ID` komutuyla ya da bir AI aracından
 `orchestrator_apply` ile uygularsınız. Görevler Hub kapansa da sürer; Hub yeniden açılınca durumu motordan okur.
@@ -148,24 +148,24 @@ AI aracı şu araçları görür: `orchestrator_status`, `orchestrator_plan`, `o
 
 Önekleri dar tutun: listelenen bir önek her argümana izin verir. İnsan onayı (`maf-approve`) MCP'den hiç yapılamaz.
 
-## 7. SecondBrain hafızası
+## 7. Brain hafızası
 
-SecondBrain kuruluysa görevler kasanızdaki ilgili notlardan kısa parçalar alabilir.
+Brain kuruluysa görevler kasanızdaki ilgili notlardan kısa parçalar alabilir.
 
 ```powershell
-& $exe memory connect           # okuma izni (SecondBrain'den izin alınır, Orchestrator'a kaydedilir)
-& $exe memory connect --write   # ayrıca SecondBrain gelen kutusuna not yazma
+& $exe memory connect           # okuma izni (Brain'den izin alınır, Orchestrator'a kaydedilir)
+& $exe memory connect --write   # ayrıca Brain gelen kutusuna not yazma
 & $exe memory status
 & $exe memory disconnect        # izni iptal eder
 ```
 
-Hub'da aynı iş Orchestrator → Ayarlar → "SecondBrain hafıza erişimi"dir. Bağlantı bir **izindir**, varsayılan değil:
+Hub'da aynı iş Orchestrator → Ayarlar → "Brain hafıza erişimi"dir. Bağlantı bir **izindir**, varsayılan değil:
 bir görev hafızayı ancak istekte `"memory": {"use": true}` derse kullanır; isteğe bağlı `"query"` arama metnini belirler,
 yoksa görevin ayırt edici kelimeleri kullanılır. En fazla yaklaşık 3000 karakter, güvenilmeyen veri olarak işaretlenmiş
 şekilde görev metnine eklenir. Hafıza erişilemezse görev hafızasız çalışır.
 
 Not parçaları o görevin çalışan modeline gider. Hafızayı yalnızca bunu kabul ettiğiniz projelerde kullanın. Yazma izni
-varsa `orchestrator_memory_note` yeniden kullanılabilir bilgiyi SecondBrain'de `🔮 850-Companion/Inbox/Orchestrator/`
+varsa `orchestrator_memory_note` yeniden kullanılabilir bilgiyi Brain'de `🔮 850-Companion/Inbox/Orchestrator/`
 altına yeni bir not olarak yazar; görev geçmişi yazılmaz.
 
 ## 8. Ayarlar
@@ -207,7 +207,7 @@ Kaldır; sessiz `unins000.exe /VERYSILENT [/PURGE=1]`. Kaldırıcı "Ayarlar ve 
 | Ayarlar, görev çalışmaları, kanıtlar | kalır; "Evet" / `--purge` / `/PURGE=1` ile silinir |
 | Projeleriniz | hiçbir durumda dokunulmaz |
 
-SecondBrain hafıza bağlantısı varsa önce `memory disconnect` ile kapatmak izni SecondBrain tarafında da iptal eder.
+Brain hafıza bağlantısı varsa önce `memory disconnect` ile kapatmak izni Brain tarafında da iptal eder.
 
 ## 10. Sorun giderme
 
@@ -222,7 +222,7 @@ SecondBrain hafıza bağlantısı varsa önce `memory disconnect` ile kapatmak i
 | `sandbox_unavailable` | Doğrulama kum havuzu kurulamadı; yükseltilmiş (yönetici) olarak çalışmayın, veri klasörünün izinlerine bakın |
 | `check` geçmiyor | Yama artık projeye uymuyor (proje değişti), kapsam dışına çıkılmış ya da doğrulama komutu başarısız; görevi yeniden deneyin |
 | MCP'den görev reddediliyor | Doğrulama komutu `mcp_acceptance_allow`'da değil ya da özel komut/uygulama klasörü istendi |
-| `memory connect` → `NOT_INSTALLED` | SecondBrain kurulu değil |
+| `memory connect` → `NOT_INSTALLED` | Brain kurulu değil |
 | "Onarım gerekli" | Kurucuyu çalıştırıp **Onar / güncelle** seçin |
 
 Hata bildirirken `--version` çıktısı, Windows sürümü, hata kodu ve kişisel bilgilerden arındırılmış komut yeterlidir.

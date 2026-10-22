@@ -25,13 +25,13 @@ Ortak kurallar (üç ürün aynı, bkz. ekosistem kökündeki `docs/PRODUCT_CONT
 | `health` | Veri klasörü yazılabilir mi, Git var mı, en az bir çalışan aracı bulunuyor mu, motor anahtarı okunabilir mi; sağlıklıysa 0. |
 | `status` | Sürüm, veri klasörü, bulunan çalışan araçlarının yolları ve Git. |
 
-## SecondBrain hafızası ve AI araçları
+## Brain hafızası ve AI araçları
 
 | Komut | Ne yapar |
 |---|---|
-| `memory connect` | Kurulu SecondBrain'den okuma izni alır ve kaydeder. SecondBrain kurulu değilse `NOT_INSTALLED`. |
-| `memory connect --write` | Aynı, ayrıca SecondBrain'in gelen kutusuna not yazma izni. |
-| `memory disconnect` | İzni SecondBrain tarafında iptal eder, ayarları temizler. |
+| `memory connect` | Kurulu Brain'den okuma izni alır ve kaydeder. Brain kurulu değilse `NOT_INSTALLED`. |
+| `memory connect --write` | Aynı, ayrıca Brain'in gelen kutusuna not yazma izni. |
+| `memory disconnect` | İzni Brain tarafında iptal eder, ayarları temizler. |
 | `memory status` | `{"connected", "write", ...}` |
 | `integrations` | Hangi AI aracında MCP girdisi olduğunu ve olabileceğini gösterir. |
 | `integrations set İSTEMCİ=on\|off [...]` | Kendini AI araçlarına MCP sunucusu olarak kaydeder ya da kaydı kaldırır. İstemciler: `claude-code`, `claude-desktop`, `codex`, `cursor`, `gemini`, `windsurf`. Girdi kurulu programı gösterir (`respected-orchestrator.exe mcp`); başka girdiler korunur. |
@@ -76,7 +76,7 @@ Ortak kurallar (üç ürün aynı, bkz. ekosistem kökündeki `docs/PRODUCT_CONT
 | `worker`, `worker_profile` | Çalışan araç ve profili; verilmezse ayarlardaki varsayılan |
 | `roles` | Rol atamaları: `{rol: profil \| {tool, profile, fallbacks}}` |
 | `workflow` | MAF ayarları: `reviewer_tool`, `reviewer_profile`, `deep_review_tool`, `deep_review_profile`, `max_corrections` (0–2), `escalate_profile`, `require_independent_review` |
-| `memory` | `{"use": true, "query"?: "..."}`: SecondBrain hafızasından parça ekle (bağlantı gerekir) |
+| `memory` | `{"use": true, "query"?: "..."}`: Brain hafızasından parça ekle (bağlantı gerekir) |
 | `context_paths` | Çalışana bağlam olarak verilecek dosyalar |
 | `command` | Yalnızca `worker: "custom"` için çalışan komutu (MCP'den reddedilir) |
 
