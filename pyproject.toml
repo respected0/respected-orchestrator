@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "respected-orchestrator"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 description = "Independent local AI task orchestration engine"
 readme = "README.md"
 license = "MIT"
