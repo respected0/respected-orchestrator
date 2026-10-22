@@ -43,6 +43,10 @@ Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs c
 ; the product takes back its MCP registrations and removes its install record (and with /PURGE=1 or a yes its settings and runs)
 Filename: "{app}\respected-orchestrator.exe"; Parameters: "{code:UninstallArgs}"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveProduct"
 
+[InstallDelete]
+; an update replaces the program folder whole: files of the previous version (old dist-info, renamed modules) must not stay behind
+Type: filesandordirs; Name: "{app}\app"
+
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
 
@@ -52,6 +56,7 @@ const
   ProductExe = 'respected-orchestrator.exe';
   ProductFolder = 'RespectedOrchestrator';
   HubProductId = 'orchestrator';
+  InstallRecord = 'app\.respected\install.json';  // the product's own install record, relative to its folder
   UninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{8E2B4D7A-61C3-4F09-A5D8-3B9E17C2F640}_is1';
   HubSetupName = 'RespectedHub-Windows-Setup.exe';
   HubReleasesPage = 'https://github.com/respected0/respected-hub/releases/latest';
@@ -115,7 +120,7 @@ end;
 // installed = the program and the product's own install record are both there; anything less is a fresh install
 function IsInstalled(): Boolean;
 begin
-  Result := FileExists(ProgramExe()) and FileExists(DataRoot() + '\install-manifest.json');
+  Result := FileExists(ProgramExe()) and FileExists(ExpandConstant('{localappdata}\Respected\' + ProductFolder + '\' + InstallRecord));
 end;
 
 function HubExe(): String;
