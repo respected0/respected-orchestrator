@@ -1,0 +1,29 @@
+﻿Respected Orchestrator: bilgisayarınızda neler olur
+
+Bu bilgiler Respected Hub'ın Kütüphane sayfasında da aynen görünür.
+
+KURULUMDA NELER OLUR
+
+  - Program: %LOCALAPPDATA%\Respected\RespectedOrchestrator\app. Yönetici izni ve Python gerekmez. Windows Ayarlar › Uygulamalar listesinde bir giriş.
+  - Veri klasörü: %LOCALAPPDATA%\Respected\RespectedOrchestrator\data (ayarlar, işlem makbuzları, görev ve kampanya kayıtları, kanıtları imzalayan anahtar; anahtar yalnızca sizin hesabınıza açıktır).
+  - İsteğe bağlı: seçtiğiniz AI araçlarına MCP kaydı (Claude Code, Codex, Cursor, Gemini, Windsurf) ve Brain hafızasına bağlantı.
+
+KULLANIRKEN NELER OLUŞUR
+
+  - Her görev projenizin yalıtılmış bir Git çalışma ağacında çalışır (veri klasöründeki workspaces/ altında). Projenize ancak sizin onayınızla yama uygulanır.
+  - Görev durumu, kanıt ve kampanya kayıtları veri klasöründe birikir.
+  - Görevi, bilgisayarınızda kurulu AI aracı (Codex, Claude, Gemini, agy, Cursor) komut satırından yapar; görev metni o aracın sağlayıcısına gider.
+  - Doğrulama komutları kısıtlı bir Windows belirteciyle çalışır; çalışanın ortamından sır gibi görünen değişkenler çıkarılır.
+
+GÜNCELLEMEDE NELER DEĞIŞIR
+
+  - Çalışan Orchestrator süreçleri durdurulur; program klasörü yeni sürümle yenilenir, eski sürümden kalan dosyalar silinir.
+  - Ardından ürün kendini onarır: dosyaları doğrular, AI araçlarındaki MCP kayıtlarını yeni sürüme göre yeniler.
+  - Ayarlarınız, görev geçmişiniz ve kanıtlarınız değişmez. Veri biçimi değişmişse ürün eski kaydı yerinde taşır ve özgününü .bak olarak saklar.
+
+KALDIRINCA NELER SILINIR
+
+  - Program klasörü ve Windows Uygulamalar girdisi silinir; kurulum kaydı her zaman kalkar.
+  - AI araçlarındaki Respected girdileri geri alınır; sizin ve başka araçların girdileri kalır.
+  - Ayarlar, görev geçmişi ve çalışma ağaçları (veri klasörü) varsayılan olarak kalır; "çalışma verileri de silinsin" seçeneğiyle silinir.
+  - Projelerinize ve Git depolarınıza dokunulmaz.

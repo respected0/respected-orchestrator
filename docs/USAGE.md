@@ -21,6 +21,8 @@ Kurulumdan kaldırmaya kadar kişinin yapacağı her şey. Komutların tam liste
   - **Brain hafızası:** görevler Brain kasandaki notlardan kısa parçalar okuyabilsin mi; isterseniz ayrıca
     yeniden kullanılabilir notları Brain'in gelen kutusuna yazabilsin mi. Brain kurulu olmalıdır.
 
+Kurucu, kurmadan önce "bilgisayarınızda neler olur" sayfasını gösterir: kurulumda, kullanırken, güncellemede ve kaldırmada neler yazıldığı, değiştiği ve silindiği. Aynı bilgi Hub'ın Kütüphane sayfasındaki ürün kartında da vardır (`packaging/windows/orchestrator_info.txt`).
+
 Kurucu programı `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app` altına yazar ve ürünün `setup` komutunu çalıştırır.
 Ayarlar ve görev çalışmaları `...\RespectedOrchestrator\data` altındadır. Yüklü uygulamalar girdisini kurucu yazar.
 
