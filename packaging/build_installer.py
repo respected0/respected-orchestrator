@@ -1,4 +1,4 @@
-"""Build dist/RespectedOrchestrator-Windows-Setup.exe (not Authenticode-signed) from the packaged distribution.
+r"""Build dist/RespectedOrchestrator-Windows-Setup.exe (not Authenticode-signed) from the packaged distribution.
 
     python packaging/build_installer.py [--skip-dist]
 
