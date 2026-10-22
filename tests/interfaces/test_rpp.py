@@ -77,6 +77,16 @@ class RppTests(unittest.TestCase):
         for check in result["checks"]:
             self.assertIsInstance(check["ok"], bool)
 
+    def test_a_missing_engine_key_is_not_a_health_problem_but_an_unreadable_one_is(self):
+        # the key is created with the first signed result: right after the install it does not exist yet
+        key = self.ctx.data_root / ".engine-key"
+        key.unlink(missing_ok=True)
+        check = lambda: next(item for item in self.call("health")["result"]["checks"] if item["name"] == "engine_key")
+        self.assertTrue(check()["ok"], check())
+        key.mkdir()  # exists but is not a readable key file
+        self.addCleanup(lambda: key.rmdir() if key.is_dir() else None)
+        self.assertFalse(check()["ok"])
+
     # settings schema/validate -------------------------------------------
     def test_schema(self):
         fields = {field["key"]: field for field in self.call("settings.schema")["result"]["fields"]}

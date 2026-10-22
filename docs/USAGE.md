@@ -215,7 +215,7 @@ Brain hafıza bağlantısı varsa önce `memory disconnect` ile kapatmak izni Br
 
 | Belirti | Bakılacak yer |
 |---|---|
-| `health` başarısız | Çıktıdaki kontrol: `git_available` (Git kurulu mu), `worker_cli` (en az bir AI aracı PATH'te mi), `data_root_writable`, `engine_key` |
+| `health` başarısız | Çıktıdaki kontrol: `git_available` (Git kurulu mu), `worker_cli` (en az bir AI aracı PATH'te mi), `data_root_writable`, `engine_key` (anahtar ilk görevde oluşur; henüz yoksa sorun sayılmaz, var ama okunamıyorsa sorundur) |
 | `ROLE_UNAVAILABLE` | Seçilen aracın komut satırı bulunamadı ya da profil `blocked_profiles`'ta; `status` hangi araçların bulunduğunu gösterir |
 | `ROLE_UNASSIGNED` | Gözden geçirici gibi gerekli bir rol için atama yok; `default_reviewer_tool` ya da istekte `workflow` verin |
 | `ROLE_CONFLICT` | Aynı role iki farklı değer verilmiş (ör. `worker` ve `roles.implementer`) |
