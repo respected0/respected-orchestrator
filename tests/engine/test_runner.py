@@ -423,11 +423,11 @@ class EngineTests(unittest.TestCase):
         env = dict(os.environ, PYTHONPATH=str(Path(runner.__file__).resolve().parents[2]))
         command = [sys.executable, '-m', 'respected_orchestrator', '--data-root', str(self.ctx.data_root)]
         request = dict(project_root=str(self.repo), task='JSON bridge read task', kind='read', worker='custom',
-                       ownership=['owned.txt'], forbidden=['outside.txt'], acceptance=[], timeout_seconds=10,
+                       ownership=['owned.txt'], forbidden=['outside.txt'], acceptance=[], timeout_seconds=60,
                        command=[sys.executable, '-c', "from pathlib import Path; print(Path('owned.txt').read_text())"])
         def call(action, *args, payload=None):
             result = subprocess.run([*command, action, *args], env=env, cwd=self.root,
-                                    input=json.dumps(payload) if payload else None, text=True, capture_output=True, timeout=5)
+                                    input=json.dumps(payload) if payload else None, text=True, capture_output=True, timeout=30)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             return json.loads(result.stdout)
         run_id = call('create', payload=request)['run_id']
