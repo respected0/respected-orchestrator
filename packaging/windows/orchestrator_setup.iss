@@ -29,6 +29,7 @@ SolidCompression=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayIcon={app}\respected-orchestrator.exe
+SetupIconFile=icon.ico
 CloseApplications=yes
 SetupLogging=yes
 WizardStyle=modern
