@@ -74,6 +74,7 @@ def build(output: Path) -> Path:
     command = [
         sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--onedir", "--console",
         "--contents-directory", "app", "--name", NAME,
+        *(["--icon", str(ROOT / "packaging/windows/icon.ico")] if os.name == "nt" else []),
         "--distpath", str(output), "--workpath", str(work / "frozen"), "--specpath", str(work),
         "--paths", str(ROOT / "src"),
         "--collect-submodules", "respected_orchestrator", "--copy-metadata", "respected-orchestrator",

@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/logo.svg" width="128" alt="Respected Orchestrator logosu"></p>
+
 # Respected Orchestrator
 
 Yerel AI görev motoru. Kodlama ajanlarını (Codex, Claude, Gemini, Antigravity, Cursor ya da kendi komutunuz) projenizin
