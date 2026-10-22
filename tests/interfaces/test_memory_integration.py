@@ -52,11 +52,11 @@ class Base(unittest.TestCase):
         return json.dumps({"argv": [sys.executable, str(self.script), mode, str(self.side)], "env": {}})
 
     def apply(self, settings, opid="operation-0001"):
-        return rpp.handle_request({"rpp": "1.1", "op": "settings.apply", "operation_id": opid,
+        return rpp.handle_request({"rpp": "1", "op": "settings.apply", "operation_id": opid,
                                    "payload": {"settings": settings}}, self.ctx)
 
     def readback(self):
-        return rpp.handle_request({"rpp": "1.1", "op": "settings.readback", "payload": {}}, self.ctx)["result"]["settings"]
+        return rpp.handle_request({"rpp": "1", "op": "settings.readback", "payload": {}}, self.ctx)["result"]["settings"]
 
 
 class WriteTests(Base):
@@ -124,7 +124,7 @@ class SettingsTests(Base):
 
     def test_enabled_requires_command_and_token(self):
         def errors(settings):
-            result = rpp.handle_request({"rpp": "1.1", "op": "settings.validate", "payload": {"settings": settings}},
+            result = rpp.handle_request({"rpp": "1", "op": "settings.validate", "payload": {"settings": settings}},
                                         self.ctx)["result"]
             return {error["key"] for error in result["errors"]}
 

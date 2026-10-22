@@ -54,13 +54,13 @@ class IntegrationsTest(unittest.TestCase):
         self.assertIn("respected-orchestrator", self.claude.read_text("utf-8"))
         rows = {r["client"]: r for r in sil.plan(self.ctx, {"desired": {}, "launcher": LAUNCH})["clients"]}
         self.assertEqual(rows["gemini"]["state"], "unreadable")
-        with self.assertRaises(sil.LifecycleError):
+        with self.assertRaises(sil.OperationError):
             sil.plan(self.ctx, {"desired": {"gemini": True}, "launcher": LAUNCH})
 
     def test_apply_is_idempotent_and_needs_the_approved_digest(self):
         first = self.go({"codex": True}, "op-test-idem1")
         self.assertEqual(self.go({"codex": True}, "op-test-idem1"), first)
-        with self.assertRaises(sil.LifecycleError) as caught:
+        with self.assertRaises(sil.OperationError) as caught:
             sil.apply(self.ctx, "op-test-stale", {"desired": {"claude-code": True}, "launcher": LAUNCH, "plan_digest": "0" * 64})
         self.assertEqual(caught.exception.code, "PLAN_CHANGED")
         self.assertNotIn("respected-orchestrator", self.claude.read_text("utf-8"))
@@ -69,7 +69,7 @@ class IntegrationsTest(unittest.TestCase):
         doc = dict(CLAUDE, mcpServers={"respected-orchestrator": {"command": "mine"}})
         self.claude.write_text(json.dumps(doc), encoding="utf-8")
         before = self.codex.read_bytes()
-        with self.assertRaises(sil.LifecycleError) as caught:
+        with self.assertRaises(sil.OperationError) as caught:
             self.go({"claude-code": True, "codex": True})
         self.assertEqual(caught.exception.code, "LIFECYCLE_CONFLICT")
         self.assertEqual(self.codex.read_bytes(), before)  # all-or-nothing
@@ -78,13 +78,13 @@ class IntegrationsTest(unittest.TestCase):
         edited = json.loads(self.claude.read_text("utf-8"))
         edited["mcpServers"]["respected-orchestrator"]["command"] = "user-edit"
         self.claude.write_text(json.dumps(edited), encoding="utf-8")
-        with self.assertRaises(sil.LifecycleError):
+        with self.assertRaises(sil.OperationError):
             self.go({"claude-code": False})
         self.assertEqual(json.loads(self.claude.read_text("utf-8"))["mcpServers"]["respected-orchestrator"]["command"], "user-edit")
 
     def test_invalid_config_is_never_touched_and_missing_client_is_refused(self):
         self.claude.write_text("{not json", encoding="utf-8")
-        with self.assertRaises(sil.LifecycleError):
+        with self.assertRaises(sil.OperationError):
             sil.plan(self.ctx, {"desired": {"claude-code": True}, "launcher": LAUNCH})
         self.claude.write_text("{}", encoding="utf-8")
         rows = {r["client"]: r for r in sil.plan(self.ctx, {"desired": {"cursor": True}, "launcher": LAUNCH})["clients"]}
@@ -98,13 +98,12 @@ class IntegrationsTest(unittest.TestCase):
         self.assertEqual(self.codex.read_text("utf-8").strip(), CODEX.strip())
         self.go({"codex": True}, "op-test-roll2")
         self.codex.write_text(self.codex.read_text("utf-8").replace("launch.cmd", "other.cmd"), encoding="utf-8")
-        with self.assertRaises(sil.LifecycleError):
+        with self.assertRaises(sil.OperationError):
             sil.rollback(self.ctx, "op-test-roll2")
 
-    def test_rpp_ops_are_v11_only_and_listed(self):
-        reply = rpp.handle_request({"rpp": "1.0", "op": "integrations.plan", "payload": {}}, self.ctx)
-        self.assertEqual(reply["error"]["code"], "UNSUPPORTED_OP")
-        reply = rpp.handle_request({"rpp": "1.1", "op": "integrations.plan", "payload": {"desired": {}}}, self.ctx)
+    def test_rpp_ops_are_listed_and_answer(self):
+        self.assertIn("integrations.plan", rpp.handle_request({"rpp": "1", "op": "manifest"}, self.ctx)["result"]["capabilities"])
+        reply = rpp.handle_request({"rpp": "1", "op": "integrations.plan", "payload": {"desired": {}}}, self.ctx)
         self.assertTrue(reply["ok"], reply)
 
 

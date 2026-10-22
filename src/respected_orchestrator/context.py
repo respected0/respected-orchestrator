@@ -49,6 +49,8 @@ def atomic_write_json(path: Path, payload) -> None:
 
 
 def default_data_root() -> Path:
+    if os.environ.get("RESPECTED_DATA_DIR"):  # the one root override every Respected product shares
+        return Path(os.environ["RESPECTED_DATA_DIR"])
     if os.name == "nt":
         return Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local")) / "Respected/RespectedOrchestrator/data"   # one Respected folder for the whole ecosystem
     elif __import__("sys").platform == "darwin":

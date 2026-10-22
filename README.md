@@ -1,73 +1,53 @@
 # Respected Orchestrator
 
-Independent local AI task engine: it runs coding agents (Codex, Claude, Gemini, Antigravity, Cursor or a custom command)
-in isolated Git worktrees, checks their result (scope, acceptance commands, signed evidence, patch freshness) and never
-changes your project unless you apply a verified result. It needs no SecondBrain, vault, Hub process or global service.
+Yerel AI görev motoru. Kodlama ajanlarını (Codex, Claude, Gemini, Antigravity, Cursor ya da kendi komutunuz) projenizin
+yalıtılmış Git çalışma ağaçlarında çalıştırır, sonucu denetler (kapsam, doğrulama komutları, imzalı kanıt, yamanın
+güncelliği) ve siz onaylamadan projenize hiçbir şey uygulamaz. SecondBrain, not kasası, Hub ya da sürekli çalışan bir
+servis gerektirmez; SecondBrain hafızası isteğe bağlıdır.
 
-People use it through **Respected Hub** (workspace, task list, evidence, MCP access for AI clients). The engine ships as
-`respected-orchestrator.exe`, a packaged folder that needs no Python on the machine; Git must be installed for worktrees.
+## Kurulum
 
-## Layout
+`RespectedOrchestrator-Windows-Setup.exe` kullanıcı başına kurulur, yönetici izni istemez, Python gerektirmez.
+Bilgisayarda **Git** ve görevleri yapacak bir AI aracının komut satırı (oturumu açık) olmalıdır. Kurucu iki yol sunar:
+**Respected Hub ile devam et** ya da **Yalnızca Orchestrator**. Kurucuyu yeniden çalıştırmak onarır/günceller, ayarları
+değiştirir ya da kaldırır. Adım adım: [Kullanım rehberi](docs/USAGE.md).
 
-| Path | What it is |
-| --- | --- |
-| `src/respected_orchestrator/engine/` | worktree lanes, task runner, Codex call layer, acceptance sandbox, process control, token budget |
-| `src/respected_orchestrator/workflows/` | MAF coding workflow, campaigns, autonomous projects, planner, role assignment |
-| `src/respected_orchestrator/interfaces/` | RPP server (Hub protocol), lifecycle records, MCP server, SecondBrain memory client, AI-client integrations |
-| `src/respected_orchestrator/__main__.py` | private JSON entry point for the Hub and tests (not a public CLI) |
-| `packaging/` (incl. `build_dist.py`) | packaged build (PyInstaller onedir + `distribution.json`) |
-| `tests/` | `engine/`, `workflows/`, `interfaces/` mirror the package; `packaging/` drives the built exe |
-| `docs/decisions/` | binding design decisions (RPP, sandbox, MCP permissions, roles, memory, campaigns, Codex results) |
+| Ne | Nerede |
+|---|---|
+| Program | `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app\respected-orchestrator.exe` (kurucunun) |
+| Ayarlar, görev çalışmaları, kanıtlar | `%LOCALAPPDATA%\Respected\RespectedOrchestrator\data` |
 
-## Develop
+## Komutlar
+
+Hepsi JSON yazar; hata `{"error": {"code", "message", "hint"}}`, çıkış kodu `0` başarı, `1` başarısız, `2` kullanım.
+Tam liste ve istek biçimleri: [docs/COMMANDS.md](docs/COMMANDS.md).
+
+- **Kurulum ve bakım:** `setup`, `repair`, `uninstall [--purge]`, `config [get|set]`, `health`, `status`.
+- **Bağlantılar:** `memory connect [--write] | disconnect | status` (SecondBrain hafızası),
+  `integrations [set İSTEMCİ=on|off]` (AI araçlarına MCP kaydı), `mcp`, `rpp`.
+- **Görevler:** `create` → `start` → `inspect` → `check` → `apply`; ayrıca `list`, `retry`, `cancel`, `maf`, `maf-approve`,
+  `roles`, `plan`.
+- **Projeler ve kampanyalar:** `project-start|status|resume|cancel`, `campaign-start|status|list`.
+
+Hiçbir sonuç kendiliğinden uygulanmaz; bekleyen, başarısız, bayat ya da kurcalanmış sonuç `check`'ten geçmez. Güvenlik
+sınırları ve bağlayıcı kurallar: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Beta yalnızca Windows'u destekler.
+
+## Geliştirme
 
 ```powershell
 python -m pip install -e ".[dev]"
-python -m unittest discover -s tests -t .          # temp repos and fake workers only; HOME is sandboxed
-python packaging/build_dist.py                          # -> dist/RespectedOrchestrator/respected-orchestrator.exe
-python -m unittest tests.packaging.test_frozen_build # the built exe with no Python on PATH
+python -m unittest discover -s tests -t .              # geçici depolar ve sahte çalışanlar; HOME yalıtılır
+python packaging/build_dist.py                         # dist\RespectedOrchestrator\respected-orchestrator.exe
+python -m unittest tests.packaging.test_frozen_build   # derlenmiş program, PATH'te Python yokken
+python packaging/build_installer.py                    # dist\RespectedOrchestrator-Windows-Setup.exe
+$env:RESPECTED_DATA_DIR = "$env:TEMP\orch-dev"; python -m respected_orchestrator status
 ```
 
-The private entry point takes one JSON request on stdin per command and prints one JSON line; use an explicit,
-disposable data root during development:
+Kaynak: `src/respected_orchestrator/engine/` (çalışma ağaçları, çalıştırıcı, Codex katmanı, doğrulama kum havuzu, süreç
+denetimi, belirteç bütçesi), `workflows/` (MAF iş akışı, kampanyalar, projeler, planlayıcı, rol atama), `interfaces/`
+(RPP, kurulum, MCP sunucusu, SecondBrain hafızası, AI aracı kayıtları). Kurucu: `packaging/windows/orchestrator_setup.iss`.
+Üç ürünün ortak sözleşmesi ekosistem kökündeki `docs/PRODUCT_CONTRACT.md` dosyasındadır.
 
-```powershell
-$data = "$env:TEMP\orch-dev"
-python -m respected_orchestrator --data-root $data status
-Get-Content -Raw request.json | python -m respected_orchestrator --data-root $data create   # -> run_id
-python -m respected_orchestrator --data-root $data start RUN_ID     # detached supervisor
-python -m respected_orchestrator --data-root $data inspect RUN_ID
-python -m respected_orchestrator --data-root $data check RUN_ID     # re-verifies signed evidence and freshness
-```
+## Lisans
 
-The packaged build answers the same commands: `respected-orchestrator.exe --data-root DATA status`. Other commands:
-`rpp` (Hub protocol), `mcp` (stdio MCP server), `plan`, `roles`, `maf`, `apply`, `retry`, `cancel`,
-`campaign-*`, `project-*`.
-
-A read task request:
-
-```json
-{
-  "project_root": "C:/path/to/a/git/project",
-  "task": "Inspect src and explain its public entry points. Do not change files.",
-  "worker": "codex",
-  "kind": "read",
-  "ownership": ["src"],
-  "forbidden": [".env", "credentials"],
-  "acceptance": [],
-  "timeout_seconds": 120
-}
-```
-
-Write tasks need at least one `acceptance` command as a JSON argv array and ownership that covers the files they may
-change. Nothing is applied automatically; pending, failed, stale or tampered results never pass `check`; retries are
-explicit and bounded.
-
-## Safety limits
-
-* Windows workers run in a kill-on-close Job Object; timeout, cancel or supervisor death removes the whole process tree.
-* Acceptance commands run under a Windows restricted token that cannot read the engine key or rewrite run evidence
-  (`docs/decisions/ACCEPTANCE_SANDBOX.md`). Scope validation is a post-execution file check, not an OS sandbox for the
-  worker itself, which runs with the user's permissions.
-* Logs are redacted for recognised key/token patterns, not for every possible secret format.
-* Windows is the supported platform for the beta; macOS/Linux code paths exist but are not verified.
+[MIT lisansı](LICENSE).

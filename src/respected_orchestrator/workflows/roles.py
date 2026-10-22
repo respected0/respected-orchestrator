@@ -1,4 +1,4 @@
-"""Vendor-neutral role assignment (docs/decisions/ROLE_ASSIGNMENT.md).
+"""Vendor-neutral role assignment (docs/ARCHITECTURE.md, "Rol atama").
 
 Roles (implementer, reviewer, planner, ...) name a job. A profile names a model/provider configuration. A tool names
 the CLI that executes it. No code here (or anywhere that calls it) may tie a model to a role: every profile is eligible
@@ -28,20 +28,20 @@ class RoleError(ValueError):
 def settings_fields(tools: list[str]) -> list[dict[str, Any]]:
     """Hub-visible settings owned by role assignment (appended to the RPP settings schema)."""
     return [
-        {"key": "default_reviewer_tool", "type": "enum", "label": "Default reviewer tool", "default": DEFAULT_TOOL,
-         "secret": False, "enum": tools},
-        {"key": "default_roles", "type": "string", "secret": False, "default": "",
-         "label": "Default assignments for any role (JSON: {\"planner\": {\"tool\": \"claude\", \"profile\": \"...\"}})"},
-        {"key": "auto_assign", "type": "boolean", "label": "Recommend assignments when none exists",
-         "default": False, "secret": False},
-        {"key": "auto_pool", "type": "string", "secret": False, "default": "",
-         "label": "Automatic assignment pool (JSON list of {\"tool\": ..., \"profile\": ...})"},
-        {"key": "require_independent_review", "type": "boolean", "label": "Reviewer must differ from implementer",
-         "default": False, "secret": False},
-        {"key": "mcp_acceptance_allow", "type": "string", "secret": False, "default": "",
-         "label": "Acceptance/verify commands an AI client may add over MCP (JSON list of command prefixes, e.g. [[\"python\", \"-m\", \"pytest\"]])"},
-        {"key": "blocked_profiles", "type": "string", "label": "Blocked profile names (comma separated)",
-         "default": DEFAULT_BLOCKED, "secret": False},
+        {"key": "default_reviewer_tool", "type": "enum", "label": "Varsayılan gözden geçirici", "default": DEFAULT_TOOL,
+         "secret": False, "enum": tools, "help": "Yapılan işi gözden geçiren AI aracı."},
+        {"key": "default_roles", "type": "string", "secret": False, "default": "", "label": "Varsayılan rol atamaları",
+         "help": "JSON, ör. {\"planner\": {\"tool\": \"claude\", \"profile\": \"...\"}}; boş: atama yok."},
+        {"key": "auto_assign", "type": "boolean", "label": "Otomatik rol önerisi", "default": False, "secret": False,
+         "help": "Atama yoksa geçmiş başarıya göre bir araç önerilir."},
+        {"key": "auto_pool", "type": "string", "secret": False, "default": "", "label": "Otomatik atama havuzu",
+         "help": "JSON liste, ör. [{\"tool\": \"codex\", \"profile\": \"...\"}]."},
+        {"key": "require_independent_review", "type": "boolean", "label": "Bağımsız gözden geçirme", "default": False,
+         "secret": False, "help": "Gözden geçiren, işi yapandan farklı bir araç olmalı."},
+        {"key": "mcp_acceptance_allow", "type": "string", "secret": False, "default": "", "label": "MCP ile eklenebilecek doğrulama komutları",
+         "help": "JSON komut önekleri listesi, ör. [[\"python\", \"-m\", \"pytest\"]]."},
+        {"key": "blocked_profiles", "type": "string", "label": "Engelli profiller", "default": DEFAULT_BLOCKED, "secret": False,
+         "help": "Virgülle ayrılmış profil adları; bunlarla görev başlatılmaz."},
     ]
 
 
