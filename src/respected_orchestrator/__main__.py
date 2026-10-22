@@ -1,9 +1,14 @@
-"""Private JSON entry point for Hub and developer verification; the only user-facing commands are --version and the product-contract lifecycle commands (setup, update, repair, uninstall)."""
+"""respected-orchestrator command line: the shared product commands (docs/PRODUCT_CONTRACT.md in the ecosystem root) and the engine's own.
+
+Shared: --version, setup, repair, uninstall [--purge], config [get KEY | set KEY=VALUE...], health, memory connect|disconnect|status,
+rpp, mcp. Own: integrations [set CLIENT=on|off...] registers this program as an MCP server in AI clients (what the Hub's screen does). Output is JSON; errors are {"error": {code, message, hint}}; exit codes 0 ok, 1 failed, 2 usage.
+`--data-root` is the engine's own handle for the child processes it starts (each campaign lane has its own root); people use
+RESPECTED_DATA_DIR.
+"""
 import argparse
 import json
 from pathlib import Path
 import sys
-import uuid
 
 from .context import EngineContext, default_data_root
 from .workflows import roles
@@ -27,20 +32,107 @@ def _selfcheck():
     return dict(status="ok", version=__version__, modules=len(names))
 
 
-LIFECYCLE_ACTIONS = {"setup": "install", "update": "update", "repair": "repair", "uninstall": "uninstall"}
-LIFECYCLE_USAGE = "usage: respected-orchestrator {setup|update|repair|uninstall} [--purge (uninstall only)]\nRecords, re-verifies or removes the install record of this program folder; --purge also deletes the data root."
+SHARED = ("setup", "repair", "uninstall", "config", "health", "memory", "integrations")
+USAGE = {
+    "setup": "setup",
+    "repair": "repair",
+    "uninstall": "uninstall [--purge]",
+    "config": "config | config get <anahtar> | config set <anahtar>=<değer>...",
+    "health": "health",
+    "memory": "memory connect [--write] | memory disconnect | memory status",
+    "integrations": "integrations | integrations set <istemci>=on|off...",
+}
 
 
-def _lifecycle_command(ctx, command, extra):
-    """Product-contract lifecycle commands over lifecycle.apply; the program folder itself belongs to whoever installed it."""
-    if extra not in ([], ["--purge"]) or (extra and command != "uninstall"):
-        raise ValueError(LIFECYCLE_USAGE)
-    from .interfaces import lifecycle
-    target = {"app_root": str(ctx.app_root), "distribution": True, "purge": bool(extra)}
-    return lifecycle.apply(ctx, "operation-" + uuid.uuid4().hex[:16], LIFECYCLE_ACTIONS[command], target)
+class UsageError(ValueError):
+    pass
+
+
+def _value(field, text):
+    if field["type"] == "boolean":
+        if text.strip().lower() not in ("true", "false"):
+            raise UsageError(f"{field['key']} true ya da false olmalı")
+        return text.strip().lower() == "true"
+    if field["type"] == "integer":
+        try:
+            return int(text)
+        except ValueError:
+            raise UsageError(f"{field['key']} tam sayı olmalı") from None
+    return text
+
+
+def _config(ctx, rest):
+    from .interfaces import rpp
+    fields = {field["key"]: field for field in rpp.schema_fields()}
+    if not rest:
+        return rpp.read_settings(ctx)
+    if rest[0] == "get" and len(rest) == 2 and rest[1] in fields:
+        return {rest[1]: rpp.read_settings(ctx)[rest[1]]}
+    if rest[0] == "set" and len(rest) > 1:
+        values = {}
+        for item in rest[1:]:
+            key, separator, text = item.partition("=")
+            if not separator or key not in fields:
+                raise UsageError(f"Bilinmeyen ayar ya da eksik '=': {item}")
+            values[key] = _value(fields[key], text)
+        rpp.apply_settings(ctx, values)
+        current = rpp.read_settings(ctx)
+        return {key: current[key] for key in values}
+    raise UsageError("Kullanım: " + USAGE["config"])
+
+
+def _integrations(ctx, rest):
+    """AI clients that start this program as their MCP server: status, or `set claude-code=on codex=off`."""
+    from .context import engine_command
+    from .interfaces import integrations
+    command = engine_command("mcp")
+    launcher = {"command": command[0], "args": command[1:]}
+    if not rest:
+        return integrations.plan(ctx, {"desired": {}, "launcher": launcher})
+    if rest[0] != "set" or len(rest) < 2:
+        raise UsageError("Kullanım: " + USAGE["integrations"])
+    desired = {}
+    for item in rest[1:]:
+        client, separator, state = item.partition("=")
+        if not separator or state not in ("on", "off"):
+            raise UsageError(f"Beklenen <istemci>=on|off: {item}")
+        desired[client] = state == "on"
+    planned = integrations.plan(ctx, {"desired": desired, "launcher": launcher})
+    import uuid
+    return integrations.apply(ctx, "cli-" + uuid.uuid4().hex[:16], {"desired": desired, "launcher": launcher, "plan_digest": planned["plan_digest"]})
+
+
+def _shared(ctx, command, rest):
+    """The commands every Respected product has, with the same names, flags and output."""
+    from .interfaces import installation, memory_link, rpp
+    if command == "config":
+        return _config(ctx, rest)
+    if command == "integrations":
+        return _integrations(ctx, rest)
+    if command == "memory":
+        if rest == ["connect"] or rest == ["connect", "--write"]:
+            return memory_link.connect(ctx, write=rest[1:] == ["--write"])
+        if rest in (["disconnect"], ["status"]):
+            return memory_link.disconnect(ctx) if rest[0] == "disconnect" else memory_link.status(ctx)
+        raise UsageError("Kullanım: " + USAGE["memory"])
+    if rest not in ([], ["--purge"]) or (rest and command != "uninstall"):
+        raise UsageError("Kullanım: " + USAGE[command])
+    if command == "health":
+        return rpp.health(ctx)
+    if command == "uninstall":
+        return installation.uninstall(ctx, purge=bool(rest))
+    return installation.setup(ctx) if command == "setup" else installation.repair(ctx)
+
+
+def _error(code, message, hint):
+    print(json.dumps({"error": {"code": code, "message": message, "hint": hint}}, ensure_ascii=False))
 
 
 def main(argv=None):
+    if sys.platform == "win32":  # JSON goes out (and RPP comes in) as UTF-8 whatever the console code page is
+        for stream in (sys.stdin, sys.stdout, sys.stderr):
+            if callable(getattr(stream, "reconfigure", None)):
+                stream.reconfigure(encoding="utf-8", errors="replace")
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv[:1] == ["_sandbox-exec"]:  # restricted-token launcher of the packaged build: touches no data root
         from .engine import sandbox_exec
@@ -49,19 +141,29 @@ def main(argv=None):
         print(f"respected-orchestrator {__version__}")
         return 0
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-root", type=Path, default=default_data_root())
-    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "campaign-start", "campaign-run", "campaign-status", "campaign-list", "project-start", "project-run", "project-resume", "project-status", "project-cancel", "rpp", "roles", "plan", "mcp", "setup", "update", "repair", "uninstall", "_selfcheck"])
+    parser.add_argument("--data-root", type=Path, default=default_data_root(), help=argparse.SUPPRESS)
+    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "campaign-start", "campaign-run", "campaign-status", "campaign-list", "project-start", "project-run", "project-resume", "project-status", "project-cancel", "rpp", "roles", "plan", "mcp", *SHARED, "_selfcheck"])
     parser.add_argument("args", nargs=argparse.REMAINDER)
-    args = parser.parse_args(argv)
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit as exit:  # --help (0) or a usage error (2, already explained on stderr)
+        return int(exit.code or 0)
     ctx = EngineContext(args.data_root)
     try:
         if args.command == "_selfcheck":
             payload = _selfcheck()
-        elif args.command in LIFECYCLE_ACTIONS:
+        elif args.command in ("rpp", "mcp") and args.args[:1] in (["--help"], ["-h"]):
+            print({"rpp": "usage: respected-orchestrator rpp  (one RPP 1 request on stdin, one response on stdout)",
+                   "mcp": "usage: respected-orchestrator mcp [--allow-auto-apply] [--allow-privileged]  (stdio MCP server)"}[args.command])
+            return 0
+        elif args.command in SHARED:
             if args.args[:1] in (["--help"], ["-h"]):
-                print(LIFECYCLE_USAGE)
+                print("usage: respected-orchestrator " + USAGE[args.command])
                 return 0
-            payload = _lifecycle_command(ctx, args.command, args.args)
+            payload = _shared(ctx, args.command, args.args)
+            print(json.dumps(payload, ensure_ascii=False))
+            healthy = args.command != "health" or payload["status"] == "healthy"
+            return 0 if healthy and not payload.get("conflicts") else 1
         elif args.command == "status":
             payload = dict(product="respected-orchestrator", version=__version__, data_root=str(ctx.data_root),
                            workers={worker: runner.get_cli_command(worker) for worker in runner.SUPPORTED_AGENTS if worker != "custom"},
@@ -117,11 +219,19 @@ def main(argv=None):
                 payload = method(ctx, args.args[0])
         print(json.dumps(payload, ensure_ascii=True))
         return 1 if payload.get("status") in {"failed", "timed_out", "cancelled", "interrupted"} and args.command == "_execute" else 0
+    except UsageError as error:
+        _error("USAGE", str(error), "respected-orchestrator --help")
+        return 2
     except roles.RoleError as error:
-        print(json.dumps(dict(error=error.message, code=error.code, hint=error.hint), ensure_ascii=True))
+        _error(error.code, error.message, error.hint)
         return 1
     except Exception as error:
-        print(json.dumps(dict(error=str(error)), ensure_ascii=True))
+        from .interfaces.installation import OperationError
+        from .interfaces.rpp import RppError
+        if isinstance(error, (OperationError, RppError)):
+            _error(error.code, error.message, error.hint)
+            return 2 if error.code == "INVALID_SETTINGS" else 1
+        _error("FAILED", str(error), "Ayrıntı için mesaja bakın.")
         return 1
 
 

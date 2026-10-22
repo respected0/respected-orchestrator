@@ -76,7 +76,7 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual((result["index_state"], result["grant_id"]), ("fresh", "grant_0001"))
         side = json.loads(self.side.read_text(encoding="utf-8"))
         request = json.loads(side["stdin"])
-        self.assertEqual(request["rpp"], "1.1")
+        self.assertEqual(request["rpp"], "1")
         self.assertEqual(request["op"], "memory.recall")
         self.assertEqual(request["payload"]["token"], TOKEN)
         self.assertEqual(request["payload"]["limit"], 2)

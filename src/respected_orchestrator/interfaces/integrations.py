@@ -1,4 +1,4 @@
-"""RPP v1.1 ``integrations.*``: register the Orchestrator MCP server in AI-client configs (Safe Integration Layer).
+"""RPP ``integrations.*``: register the Orchestrator MCP server in AI-client configs (Safe Integration Layer).
 
 Discover -> Inspect -> Plan -> approve -> Apply -> Verify -> Rollback. Only the one entry named ``respected-orchestrator`` is ever
 touched; every other server/setting is preserved. Ownership (a digest of the entry we wrote) is recorded in the data root; an
@@ -13,7 +13,7 @@ import re
 import sys
 
 from ..context import atomic_write_json, safe_path
-from .lifecycle import LifecycleError, _atomic_write_text, _now, _read_receipt, _receipt_path
+from .installation import OperationError, _atomic_write_text, _now, _read_receipt, _receipt_path
 
 NAME = "respected-orchestrator"
 _TOML_HEADER = re.compile(r"^\s*\[\[?\s*([^\]]+?)\s*\]\]?\s*(#.*)?$")
@@ -37,7 +37,7 @@ def _clients():
 
 
 def _fail(code, message, hint=""):
-    return LifecycleError(code, message, hint)
+    return OperationError(code, message, hint)
 
 
 def _digest(text):

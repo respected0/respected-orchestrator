@@ -79,17 +79,19 @@ def token_set(data_root):
 
 
 def settings_fields():
+    # set by `memory connect` (or the Hub through memory.connect), never typed by hand: hidden from forms
+    help_text = "respected-orchestrator memory connect ile ayarlanır."
     return [
-        {"key": "memory_enabled", "type": "boolean", "label": "Memory enabled", "default": False,
-         "secret": False, "hidden": True},
-        {"key": "memory_command", "type": "string", "label": "Memory command (JSON)", "default": "",
-         "secret": False, "hidden": True},
-        {"key": "memory_write", "type": "boolean", "label": "Memory write enabled", "default": False,
-         "secret": False, "hidden": True},
-        {"key": "memory_grant_id", "type": "string", "label": "Memory grant id", "default": "",
-         "secret": False, "hidden": True},
-        {"key": "memory_token", "type": "string", "label": "Memory token", "default": "",
-         "secret": True, "hidden": True},
+        {"key": "memory_enabled", "type": "boolean", "label": "SecondBrain hafızası bağlı", "default": False,
+         "secret": False, "hidden": True, "help": help_text},
+        {"key": "memory_command", "type": "string", "label": "SecondBrain komutu", "default": "",
+         "secret": False, "hidden": True, "help": help_text},
+        {"key": "memory_write", "type": "boolean", "label": "Hafızaya not yazabilir", "default": False,
+         "secret": False, "hidden": True, "help": help_text},
+        {"key": "memory_grant_id", "type": "string", "label": "Hafıza izni", "default": "",
+         "secret": False, "hidden": True, "help": help_text},
+        {"key": "memory_token", "type": "string", "label": "Hafıza anahtarı", "default": "",
+         "secret": True, "hidden": True, "help": help_text},
     ]
 
 
@@ -165,7 +167,7 @@ def write_note(settings, data_root, title, body, tags=(), *, operation_id, timeo
             return {"status": "disabled"}
         token = load_token(data_root)
         command = parse_command(settings["memory_command"])
-        request = {"rpp": "1.1", "op": "memory.write", "operation_id": operation_id,
+        request = {"rpp": "1", "op": "memory.write", "operation_id": operation_id,
                    "payload": {"token": token, "title": str(title), "body": str(body), "tags": list(tags)}}
         env = {key: os.environ[key] for key in BASE_ENV_KEYS if key in os.environ}
         env.update(command["env"])
@@ -231,7 +233,7 @@ def recall_for_task(settings, data_root, query, *, limit=5, snippet_chars=200, t
             return {"status": "disabled"}
         command = parse_command(settings["memory_command"])
         limit = max(1, min(20, int(limit)))
-        request = {"rpp": "1.1", "op": "memory.recall", "operation_id": None,
+        request = {"rpp": "1", "op": "memory.recall", "operation_id": None,
                    "payload": {"token": token, "query": query.strip()[:500], "limit": limit,
                                "snippet_chars": max(40, min(400, int(snippet_chars)))}}
         env = {key: os.environ[key] for key in BASE_ENV_KEYS if key in os.environ}

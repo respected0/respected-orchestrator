@@ -51,7 +51,7 @@ class FrozenBuildTest(unittest.TestCase):
 
     def test_rpp_manifest_and_health(self):
         for op in ("manifest", "health"):
-            code, out, err = self.engine("rpp", stdin=json.dumps({"rpp": "1.1", "op": op, "payload": {}}))
+            code, out, err = self.engine("rpp", stdin=json.dumps({"rpp": "1", "op": op, "payload": {}}))
             reply = json.loads(out)
             self.assertTrue(reply["ok"], out + err)
 
