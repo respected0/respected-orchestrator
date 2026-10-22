@@ -1,2 +1,4 @@
 """Respected Orchestrator: independent engine, no memory vault required."""
-__version__ = "0.1.0-beta.2"  # keep equal to pyproject.toml
+from importlib.metadata import version
+
+__version__ = version("respected-orchestrator")

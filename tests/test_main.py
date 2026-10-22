@@ -60,6 +60,13 @@ class MainTests(unittest.TestCase):
         with mock.patch("respected_orchestrator.workflows.campaign.list_campaigns", return_value={"campaigns": []}):
             self.assertEqual(json.loads(call(*self.root, "campaign-list")[1]), {"campaigns": []})
 
+    def test_version_is_the_packaging_form_of_pyproject_version(self):
+        import re
+        from packaging.version import Version
+        from respected_orchestrator import __version__
+        text = (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+        self.assertEqual(__version__, str(Version(re.search(r'^version\s*=\s*"([^"]+)"', text, re.M).group(1))))
+
     def test_version_and_shared_product_commands(self):
         from respected_orchestrator import __version__
         self.assertEqual(call("--version"), (0, f"respected-orchestrator {__version__}\n"))

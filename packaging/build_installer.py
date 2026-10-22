@@ -38,7 +38,7 @@ if __name__ == "__main__":
         run([sys.executable, "-B", str(ROOT / "packaging" / "build_dist.py"), "--output", str(DIST)])
     if not (DIST / "RespectedOrchestrator" / "respected-orchestrator.exe").is_file():
         sys.exit("dist/RespectedOrchestrator is missing; run without --skip-dist")
-    version = re.search(r'__version__ = "([^"]+)"', (ROOT / "src" / "respected_orchestrator" / "__init__.py").read_text("utf-8")).group(1)
+    version = re.search(r'^version\s*=\s*"([^"]+)"', (ROOT / "pyproject.toml").read_text("utf-8"), re.M).group(1)
     run([inno(), f"/DAppVersion={version}", f"/DStageDir={DIST / 'RespectedOrchestrator'}", f"/DOutputDir={DIST}",
          str(ROOT / "packaging" / "windows" / "orchestrator_setup.iss")])
     print(DIST / "RespectedOrchestrator-Windows-Setup.exe")
