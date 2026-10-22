@@ -30,6 +30,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayIcon={app}\respected-orchestrator.exe
 CloseApplications=yes
+SetupLogging=yes
 WizardStyle=modern
 
 [Languages]

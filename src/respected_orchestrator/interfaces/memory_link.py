@@ -12,6 +12,7 @@ import sys
 import tempfile
 import uuid
 
+from . import RPP
 from ..engine import winproc
 from .installation import OperationError
 
@@ -26,7 +27,7 @@ def brain_exe():
 
 
 def _call(exe, op, payload=None, *, operation=False):
-    request = {"rpp": "1", "op": op, "payload": payload or {}}
+    request = {"rpp": RPP, "op": op, "payload": payload or {}}
     if operation:
         request["operation_id"] = "orch-" + uuid.uuid4().hex[:16]
     try:

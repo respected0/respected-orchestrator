@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from . import RPP
 from ..engine import winproc
 from ..engine.evidence import restrict_key
 
@@ -167,7 +168,7 @@ def write_note(settings, data_root, title, body, tags=(), *, operation_id, timeo
             return {"status": "disabled"}
         token = load_token(data_root)
         command = parse_command(settings["memory_command"])
-        request = {"rpp": "1", "op": "memory.write", "operation_id": operation_id,
+        request = {"rpp": RPP, "op": "memory.write", "operation_id": operation_id,
                    "payload": {"token": token, "title": str(title), "body": str(body), "tags": list(tags)}}
         env = {key: os.environ[key] for key in BASE_ENV_KEYS if key in os.environ}
         env.update(command["env"])
@@ -233,7 +234,7 @@ def recall_for_task(settings, data_root, query, *, limit=5, snippet_chars=200, t
             return {"status": "disabled"}
         command = parse_command(settings["memory_command"])
         limit = max(1, min(20, int(limit)))
-        request = {"rpp": "1", "op": "memory.recall", "operation_id": None,
+        request = {"rpp": RPP, "op": "memory.recall", "operation_id": None,
                    "payload": {"token": token, "query": query.strip()[:500], "limit": limit,
                                "snippet_chars": max(40, min(400, int(snippet_chars)))}}
         env = {key: os.environ[key] for key in BASE_ENV_KEYS if key in os.environ}

@@ -11,7 +11,7 @@
 
 ## Master–worker rolleri
 
-- [ ] `tester` ve `coordinator` rolleri tanımlı ama hiçbir aşamada kullanılmıyor (`ARCHITECTURE.md` §4).
+- [ ] `tester` ve `coordinator` rolleri için aşama yok; bugün atanırlarsa `ROLE_NOT_EXECUTABLE` döner (`ARCHITECTURE.md` §4).
 - [ ] Otomatik atama görev zorluğunu ve fiyatı modellemiyor.
 
 ## Token tasarrufu
@@ -29,3 +29,8 @@
 
 - [ ] Kurucuyu Authenticode ile imzalamak (SmartScreen uyarısı).
 - [ ] macOS / Linux: kod yolları var, doğrulanmadı; POSIX'te anahtar için işletim sistemi kum havuzu yok.
+
+## Hub'dan bağımsızlık
+
+- [ ] Hata ve ipucu metinleri Hub kuruluysa "Hub'da açın", değilse ürünün kendi komutunu söylemeli
+  (`engine/runner.py` hafıza hatası, `workflows/roles.py`, `resources/skills/kod-orkestrasyon/SKILL.md`).
