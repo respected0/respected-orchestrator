@@ -16,6 +16,7 @@ from . import lanes, sandbox
 from . import budget, track_record, winproc
 from .evidence import key_path, load_signed, save_signed
 from ..interfaces import memory
+from ..hints import hint
 from ..workflows import roles
 from ..context import EngineContext, engine_command, safe_path, validate_project
 from .processes import ProcessStopped, execute
@@ -366,7 +367,7 @@ def _memory_policy(request, settings, root):
         raise ValueError("memory.query must be 1..200 characters")
     ready = memory.configured(settings, root)
     if use is True and not ready:
-        raise ValueError("memory requested but Brain access is not enabled in the Hub")
+        raise ValueError("memory requested but Brain access is not enabled: " + hint("Hub'da Orchestrator → Brain bağlantısını açın", "respected-orchestrator memory connect"))
     if use is not None:
         policy = {"use": use, "source": "explicit"}
     else:  # enabling memory in the Hub is a permission, not a default: every task opts in with memory.use

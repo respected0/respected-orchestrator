@@ -15,6 +15,7 @@ import uuid
 
 from .. import __version__
 from ..context import atomic_write_json, path_within_root, safe_path
+from .migrate import MigrationError, migrate_data
 
 PRODUCT_ID = "respected-orchestrator"
 RECORD_NAME = ".respected/install.json"
@@ -124,6 +125,10 @@ def setup(ctx):
     files = _distribution(ctx.app_root)
     previous = _record(ctx.app_root) or {}
     ctx.data_root.mkdir(parents=True, exist_ok=True)
+    try:
+        migrate_data(ctx.data_root)  # an update moves old-format data first
+    except MigrationError as error:
+        raise OperationError("DATA_FORMAT", str(error), "Ayrıntı için mesaja bakın; veri dosyasına dokunulmadı.") from error
     atomic_write_json(_safe(ctx.app_root / RECORD_NAME), {"product_id": PRODUCT_ID, "product_version": __version__,
                                                          "installed_at": previous.get("installed_at") or _now(),
                                                          "files": files, "distribution": True})

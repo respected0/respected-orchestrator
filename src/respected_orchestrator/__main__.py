@@ -1,4 +1,4 @@
-"""respected-orchestrator command line: the shared product commands (docs/PRODUCT_CONTRACT.md in the ecosystem root) and the engine's own.
+"""respected-orchestrator command line: the shared product commands (docs/PRODUCT_CONTRACT.md) and the engine's own.
 
 Shared: --version, setup, repair, uninstall [--purge], config [get KEY | set KEY=VALUE...], health, memory connect|disconnect|status,
 rpp, mcp. Own: integrations [set CLIENT=on|off...] registers this program as an MCP server in AI clients (what the Hub's screen does). Output is JSON; errors are {"error": {code, message, hint}}; exit codes 0 ok, 1 failed, 2 usage.

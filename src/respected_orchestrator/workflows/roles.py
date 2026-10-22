@@ -12,6 +12,7 @@ from typing import Any
 
 from ..engine.track_record import MIN_RUNS
 from ..context import safe_path
+from ..hints import hint
 
 ROLE_RE = re.compile(r"[a-z][a-z0-9_]{0,39}\Z")
 SOURCES = ("explicit", "hub_default", "auto")
@@ -262,7 +263,7 @@ def resolve(settings: Mapping[str, Any], requested: Mapping[str, Any], needed: l
         resolved[role] = {k: v for k, v in chosen.items() if k != "fallbacks" or v}
     if missing:
         raise RoleError("ROLE_UNASSIGNED", "No assignment for role(s): " + ", ".join(missing),
-                        "Assign them in the task, set Hub defaults, or enable auto_assign with an auto_pool.")
+                        "Assign them in the task or enable auto_assign with an auto_pool. " + hint("Varsayılanları Hub'da belirleyin", "respected-orchestrator config set default_worker=<araç>"))
     return resolved
 
 

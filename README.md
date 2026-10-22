@@ -46,7 +46,7 @@ $env:RESPECTED_DATA_DIR = "$env:TEMP\orch-dev"; python -m respected_orchestrator
 Kaynak: `src/respected_orchestrator/engine/` (çalışma ağaçları, çalıştırıcı, Codex katmanı, doğrulama kum havuzu, süreç
 denetimi, belirteç bütçesi), `workflows/` (MAF iş akışı, kampanyalar, projeler, planlayıcı, rol atama), `interfaces/`
 (RPP, kurulum, MCP sunucusu, Brain hafızası, AI aracı kayıtları). Kurucu: `packaging/windows/orchestrator_setup.iss`.
-Üç ürünün ortak sözleşmesi ekosistem kökündeki `docs/PRODUCT_CONTRACT.md` dosyasındadır.
+Üç ürünün ortak sözleşmesi `docs/PRODUCT_CONTRACT.md` dosyasındadır.
 
 ## Lisans
 
