@@ -5,6 +5,7 @@ Not a daemon and no network listener. Settings go through `apply_settings`/`read
 returned as a structured error, never raised.
 """
 import datetime as dt
+import functools
 import hashlib
 import json
 import os
@@ -13,30 +14,37 @@ import sys
 import tempfile
 
 from .. import __version__
-from . import installation
-from . import memory
-from ..workflows import roles
-from ..engine import runner
 from ..context import atomic_write_json, safe_path
 from . import RPP
 
 PRODUCT_ID = "respected-orchestrator"
 
 _OPERATION_ID = re.compile(r"[A-Za-z0-9_-]{8,64}\Z")
-_WORKER_CHOICES = [agent for agent in runner.SUPPORTED_AGENTS if agent != "custom"]
+# These need the engine, the roles and the memory link, so they are built when a settings or health call asks, not when the module loads
+# (a manifest call must not pay for them).
+@functools.lru_cache(maxsize=None)
+def _worker_choices():
+    from ..engine import runner
+    return [agent for agent in runner.SUPPORTED_AGENTS if agent != "custom"]
 
-_SETTINGS_FIELDS = [
-    {"key": "default_worker", "type": "enum", "label": "Varsayılan çalışan", "default": "codex", "secret": False,
-     "enum": _WORKER_CHOICES, "help": "Görevleri yapan AI aracı (komut satırı aracı kurulu olmalı)."},
-    {"key": "default_worker_profile", "type": "string", "label": "Çalışan profili", "default": "", "secret": False,
-     "help": "Çalışan aracın kullanacağı profil adı; boş: aracın varsayılanı."},
-    {"key": "default_reviewer_profile", "type": "string", "label": "Gözden geçirici profili", "default": "", "secret": False,
-     "help": "Gözden geçiren aracın profil adı; boş: aracın varsayılanı."},
-    {"key": "default_timeout_seconds", "type": "integer", "label": "Görev zaman aşımı (saniye)", "default": 900, "secret": False,
-     "min": 60, "max": 3600, "help": "Bir görevin en uzun çalışma süresi."},
-    *roles.settings_fields(list(runner.SUPPORTED_AGENTS)),
-    *memory.settings_fields(),
-]
+
+@functools.lru_cache(maxsize=None)
+def _settings_fields():
+    from ..engine import runner
+    from ..workflows import roles
+    from . import memory
+    return [
+        {"key": "default_worker", "type": "enum", "label": "Varsayılan çalışan", "default": "codex", "secret": False,
+         "enum": _worker_choices(), "help": "Görevleri yapan AI aracı (komut satırı aracı kurulu olmalı)."},
+        {"key": "default_worker_profile", "type": "string", "label": "Çalışan profili", "default": "", "secret": False,
+         "help": "Çalışan aracın kullanacağı profil adı; boş: aracın varsayılanı."},
+        {"key": "default_reviewer_profile", "type": "string", "label": "Gözden geçirici profili", "default": "", "secret": False,
+         "help": "Gözden geçiren aracın profil adı; boş: aracın varsayılanı."},
+        {"key": "default_timeout_seconds", "type": "integer", "label": "Görev zaman aşımı (saniye)", "default": 900, "secret": False,
+         "min": 60, "max": 3600, "help": "Bir görevin en uzun çalışma süresi."},
+        *roles.settings_fields(list(runner.SUPPORTED_AGENTS)),
+        *memory.settings_fields(),
+    ]
 
 
 class RppError(Exception):
@@ -62,11 +70,11 @@ def _fail(operation_id, code, message, hint):
 
 
 def schema_fields():
-    return [dict(field) for field in _SETTINGS_FIELDS]
+    return [dict(field) for field in _settings_fields()]
 
 
 def _defaults():
-    return {field["key"]: field["default"] for field in _SETTINGS_FIELDS}
+    return {field["key"]: field["default"] for field in _settings_fields()}
 
 
 def _settings_path(ctx):
@@ -83,8 +91,9 @@ def _settings_digest(settings):
 
 def _redact(settings):
     """Blank secret fields; secrets are accepted but never returned."""
+    from . import memory
     redacted = dict(settings)
-    for field in _SETTINGS_FIELDS:
+    for field in _settings_fields():
         key = field["key"]
         if field.get("secret") and redacted.get(key) not in (None, ""):
             redacted[key] = memory.REDACTED
@@ -92,12 +101,14 @@ def _redact(settings):
 
 
 def _stored_settings(ctx):
-    known = {field["key"] for field in _SETTINGS_FIELDS} - {"memory_token"}
+    from ..workflows import roles
+    known = {field["key"] for field in _settings_fields()} - {"memory_token"}
     return {key: value for key, value in roles.read_settings(ctx.data_root).items() if key in known}
 
 
 def _memory_cross_errors(ctx, settings):
     """memory_enabled needs a command and a token once the incoming keys are merged over the stored ones."""
+    from . import memory
     effective = {**_stored_settings(ctx), **settings}
     if effective.get("memory_enabled") is not True:
         return []
@@ -110,10 +121,13 @@ def _memory_cross_errors(ctx, settings):
 
 
 def validate_settings(settings, ctx=None):
+    from ..workflows import roles
+    from ..engine import runner
+    from . import memory
     if not isinstance(settings, dict):
         return [{"key": "", "message": "settings must be an object"}]
     errors = []
-    known = {field["key"]: field for field in _SETTINGS_FIELDS}
+    known = {field["key"]: field for field in _settings_fields()}
     for key in settings:
         if key not in known:
             errors.append({"key": key, "message": "unknown settings key"})
@@ -163,6 +177,7 @@ def _normalize(settings):
 
 def _merged(ctx, settings):
     """defaults < stored settings.json < incoming keys (partial changes keep unrelated keys), plus the token digest."""
+    from . import memory
     normalized = _normalize({**_stored_settings(ctx), **settings})
     incoming = settings.get("memory_token", memory.REDACTED)
     token = memory.load_token(ctx.data_root) if incoming == memory.REDACTED else (incoming or None)
@@ -173,6 +188,7 @@ def _merged(ctx, settings):
 
 def apply_settings(ctx, settings):
     """Validate and store; the `config set` command and RPP settings.apply both come here."""
+    from . import memory
     errors = validate_settings(settings, ctx)
     if errors:
         raise RppError("INVALID_SETTINGS", "; ".join(f"{error['key']}: {error['message']}" for error in errors),
@@ -187,6 +203,7 @@ def apply_settings(ctx, settings):
 
 
 def read_settings(ctx):
+    from . import memory
     path = _settings_path(ctx)
     stored = {}
     if path.is_file():
@@ -205,6 +222,7 @@ def read_settings(ctx):
 
 
 def _manifest(ctx, operation_id, payload):
+    from . import installation
     state = installation.verify(ctx.app_root)
     return {"product_id": PRODUCT_ID, "product_version": __version__, "rpp": RPP, "capabilities": sorted(_OPS),
             "installed": state["installed"], "install_state": state["install_state"],
@@ -234,7 +252,8 @@ def _engine_key_state(ctx):
 
 
 def health(ctx, operation_id=None, payload=None):
-    workers = [agent for agent in _WORKER_CHOICES if runner.get_cli_command(agent)]
+    from ..engine import runner
+    workers = [agent for agent in _worker_choices() if runner.get_cli_command(agent)]
     git = runner.shutil.which("git")
     writable = _data_root_writable(ctx)
     key_ok, key_detail = _engine_key_state(ctx)
@@ -289,6 +308,7 @@ def _settings_readback(ctx, operation_id, payload):
 
 
 def _integrations(call):
+    from . import installation
     from . import integrations
     try:
         return call(integrations)
@@ -314,6 +334,7 @@ def _integrations_rollback(ctx, operation_id, payload):
 
 
 def _memory_link(call):
+    from . import installation
     from . import memory_link
     try:
         return call(memory_link)

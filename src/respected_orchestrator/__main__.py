@@ -5,14 +5,11 @@ rpp, mcp. Own: integrations [set CLIENT=on|off...] registers this program as an 
 `--data-root` is the engine's own handle for the child processes it starts (each campaign lane has its own root); people use
 RESPECTED_DATA_DIR.
 """
-import argparse
 import json
 from pathlib import Path
 import sys
 
-from .context import EngineContext, default_data_root
-from .workflows import roles
-from .engine import runner
+from .context import EngineContext, default_data_root   # the RPP path needs the context too
 from . import __version__
 
 
@@ -140,6 +137,12 @@ def main(argv=None):
     if argv[:1] == ["--version"]:
         print(f"respected-orchestrator {__version__}")
         return 0
+    if argv == ["rpp"]:  # what the Hub asks on every refresh: answered without loading the argument parser, the engine and the roles
+        from .interfaces import rpp
+        return rpp.run(EngineContext(default_data_root()))
+    import argparse
+    from .engine import runner
+    from .workflows import roles
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=default_data_root(), help=argparse.SUPPRESS)
     parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "campaign-start", "campaign-run", "campaign-status", "campaign-list", "project-start", "project-run", "project-resume", "project-status", "project-cancel", "rpp", "roles", "plan", "mcp", *SHARED, "_selfcheck"])
