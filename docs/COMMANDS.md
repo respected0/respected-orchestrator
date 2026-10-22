@@ -3,7 +3,7 @@
 Kurulu program: `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app\respected-orchestrator.exe` (PATH'e eklenmez; tam yolu
 kullanın). Kaynaktan: `python -m respected_orchestrator`. İç yapı ve kurallar: [ARCHITECTURE.md](ARCHITECTURE.md).
 
-Ortak kurallar (üç ürün aynı, bkz. ekosistem kökündeki `docs/PRODUCT_CONTRACT.md`):
+Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md)):
 
 - Çıktı UTF-8 JSON'dur. Hata: `{"error": {"code", "message", "hint"}}`.
 - Çıkış kodu: `0` başarı, `1` işlem başarısız, `2` kullanım ya da geçersiz ayar.

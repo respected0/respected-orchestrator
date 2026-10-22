@@ -2,7 +2,7 @@
 
 Motorun nasıl paketlendiği, bir görevin nasıl doğrulandığı, hangi güvenlik sınırlarının uygulandığı ve hangi kuralların
 bağlayıcı olduğu. Giriş ve komutlar: [README.md](../README.md). Üç ürünün ortak kuralları (kurucu, komutlar, ayarlar,
-protokol) ekosistem kökündeki `docs/PRODUCT_CONTRACT.md` dosyasındadır; burada tekrarlanmaz.
+protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tekrarlanmaz.
 
 ## 1. Paketlenmiş motor
 

@@ -202,6 +202,28 @@ begin
   end;
 end;
 
+// the AI tools keep our MCP server and hooks running from the program folder, and Restart Manager cannot close them:
+// stop exactly the processes of this product's program (matched by full path), so an update or removal while they are open works
+procedure StopRunningProduct;
+var
+  Code: Integer;
+  AppDir: String;
+begin
+  AppDir := ExpandConstant('{app}');
+  StringChangeEx(AppDir, '''', '''''', True);
+  Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+    '-NoProfile -NonInteractive -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq ''' + ProductExe +
+    ''' -and $_.ExecutablePath -like ''' + AppDir + '\*'' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"',
+    '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Sleep(700);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := '';
+  StopRunningProduct;
+end;
+
 // unattended through the Hub: `Setup.exe /VERYSILENT /HUB=1`
 function InitializeSetup(): Boolean;
 begin
@@ -376,6 +398,7 @@ end;
 function InitializeUninstall(): Boolean;
 begin
   Result := True;
+  StopRunningProduct;
   PurgeData := CommandValue('PURGE', '') <> '';
   if not UninstallSilent then
     PurgeData := MsgBox('Ayarlar ve görev çalışma kayıtları da silinsin mi?' + #13#10 + '(Hayır dersen yeniden kurduğunda kaldığın yerden devam edersin.)', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
