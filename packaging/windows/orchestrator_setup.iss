@@ -3,7 +3,7 @@
 ; everything else: `setup` (install record, data folder), `repair`, `config`, `memory connect`, `uninstall` (docs/PRODUCT_CONTRACT.md).
 ; Shared with the Brain installer: the install-path page, the Hub download, the maintenance page, /SET= and /PURGE=1.
 #ifndef AppVersion
-  #define AppVersion "0.1.0-beta.1"
+  #define AppVersion "0.1.0-beta.2"
 #endif
 #ifndef StageDir
   #define StageDir "..\..\dist\RespectedOrchestrator"
