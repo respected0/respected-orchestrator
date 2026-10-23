@@ -223,7 +223,7 @@ def read_settings(ctx):
 
 def _manifest(ctx, operation_id, payload):
     from . import installation
-    state = installation.verify(ctx.app_root)
+    state = installation.verify(ctx.app_root, ctx.data_root / ".verified-files.json")
     return {"product_id": PRODUCT_ID, "product_version": __version__, "rpp": RPP, "capabilities": sorted(_OPS),
             "installed": state["installed"], "install_state": state["install_state"],
             "roots": {"app": str(ctx.app_root), "data": str(ctx.data_root), "vault": None}}
@@ -252,9 +252,8 @@ def _engine_key_state(ctx):
 
 
 def health(ctx, operation_id=None, payload=None):
-    from ..engine import runner
-    workers = [agent for agent in _worker_choices() if runner.get_cli_command(agent)]
-    git = runner.shutil.which("git")
+    from ..engine import clis
+    workers, git = clis.resolve([agent for agent in clis.SUPPORTED_AGENTS if agent != "custom"])
     writable = _data_root_writable(ctx)
     key_ok, key_detail = _engine_key_state(ctx)
     checks = [
