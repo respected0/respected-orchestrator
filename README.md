@@ -122,6 +122,10 @@ $env:RESPECTED_DATA_DIR = "$env:TEMP\orch-dev"; python -m respected_orchestrator
 Ekosistemin diğer ürünleri: [Respected Hub](https://github.com/respected0/respected-hub) ·
 [Respected Brain](https://github.com/respected0/respected-brain).
 
+## Destek
+
+Hata bildirimi ve sorular için [GitHub Issues](https://github.com/respected0/respected-orchestrator/issues).
+
 ## Lisans
 
 [MIT lisansı](LICENSE).
