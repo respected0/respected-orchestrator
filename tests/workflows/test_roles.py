@@ -42,7 +42,7 @@ class ResolutionTests(unittest.TestCase):
         settings = {"auto_assign": True, "auto_pool": pool}
         table = {("write", "claude", "a"): {"runs": 6, "ok": 2, "avg_tokens": 10, "avg_seconds": 1},
                  ("write", "codex", "b"): {"runs": 6, "ok": 6, "avg_tokens": 90, "avg_seconds": 1}}
-        got = resolve(settings, {"implementer": None} if False else {}, ["tester"], history=lambda: table)["tester"]
+        got = resolve(settings, {}, ["tester"], history=lambda: table)["tester"]
         self.assertEqual(got["basis"], "pool_order")  # no read-family history: says so, takes the first usable entry
         self.assertIn("not a measured recommendation", got["reason"])
         self.assertEqual((got["tool"], got["profile"]), ("claude", "a"))
