@@ -128,16 +128,3 @@ Ortak komutlar iki üründe aynı adla, aynı bayraklarla, aynı çıktı biçim
 `AGENTS.md`. Hub'da `packaging/build_installer.py` yoktur; kurucusunu `release/tools/build/build_hub_installer.py` üretir.
 Yayın: `respected-hub/release/tools/build/publish_release.py` her ürünün kendi kurucusunu kendi reposunun
 sürümüne, kurucu paketini kataloğa koyar. Ürün kurucuları Hub'ı GitHub'ın son sürüm listesinden (`releases/latest` API) sürümlü `Respected-Hub-<sürüm>-Windows-x64-Setup.exe` varlığını bulup indirir; sabit adlı kopya yoktur.
-
-## 10. Doğrulama (2026-10-22)
-
-- Hub deposundaki `tools/conformance/`: 8/8, ürün kaynaklarında ve derlenmiş programlarda.
-- Hub'ın gerçek kurucularla uçtan uca testi (`installer_e2e`, elle): iki ürün de Hub'dan kuruldu (kasa ve ayarlar kurucuya
-  `/VAULT=`/`/SET=` ile gitti, ürün geri okudu), sonra `/PURGE=1` ile kaldırıldı; kasa kaldı, Yüklü uygulamalar girdisi kalmadı.
-- Hub'ın arayüz sürücüsü (`respected-hub/tests/native/hub_native_e2e.mjs`, derlenmiş Hub, Python PATH'te yok): kart ve
-  sihirbazdan iki ürünün gerçek kurucuyla kurulması, ayar değiştirme (ürün CLI'siyle geri okundu), MCP ve hafıza bağlantısı
-  aç/kapat, not yakala/ara/oku, değiştirilmiş program dosyası → "Onarım gerekli" → Onar, veriyi tutarak ve silerek kaldırma:
-  29 kontrolün ve tüm arayüz adımlarının hepsi geçti. Test ev klasörü verildiğinde Windows kullanıcı klasörlerini ondan
-  türettiği için ürünler de o klasöre kurulur; gerçek makinede yalnız Yüklü uygulamalar girdisi oluşur ve test sonunda
-  kaldırılır.
-- Ürün ve Hub test takımları: sayılar teslim notunda.

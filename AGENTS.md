@@ -2,7 +2,7 @@
 
 Bu, bağımsız Respected Orchestrator kaynağıdır. Belgeler: `README.md` (giriş), `docs/USAGE.md` (kullanım), `docs/COMMANDS.md` (komutlar ve istek biçimleri),
 `docs/ARCHITECTURE.md` (bağlayıcı kurallar ve güvenlik sınırları). Üç ürünün ortak sözleşmesi `docs/PRODUCT_CONTRACT.md` dosyasındadır ve
-Hub deposundaki `conformance/` ile ölçülür (üç depo yan yana).
+Hub deposundaki `tools/conformance/` ile ölçülür (üç depo yan yana).
 
 ## Yasaklar
 
