@@ -37,3 +37,4 @@
 
 - [ ] Biçimi değiştiren ilk sürümde `interfaces/migrate.py` içindeki `STEPS` tablosuna eski sürüm için taşıma adımı
   eklenmeli (mekanizma ve test hazır; bugün gönderilmiş tüm biçimler güncel olduğu için adım yok).
+  Her yayında o sürümün gerçek veri dosyaları `tests/fixtures/releases/<sürüm>/` altına da kopyalanır (sözleşme §4).

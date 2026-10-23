@@ -267,10 +267,73 @@ begin
   Sleep(700);
 end;
 
+{ ---- update safety net (shared with the Orchestrator installer) ----
+  Before an update replaces the program, the installer keeps the previous program folder and the data root's top-level
+  *.json files (the only files a format migration touches) under update-backup. When `repair` fails, or the product was
+  healthy before the update and is not afterwards, both are put back and the update is reported as failed; otherwise
+  the backup is deleted. The person's vault and the AI tools' files are never part of it (the product's own transaction
+  already undoes those). Without a backup the update does not start. }
+var
+  UpdateBackedUp, HealthyBefore: Boolean;
+  PreviousVersion: String;
+
+function UpdateBackup(): String;
+begin
+  Result := ExpandConstant('{localappdata}\Respected\' + ProductFolder + '\update-backup');
+end;
+
+function Robocopy(Arguments: String): Boolean;
+var
+  Code: Integer;
+begin
+  Result := Exec(ExpandConstant('{sys}\robocopy.exe'), Arguments + ' /NFL /NDL /NJH /NJS /NP /R:2 /W:1', '', SW_HIDE, ewWaitUntilTerminated, Code) and (Code < 8);
+  if not Result then Log('robocopy ' + Arguments + ' failed with exit code ' + IntToStr(Code));
+end;
+
+function BackUpForUpdate(): Boolean;
+var
+  Output: TExecOutput;
+begin
+  Result := True;
+  UpdateBackedUp := False;
+  if not Maintenance then Exit;
+  DelTree(UpdateBackup(), True, True, True);
+  HealthyBefore := RunProduct('health', Output);
+  if not RegQueryStringValue(HKCU, UninstallKey, 'DisplayVersion', PreviousVersion) then PreviousVersion := '';
+  UpdateBackedUp := Robocopy('"' + ExpandConstant('{app}') + '" "' + UpdateBackup() + '\program" /MIR')
+    and Robocopy('"' + DataRoot() + '" "' + UpdateBackup() + '\data" *.json');
+  Result := UpdateBackedUp;
+end;
+
+procedure CommitUpdate;
+begin
+  if UpdateBackedUp then DelTree(UpdateBackup(), True, True, True);
+  UpdateBackedUp := False;
+end;
+
+// puts the previous program and data files back and ends the update as failed (never returns)
+procedure RollBackUpdate(Reason: String);
+var
+  Restored: Boolean;
+begin
+  StopRunningProduct;
+  Restored := Robocopy('"' + UpdateBackup() + '\program" "' + ExpandConstant('{app}') + '" /MIR')
+    and Robocopy('"' + UpdateBackup() + '\data" "' + DataRoot() + '" *.json /IS /IT');
+  if not Restored then
+    RaiseException(ProductName + ' ' + Reason + ' Önceki sürüm geri yüklenemedi; kopyası şurada duruyor: ' + UpdateBackup());
+  if PreviousVersion <> '' then RegWriteStringValue(HKCU, UninstallKey, 'DisplayVersion', PreviousVersion);
+  CommitUpdate;
+  Log(ProductName + ' ' + Reason + ' Önceki sürüm geri yüklendi.');
+  SuppressibleMsgBox(ProductName + ' ' + Reason + #13#10 + 'Önceki sürüm geri yüklendi; ayarlarınız ve verileriniz değişmedi.', mbError, MB_OK, IDOK);
+  Abort;  // a non-zero exit code, so a script or the Hub sees that the update did not happen
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := '';
   StopRunningProduct;
+  if not BackUpForUpdate() then
+    Result := ProductName + ' güncellenmeden önce yedeği alınamadı (disk dolu ya da dosyalar kullanımda olabilir); hiçbir şey değiştirilmedi.';
 end;
 
 // unattended through the Hub: `Setup.exe /VERYSILENT /HUB=1`
@@ -426,8 +489,12 @@ begin
   if CurStep <> ssPostInstall then Exit;
   // over an installed product the program files were just replaced: the product re-verifies them and rewrites its record
   if Maintenance then begin
-    if not RunProduct('repair', Output) then
+    if not RunProduct('repair', Output) then begin
+      if UpdateBackedUp then RollBackUpdate('onarılamadı.');
       RaiseException(ProductName + ' onarılamadı; kurucuyu yeniden çalıştırabilirsin.');
+    end;
+    if UpdateBackedUp and HealthyBefore and not RunProduct('health', Output) then RollBackUpdate('güncellemeden sonra sağlıklı çalışmadı.');
+    CommitUpdate;
   end else begin
     if not RunProduct('setup', Output) then
       RaiseException(ProductName + ' kurulumu tamamlanamadı; kurucuyu yeniden çalıştırabilirsin.');
