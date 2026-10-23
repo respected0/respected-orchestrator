@@ -9,7 +9,6 @@ from unittest import mock
 from respected_orchestrator.interfaces import memory
 
 TOKEN = "rbm_" + "A1b2C3d4" * 4
-GOOD = {"path": "notes/a.md", "title": "A", "category": "c", "tags": [], "snippet": "hello", "score": 1.5}
 
 FAKE = r'''
 import json, os, sys, time
