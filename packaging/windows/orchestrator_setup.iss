@@ -3,7 +3,7 @@
 ; everything else: `setup` (install record, data folder), `repair`, `config`, `memory connect`, `uninstall` (docs/PRODUCT_CONTRACT.md).
 ; Shared with the Brain installer: the install-path page, the Hub download, the maintenance page, /SET= and /PURGE=1.
 #ifndef AppVersion
-  #define AppVersion "0.1.0b2"
+  #define AppVersion "0.1.0b1"
 #endif
 #ifndef StageDir
   #define StageDir "..\..\dist\RespectedOrchestrator"
@@ -80,8 +80,9 @@ const
   HubProductId = 'orchestrator';
   InstallRecord = 'app\.respected\install.json';  // the product's own install record, relative to its folder
   UninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{8E2B4D7A-61C3-4F09-A5D8-3B9E17C2F640}_is1';
-  HubSetupName = 'RespectedHub-Windows-Setup.exe';
+  HubSetupName = 'RespectedHub-Setup.exe';  // local file name only; the release asset carries a version
   HubReleasesPage = 'https://github.com/respected0/respected-hub/releases/latest';
+  HubReleaseApi = 'https://api.github.com/repos/respected0/respected-hub/releases/latest';
   Workers = 'codex,claude,gemini,antigravity,agy,cursor';
 
 var
@@ -150,14 +151,29 @@ begin
   Result := ExpandConstant('{localappdata}\Respected\RespectedHub\app\respected-hub.exe');
 end;
 
-function HubDownloadUrl(): String;
-begin
-  Result := CommandValue('HUBURL', HubReleasesPage + '/download/' + HubSetupName);
-end;
-
 function OnDownloadProgress(const Url, FileName: String; const Progress, ProgressMax: Int64): Boolean;
 begin
   Result := True;
+end;
+
+// the Hub installer is named after its version: take the Setup.exe asset of the newest Hub release
+function HubDownloadUrl(): String;
+var
+  Json: AnsiString;
+  Text: String;
+  First, Last: Integer;
+begin
+  Result := CommandValue('HUBURL', '');
+  if Result <> '' then Exit;
+  DownloadTemporaryFile(HubReleaseApi, 'hub-latest.json', '', @OnDownloadProgress);
+  LoadStringFromFile(ExpandConstant('{tmp}\hub-latest.json'), Json);
+  Text := String(Json);
+  Last := Pos('-Windows-x64-Setup.exe"', Text);
+  if Last = 0 then RaiseException('Hub kurucusu sürüm listesinde yok');
+  Last := Last + 21;
+  First := Last;
+  while (First > 1) and (Text[First - 1] <> '"') do First := First - 1;
+  Result := Copy(Text, First, Last - First + 1);
 end;
 
 function FetchHubSetup(): Boolean;
@@ -194,7 +210,7 @@ begin
     Exec(HubExe(), '--install=' + HubProductId, '', SW_SHOWNORMAL, ewNoWait, Code)
   else if not WizardSilent then begin
     ShellExec('open', HubReleasesPage, '', '', SW_SHOWNORMAL, ewNoWait, Code);
-    MsgBox('Respected Hub indirilip kurulamadı. Açılan sayfadan ' + HubSetupName + ' dosyasını indirip çalıştır; Hub, ' + ProductName + ' ürününü senin için kuracak.', mbInformation, MB_OK);
+    MsgBox('Respected Hub indirilip kurulamadı. Açılan sayfadan Hub kurucusunu (Setup.exe) indirip çalıştır; Hub, ' + ProductName + ' ürününü senin için kuracak.', mbInformation, MB_OK);
   end;
 end;
 
