@@ -41,13 +41,13 @@ Not kasası: kullanıcının seçtiği yer, varsayılan  %USERPROFILE%\Documents
 
 ## 4. Kurucu
 
-Dosya adı `<Ürün>-Windows-Setup.exe`, kullanıcı başına, yönetici izni istemez, varsayılan (açık) Inno görünümü, Türkçe.
+Derleme çıktısı `<Ürün>-Windows-Setup.exe`; yayında dosya adı `Respected-<Ürün>-<sürüm>-Windows-x64-Setup.exe`. Kullanıcı başına, yönetici izni istemez, varsayılan (açık) Inno görünümü, Türkçe.
 Orchestrator kurucusunun ortak bölümü Brain'inkinden üretilir; `conformance/` iki bölümün aynı olduğunu denetler.
 
 | Durum | Sayfalar |
 |---|---|
 | İlk kurulum | Kurulum yolu (Hub ile / Yalnızca ürün) → ürünün soruları → kur → ürünün `setup` komutu |
-| Ürün kurulu | **Onar / güncelle** (dosyalar + `repair`) · **Ayarları değiştir** (`config get` ile dolar, `config set` ile kaydeder) · **Kaldır** |
+| Ürün kurulu | **Onar / Güncelle** (dosyalar + `repair`) · **Ayarları değiştir** (`config get` ile dolar, `config set` ile kaydeder) · **Kaldır** |
 | Kaldırma | "Ayarlar ve çalışma verileri de silinsin mi?" (varsayılan Hayır); kasa asla |
 
 Brain'in soruları: Kimlik (ad, asistan adı, kısa tanıtım), Not kasası, Bağlantılar. Orchestrator'ın: varsayılan çalışan,
@@ -127,7 +127,7 @@ Ortak komutlar iki üründe aynı adla, aynı bayraklarla, aynı çıktı biçim
 Üç repoda aynı adlar: `src/`, `packaging/windows/<ürün>_setup.iss`, `packaging/build_installer.py`, `tests/`, `docs/`,
 `AGENTS.md`. Hub'da `packaging/build_installer.py` yoktur; kurucusunu `release/tools/build/build_hub_installer.py` üretir.
 Yayın: `respected-hub/release/tools/build/publish_release.py` her ürünün kendi kurucusunu kendi reposunun
-sürümüne, kurucu paketini kataloğa koyar; Hub sürümünde yalnızca `RespectedHub-Windows-Setup.exe` vardır.
+sürümüne, kurucu paketini kataloğa koyar; Hub sürümünde sürümlü kurucunun yanında, ürün kurucularının Hub'ı indirdiği sabit adlı `RespectedHub-Windows-Setup.exe` da vardır.
 
 ## 10. Doğrulama (2026-10-22)
 
