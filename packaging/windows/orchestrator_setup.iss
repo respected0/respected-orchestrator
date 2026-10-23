@@ -33,12 +33,18 @@ SetupIconFile=icon.ico
 CloseApplications=yes
 SetupLogging=yes
 WizardStyle=modern
+WizardImageFile=wizard\side-164x314.bmp,wizard\side-192x366.bmp,wizard\side-246x470.bmp,wizard\side-328x628.bmp
+WizardSmallImageFile=wizard\small-55.bmp,wizard\small-64.bmp,wizard\small-83.bmp,wizard\small-110.bmp
+DisableWelcomePage=no
 InfoBeforeFile=orchestrator_info.txt
 
 [Languages]
 Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
 
 [Messages]
+turkish.WelcomeLabel1=Respected Orchestrator'a hoş geldin
+turkish.WelcomeLabel2=Orchestrator, ağır kodlama işlerini izole çalışma alanlarında yürütür; yamayı sen onaylamadan gerçek ağacına dokunmaz.%n%nYönetici izni gerekmez.%n%nDevam etmek için Sonraki'ne tıkla.
+turkish.FinishedHeadingLabel=Respected Orchestrator hazır
 ; the ready page's button is "Kur", not "Sonraki"
 turkish.ReadyLabel2a=Kuruluma devam etmek için Kur düğmesine, ayarları gözden geçirmek ya da değiştirmek için Önceki düğmesine tıklayın.
 turkish.ReadyLabel2b=Kuruluma başlamak için Kur düğmesine tıklayın.
@@ -58,6 +64,8 @@ Type: filesandordirs; Name: "{app}\app"
 Type: filesandordirs; Name: "{app}"
 
 [Code]
+#include "respected_cards.iss"
+
 const
   ProductName = 'Orchestrator';
   ProductExe = 'respected-orchestrator.exe';
@@ -70,7 +78,7 @@ const
   Workers = 'codex,claude,gemini,antigravity,agy,cursor';
 
 var
-  ChoicePage, MaintenancePage, WorkerPage, MemoryPage: TInputOptionWizardPage;
+  ChoicePage, MaintenancePage, WorkerPage, MemoryPage: TWizardPage;
   DownloadPage: TDownloadWizardPage;
   Maintenance, SettingsMode, Leaving, PurgeData: Boolean;
 
@@ -186,10 +194,15 @@ end;
 // runs one of the product's own commands; Output gets its standard output lines
 function RunProduct(Params: String; var Output: TExecOutput): Boolean;
 var
-  Code: Integer;
+  Code, I: Integer;
 begin
   Result := ExecAndCaptureOutput(ProgramExe(), Params, '', SW_HIDE, ewWaitUntilTerminated, Code, Output) and (Code = 0);
-  if not Result then Log(ProductExe + ' ' + Params + ' failed with exit code ' + IntToStr(Code));
+  if not Result then begin
+    Log(ProductExe + ' ' + Params + ' failed with exit code ' + IntToStr(Code));
+    // the product explains the refusal on stdout (JSON conflicts) or stderr; without it the setup log names no cause
+    for I := 0 to GetArrayLength(Output.StdOut) - 1 do Log('  stdout: ' + Output.StdOut[I]);
+    for I := 0 to GetArrayLength(Output.StdErr) - 1 do Log('  stderr: ' + Output.StdErr[I]);
+  end;
 end;
 
 // the value of `config get <key>`, whose output is {"<key>": <value>} (one line or one member per line)
@@ -254,17 +267,13 @@ end;
 
 procedure CreateSharedPages;
 begin
-  ChoicePage := CreateInputOptionPage(wpWelcome, 'Kurulum yolu', 'Nasıl devam etmek istersin?',
-    'İkisi de aynı ürünü kurar; fark, güncellemeleri ve ayarları nereden yöneteceğindir.', True, False);
-  ChoicePage.Add('Respected Hub ile devam et (önerilen): kurulum, güncelleme ve ayarlar görsel arayüzden yönetilir');
-  ChoicePage.Add('Yalnızca ' + ProductName + ': Hub olmadan; ayarlar bu kurucudan ya da komutlarla değiştirilir');
-  ChoicePage.SelectedValueIndex := 0;
-  MaintenancePage := CreateInputOptionPage(ChoicePage.ID, ProductName + ' kurulu', 'Ne yapmak istersin?',
-    'Ayarların ve not kasan her seçenekte korunur.', True, False);
-  MaintenancePage.Add('Onar / güncelle: programı bu kurucudaki sürümle (v{#AppVersion}) yenile');
-  MaintenancePage.Add('Ayarları değiştir');
-  MaintenancePage.Add('Kaldır');
-  MaintenancePage.SelectedValueIndex := 0;
+  ChoicePage := NewCardPage(0, wpWelcome, 'Kurulum yolu', 'İkisi de aynı ürünü kurar; fark, güncellemeleri ve ayarları nereden yöneteceğindir.', False);
+  AddCard(ChoicePage, 0, #$E80F, 'Respected Hub ile devam et (önerilen)', 'Kurulum, güncelleme ve ayarlar görsel arayüzden yönetilir.', True);
+  AddCard(ChoicePage, 0, #$E756, 'Yalnızca ' + ProductName, 'Hub olmadan; ayarlar bu kurucudan ya da komutlarla değiştirilir.', False);
+  MaintenancePage := NewCardPage(1, ChoicePage.ID, ProductName + ' kurulu', 'Ayarların ve not kasan her seçenekte korunur.', False);
+  AddCard(MaintenancePage, 1, #$E895, 'Onar / güncelle', 'Programı bu kurucudaki sürümle (v{#AppVersion}) yeniler.', True);
+  AddCard(MaintenancePage, 1, #$E713, 'Ayarları değiştir', 'Programa dokunmadan ayarları yeniden seçersin.', False);
+  AddCard(MaintenancePage, 1, #$E74D, 'Kaldır', 'Programı kaldırır; sana sorarak ayarları ve verileri de siler.', False);
   DownloadPage := CreateDownloadPage('Hub indiriliyor', 'En güncel Respected Hub kurucusu indiriliyor...', @OnDownloadProgress);
 end;
 
@@ -292,20 +301,18 @@ var
 begin
   Maintenance := IsInstalled();
   CreateSharedPages;
-  WorkerPage := CreateInputOptionPage(MaintenancePage.ID, 'Varsayılan çalışan', 'Görevleri hangi AI aracı yapsın?',
-    'Komut satırı aracının bu bilgisayarda kurulu olması gerekir; her görevde ayrıca seçilebilir ve sonradan "respected-orchestrator config set default_worker=..." ile değişir.', True, False);
-  for I := 0 to 5 do WorkerPage.Add(WorkerName(I));
-  WorkerPage.SelectedValueIndex := 0;
-  MemoryPage := CreateInputOptionPage(WorkerPage.ID, 'Brain hafızası', 'Orchestrator hafızanı kullanabilsin mi?',
-    'Açarsan görevler, Brain kasandaki ilgili notlardan kısa özetler okuyabilir. İstediğin zaman "respected-orchestrator memory disconnect" ile kapanır.', False, False);
-  MemoryPage.Add('Brain hafızasını oku (Brain kurulu olmalı)');
-  MemoryPage.Add('Yeniden kullanılabilir notları Brain gelen kutusuna yazabilsin');
+  WorkerPage := NewCardPage(3, MaintenancePage.ID, 'Varsayılan çalışan', 'Görevleri hangi AI aracı yapsın? Aracın bu bilgisayarda kurulu olması gerekir; her görevde ayrıca seçilebilir.', False);
+  CompactCards(3);
+  for I := 0 to 5 do AddCard(WorkerPage, 3, #$E756, WorkerName(I), '', I = 0);
+  MemoryPage := NewCardPage(2, WorkerPage.ID, 'Brain hafızası', 'Orchestrator hafızanı kullanabilsin mi? İstediğin zaman "respected-orchestrator memory disconnect" ile kapanır.', True);
+  AddCard(MemoryPage, 2, #$E8F1, 'Brain hafızasını oku', 'Görevler, Brain kasandaki notlardan kısa özetler okur. Brain kurulu olmalı.', False);
+  AddCard(MemoryPage, 2, #$E70F, 'Gelen kutusuna not yazabilsin', 'Yeniden kullanılabilir notlar Brain gelen kutusuna bırakılır.', False);
 end;
 
 // the page answers as the product's own `config set` arguments
 function PageSettings(): String;
 begin
-  Result := ' "default_worker=' + WorkerName(WorkerPage.SelectedValueIndex) + '"';
+  Result := ' "default_worker=' + WorkerName(CardSelectedIndex(3)) + '"';
 end;
 
 procedure LoadCurrentSettings;
@@ -315,9 +322,9 @@ var
 begin
   Current := CurrentSetting('default_worker');
   for I := 0 to 5 do
-    if WorkerName(I) = Current then WorkerPage.SelectedValueIndex := I;
-  MemoryPage.Values[0] := CurrentSetting('memory_enabled') = 'true';
-  MemoryPage.Values[1] := CurrentSetting('memory_write') = 'true';
+    if WorkerName(I) = Current then SetCardChecked(3, I, True);
+  SetCardChecked(2, 0, CurrentSetting('memory_enabled') = 'true');
+  SetCardChecked(2, 1, CurrentSetting('memory_write') = 'true');
 end;
 
 // connect or disconnect the Brain memory as the page says; failures are reported, never fatal
@@ -325,8 +332,8 @@ procedure ApplyMemoryChoice;
 var
   Output: TExecOutput;
 begin
-  if MemoryPage.Values[0] and BrainInstalled() then begin
-    if MemoryPage.Values[1] then RunProduct('memory connect --write', Output) else RunProduct('memory connect', Output);
+  if CardChecked(2, 0) and BrainInstalled() then begin
+    if CardChecked(2, 1) then RunProduct('memory connect --write', Output) else RunProduct('memory connect', Output);
   end else if SettingsMode then
     RunProduct('memory disconnect', Output);
 end;
@@ -359,14 +366,14 @@ var
 begin
   Result := True;
   if WizardSilent then Exit;
-  if (CurPageID = ChoicePage.ID) and (ChoicePage.SelectedValueIndex = 0) then begin
+  if (CurPageID = ChoicePage.ID) and (CardSelectedIndex(0) = 0) then begin
     ContinueWithHub;
     Result := False;
     Leave;
-  end else if (CurPageID = MaintenancePage.ID) and (MaintenancePage.SelectedValueIndex = 1) then begin
+  end else if (CurPageID = MaintenancePage.ID) and (CardSelectedIndex(1) = 1) then begin
     SettingsMode := True;
     LoadCurrentSettings;
-  end else if (CurPageID = MaintenancePage.ID) and (MaintenancePage.SelectedValueIndex = 2) then begin
+  end else if (CurPageID = MaintenancePage.ID) and (CardSelectedIndex(1) = 2) then begin
     Exec(UninstallerPath(), '', '', SW_SHOWNORMAL, ewNoWait, Code);
     Result := False;
     Leave;
