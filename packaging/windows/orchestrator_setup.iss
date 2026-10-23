@@ -258,6 +258,7 @@ var
   AppDir: String;
 begin
   AppDir := ExpandConstant('{app}');
+  if not FileExists(AppDir + '' + ProductExe) then Exit;  // a first install has nothing to stop: skip PowerShell and the wait (~1.5 s)
   StringChangeEx(AppDir, '''', '''''', True);
   Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
     '-NoProfile -NonInteractive -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq ''' + ProductExe +

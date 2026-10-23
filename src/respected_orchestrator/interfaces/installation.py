@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+from stat import S_ISREG
 import tempfile
 import uuid
 
@@ -104,19 +105,44 @@ def _record(app_root):
     return data if isinstance(data, dict) and isinstance(data.get("files"), dict) else None
 
 
-def verify(app_root):
-    """Read-only install state of a program folder: absent, installed or repair-needed."""
+def verify(app_root, cache=None):
+    """Read-only install state of a program folder: absent, installed or repair-needed.
+
+    `cache` (a file in the data root) remembers size and mtime of files whose hash matched, so the next call does not hash them again.
+    """
     record = _record(app_root)
     if record is None:
         return {"installed": False, "install_state": "absent"}
+    try:
+        seen = json.loads(cache.read_text("utf-8")) if cache else {}
+    except (OSError, ValueError):
+        seen = {}
+    if not isinstance(seen, dict):
+        seen = {}
+    fresh = {}
+    checked = set()  # a folder is checked for links once, not once per file (that walk was most of the cost)
     for rel, digest in record["files"].items():
         try:
-            path = _safe(app_root / rel)
-            matches = path.is_file() and _sha256_file(path) == digest
+            path = app_root / rel
+            if path.parent not in checked:
+                _safe(path.parent)
+                checked.add(path.parent)
+            stat = path.lstat()
+            if not S_ISREG(stat.st_mode) or getattr(stat, "st_file_attributes", 0) & 0x400:
+                stat = None  # missing, a link or a reparse point
+            key = [stat.st_size, stat.st_mtime_ns, digest] if stat else None
+            matches = key is not None and (seen.get(rel) == key or _sha256_file(path) == digest)
+            if matches:
+                fresh[rel] = key
         except (OSError, ValueError, OperationError):
             matches = False
         if not matches or record.get("product_version") != __version__:
             return {"installed": True, "install_state": "repair-needed"}
+    if cache and fresh != seen:
+        try:
+            atomic_write_json(cache, fresh)
+        except OSError:
+            pass
     return {"installed": True, "install_state": "installed"}
 
 

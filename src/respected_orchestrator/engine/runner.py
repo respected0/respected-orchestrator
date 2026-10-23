@@ -19,10 +19,10 @@ from ..interfaces import memory
 from ..hints import hint
 from ..workflows import roles
 from ..context import EngineContext, engine_command, safe_path, validate_project
+from .clis import EXECUTABLE, LOCAL_CODEX, SUPPORTED_AGENTS
 from .processes import ProcessStopped, execute
 from .codex import _is_turn_completed, stream_verified_complete
 
-SUPPORTED_AGENTS = ("claude", "gemini", "antigravity", "agy", "codex", "cursor", "custom")
 SELF_CHECK = (
     "\n\n## Self-check (required)\nBefore you finish, run the acceptance commands yourself, review your own "
     "diff for defects and scope creep, and fix what you find. If running a command is denied, do not retry or work "
@@ -42,13 +42,12 @@ TERMINAL = {"completed", "failed", "cancelled", "timed_out", "interrupted"}
 # Stable 0.162.0/0.162.1 lack OpenAI's active-runtime ACL fix (#51822).
 # the brief travels as one command-line argument; Windows caps a command line at 32 767 characters (audit P1 #18)
 MAX_TASK_CHARS = 20000 if sys.platform == "win32" else 60000
-LOCAL_CODEX = Path(__file__).resolve().parents[3] / ".runtime" / "codex-0.162.0-alpha.20" / "bin" / "codex.exe"
 
 
 def get_cli_command(agent: str) -> list[str] | None:
     if agent == "codex" and sys.platform == "win32" and LOCAL_CODEX.is_file():
         return [str(safe_path(LOCAL_CODEX))]
-    executable = {"antigravity": "agy", "agy": "agy", "cursor": "cursor-agent"}.get(agent, agent)
+    executable = EXECUTABLE.get(agent, agent)
     found = shutil.which(executable)
     # cmd.exe would re-parse the prompt of a .cmd/.bat shim (truncation, command injection): such workers are unavailable (audit P0 #2)
     if found and Path(found).suffix.lower() in {".cmd", ".bat"}:
