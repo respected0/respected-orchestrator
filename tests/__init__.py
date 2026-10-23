@@ -14,6 +14,9 @@ os.environ["RESPECTED_ORCH_TEST_ISOLATION"] = "1"
 # The engine marks every child (incl. acceptance runs) with this; tests must not inherit the worker identity.
 os.environ.pop("RESPECTED_ORCH_CHILD", None)
 
+# Windows runners expose TEMP as an 8.3 short path (RUNNER~1) while resolved paths use the long name.
+tempfile.tempdir = os.path.realpath(tempfile.gettempdir())
+
 if not os.environ.get("RESPECTED_TEST_SANDBOX"):
     _home = Path(tempfile.mkdtemp(prefix="respected-test-home-"))
     for _sub in ("AppData/Roaming", "AppData/Local"):
@@ -21,3 +24,12 @@ if not os.environ.get("RESPECTED_TEST_SANDBOX"):
     os.environ.update(USERPROFILE=str(_home), HOME=str(_home), APPDATA=str(_home / "AppData/Roaming"),
                       LOCALAPPDATA=str(_home / "AppData/Local"), RESPECTED_TEST_SANDBOX=str(_home))
     atexit.register(shutil.rmtree, _home, ignore_errors=True)
+
+# Tests mock every worker call, but role and command resolution still asks whether the CLI is installed. Put empty
+# stand-ins for the missing ones on PATH so a machine without codex/claude/agy (CI) resolves them like a dev machine.
+_shims = Path(tempfile.mkdtemp(prefix="respected-test-clis-"))
+for _exe in ("claude", "gemini", "agy", "codex", "cursor-agent"):
+    if shutil.which(_exe) is None:
+        (_shims / f"{_exe}.exe").touch()
+os.environ["PATH"] = str(_shims) + os.pathsep + os.environ.get("PATH", "")
+atexit.register(shutil.rmtree, _shims, ignore_errors=True)
