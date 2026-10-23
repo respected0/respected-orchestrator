@@ -1,0 +1,17 @@
+{
+  "default_worker": "codex",
+  "default_worker_profile": "",
+  "default_reviewer_profile": "",
+  "default_timeout_seconds": 900,
+  "default_reviewer_tool": "codex",
+  "default_roles": "",
+  "auto_assign": false,
+  "auto_pool": "",
+  "require_independent_review": false,
+  "mcp_acceptance_allow": "",
+  "blocked_profiles": "mimo",
+  "memory_enabled": false,
+  "memory_command": "",
+  "memory_write": false,
+  "memory_grant_id": ""
+}

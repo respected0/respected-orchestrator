@@ -62,6 +62,17 @@ Brain hafızasına bağlanma (okuma / yazma).
 | `/VAULT=<yol>` | Brain'in not kasası |
 | `/PURGE=1` | kaldırırken ayarları ve verileri de sil |
 
+**Güncelleme güvenlidir ve her sürümden en yeniye doğrudandır.** Kurucu güncellemeden önce önceki program klasörünü ve
+veri kökündeki `*.json` dosyalarını `update-backup\` altına yedekler; yedek alınamazsa güncelleme başlamaz. `repair`
+başarısız olursa ya da ürün güncellemeden önce sağlıklıyken sonra sağlıklı değilse yedek geri yüklenir, güncelleme
+başarısız sayılır ve kurulu sürüm değişmez; başarılıysa yedek silinir. (Inno Setup bu durumda sessiz kurucunun çıkış kodunu
+0 bırakır; Hub kurulu sürümü paketteki sürümle karşılaştırarak yakalar, betikler `--version` ile bakmalıdır.) Veri biçimi
+değişirse her eski biçim için `STEPS` tablosuna bir adım eklenir ve **adımlar hiç silinmez**; her yayında o sürümün gerçek
+veri dosyaları `tests/fixtures/releases/<sürüm>/` altına kopyalanır, CI hepsini en yeniye taşıyıp ikinci çalıştırmanın hiçbir
+şeyi değiştirmediğini doğrular. Katalog bir yayın için `min_from` taşıyabilir (yalnızca o sürümün ve üstünün üzerine doğrudan
+kurulur; Hub `UPDATE_PATH` ile reddeder, kişi önce o sürümü kurar) ve geri çekilen sürümleri `blocked` listesinde tutar
+(hiçbir Hub bunları önermez).
+
 ## 5. Komutlar
 
 Ortak komutlar iki üründe aynı adla, aynı bayraklarla, aynı çıktı biçimiyle vardır:
