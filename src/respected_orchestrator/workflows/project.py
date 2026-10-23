@@ -6,14 +6,13 @@ verified `apply_task`, runs deterministic verify commands on the real source and
 so the supervisor can be killed or the machine restarted and `project-resume` continues without duplicating work.
 """
 import datetime as dt
-import json
 import os
 from pathlib import Path
 import re
 import time
 from uuid import uuid4
 
-from ..engine import lanes, runner, sandbox
+from ..engine import lanes, sandbox
 from ..engine.budget import MAX_BUDGET, UNKNOWN_STEP_TOKENS_DEFAULT
 from . import campaign, roles
 from ..context import EngineContext, engine_command, safe_path
