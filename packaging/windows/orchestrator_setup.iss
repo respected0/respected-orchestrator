@@ -15,6 +15,8 @@
 [Setup]
 AppId={{8E2B4D7A-61C3-4F09-A5D8-3B9E17C2F640}
 AppName=Respected Orchestrator
+AppVerName=Respected Orchestrator
+UninstallDisplayName=Respected Orchestrator
 AppVersion={#AppVersion}
 AppPublisher=Respected
 AppCopyright=Copyright (c) 2026 RESPECTED (MIT)
