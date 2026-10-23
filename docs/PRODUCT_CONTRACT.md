@@ -1,7 +1,7 @@
 # Respected ürün sözleşmesi v1
 
-Durum: **uygulandı** (2026-10-22). Üç repo (Hub, Brain, Orchestrator) buna uyar; her depoda aynı kopya durur. Uyum Hub deposundaki `conformance/` ile ölçülür
-(`python -m unittest discover -s conformance`, kaynakta ya da `RESPECTED_CONFORMANCE_<ÜRÜN>_EXE` ile derlenmiş programda; üç kopyanın aynı olduğunu da denetler).
+Durum: **uygulandı** (2026-10-22). Üç repo (Hub, Brain, Orchestrator) buna uyar; her depoda aynı kopya durur. Uyum Hub deposundaki `tools/conformance/` ile ölçülür
+(`python -m unittest discover -s tools/conformance`, kaynakta ya da `RESPECTED_CONFORMANCE_<ÜRÜN>_EXE` ile derlenmiş programda; üç kopyanın aynı olduğunu da denetler).
 Geçiş dönemi, eski sürüm desteği ya da uyumluluk katmanı yoktur: bir şey değiştiğinde her yerde değişir, eski yolu silinir.
 **Tek istisna kişinin verisidir** (ilk yayından, 0.1.0-beta.1'den beri): ayar, kurulum kaydı ve çalışma verisinin biçimi
 (`schema_version`) değişirse yeni sürümün `repair`'i eski biçimi yerinde taşır; güncelleme kişiden hiçbir şey istemez.
@@ -13,7 +13,7 @@ Geçiş dönemi, eski sürüm desteği ya da uyumluluk katmanı yoktur: bir şey
 - **Hub yalnızca kolaylıktır:** katalog, indirme, ürünün kurucusunu çalıştırma ve görsel arayüz. Hub'ın yaptığı her işin Hubsız
   bir karşılığı vardır ve Hub o karşılığı çağırır. Hub ürün hakkında hiçbir şey saklamaz.
 - Sonradan Hub kurulursa hiçbir şey taşınmaz ve sorulmaz: Hub, ürünü ve ayarlarını ürünün kendisinden okur.
-- Ortak kod çalışma zamanı bağımlılığı değildir. Ortak olan bu belge (üç depoda aynı kopya), Hub deposundaki `conformance/` ve kurucuların ortak bölümüdür.
+- Ortak kod çalışma zamanı bağımlılığı değildir. Ortak olan bu belge (üç depoda aynı kopya), Hub deposundaki `tools/conformance/` ve kurucuların ortak bölümüdür.
 
 ## 2. Klasörler
 
@@ -42,7 +42,7 @@ Not kasası: kullanıcının seçtiği yer, varsayılan  %USERPROFILE%\Documents
 ## 4. Kurucu
 
 Derleme çıktısı `<Ürün>-Windows-Setup.exe`; yayında dosya adı `Respected-<Ürün>-<sürüm>-Windows-x64-Setup.exe`. Kullanıcı başına, yönetici izni istemez, varsayılan (açık) Inno görünümü, Türkçe.
-Orchestrator kurucusunun ortak bölümü Brain'inkinden üretilir; `conformance/` iki bölümün aynı olduğunu denetler.
+Orchestrator kurucusunun ortak bölümü Brain'inkinden üretilir; `tools/conformance/` iki bölümün aynı olduğunu denetler.
 
 | Durum | Sayfalar |
 |---|---|
@@ -131,7 +131,7 @@ sürümüne, kurucu paketini kataloğa koyar. Ürün kurucuları Hub'ı GitHub'�
 
 ## 10. Doğrulama (2026-10-22)
 
-- Hub deposundaki `conformance/`: 8/8, ürün kaynaklarında ve derlenmiş programlarda.
+- Hub deposundaki `tools/conformance/`: 8/8, ürün kaynaklarında ve derlenmiş programlarda.
 - Hub'ın gerçek kurucularla uçtan uca testi (`installer_e2e`, elle): iki ürün de Hub'dan kuruldu (kasa ve ayarlar kurucuya
   `/VAULT=`/`/SET=` ile gitti, ürün geri okudu), sonra `/PURGE=1` ile kaldırıldı; kasa kaldı, Yüklü uygulamalar girdisi kalmadı.
 - Hub'ın arayüz sürücüsü (`respected-hub/tests/native/hub_native_e2e.mjs`, derlenmiş Hub, Python PATH'te yok): kart ve
