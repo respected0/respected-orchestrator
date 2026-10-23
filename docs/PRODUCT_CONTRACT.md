@@ -127,7 +127,7 @@ Ortak komutlar iki üründe aynı adla, aynı bayraklarla, aynı çıktı biçim
 Üç repoda aynı adlar: `src/`, `packaging/windows/<ürün>_setup.iss`, `packaging/build_installer.py`, `tests/`, `docs/`,
 `AGENTS.md`. Hub'da `packaging/build_installer.py` yoktur; kurucusunu `release/tools/build/build_hub_installer.py` üretir.
 Yayın: `respected-hub/release/tools/build/publish_release.py` her ürünün kendi kurucusunu kendi reposunun
-sürümüne, kurucu paketini kataloğa koyar; Hub sürümünde sürümlü kurucunun yanında, ürün kurucularının Hub'ı indirdiği sabit adlı `RespectedHub-Windows-Setup.exe` da vardır.
+sürümüne, kurucu paketini kataloğa koyar. Ürün kurucuları Hub'ı GitHub'ın son sürüm listesinden (`releases/latest` API) sürümlü `Respected-Hub-<sürüm>-Windows-x64-Setup.exe` varlığını bulup indirir; sabit adlı kopya yoktur.
 
 ## 10. Doğrulama (2026-10-22)
 
