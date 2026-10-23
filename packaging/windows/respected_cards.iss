@@ -88,28 +88,30 @@ begin
   Result := CreateCustomPage(AfterID, Caption, Description);
   CardCount[Group] := 0;
   CardMulti[Group] := Multi;
-  CardH[Group] := CardHeight;
-  CardSpace[Group] := CardGap;
+  CardH[Group] := ScaleY(CardHeight);
+  CardSpace[Group] := ScaleY(CardGap);
 end;
 
 // call right after NewCardPage for a long list: shorter cards, titles only (pass '' as the help text)
 procedure CompactCards(Group: Integer);
 begin
-  CardH[Group] := 42;
-  CardSpace[Group] := 6;
+  CardH[Group] := ScaleY(42);
+  CardSpace[Group] := ScaleY(6);
 end;
 
 procedure AddCard(Page: TWizardPage; Group: Integer; Glyph, Title, Help: String; Checked: Boolean);
 var
-  Item, Slot, Tag, TitleTop, IconTop: Integer;
-  Icon, Note: TNewStaticText;
+  Item, Slot, Tag, TitleTop, HelpTop: Integer;
+  Icon, Name, Note: TNewStaticText;
 begin
   Item := CardCount[Group];
   Slot := Group * CardMax + Item;
-  if Help = '' then begin TitleTop := (CardH[Group] - 20) div 2; IconTop := (CardH[Group] - 22) div 2; end
-  else begin TitleTop := 9; IconTop := (CardH[Group] - 32) div 2; end;
   Tag := Slot;
   CardCount[Group] := Item + 1;
+  // the title and the help text are centred as one block; the choice button and the icon sit on the card's centre line
+  if Help = '' then TitleTop := (CardH[Group] - ScaleY(18)) div 2
+  else TitleTop := (CardH[Group] - ScaleY(36)) div 2;
+  HelpTop := TitleTop + ScaleY(20);
 
   CardOuter[Slot] := TPanel.Create(Page);
   CardOuter[Slot].Parent := Page.Surface;
@@ -126,10 +128,30 @@ begin
   CardInner[Slot].Tag := Tag;
   CardInner[Slot].OnClick := @CardClick;
 
+  // the real radio button / check box is only the round or square mark: its caption (the title, kept for keyboard and screen
+  // readers) is cut off by the control's width and the visible title is the label next to the icon
+  if CardMulti[Group] then begin
+    CardCheck[Slot] := TNewCheckBox.Create(Page);
+    CardCheck[Slot].Parent := CardInner[Slot];
+    CardCheck[Slot].SetBounds(ScaleX(14), (CardH[Group] - ScaleY(20)) div 2, ScaleX(17), ScaleY(20));
+    CardCheck[Slot].Caption := Title;
+    CardCheck[Slot].Checked := Checked;
+    CardCheck[Slot].Tag := Tag;
+    CardCheck[Slot].OnClick := @CardClick;
+  end else begin
+    CardRadio[Slot] := TNewRadioButton.Create(Page);
+    CardRadio[Slot].Parent := CardInner[Slot];
+    CardRadio[Slot].SetBounds(ScaleX(14), (CardH[Group] - ScaleY(20)) div 2, ScaleX(17), ScaleY(20));
+    CardRadio[Slot].Caption := Title;
+    CardRadio[Slot].Checked := Checked;
+    CardRadio[Slot].Tag := Tag;
+    CardRadio[Slot].OnClick := @CardClick;
+  end;
+
   Icon := TNewStaticText.Create(Page);
   Icon.Parent := CardInner[Slot];
   Icon.AutoSize := False;
-  Icon.SetBounds(14, IconTop, 28, 32);
+  Icon.SetBounds(ScaleX(42), (CardH[Group] - ScaleY(22)) div 2, ScaleX(28), ScaleY(22));
   Icon.Font.Name := 'Segoe MDL2 Assets';
   Icon.Font.Size := 16;
   Icon.Font.Color := CardAccent;
@@ -137,38 +159,61 @@ begin
   Icon.Tag := Tag;
   Icon.OnClick := @CardClick;
 
-  if CardMulti[Group] then begin
-    CardCheck[Slot] := TNewCheckBox.Create(Page);
-    CardCheck[Slot].Parent := CardInner[Slot];
-    CardCheck[Slot].SetBounds(52, TitleTop, Page.SurfaceWidth - 52 - 14, 20);
-    CardCheck[Slot].Caption := Title;
-    CardCheck[Slot].Font.Style := [fsBold];
-    CardCheck[Slot].Checked := Checked;
-    CardCheck[Slot].Tag := Tag;
-    CardCheck[Slot].OnClick := @CardClick;
-  end else begin
-    CardRadio[Slot] := TNewRadioButton.Create(Page);
-    CardRadio[Slot].Parent := CardInner[Slot];
-    CardRadio[Slot].SetBounds(52, TitleTop, Page.SurfaceWidth - 52 - 14, 20);
-    CardRadio[Slot].Caption := Title;
-    CardRadio[Slot].Font.Style := [fsBold];
-    CardRadio[Slot].Checked := Checked;
-    CardRadio[Slot].Tag := Tag;
-    CardRadio[Slot].OnClick := @CardClick;
-  end;
+  Name := TNewStaticText.Create(Page);
+  Name.Parent := CardInner[Slot];
+  Name.AutoSize := False;
+  Name.SetBounds(ScaleX(80), TitleTop, Page.SurfaceWidth - ScaleX(80) - ScaleX(14), ScaleY(18));
+  Name.Font.Style := [fsBold];
+  Name.Caption := Title;
+  Name.Tag := Tag;
+  Name.OnClick := @CardClick;
 
   if Help <> '' then begin
     Note := TNewStaticText.Create(Page);
     Note.Parent := CardInner[Slot];
     Note.AutoSize := False;
     Note.WordWrap := True;
-    Note.SetBounds(52 + 19, 31, Page.SurfaceWidth - 52 - 19 - 14, CardH[Group] - 31 - 6);
+    Note.SetBounds(ScaleX(80), HelpTop, Page.SurfaceWidth - ScaleX(80) - ScaleX(14), CardH[Group] - HelpTop - ScaleY(4));
     Note.Font.Color := $8E7C6E;  // #6E7C8E
     Note.Caption := Help;
     Note.Tag := Tag;
     Note.OnClick := @CardClick;
-
   end;
 
   CardPaint(Group);
+end;
+
+// The info pages (beta notice, what's new) carry a click label that only leaves a gap above the text: hide it and let the
+// text box start right under the header.
+procedure TidyInfoPages;
+var
+  Gap: Integer;
+begin
+  // the inner pages start a little below the header: close most of that gap so the content sits close under the title
+  Gap := WizardForm.InnerNotebook.Top - WizardForm.MainPanel.Height;
+  if Gap > 0 then begin
+    // not all of it: a two-line description would otherwise touch the content
+    WizardForm.InnerNotebook.Top := WizardForm.MainPanel.Height + Gap div 2;
+    WizardForm.InnerNotebook.Height := WizardForm.InnerNotebook.Height + Gap - Gap div 2;
+  end;
+  // no logo in the header of the inner pages (the welcome and finish pages carry it): the title and text take its room
+  WizardForm.WizardSmallBitmapImage.Visible := False;
+  WizardForm.PageNameLabel.Width := WizardForm.MainPanel.Width - WizardForm.PageNameLabel.Left - ScaleX(16);
+  WizardForm.PageDescriptionLabel.Width := WizardForm.MainPanel.Width - WizardForm.PageDescriptionLabel.Left - ScaleX(16);
+  // the page title sits a few pixels left of its description and of the content under it: one column
+  WizardForm.PageNameLabel.Left := WizardForm.PageDescriptionLabel.Left;
+  WizardForm.InfoBeforeClickLabel.Visible := False;
+  WizardForm.InfoBeforeMemo.SetBounds(0, 0, WizardForm.InfoBeforePage.Width, WizardForm.InfoBeforePage.Height);
+  WizardForm.InfoAfterClickLabel.Visible := False;
+  WizardForm.InfoAfterMemo.SetBounds(0, 0, WizardForm.InfoAfterPage.Width, WizardForm.InfoAfterPage.Height);
+end;
+
+// nothing to go back to once the installation is over (the what's-new page comes before the finish page)
+// each installer defines this for its own pages
+procedure ProductPageChanged(CurPageID: Integer); forward;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if CurPageID = wpFinished then WizardForm.BackButton.Visible := False;
+  ProductPageChanged(CurPageID);
 end;

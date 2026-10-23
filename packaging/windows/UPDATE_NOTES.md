@@ -1,0 +1,5 @@
+- Yeni kurucu tasarımı ve logo.
+- MCP sunucusu kendini "Respected Orchestrator" olarak tanıtır.
+- Hub'dan gelen çağrılar daha hızlı yanıtlanır.
+- Henüz oluşmamış engine anahtarı sağlık sorunu sayılmaz (anahtar ilk görevde oluşur).
+- Güncellemede eski program dosyaları silinir; kurulu ürün kendi kaydından tanınır.

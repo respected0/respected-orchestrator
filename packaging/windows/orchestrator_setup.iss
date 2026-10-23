@@ -36,14 +36,19 @@ CloseApplications=yes
 SetupLogging=yes
 WizardStyle=modern
 WizardImageFile=wizard\side-164x314.bmp,wizard\side-192x366.bmp,wizard\side-246x470.bmp,wizard\side-328x628.bmp
-WizardSmallImageFile=wizard\small-55.bmp,wizard\small-64.bmp,wizard\small-83.bmp,wizard\small-110.bmp
 DisableWelcomePage=no
+InfoAfterFile=UPDATE_NOTES.md
 InfoBeforeFile=orchestrator_info.txt
 
 [Languages]
 Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
 
 [Messages]
+turkish.WizardInfoBefore=Bilgisayarında neler olur
+turkish.InfoBeforeLabel=Kurulumda, kullanırken, güncellemede ve kaldırırken neler olacağını aşağıda okuyabilirsin.
+turkish.WizardInfoAfter=Yenilikler
+turkish.InfoAfterLabel=Bu sürümde neler değişti?
+turkish.InfoAfterClickLabel=Devam etmek için Sonraki'ne tıklayın.
 turkish.WelcomeLabel1=Respected Orchestrator'a hoş geldin
 turkish.WelcomeLabel2=Orchestrator, ağır kodlama işlerini izole çalışma alanlarında yürütür; yamayı sen onaylamadan gerçek ağacına dokunmaz.%n%nYönetici izni gerekmez.%n%nDevam etmek için Sonraki'ne tıkla.
 turkish.FinishedHeadingLabel=Respected Orchestrator hazır
@@ -273,7 +278,7 @@ begin
   AddCard(ChoicePage, 0, #$E80F, 'Respected Hub ile devam et (önerilen)', 'Kurulum, güncelleme ve ayarlar görsel arayüzden yönetilir.', True);
   AddCard(ChoicePage, 0, #$E756, 'Yalnızca ' + ProductName, 'Hub olmadan; ayarlar bu kurucudan ya da komutlarla değiştirilir.', False);
   MaintenancePage := NewCardPage(1, ChoicePage.ID, ProductName + ' kurulu', 'Ayarların ve not kasan her seçenekte korunur.', False);
-  AddCard(MaintenancePage, 1, #$E895, 'Onar / güncelle', 'Programı bu kurucudaki sürümle (v{#AppVersion}) yeniler.', True);
+  AddCard(MaintenancePage, 1, #$E895, 'Onar / Güncelle', 'Programı bu kurucudaki sürümle (v{#AppVersion}) yeniler.', True);
   AddCard(MaintenancePage, 1, #$E713, 'Ayarları değiştir', 'Programa dokunmadan ayarları yeniden seçersin.', False);
   AddCard(MaintenancePage, 1, #$E74D, 'Kaldır', 'Programı kaldırır; sana sorarak ayarları ve verileri de siler.', False);
   DownloadPage := CreateDownloadPage('Hub indiriliyor', 'En güncel Respected Hub kurucusu indiriliyor...', @OnDownloadProgress);
@@ -301,12 +306,13 @@ procedure InitializeWizard;
 var
   I: Integer;
 begin
+  TidyInfoPages;
   Maintenance := IsInstalled();
   CreateSharedPages;
-  WorkerPage := NewCardPage(3, MaintenancePage.ID, 'Varsayılan çalışan', 'Görevleri hangi AI aracı yapsın? Aracın bu bilgisayarda kurulu olması gerekir; her görevde ayrıca seçilebilir.', False);
+  WorkerPage := NewCardPage(3, MaintenancePage.ID, 'Varsayılan çalışan', 'Hangi AI aracı görev yapsın? Araç bu bilgisayarda kurulu olmalı.', False);
   CompactCards(3);
   for I := 0 to 5 do AddCard(WorkerPage, 3, #$E756, WorkerName(I), '', I = 0);
-  MemoryPage := NewCardPage(2, WorkerPage.ID, 'Brain hafızası', 'Orchestrator hafızanı kullanabilsin mi? İstediğin zaman "respected-orchestrator memory disconnect" ile kapanır.', True);
+  MemoryPage := NewCardPage(2, WorkerPage.ID, 'Brain hafızası', 'Orchestrator Brain hafızanı kullanabilsin mi? Sonradan kapatılabilir.', True);
   AddCard(MemoryPage, 2, #$E8F1, 'Brain hafızasını oku', 'Görevler, Brain kasandaki notlardan kısa özetler okur. Brain kurulu olmalı.', False);
   AddCard(MemoryPage, 2, #$E70F, 'Gelen kutusuna not yazabilsin', 'Yeniden kullanılabilir notlar Brain gelen kutusuna bırakılır.', False);
 end;
@@ -342,12 +348,17 @@ end;
 
 { ---- page flow ---- }
 
+procedure ProductPageChanged(CurPageID: Integer);
+begin
+end;
+
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
   Result := False;
   if PageID = ChoicePage.ID then Result := WizardSilent or Maintenance
   else if PageID = MaintenancePage.ID then Result := WizardSilent or not Maintenance
-  else if (PageID = WorkerPage.ID) or (PageID = MemoryPage.ID) then Result := Maintenance and not SettingsMode;
+  else if (PageID = WorkerPage.ID) or (PageID = MemoryPage.ID) then Result := Maintenance and not SettingsMode
+  else if PageID = wpInfoAfter then Result := not Maintenance;
 end;
 
 procedure CancelButtonClick(CurPageID: Integer; var Cancel, Confirm: Boolean);

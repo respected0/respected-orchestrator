@@ -45,7 +45,7 @@ $exe = "$env:LOCALAPPDATA\Respected\RespectedOrchestrator\app\respected-orchestr
 
 Ürün kuruluyken kurucu tek bir sayfa gösterir:
 
-- **Onar / güncelle:** program dosyaları bu kurucudaki sürümle yenilenir, ardından `repair` kaydı doğrular. Ayarlar ve
+- **Onar / Güncelle:** program dosyaları bu kurucudaki sürümle yenilenir, ardından `repair` kaydı doğrular. Ayarlar ve
   görev çalışmaları korunur. **Güncelleme budur:** yeni sürümün kurucusunu çalıştırmak (sessiz: `/VERYSILENT`). Hub
   güncellemeyi kendisi önerir ve aynı kurucuyu çalıştırır.
 - **Ayarları değiştir:** varsayılan çalışan ve hafıza sayfaları mevcut değerlerle açılır; kaydetmek `config set` ve
@@ -225,7 +225,7 @@ Brain hafıza bağlantısı varsa önce `memory disconnect` ile kapatmak izni Br
 | `check` geçmiyor | Yama artık projeye uymuyor (proje değişti), kapsam dışına çıkılmış ya da doğrulama komutu başarısız; görevi yeniden deneyin |
 | MCP'den görev reddediliyor | Doğrulama komutu `mcp_acceptance_allow`'da değil ya da özel komut/uygulama klasörü istendi |
 | `memory connect` → `NOT_INSTALLED` | Brain kurulu değil |
-| "Onarım gerekli" | Kurucuyu çalıştırıp **Onar / güncelle** seçin |
+| "Onarım gerekli" | Kurucuyu çalıştırıp **Onar / Güncelle** seçin |
 
 Hata bildirirken `--version` çıktısı, Windows sürümü, hata kodu ve kişisel bilgilerden arındırılmış komut yeterlidir.
 Görev metninizi, projenizin kodunu ve kimlik bilgilerinizi herkese açık yere koymayın.
