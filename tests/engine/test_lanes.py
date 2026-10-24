@@ -183,6 +183,23 @@ class GitLaneTest(unittest.TestCase):
             self.assertEqual(run_git(lane.worktree, "branch", "--show-current").stdout.strip(), lane.branch)
             self.assertEqual(run_git(repo, "status", "--porcelain=v1", "--branch").stdout, before)
 
+    def test_removing_a_lane_leaves_no_worktree_record_or_branch_in_the_project(self) -> None:
+        orchestrator = load_orchestrator()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            repo = init_repo(root)
+            lane = orchestrator.create_lane(self.make_request(orchestrator), self.make_paths(orchestrator, root, repo))
+            (lane.worktree / "scratch.txt").write_text("uncommitted", encoding="utf-8")
+            self.assertTrue(lane.worktree.is_dir())
+
+            orchestrator.remove_lane(lane)
+            orchestrator.remove_lane(lane)  # a second call, or a lane that is already gone, is harmless
+
+            self.assertFalse(lane.worktree.exists())
+            self.assertEqual(run_git(repo, "branch", "--list", "orchestrator/*").stdout.strip(), "")
+            self.assertEqual(len(run_git(repo, "worktree", "list").stdout.strip().splitlines()), 1)
+            self.assertFalse((repo / ".git" / "worktrees").exists() and any((repo / ".git" / "worktrees").iterdir()))
+
     def test_overlays_only_owned_dirty_inputs_and_commits_lane_baseline(self) -> None:
         orchestrator = load_orchestrator()
         with tempfile.TemporaryDirectory() as temporary:

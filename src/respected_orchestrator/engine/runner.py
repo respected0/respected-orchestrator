@@ -487,7 +487,14 @@ def create_task(ctx: EngineContext, request: dict, *, settings: dict | None = No
     return {"run_id": run_id, "status": "queued"}
 
 
+_ACTIVE_LANE = None  # the lane of the run this process executes; dropped just before the run's terminal status is written
+
+
 def _write_status(ctx, directory, status, **details):
+    global _ACTIVE_LANE
+    if status in TERMINAL and _ACTIVE_LANE is not None:
+        lanes.remove_lane(_ACTIVE_LANE)  # first: a terminal status that anyone can read means the project is already clean
+        _ACTIVE_LANE = None
     payload = dict(run_id=directory.name, status=status, updated_at=dt.datetime.now(dt.timezone.utc).isoformat(), **details)
     save_signed(ctx, directory / "status.json", payload)
     return payload
@@ -550,6 +557,7 @@ def _memory_context(ctx, directory, request):
 
 
 def execute_task(ctx: EngineContext, run_id: str) -> dict:
+    global _ACTIVE_LANE
     directory = ctx.run_dir(run_id)
     request = load_signed(ctx, directory / "request.json")
     status = load_signed(ctx, directory / "status.json")
@@ -590,7 +598,7 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
             # Git for Windows rejects worktree paths over ~260 characters ("'$GIT_DIR' too big") once nested files are added.
             raise ValueError(f"Data root path is too long for Git worktrees ({len(str(ctx.workspace_root / run_id))} chars "
                              "for the workspace root, limit 200); use a shorter --data-root")
-        lane = lanes.create_lane(run_request, paths)
+        lane = _ACTIVE_LANE = lanes.create_lane(run_request, paths)
         details["workspace"] = str(lane.worktree)
         manifest = lanes.overlay_dirty_inputs(lane, run_request.ownership, run_request.include_untracked,
                                               run_request.context_paths)
@@ -699,6 +707,9 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
     finally:
         if lock:
             lock.release()
+        if _ACTIVE_LANE is not None:  # normally gone already (see _write_status); this covers a crash before a terminal status
+            lanes.remove_lane(_ACTIVE_LANE)
+            _ACTIVE_LANE = None
 
 
 def start_task(ctx, run_id):

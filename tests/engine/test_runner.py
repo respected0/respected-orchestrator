@@ -57,6 +57,20 @@ class EngineTests(unittest.TestCase):
         self.assertNotIn("vault_id", json.dumps(inspected))
         self.assertEqual(inspected['request']['master'], 'user')
 
+    def test_a_finished_run_leaves_no_branch_or_worktree_in_the_project_and_still_applies(self):
+        for code, status in ((None, "completed"), ("raise SystemExit(7)", "failed")):
+            task = self.task(code) if code else self.task()
+            self.assertEqual(execute_task(self.ctx, task["run_id"])["status"], status)
+            self.assertEqual(self.git("branch", "--list", "orchestrator/*").decode().strip(), "")
+            self.assertEqual(len(self.git("worktree", "list").decode().strip().splitlines()), 1)
+            self.assertFalse((self.ctx.workspace_root / task["run_id"]).exists())
+
+    def test_the_patch_of_a_finished_run_applies_after_its_worktree_is_gone(self):
+        task = self.task()
+        self.assertEqual(execute_task(self.ctx, task["run_id"])["status"], "completed")
+        self.assertEqual(runner.apply_task(self.ctx, task["run_id"])["status"], "applied")
+        self.assertEqual((self.repo / "owned.txt").read_text(), "changed" + chr(10))
+
     def test_failed_worker_is_never_accepted(self):
         task = self.task("raise SystemExit(7)")
         self.assertEqual(execute_task(self.ctx, task["run_id"])["status"], "failed")
