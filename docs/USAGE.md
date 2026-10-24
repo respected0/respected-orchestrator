@@ -87,7 +87,8 @@ Sonra bir **yazma görevi**. Yazma görevi en az bir doğrulama komutu ve deği�
 }
 ```
 
-Çalışan, projenizin ayrı bir kopyasında (çalışma ağacı) çalışır; asıl projeniz değişmez. Bittiğinde:
+Çalışan, projenizin ayrı bir kopyasında (çalışma ağacı) çalışır; asıl projeniz değişmez. Görev bitince kopya ve onun Git dalı
+(`orchestrator/<görev>`) silinir; sonuç yama olarak kayıtlıdır. Bittiğinde:
 
 ```powershell
 & $exe check RUN_ID     # kapsam, doğrulama komutları, imzalı kanıt, yamanın projeye hâlâ uyması, projenin güncelliği

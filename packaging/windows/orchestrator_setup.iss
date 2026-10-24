@@ -488,6 +488,11 @@ end;
 procedure FailInstall(Message: String);
 begin
   InstallFailed := True;
+  // a fresh install that did not finish leaves nothing behind: no Installed-apps entry, no unused program folder
+  if not Maintenance then begin
+    RegDeleteKeyIncludingSubkeys(HKCU, UninstallKey);
+    DelTree(ExpandConstant('{app}'), True, True, True);
+  end;
   SuppressibleMsgBox(Message, mbError, MB_OK, IDOK);
   Abort;
 end;

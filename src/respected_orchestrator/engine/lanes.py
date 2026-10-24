@@ -206,6 +206,18 @@ def create_lane(request: RunRequest, paths: RunPaths) -> Lane:
     )
 
 
+def remove_lane(lane: Lane) -> None:
+    """Drop a finished lane from the project's repository: its worktree, its Git record and its branch.
+
+    The result lives in the run folder (worker.patch and the signed result), so nothing in the lane is needed once the run
+    ended. Best effort and silent: a leftover is only clutter, it must never change how the run ended."""
+    git = lambda *args: winproc.run(["git", *args], cwd=lane.repo_root, capture_output=True, text=True, encoding="utf-8", check=False)
+    git("worktree", "remove", "--force", str(lane.worktree))
+    shutil.rmtree(lane.worktree, ignore_errors=True)  # a file the worker still held open can keep the folder after Git gave up
+    git("worktree", "prune")
+    git("branch", "-D", lane.branch)
+
+
 def overlay_dirty_inputs(
     lane: Lane,
     ownership: Sequence[str],
