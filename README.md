@@ -65,6 +65,8 @@ görevleri yapacak bir AI aracının komut satırı (oturumu açık) olmalıdır
 
 Kurucuyu yeniden çalıştırmak onarır/günceller, ayarları değiştirir ya da kaldırır. Adım adım: [Kullanım rehberi](docs/USAGE.md).
 
+**Kurulumdan sonra bir adım:** kullandığın AI aracını yeniden başlat ve aracın ilgili yerinden (eklentiler, MCP) Orchestrator'a izin ver. Yoksa araç Orchestrator'ı görmez.
+
 | Ne | Nerede |
 |---|---|
 | Program | `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app\respected-orchestrator.exe` (kurucunun) |

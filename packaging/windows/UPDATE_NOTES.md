@@ -1,6 +1,3 @@
-- Yeni kurucu tasarımı ve logo.
+- İlk beta: kodlama ajanlarını yalıtılmış Git çalışma ağaçlarında çalıştırır ve sonucu denetler.
 - MCP sunucusu kendini "Respected Orchestrator" olarak tanıtır.
-- Hub'dan gelen çağrılar daha hızlı yanıtlanır.
-- Henüz oluşmamış engine anahtarı sağlık sorunu sayılmaz (anahtar ilk görevde oluşur).
-- Güncellemede eski program dosyaları silinir; kurulu ürün kendi kaydından tanınır.
 - Güncelleme yedekli: bir şey ters giderse önceki sürüm ve ayarlar kendiliğinden geri yüklenir.
