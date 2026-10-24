@@ -23,7 +23,7 @@ Bu metin Orchestrator `0.1.0-beta.1` için geçerlidir (2026-10-24). Kod okunara
 |---|---|---|
 | Bir görev çalıştığında | Görev metni ve çalışanın çalışma kopyasında okuduğu dosyalar | Görevi yapan AI aracı (Codex, Claude, Gemini, agy, Cursor) ve onun sağlayıcısı. Bu aktarım o aracın ve sağlayıcının kendi şartlarına tabidir |
 | Brain hafıza erişimini **kendiniz açtıysanız** | Göreve uygun bulunan Brain notlarından en fazla yaklaşık 3000 karakterlik parça, görev metnine "güvenilmeyen veri" başlığıyla eklenir | Görev metniyle birlikte aynı AI aracı ve sağlayıcısı |
-| Doğrulama komutları çalıştığında | Yalnızca sizin önceden izin verdiğiniz önekli komutlar, kısıtlı bir Windows belirteciyle ve ortamdan sır gibi görünen değişkenler çıkarılarak çalışır | Bilgisayarınızda yerel |
+| Doğrulama komutları çalıştığında | Görev isteğinde verdiğiniz komutlar (bir AI aracının MCP ile verdiği görevlerde yalnızca sizin önceden izin verdiğiniz önekli komutlar) kısıtlı bir Windows belirteciyle ve ortamdan sır gibi görünen değişkenler çıkarılarak çalışır | Bilgisayarınızda yerel |
 
 Brain hafıza erişimi varsayılan olarak **kapalıdır**; Orchestrator › Ayarlar'dan ya da `memory connect` ile açılır, geri alınabilir.
 
@@ -31,7 +31,8 @@ Brain hafıza erişimi varsayılan olarak **kapalıdır**; Orchestrator › Ayar
 
 - Görev metnini ve projenizin kodunu AI aracınızın sağlayıcısı görür. Kimlik bilgilerini ve çok hassas kodu görev metnine
   ya da çalışma kopyasına koymayın.
-- Orchestrator, AI aracının kendi izinlerinin yerini tutan bir işletim sistemi kum havuzu değildir.
+- Orchestrator, AI aracının kendi izinlerinin yerini tutan bir işletim sistemi kum havuzu değildir: çalışan araç
+  bilgisayarınızda sıradan bir süreçtir ve çalışma kopyasının dışına yazarsa Orchestrator bunu yakalamaz.
 - Bu metin hukuki danışmanlık ya da sözleşme metni değildir; neyin nereye gittiğini anlatır.
 
 ## Silme

@@ -29,6 +29,8 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
 - **Bilinen sınır:** kapsam denetimi çalışma ağacındaki değişikliklere (yama) bakar. Çalışan sıradan bir süreçtir ve ağacın
   dışına yazarsa (`../dosya`) bu yamada görünmez, yakalanmaz; işletim sistemi düzeyinde bir kafes yoktur. Koruma çalışan
   aracın kendi kum havuzundan gelir (Claude, Codex), motordan değil.
+- Bir veri kökünde aynı anda tek görev çalışır: sonradan başlatılan görev kendi süresi içinde sıraya girer (süre dolarsa
+  `timed_out`, iptal edilirse `cancelled`); bozuk ya da yarım yazılmış kilit dosyası 5 saniyeden eskiyse bayat sayılıp alınır.
 - Kanıt, veri kökündeki `.engine-key` ile HMAC imzalanır. Anahtar Windows'ta yalnızca kullanıcıya açık bir ACL ile korunur.
 - **Codex sonucu:** yerleşik Codex uyarlayıcısı `exec --json` ile çalışır ve tam görev metnini tek argüman olarak verir
   (`--json` ile çağrılan `codex` adlı özel komutlar da aynı sözleşmeye tabidir). Çıktı yalnızca JSON nesnelerinden oluşan,
@@ -111,8 +113,6 @@ testler `tests/workflows/test_roles.py`.
 
 - `campaign-start` imzalı bir tanım saklar, motorun anlık görüntüsünü alır ve ayrık bir denetleyici (`campaign-run`)
   başlatır; çağıran çıkar, kimse sorgulamaz. `campaign-list` ve `campaign-status` durumu motordan okur.
-- Bir veri kökünde aynı anda tek görev çalışır: sonradan başlatılan görev kendi süresi içinde sıraya girer (süre dolarsa
-  `timed_out`, iptal edilirse `cancelled`); bozuk ya da yarım yazılmış kilit dosyası 5 saniyeden eskiyse bayat sayılıp alınır.
 - Her iş akışı hattı ayrı bir veri köküdür (kendi kilidi, anahtarı, durumu, çalışma ağaçları); hatlar gerçek paralel
   süreçlerdir, `after` bağımlılığı ifade eder. Bağımlılığı onaylanmamış hat `SKIPPED` olur. Hat veri kökleri ayar ya da
   hafıza anahtarı tutmaz; ana köke `RESPECTED_ORCH_MAIN_ROOT` ile bakar.
@@ -129,7 +129,9 @@ testler `tests/workflows/test_roles.py`.
 standart kütüphaneyle yazılmış bir stdio MCP sunucusudur; Hub gerekmez, başlattığı çalışmalar Hub'da görünür. Araçlar:
 `orchestrator_status`, `_plan`, `_task_start`, `_project_start`, `_list`, `_progress`, `_evidence`, `_resume`, `_cancel`,
 `_apply`, `_memory_note`. `integrations set İSTEMCİ=on` (ya da Hub'ın paneli) AI aracının ayarına kurulu programı
-gösteren bir girdi ekler: `respected-orchestrator.exe mcp`. Başka girdiler korunur; kapatınca yalnızca kendi girdisi kalkar.
+gösteren bir girdi ekler: `respected-orchestrator.exe mcp`. Başka girdiler korunur; kapatınca ve kaldırınca yalnızca kendi
+girdisi kalkar (elle değiştirilmiş olsa da); kayıtta olmayan aynı adlı bir girdiye ve elle değiştirilmiş bir girdinin yeniden
+yazılmasına izin verilmez.
 
 Sunucu, istem enjeksiyonuna uğramış olabilecek bir modelin isteğini alır. Bu yüzden MCP üzerinden
 `orchestrator_task_start` ve `orchestrator_project_start` şunları reddeder:
@@ -197,5 +199,9 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   kum havuzu sınırı yoktur.
 - Claude, Gemini ve Cursor çalışanları kendi onay modellerini korur. Sağlayıcının `turn.completed` olayı modeli
   bildirmediği için incelemelerde `model: null` görünür.
-- Kapsam denetimi çalışmadan sonra yapılır; çalışanın kendisi kişinin izinleriyle çalışır.
+- Kapsam denetimi çalışmadan sonra, yamaya bakarak yapılır; çalışanın kendisi kişinin izinleriyle çalışır ve çalışma ağacının
+  dışına yazması yakalanmaz (bölüm 2).
+- Codex'in kum havuzu kullanıcı profilindeki programları (örneğin `AppData\Local\Programs` altındaki Python) çalıştıramayabilir:
+  çalışan böyle bir doğrulama komutunu kendi kendini denerken çalıştıramayıp görevi başarısız bildirebilir. Motorun kendi
+  doğrulaması ayrıca kısıtlı belirteçle yapılır.
 - Kurucu Authenticode ile imzalı değildir.

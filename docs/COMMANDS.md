@@ -50,7 +50,7 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 | Komut | Girdi | Ne yapar |
 |---|---|---|
 | `create` | stdin: görev isteği | Görevi doğrular, rolleri çözer, imzalı isteği saklar; `run_id` döner. Başlatmaz. |
-| `start RUN_ID` | | Ayrık bir denetleyici başlatır; Hub ya da terminal kapansa da sürer. |
+| `start RUN_ID` | | Ayrık bir denetleyici başlatır; Hub ya da terminal kapansa da sürer. Aynı veri kökünde aynı anda tek görev çalışır; sonradan başlatılan görev kendi süresi içinde sıraya girer. |
 | `list` | | Görevler, en yenisi önce. |
 | `inspect RUN_ID` | | Durum, aşamalar, değişiklikler, kullanım. |
 | `check RUN_ID` | | Sonucu yeniden doğrular: imzalı kanıt, kapsam, doğrulama, yamanın projeye uyması, projenin güncelliği. |
@@ -69,10 +69,10 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 | `project_root` | Git projesinin mutlak yolu (zorunlu) |
 | `task` | Çalışana verilecek iş (zorunlu) |
 | `kind` | `read` ya da `write` |
-| `ownership` | Çalışanın değiştirebileceği göreli yollar |
+| `ownership` | Çalışanın değiştirebileceği göreli yollar; proje içinde kalmalı, `.git` ve proje kökünün kendisi olamaz |
 | `forbidden` | Dokunulmayacak yollar ya da adlar |
 | `acceptance` | Doğrulama komutları, her biri JSON argüman dizisi; `write` görevinde en az bir tane |
-| `timeout_seconds` | Görevin en uzun süresi; verilmezse `default_timeout_seconds` |
+| `timeout_seconds` | Görevin en uzun süresi (1–3600 saniye); verilmezse `default_timeout_seconds` |
 | `worker`, `worker_profile` | Çalışan araç ve profili; verilmezse ayarlardaki varsayılan |
 | `roles` | Rol atamaları: `{rol: profil \| {tool, profile, fallbacks}}` |
 | `workflow` | MAF ayarları: `reviewer_tool`, `reviewer_profile`, `deep_review_tool`, `deep_review_profile`, `max_corrections` (0–2), `escalate_profile`, `require_independent_review` |

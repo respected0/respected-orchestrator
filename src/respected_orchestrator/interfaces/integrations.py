@@ -2,7 +2,8 @@
 
 Discover -> Inspect -> Plan -> approve -> Apply -> Verify -> Rollback. Only the one entry named ``respected-orchestrator`` is ever
 touched; every other server/setting is preserved. Ownership (a digest of the entry we wrote) is recorded in the data root; an
-entry we do not own, or one the user edited since, is refused rather than overwritten. Apply needs the digest of the plan the
+entry we do not own is refused rather than overwritten, and so is rewriting one the user edited since (taking our own edited entry
+back is allowed). Apply needs the digest of the plan the
 user approved, so a config that changed in between is never written blindly.
 """
 import hashlib
@@ -198,7 +199,7 @@ def plan(ctx, payload):
         if want is not None:
             if want and not row["detected"]:
                 row.update(action="refuse", reason="Client not detected on this computer.")
-            elif state in ("foreign", "modified"):
+            elif state == "foreign" or (state == "modified" and want):
                 row.update(action="refuse", reason="An entry named respected-orchestrator exists that Respected does not own"
                            if state == "foreign" else "Respected's entry was edited since it was written; leaving it alone")
             elif want:
@@ -206,7 +207,7 @@ def plan(ctx, payload):
                 new_text = _canon(new) if kind == "json" else _toml_block(new).strip()
                 row.update(action="create" if state == "absent" else ("unchanged" if current == new_text else "update"),
                            entry=new)
-            elif state == "owned":
+            elif state in ("owned", "modified"):  # our own entry is ours even after a hand edit: taking it back is what was asked
                 row.update(action="remove")
         rows.append(row)
     digest = _digest(json.dumps([{k: r[k] for k in ("client", "config", "action", "state")} | {"entry": r.get("entry")} for r in rows],
