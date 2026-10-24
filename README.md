@@ -53,7 +53,7 @@ Brain, not kasası, Hub ya da sürekli çalışan bir servis gerektirmez; Brain 
 | **Onay sizde** | Hiçbir sonuç kendiliğinden uygulanmaz; bekleyen, başarısız, bayat ya da kurcalanmış sonuç `check`'ten geçmez |
 | **Kampanyalar ve projeler** | Çok adımlı işler için MAF iş akışı, kampanyalar, projeler, planlayıcı, rol atama |
 | **AI araçlarına MCP** | Orchestrator, AI araçlarına MCP sunucusu olarak kaydedilebilir |
-| **Brain hafızası (isteğe bağlı)** | Brain kuruluysa ve izin verirseniz hafızadan okur, kalıcı kararları Brain'e not bırakır |
+| **Brain hafızası (isteğe bağlı)** | Brain kuruluysa ve izin verirseniz hafızadan okur, kalıcı kararları Brain'e not olarak bırakır |
 
 ## Kurulum
 
@@ -65,7 +65,7 @@ görevleri yapacak bir AI aracının komut satırı (oturumu açık) olmalıdır
 
 Kurucuyu yeniden çalıştırmak onarır/günceller, ayarları değiştirir ya da kaldırır. Adım adım: [Kullanım rehberi](docs/USAGE.md).
 
-**Kurulumdan sonra bir adım:** kullandığın AI aracını yeniden başlat ve aracın ilgili yerinden (eklentiler, MCP) Orchestrator'a izin ver. Yoksa araç Orchestrator'ı görmez.
+**Kurulumdan sonra bir adım:** kullandığınız AI aracını yeniden başlatın ve aracın ilgili yerinden (eklentiler, MCP) Orchestrator'a izin verin. Yoksa araç Orchestrator'ı görmez.
 
 | Ne | Nerede |
 |---|---|
@@ -121,7 +121,7 @@ $env:RESPECTED_DATA_DIR = "$env:TEMP\orch-dev"; python -m respected_orchestrator
 | [PRODUCT_CONTRACT.md](docs/PRODUCT_CONTRACT.md) | Üç ürünün ortak sözleşmesi |
 | [ROADMAP.md](docs/ROADMAP.md) | Yol haritası |
 | [PRIVACY.md](PRIVACY.md) | Hangi veri nerede durur, neresi dışarı çıkar |
-| [FOOTPRINT.md](docs/FOOTPRINT.md) | Ne yaparsan nerede ne oluşur: kurulum, AI araçları, kaldırma |
+| [FOOTPRINT.md](docs/FOOTPRINT.md) | Ne yaparsanız nerede ne oluşur: kurulum, AI araçları, kaldırma |
 
 Ekosistemin diğer ürünleri: [Respected Hub](https://github.com/respected0/respected-hub) ·
 [Respected Brain](https://github.com/respected0/respected-brain).

@@ -8,22 +8,23 @@ KURULUMDA NELER OLUR
   - Veri klasörü: %LOCALAPPDATA%\Respected\RespectedOrchestrator\data (ayarlar, işlem makbuzları, görev ve kampanya kayıtları, kanıtları imzalayan anahtar; anahtar yalnızca sizin hesabınıza açıktır).
   - İsteğe bağlı: seçtiğiniz AI araçlarına MCP kaydı (Claude Code, Codex, Cursor, Gemini, Windsurf) ve Brain hafızasına bağlantı.
 
-KULLANIRKEN NELER OLUŞUR
+KULLANIRKEN NELER OLUR
 
   - Her görev projenizin yalıtılmış bir Git çalışma ağacında çalışır (veri klasöründeki workspaces/ altında). Projenize ancak sizin onayınızla yama uygulanır.
   - Görev durumu, kanıt ve kampanya kayıtları veri klasöründe birikir.
   - Görevi, bilgisayarınızda kurulu AI aracı (Codex, Claude, Gemini, agy, Cursor) komut satırından yapar; görev metni o aracın sağlayıcısına gider.
   - Doğrulama komutları kısıtlı bir Windows belirteciyle çalışır; çalışanın ortamından sır gibi görünen değişkenler çıkarılır.
+  - Çalışan araç bilgisayarınızda sıradan bir süreçtir: projenizin çalışma ağacı dışına yazmasını Orchestrator engellemez, koruma o aracın kendi kum havuzundan gelir.
 
-GÜNCELLEMEDE NELER DEĞIŞIR
+GÜNCELLEMEDE NELER DEĞİŞİR
 
   - Çalışan Orchestrator süreçleri durdurulur; program klasörü yeni sürümle yenilenir, eski sürümden kalan dosyalar silinir.
   - Ardından ürün kendini onarır: dosyaları doğrular, AI araçlarındaki MCP kayıtlarını yeni sürüme göre yeniler.
   - Ayarlarınız, görev geçmişiniz ve kanıtlarınız değişmez. Veri biçimi değişmişse ürün eski kaydı yerinde taşır ve özgününü .bak olarak saklar.
 
-KALDIRINCA NELER SILINIR
+KALDIRINCA NELER SİLİNİR
 
   - Program klasörü ve Windows Uygulamalar girdisi silinir; kurulum kaydı her zaman kalkar.
-  - AI araçlarındaki Respected girdileri geri alınır; sizin ve başka araçların girdileri kalır.
+  - AI araçlarındaki Respected girdileri (elle değiştirmiş olsanız da) geri alınır; sizin ve başka araçların girdileri kalır.
   - Ayarlar, görev geçmişi ve çalışma ağaçları (veri klasörü) varsayılan olarak kalır; "çalışma verileri de silinsin" seçeneğiyle silinir.
   - Projelerinize ve Git depolarınıza dokunulmaz.

@@ -65,7 +65,7 @@ class IntegrationsTest(unittest.TestCase):
         self.assertEqual(caught.exception.code, "PLAN_CHANGED")
         self.assertNotIn("respected-orchestrator", self.claude.read_text("utf-8"))
 
-    def test_foreign_or_edited_entries_are_refused_and_nothing_is_written(self):
+    def test_foreign_entries_and_rewrites_of_edited_ones_are_refused_but_an_edited_own_entry_can_be_taken_back(self):
         doc = dict(CLAUDE, mcpServers={"respected-orchestrator": {"command": "mine"}})
         self.claude.write_text(json.dumps(doc), encoding="utf-8")
         before = self.codex.read_bytes()
@@ -78,9 +78,15 @@ class IntegrationsTest(unittest.TestCase):
         edited = json.loads(self.claude.read_text("utf-8"))
         edited["mcpServers"]["respected-orchestrator"]["command"] = "user-edit"
         self.claude.write_text(json.dumps(edited), encoding="utf-8")
-        with self.assertRaises(sil.OperationError):
-            self.go({"claude-code": False})
+        with self.assertRaises(sil.OperationError):  # rewriting an entry the person edited is still refused
+            self.go({"claude-code": True})
         self.assertEqual(json.loads(self.claude.read_text("utf-8"))["mcpServers"]["respected-orchestrator"]["command"], "user-edit")
+        edited["mcpServers"]["someone-elses"] = {"command": "x"}
+        self.claude.write_text(json.dumps(edited), encoding="utf-8")
+        self.go({"claude-code": False})  # but our own entry is ours even after a hand edit: switching off takes it back
+        servers = json.loads(self.claude.read_text("utf-8"))["mcpServers"]
+        self.assertNotIn("respected-orchestrator", servers)
+        self.assertIn("someone-elses", servers)
 
     def test_invalid_config_is_never_touched_and_missing_client_is_refused(self):
         self.claude.write_text("{not json", encoding="utf-8")

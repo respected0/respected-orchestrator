@@ -1,6 +1,6 @@
 # Respected ürün sözleşmesi v1
 
-Durum: **uygulandı** (2026-10-22). Üç repo (Hub, Brain, Orchestrator) buna uyar; her depoda aynı kopya durur. Uyum Hub deposundaki `tools/conformance/` ile ölçülür
+Durum: **uygulandı**. Üç repo (Hub, Brain, Orchestrator) buna uyar; her depoda aynı kopya durur. Uyum Hub deposundaki `tools/conformance/` ile ölçülür
 (`python -m unittest discover -s tools/conformance`, kaynakta ya da `RESPECTED_CONFORMANCE_<ÜRÜN>_EXE` ile derlenmiş programda; üç kopyanın aynı olduğunu da denetler).
 Geçiş dönemi, eski sürüm desteği ya da uyumluluk katmanı yoktur: bir şey değiştiğinde her yerde değişir, eski yolu silinir.
 **Tek istisna kişinin verisidir** (ilk yayından, 0.1.0-beta.1'den beri): ayar, kurulum kaydı ve çalışma verisinin biçimi
@@ -10,7 +10,7 @@ Geçiş dönemi, eski sürüm desteği ya da uyumluluk katmanı yoktur: bir şey
 
 - **Her ürün Hub'dan bağımsızdır.** Kurma, onarma, güncelleme, kaldırma, ayar değiştirme ve ürünlerin birbirine bağlanması
   Hub olmadan yapılabilir: kurucuyu yeniden çalıştırarak ya da ürünün komutlarıyla.
-- **Hub yalnızca kolaylıktır:** katalog, indirme, ürünün kurucusunu çalıştırma ve görsel arayüz. Hub'ın yaptığı her işin Hubsız
+- **Hub yalnızca kolaylıktır:** katalog, indirme, ürünün kurucusunu çalıştırma ve görsel arayüz. Hub'ın yaptığı her işin Hub'sız
   bir karşılığı vardır ve Hub o karşılığı çağırır. Hub ürün hakkında hiçbir şey saklamaz.
 - Sonradan Hub kurulursa hiçbir şey taşınmaz ve sorulmaz: Hub, ürünü ve ayarlarını ürünün kendisinden okur.
 - Ortak kod çalışma zamanı bağımlılığı değildir. Ortak olan bu belge (üç depoda aynı kopya), Hub deposundaki `tools/conformance/` ve kurucuların ortak bölümüdür.
@@ -65,8 +65,9 @@ Brain hafızasına bağlanma (okuma / yazma).
 **Güncelleme güvenlidir ve her sürümden en yeniye doğrudandır.** Kurucu güncellemeden önce önceki program klasörünü ve
 veri kökündeki `*.json` dosyalarını `update-backup\` altına yedekler; yedek alınamazsa güncelleme başlamaz. `repair`
 başarısız olursa ya da ürün güncellemeden önce sağlıklıyken sonra sağlıklı değilse yedek geri yüklenir, güncelleme
-başarısız sayılır ve kurulu sürüm değişmez; başarılıysa yedek silinir. (Inno Setup bu durumda sessiz kurucunun çıkış kodunu
-0 bırakır; Hub kurulu sürümü paketteki sürümle karşılaştırarak yakalar, betikler `--version` ile bakmalıdır.) Veri biçimi
+başarısız sayılır ve kurulu sürüm değişmez; başarılıysa yedek silinir. Kurucu bu durumda ve ürünün `setup` komutu
+başarısız olduğunda sıfırdan farklı bir çıkış koduyla (8) biter; kasa klasörü kullanılamıyorsa 7 ile. Hub ayrıca kurulu
+sürümü paketteki sürümle karşılaştırır. Veri biçimi
 değişirse her eski biçim için `STEPS` tablosuna bir adım eklenir ve **adımlar hiç silinmez**; her yayında o sürümün gerçek
 veri dosyaları `tests/fixtures/releases/<sürüm>/` altına kopyalanır, CI hepsini en yeniye taşıyıp ikinci çalıştırmanın hiçbir
 şeyi değiştirmediğini doğrular. Katalog bir yayın için `min_from` taşıyabilir (yalnızca o sürümün ve üstünün üzerine doğrudan
@@ -93,7 +94,7 @@ Ortak komutlar iki üründe aynı adla, aynı bayraklarla, aynı çıktı biçim
   `2` kullanım ya da geçersiz ayar.
 - `update` komutu, gizli takma ad (`--keep-data`, `--purge-data`) ve kendini güncelleme yardımcısı yoktur.
 - Ürüne özel komutlar serbesttir. Brain: `vault`, `search`, `compile`, `briefing`, `hook`… Orchestrator: görev ve kampanya
-  komutları, `memory connect [--write] | disconnect | status` (Brain hafızasına Hubsız bağlanma: Brain'in `rpp`
+  komutları, `memory connect [--write] | disconnect | status` (Brain hafızasına Hub'sız bağlanma: Brain'in `rpp`
   sunucusundan izin alır, kendi ayarına yazar), `integrations [set <istemci>=on|off...]` (kendini AI araçlarına MCP sunucusu
   olarak kaydeder).
 
@@ -106,7 +107,8 @@ Ortak komutlar iki üründe aynı adla, aynı bayraklarla, aynı çıktı biçim
 - Brain: `user_name`, `user_bio`, `assistant_name`, `summary_provider`, `provider_fallback`, `capture_mode`, `briefing_time`,
   `mcp_write`, `archive_transcripts`, `transcript_retention_days`, `integrations.global|clients|mcp|mcp_clients|schedule|shortcut`.
   Adlar, bağlantılar ya da sabah özeti saati değişince ürün AI araçlarındaki kendi kayıtlarını aynı işlemde günceller.
-- Orchestrator: `default_worker`, `default_worker_profile`, `default_reviewer_profile`, `default_timeout_seconds`, rol alanları,
+- Orchestrator: `default_worker`, `default_worker_profile`, `default_reviewer_tool`, `default_reviewer_profile`,
+  `default_timeout_seconds`, rol alanları,
   gizli hafıza alanları (`memory connect` yazar).
 
 ## 7. Protokol (RPP 1)

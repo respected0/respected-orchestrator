@@ -1,11 +1,11 @@
 # Orchestrator: gelecekte yapılacaklar
 
-Ürün beklentisiyle bugünkü durum arasındaki açıklar (2026-10-23 itibarıyla). Yapılan madde silinir.
+Ürün beklentisiyle bugünkü durum arasındaki açıklar. Yapılan madde silinir.
 
 ## Her AI ile çalışma
 
 - [ ] **OpenCode** çalışanı ve MCP kaydı (`interfaces/integrations.py` bugün claude-code, codex, cursor, gemini, windsurf).
-  Bu makinede OpenCode kurulu değil; gerçek çalıştırmayla doğrulanamadığı için yazılmadı.
+  Geliştirme makinesinde OpenCode kurulu değil; gerçek çalıştırmayla doğrulanamadığı için yazılmadı.
 - [ ] **OpenRouter / API tabanlı modeller**: bugün çalışanlar yalnızca komut satırı araçları (codex, claude, gemini, agy,
   cursor, custom). Çin modelleri (GLM, DeepSeek, Qwen, Kimi) yalnızca bir aracın profili üzerinden çalışıyor; kendi
   desteği yok. Anahtarın saklanması ve sağlayıcı/fiyat seçimi karar bekliyor.
@@ -18,9 +18,9 @@
 ## Token tasarrufu
 
 - [ ] Gemini ve Cursor token kullanımı doğrulanamadı: Claude ve agy kullanımı gerçek çalıştırmayla doğrulandı
-  (2026-10-22; Claude modeli de bildiriyor, agy modeli bildirmiyor, o yüzden agy incelemelerinde `model: null` doğru).
+  (Claude modeli de bildiriyor, agy modeli bildirmiyor, o yüzden agy incelemelerinde `model: null` doğru).
   Gemini çalışanı Windows'ta npm'in `.cmd` kabuğu olarak kurulduğunda kullanılamıyor (cmd.exe komut enjeksiyonu
-  kuralı); Cursor bu makinede kurulu değil. İkisi için ölçüm yolu gerçek araçla denenmeli.
+  kuralı); Cursor geliştirme makinesinde kurulu değil. İkisi için ölçüm yolu gerçek araçla denenmeli.
 
 ## Araştırmaya dayalı tasarım
 

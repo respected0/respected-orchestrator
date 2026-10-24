@@ -18,7 +18,7 @@ Kurulumdan kaldırmaya kadar kişinin yapacağı her şey. Komutların tam liste
 - **Respected Hub ile devam et (önerilen):** kurucu Hub'ı indirip kurar ve Orchestrator'ı Hub'ın kurulum sayfasında açar.
 - **Yalnızca Orchestrator:** kurucu sırayla sorar:
   - **Varsayılan çalışan:** görevleri hangi AI aracının yapacağı. Her görevde ayrıca seçilebilir.
-  - **Brain hafızası:** görevler Brain kasandaki notlardan kısa parçalar okuyabilsin mi; isterseniz ayrıca
+  - **Brain hafızası:** görevler Brain kasanızdaki notlardan kısa parçalar okuyabilsin mi; isterseniz ayrıca
     yeniden kullanılabilir notları Brain'in gelen kutusuna yazabilsin mi. Brain kurulu olmalıdır.
 
 Kurucu, kurmadan önce "bilgisayarınızda neler olur" sayfasını gösterir: kurulumda, kullanırken, güncellemede ve kaldırmada neler yazıldığı, değiştiği ve silindiği. Aynı bilgi Hub'ın Kütüphane sayfasındaki ürün kartında da vardır (`packaging/windows/orchestrator_info.txt`).
@@ -26,7 +26,8 @@ Kurucu, kurmadan önce "bilgisayarınızda neler olur" sayfasını gösterir: ku
 Kurucu programı `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app` altına yazar ve ürünün `setup` komutunu çalıştırır.
 Ayarlar ve görev çalışmaları `...\RespectedOrchestrator\data` altındadır. Yüklü uygulamalar girdisini kurucu yazar.
 
-Sessiz kurulum aynı ayarları anahtarlarla alır:
+Sessiz kurulum aynı ayarları anahtarlarla alır. Başarısız olursa kurucu sıfırdan farklı bir çıkış koduyla (8) biter ve geriye
+hiçbir şey bırakmaz; yarıda kesilirse yeniden çalıştırmak yeterlidir:
 
 ```text
 RespectedOrchestrator-Windows-Setup.exe /VERYSILENT /SET=default_worker=claude /SET=default_timeout_seconds=1200
@@ -205,7 +206,7 @@ Kaldır; sessiz `unins000.exe /VERYSILENT [/PURGE=1]`. Kaldırıcı "Ayarlar ve 
 | Ne | Kaldırınca |
 |---|---|
 | Program (`app\`) | kaldırıcı siler |
-| AI araçlarındaki kendi MCP girdileri | kaldırılır; diğer girdiler kalır |
+| AI araçlarındaki kendi MCP girdileri | kaldırılır (elle değiştirmiş olsanız da); diğer girdiler kalır |
 | Kurulum kaydı | her zaman kalkar |
 | Ayarlar, görev çalışmaları, kanıtlar | kalır; "Evet" / `--purge` / `/PURGE=1` ile silinir |
 | Projeleriniz | hiçbir durumda dokunulmaz |
@@ -222,6 +223,8 @@ Brain hafıza bağlantısı varsa önce `memory disconnect` ile kapatmak izni Br
 | `ROLE_CONFLICT` | Aynı role iki farklı değer verilmiş (ör. `worker` ve `roles.implementer`) |
 | Görev `failed`, `WORKER_FAILED` | Çalışanın çıktısı başarılı bir sonuç bildirmedi; `inspect` ve Hub'daki loglar. Kota ya da oturum hatası ayrıca belirtilir |
 | `timed_out` | `timeout_seconds` ya da `default_timeout_seconds` artırın |
+| Başka bir görev çalışırken yeni görev bekliyor | Aynı veri kökünde aynı anda tek görev çalışır; sıradaki görev kendi süresi içinde sıraya girer (`cancel` ile vazgeçilir) |
+| Codex görevi `failed`; çalışan "erişim engellendi" diyor | Codex'in kum havuzu kullanıcı profilinizdeki programları (örneğin `AppData\Local\Programs` altındaki Python) çalıştıramaz; doğrulama komutunda sistem ya da `Program Files` altındaki bir programı kullanın. Doğrulamayı motor ayrıca kendi belirteciyle yapar |
 | `sandbox_unavailable` | Doğrulama kum havuzu kurulamadı; yükseltilmiş (yönetici) olarak çalışmayın, veri klasörünün izinlerine bakın |
 | `check` geçmiyor | Yama artık projeye uymuyor (proje değişti), kapsam dışına çıkılmış ya da doğrulama komutu başarısız; görevi yeniden deneyin |
 | MCP'den görev reddediliyor | Doğrulama komutu `mcp_acceptance_allow`'da değil ya da özel komut/uygulama klasörü istendi |
