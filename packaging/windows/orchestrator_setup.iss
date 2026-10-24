@@ -260,7 +260,7 @@ var
   AppDir: String;
 begin
   AppDir := ExpandConstant('{app}');
-  if not FileExists(AppDir + '' + ProductExe) then Exit;  // a first install has nothing to stop: skip PowerShell and the wait (~1.5 s)
+  if not FileExists(AppDir + '\' + ProductExe) then Exit;  // a first install has nothing to stop: skip PowerShell and the wait (~1.5 s)
   StringChangeEx(AppDir, '''', '''''', True);
   Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
     '-NoProfile -NonInteractive -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq ''' + ProductExe +
@@ -327,13 +327,16 @@ begin
   CommitUpdate;
   Log(ProductName + ' ' + Reason + ' Önceki sürüm geri yüklendi.');
   SuppressibleMsgBox(ProductName + ' ' + Reason + #13#10 + 'Önceki sürüm geri yüklendi; ayarlarınız ve verileriniz değişmedi.', mbError, MB_OK, IDOK);
-  Abort;  // a non-zero exit code, so a script or the Hub sees that the update did not happen
+  InstallFailed := True;  // DeinitializeSetup turns this into a non-zero exit code
+  Abort;
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := '';
   StopRunningProduct;
+  // a first install killed while it wrote its uninstaller leaves an empty unins000.dat: Inno would number the new pair unins001 beside it
+  if not Maintenance then DelTree(ExpandConstant('{app}\unins*.*'), False, True, False);
   if not BackUpForUpdate() then
     Result := ProductName + ' güncellenmeden önce yedeği alınamadı (disk dolu ya da dosyalar kullanımda olabilir); hiçbir şey değiştirilmedi.';
 end;
@@ -505,8 +508,11 @@ begin
   // over an installed product the program files were just replaced: the product re-verifies them and rewrites its record
   if Maintenance then begin
     if not RunProduct('repair', Output) then begin
-      if UpdateBackedUp then RollBackUpdate('onarılamadı.');
-      FailInstall(ProductName + ' onarılamadı; kurucuyu yeniden çalıştırabilirsin.');
+      // an install killed halfway: repair first rolls the unfinished transaction back, which also removes the record that was never completed; set up from the start
+      if FileExists(ExpandConstant('{localappdata}\Respected\' + ProductFolder + '\' + InstallRecord)) or not RunProduct('setup', Output) then begin
+        if UpdateBackedUp then RollBackUpdate('onarılamadı.');
+        FailInstall(ProductName + ' onarılamadı; kurucuyu yeniden çalıştırabilirsin.');
+      end;
     end;
     if UpdateBackedUp and HealthyBefore and not RunProduct('health', Output) then RollBackUpdate('güncellemeden sonra sağlıklı çalışmadı.');
     CommitUpdate;

@@ -577,11 +577,19 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
     try:
         if cancel.exists():
             raise ProcessStopped("cancelled")
+        # One active task per data root: a task that arrives meanwhile queues behind it, inside its own deadline.
+        while lock is None:
+            try:
+                lock = lanes.WriterLock.acquire(safe_path(ctx.state_dir), run_id, request["kind"], ctx.workspace_root / run_id)
+            except lanes.WriterLockError:
+                if cancel.exists():
+                    raise ProcessStopped("cancelled")
+                if time.monotonic() >= deadline:
+                    raise ProcessStopped("timed_out")
+                time.sleep(1)
         project = validate_project(ctx, Path(request["project_root"]))
         if request["project_fingerprint"] != project_fingerprint(project):
             raise ValueError("Project changed since submission; task is stale")
-        # One active task per data root. Stale locks are preserved for inspection.
-        lock = lanes.WriterLock.acquire(safe_path(ctx.state_dir), run_id, request["kind"], ctx.workspace_root / run_id)
         _write_status(ctx, directory, "running", pid=os.getpid(), phase="preparing")
         paths = lanes.RunPaths(project, safe_path(ctx.workspace_root), ctx.state_dir, directory)
         known_context = "Explicit local task; no required memory integration."
