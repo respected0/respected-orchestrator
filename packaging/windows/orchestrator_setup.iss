@@ -44,16 +44,16 @@ InfoBeforeFile=orchestrator_info.txt
 Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
 
 [Messages]
-turkish.WizardInfoBefore=Bilgisayarında neler olur
-turkish.InfoBeforeLabel=Kurulumda, kullanırken, güncellemede ve kaldırırken neler olacağını aşağıda okuyabilirsin.
+turkish.WizardInfoBefore=Bilgisayarınızda neler olur
+turkish.InfoBeforeLabel=Kurulumda, kullanırken, güncellemede ve kaldırırken neler olacağını aşağıda okuyabilirsiniz.
 turkish.WizardInfoAfter=Yenilikler
 turkish.InfoAfterLabel=Bu sürümde neler değişti?
 turkish.InfoAfterClickLabel=Devam etmek için Sonraki'ne tıklayın.
-turkish.WelcomeLabel1=Respected Orchestrator'a hoş geldin
-turkish.WelcomeLabel2=Orchestrator, ağır kodlama işlerini izole çalışma alanlarında yürütür; yamayı sen onaylamadan gerçek ağacına dokunmaz.%n%nYönetici izni gerekmez.%n%nDevam etmek için Sonraki'ne tıkla.
+turkish.WelcomeLabel1=Respected Orchestrator'a hoş geldiniz
+turkish.WelcomeLabel2=Orchestrator, ağır kodlama işlerini izole çalışma alanlarında yürütür; yamayı siz onaylamadan gerçek ağacınıza dokunmaz.%n%nYönetici izni gerekmez.%n%nDevam etmek için Sonraki'ne tıklayın.
 turkish.FinishedHeadingLabel=Respected Orchestrator hazır
-turkish.FinishedLabel=Kurulum bitti.%n%nSon bir adım: kullandığın AI aracını yeniden başlat ve aracın ilgili yerinden (eklentiler, MCP) Orchestrator'a izin ver. Yoksa araç Orchestrator'ı görmez.
-turkish.FinishedLabelNoIcons=Kurulum bitti.%n%nSon bir adım: kullandığın AI aracını yeniden başlat ve aracın ilgili yerinden (eklentiler, MCP) Orchestrator'a izin ver. Yoksa araç Orchestrator'ı görmez.
+turkish.FinishedLabel=Kurulum bitti.%n%nSon bir adım: kullandığınız AI aracını yeniden başlatın ve aracın ilgili yerinden (eklentiler, MCP) Orchestrator'a izin verin. Yoksa araç Orchestrator'ı görmez.
+turkish.FinishedLabelNoIcons=Kurulum bitti.%n%nSon bir adım: kullandığınız AI aracını yeniden başlatın ve aracın ilgili yerinden (eklentiler, MCP) Orchestrator'a izin verin. Yoksa araç Orchestrator'ı görmez.
 ; the ready page's button is "Kur", not "Sonraki"
 turkish.ReadyLabel2a=Kuruluma devam etmek için Kur düğmesine, ayarları gözden geçirmek ya da değiştirmek için Önceki düğmesine tıklayın.
 turkish.ReadyLabel2b=Kuruluma başlamak için Kur düğmesine tıklayın.
@@ -212,7 +212,7 @@ begin
     Exec(HubExe(), '--install=' + HubProductId, '', SW_SHOWNORMAL, ewNoWait, Code)
   else if not WizardSilent then begin
     ShellExec('open', HubReleasesPage, '', '', SW_SHOWNORMAL, ewNoWait, Code);
-    MsgBox('Respected Hub indirilip kurulamadı. Açılan sayfadan Hub kurucusunu (Setup.exe) indirip çalıştır; Hub, ' + ProductName + ' ürününü senin için kuracak.', mbInformation, MB_OK);
+    MsgBox('Respected Hub indirilip kurulamadı. Açılan sayfadan Hub kurucusunu (Setup.exe) indirip çalıştırın; Hub, ' + ProductName + ' ürününü sizin için kuracak.', mbInformation, MB_OK);
   end;
 end;
 
@@ -359,13 +359,13 @@ end;
 
 procedure CreateSharedPages;
 begin
-  ChoicePage := NewCardPage(0, wpWelcome, 'Kurulum yolu', 'İkisi de aynı ürünü kurar; fark, güncellemeleri ve ayarları nereden yöneteceğindir.', False);
+  ChoicePage := NewCardPage(0, wpWelcome, 'Kurulum yolu', 'İkisi de aynı ürünü kurar; fark, güncellemeleri ve ayarları nereden yöneteceğinizdir.', False);
   AddCard(ChoicePage, 0, #$E80F, 'Respected Hub ile devam et (önerilen)', 'Kurulum, güncelleme ve ayarlar görsel arayüzden yönetilir.', True);
   AddCard(ChoicePage, 0, #$E756, 'Yalnızca ' + ProductName, 'Hub olmadan; ayarlar bu kurucudan ya da komutlarla değiştirilir.', False);
-  MaintenancePage := NewCardPage(1, ChoicePage.ID, ProductName + ' kurulu', 'Ayarların ve not kasan her seçenekte korunur.', False);
+  MaintenancePage := NewCardPage(1, ChoicePage.ID, ProductName + ' kurulu', 'Ayarlarınız ve not kasanız her seçenekte korunur.', False);
   AddCard(MaintenancePage, 1, #$E895, 'Onar / Güncelle', 'Programı bu kurucudaki sürümle (v{#AppVersion}) yeniler.', True);
-  AddCard(MaintenancePage, 1, #$E713, 'Ayarları değiştir', 'Programa dokunmadan ayarları yeniden seçersin.', False);
-  AddCard(MaintenancePage, 1, #$E74D, 'Kaldır', 'Programı kaldırır; sana sorarak ayarları ve verileri de siler.', False);
+  AddCard(MaintenancePage, 1, #$E713, 'Ayarları değiştir', 'Programa dokunmadan ayarları yeniden seçersiniz.', False);
+  AddCard(MaintenancePage, 1, #$E74D, 'Kaldır', 'Programı kaldırır; size sorarak ayarları ve verileri de siler.', False);
   DownloadPage := CreateDownloadPage('Hub indiriliyor', 'En güncel Respected Hub kurucusu indiriliyor...', @OnDownloadProgress);
 end;
 
@@ -397,8 +397,8 @@ begin
   WorkerPage := NewCardPage(3, MaintenancePage.ID, 'Varsayılan çalışan', 'Hangi AI aracı görev yapsın? Araç bu bilgisayarda kurulu olmalı.', False);
   CompactCards(3);
   for I := 0 to 5 do AddCard(WorkerPage, 3, #$E756, WorkerName(I), '', I = 0);
-  MemoryPage := NewCardPage(2, WorkerPage.ID, 'Brain hafızası', 'Orchestrator Brain hafızanı kullanabilsin mi? Sonradan kapatılabilir.', True);
-  AddCard(MemoryPage, 2, #$E8F1, 'Brain hafızasını oku', 'Görevler, Brain kasandaki notlardan kısa özetler okur. Brain kurulu olmalı.', False);
+  MemoryPage := NewCardPage(2, WorkerPage.ID, 'Brain hafızası', 'Orchestrator Brain hafızanızı kullanabilsin mi? Sonradan kapatılabilir.', True);
+  AddCard(MemoryPage, 2, #$E8F1, 'Brain hafızasını oku', 'Görevler, Brain kasanızdaki notlardan kısa özetler okur. Brain kurulu olmalı.', False);
   AddCard(MemoryPage, 2, #$E70F, 'Gelen kutusuna not yazabilsin', 'Yeniden kullanılabilir notlar Brain gelen kutusuna bırakılır.', False);
 end;
 
@@ -511,14 +511,14 @@ begin
       // an install killed halfway: repair first rolls the unfinished transaction back, which also removes the record that was never completed; set up from the start
       if FileExists(ExpandConstant('{localappdata}\Respected\' + ProductFolder + '\' + InstallRecord)) or not RunProduct('setup', Output) then begin
         if UpdateBackedUp then RollBackUpdate('onarılamadı.');
-        FailInstall(ProductName + ' onarılamadı; kurucuyu yeniden çalıştırabilirsin.');
+        FailInstall(ProductName + ' onarılamadı; kurucuyu yeniden çalıştırabilirsiniz.');
       end;
     end;
     if UpdateBackedUp and HealthyBefore and not RunProduct('health', Output) then RollBackUpdate('güncellemeden sonra sağlıklı çalışmadı.');
     CommitUpdate;
   end else begin
     if not RunProduct('setup', Output) then
-      FailInstall(ProductName + ' kurulumu tamamlanamadı; kurucuyu yeniden çalıştırabilirsin.');
+      FailInstall(ProductName + ' kurulumu tamamlanamadı; kurucuyu yeniden çalıştırabilirsiniz.');
     if not WizardSilent then begin
       RunProduct('config set' + PageSettings(), Output);
       ApplyMemoryChoice;
@@ -538,7 +538,7 @@ begin
   StopRunningProduct;
   PurgeData := CommandValue('PURGE', '') <> '';
   if not UninstallSilent then
-    PurgeData := MsgBox('Ayarlar ve görev çalışma kayıtları da silinsin mi?' + #13#10 + '(Hayır dersen yeniden kurduğunda kaldığın yerden devam edersin.)', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
+    PurgeData := MsgBox('Ayarlar ve görev çalışma kayıtları da silinsin mi?' + #13#10 + '(Hayır derseniz yeniden kurduğunuzda kaldığınız yerden devam edersiniz.)', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
 end;
 
 function UninstallArgs(Param: String): String;
