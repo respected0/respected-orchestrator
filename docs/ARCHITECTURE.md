@@ -26,6 +26,9 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   doğrulama komutları, yamanın projeye hâlâ uyması, imzalı kanıt ve projenin güncelliği ayrı ayrı geçmelidir. Hiçbir şey
   kendiliğinden uygulanmaz; `apply` `check`'i yeniden çalıştırır, `git apply --check` yapar, commit atmaz ve çalışan
   süreçlerin içinden reddedilir. Yeniden denemeler açık ve sınırlıdır; süre sınırları ve süreç ağacı temizliği korunur.
+- **Bilinen sınır:** kapsam denetimi çalışma ağacındaki değişikliklere (yama) bakar. Çalışan sıradan bir süreçtir ve ağacın
+  dışına yazarsa (`../dosya`) bu yamada görünmez, yakalanmaz; işletim sistemi düzeyinde bir kafes yoktur. Koruma çalışan
+  aracın kendi kum havuzundan gelir (Claude, Codex), motordan değil.
 - Kanıt, veri kökündeki `.engine-key` ile HMAC imzalanır. Anahtar Windows'ta yalnızca kullanıcıya açık bir ACL ile korunur.
 - **Codex sonucu:** yerleşik Codex uyarlayıcısı `exec --json` ile çalışır ve tam görev metnini tek argüman olarak verir
   (`--json` ile çağrılan `codex` adlı özel komutlar da aynı sözleşmeye tabidir). Çıktı yalnızca JSON nesnelerinden oluşan,
