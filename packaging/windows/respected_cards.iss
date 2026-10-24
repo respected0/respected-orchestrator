@@ -226,3 +226,11 @@ begin
   end;
   ProductPageChanged(CurPageID);
 end;
+
+procedure ExitProcess(ExitCode: Cardinal); external 'ExitProcess@kernel32.dll stdcall';
+
+// Abort in the post-install step leaves Inno's own exit code at 0: a script or the Hub must still see that the install failed
+procedure DeinitializeSetup();
+begin
+  if InstallFailed then ExitProcess(8);
+end;

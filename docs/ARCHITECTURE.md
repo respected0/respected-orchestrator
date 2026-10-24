@@ -108,6 +108,8 @@ testler `tests/workflows/test_roles.py`.
 
 - `campaign-start` imzalı bir tanım saklar, motorun anlık görüntüsünü alır ve ayrık bir denetleyici (`campaign-run`)
   başlatır; çağıran çıkar, kimse sorgulamaz. `campaign-list` ve `campaign-status` durumu motordan okur.
+- Bir veri kökünde aynı anda tek görev çalışır: sonradan başlatılan görev kendi süresi içinde sıraya girer (süre dolarsa
+  `timed_out`, iptal edilirse `cancelled`); bozuk ya da yarım yazılmış kilit dosyası 5 saniyeden eskiyse bayat sayılıp alınır.
 - Her iş akışı hattı ayrı bir veri köküdür (kendi kilidi, anahtarı, durumu, çalışma ağaçları); hatlar gerçek paralel
   süreçlerdir, `after` bağımlılığı ifade eder. Bağımlılığı onaylanmamış hat `SKIPPED` olur. Hat veri kökleri ayar ya da
   hafıza anahtarı tutmaz; ana köke `RESPECTED_ORCH_MAIN_ROOT` ile bakar.

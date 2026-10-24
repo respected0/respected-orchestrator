@@ -46,6 +46,15 @@ class RppTests(unittest.TestCase):
     def test_missing_version_and_bad_json(self):
         self.assertEqual(rpp.handle_request({"op": "manifest"}, self.ctx)["error"]["code"], "UNSUPPORTED_VERSION")
         self.assertEqual(rpp.handle_raw("{oops", self.ctx)["error"]["code"], "BAD_REQUEST")
+        self.assertEqual(rpp.handle_raw("[" * 100000, self.ctx)["error"]["code"], "BAD_REQUEST")
+
+    def test_invalid_utf8_on_stdin_is_a_bad_request_not_a_crash(self):
+        import io
+        import contextlib
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(rpp.run(self.ctx, io.BytesIO(bytes([0xFF, 0xFE, 0]) + b"junk")), 1)
+        self.assertEqual(json.loads(out.getvalue())["error"]["code"], "BAD_REQUEST")
 
     def test_operation_id_shape_and_echo(self):
         ok = self.call("manifest", operation_id=OPID)

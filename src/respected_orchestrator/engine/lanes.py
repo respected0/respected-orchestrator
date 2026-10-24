@@ -15,6 +15,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import time
 from typing import Mapping, Sequence
 
 
@@ -129,8 +130,13 @@ class WriterLock:
         state_root.mkdir(parents=True, exist_ok=True)
         path = state_root / ".write-worker.lock.json"
         if path.exists():
-            metadata = json.loads(path.read_text(encoding="utf-8"))
-            pid = int(metadata.get("pid", -1))
+            try:
+                metadata = json.loads(path.read_text(encoding="utf-8"))
+                pid = int(metadata.get("pid", -1))
+            except (OSError, ValueError, TypeError, AttributeError):  # cut off by a kill mid-write, or just being written by a live owner
+                if time.time() - path.stat().st_mtime < 5:
+                    raise WriterLockError(f"writer lock is being written: {path}")
+                metadata, pid = {}, -1
             if _pid_is_alive(pid):
                 raise WriterLockError(f"active writer lock for run {metadata.get('run_id', 'unknown')}: {path}")
             path.unlink(missing_ok=True)  # owner died without releasing (kill/reboot): reclaim (audit P1 #10); shortcut: pid reuse can keep a dead lock alive

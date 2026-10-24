@@ -401,7 +401,7 @@ def handle_raw(text, ctx):
     """Parse raw stdin text; malformed JSON becomes a BAD_REQUEST, not a traceback."""
     try:
         request = json.loads(text)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, RecursionError):
         return _fail(None, "BAD_REQUEST", "Request is not valid JSON.", "Send one JSON object on stdin.")
     return handle_request(request, ctx)
 
@@ -409,7 +409,7 @@ def handle_raw(text, ctx):
 def run(ctx, stream=None):
     raw = (stream or sys.stdin.buffer).read()
     if isinstance(raw, bytes):
-        raw = raw.decode("utf-8-sig")
+        raw = raw.decode("utf-8-sig", errors="replace")
     response = handle_raw(raw, ctx)
     print(json.dumps(response, ensure_ascii=True))
     return 0 if response["ok"] else 1

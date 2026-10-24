@@ -140,6 +140,22 @@ class WriterLockTest(unittest.TestCase):
             self.addCleanup(lock.release)
             self.assertEqual(json.loads(lock_path.read_text(encoding="utf-8"))["run_id"], "new-run")
 
+    def test_unreadable_writer_lock_is_reclaimed_once_it_is_old_but_respected_while_fresh(self) -> None:
+        orchestrator = load_orchestrator()
+        with tempfile.TemporaryDirectory() as temporary:
+            state_root = Path(temporary).resolve()
+            lock_path = state_root / ".write-worker.lock.json"
+            for junk in ("", "{\"run_id\": \"cut", "[1]", "{\"pid\": \"x\"}"):
+                with self.subTest(junk=junk):
+                    lock_path.write_text(junk, encoding="utf-8")
+                    with self.assertRaisesRegex(orchestrator.WriterLockError, "being written"):
+                        orchestrator.WriterLock.acquire(state_root, "run-new", "write", Path("C:/w"))
+                    old = os.stat(lock_path).st_mtime - 60
+                    os.utime(lock_path, (old, old))
+                    lock = orchestrator.WriterLock.acquire(state_root, "run-new", "write", Path("C:/w"))
+                    self.assertEqual(json.loads(lock_path.read_text(encoding="utf-8"))["run_id"], "run-new")
+                    lock.release()
+
 
 class GitLaneTest(unittest.TestCase):
     def make_request(self, orchestrator, **overrides):
