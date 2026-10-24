@@ -221,7 +221,7 @@ begin
     WizardForm.BackButton.Visible := False;
     if InstallFailed then begin
       WizardForm.FinishedHeadingLabel.Caption := 'Kurulum tamamlanamadı';
-      WizardForm.FinishedLabel.Caption := 'Ürün kendi değişikliklerini geri aldı. Kurucuyu yeniden çalıştırabilirsin.';
+      WizardForm.FinishedLabel.Caption := 'Ürün kendi değişikliklerini geri aldı. Kurucuyu yeniden çalıştırabilirsiniz.';
     end;
   end;
   ProductPageChanged(CurPageID);
