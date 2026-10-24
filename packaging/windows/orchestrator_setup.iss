@@ -52,6 +52,8 @@ turkish.InfoAfterClickLabel=Devam etmek için Sonraki'ne tıklayın.
 turkish.WelcomeLabel1=Respected Orchestrator'a hoş geldin
 turkish.WelcomeLabel2=Orchestrator, ağır kodlama işlerini izole çalışma alanlarında yürütür; yamayı sen onaylamadan gerçek ağacına dokunmaz.%n%nYönetici izni gerekmez.%n%nDevam etmek için Sonraki'ne tıkla.
 turkish.FinishedHeadingLabel=Respected Orchestrator hazır
+turkish.FinishedLabel=Kurulum bitti.%n%nSon bir adım: kullandığın AI aracını yeniden başlat ve aracın ilgili yerinden (eklentiler, MCP) Orchestrator'a izin ver. Yoksa araç Orchestrator'ı görmez.
+turkish.FinishedLabelNoIcons=Kurulum bitti.%n%nSon bir adım: kullandığın AI aracını yeniden başlat ve aracın ilgili yerinden (eklentiler, MCP) Orchestrator'a izin ver. Yoksa araç Orchestrator'ı görmez.
 ; the ready page's button is "Kur", not "Sonraki"
 turkish.ReadyLabel2a=Kuruluma devam etmek için Kur düğmesine, ayarları gözden geçirmek ya da değiştirmek için Önceki düğmesine tıklayın.
 turkish.ReadyLabel2b=Kuruluma başlamak için Kur düğmesine tıklayın.
@@ -482,6 +484,14 @@ begin
   end;
 end;
 
+// ends a failed install or repair: the message, then Abort (non-zero exit code); the cards' finish page then says it failed
+procedure FailInstall(Message: String);
+begin
+  InstallFailed := True;
+  SuppressibleMsgBox(Message, mbError, MB_OK, IDOK);
+  Abort;
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   Output: TExecOutput;
@@ -491,13 +501,13 @@ begin
   if Maintenance then begin
     if not RunProduct('repair', Output) then begin
       if UpdateBackedUp then RollBackUpdate('onarılamadı.');
-      RaiseException(ProductName + ' onarılamadı; kurucuyu yeniden çalıştırabilirsin.');
+      FailInstall(ProductName + ' onarılamadı; kurucuyu yeniden çalıştırabilirsin.');
     end;
     if UpdateBackedUp and HealthyBefore and not RunProduct('health', Output) then RollBackUpdate('güncellemeden sonra sağlıklı çalışmadı.');
     CommitUpdate;
   end else begin
     if not RunProduct('setup', Output) then
-      RaiseException(ProductName + ' kurulumu tamamlanamadı; kurucuyu yeniden çalıştırabilirsin.');
+      FailInstall(ProductName + ' kurulumu tamamlanamadı; kurucuyu yeniden çalıştırabilirsin.');
     if not WizardSilent then begin
       RunProduct('config set' + PageSettings(), Output);
       ApplyMemoryChoice;

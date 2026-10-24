@@ -212,8 +212,17 @@ end;
 // each installer defines this for its own pages
 procedure ProductPageChanged(CurPageID: Integer); forward;
 
+var
+  InstallFailed: Boolean;  // set by the installer's FailInstall: its last page must not claim success
+
 procedure CurPageChanged(CurPageID: Integer);
 begin
-  if CurPageID = wpFinished then WizardForm.BackButton.Visible := False;
+  if CurPageID = wpFinished then begin
+    WizardForm.BackButton.Visible := False;
+    if InstallFailed then begin
+      WizardForm.FinishedHeadingLabel.Caption := 'Kurulum tamamlanamadı';
+      WizardForm.FinishedLabel.Caption := 'Ürün kendi değişikliklerini geri aldı. Kurucuyu yeniden çalıştırabilirsin.';
+    end;
+  end;
   ProductPageChanged(CurPageID);
 end;
