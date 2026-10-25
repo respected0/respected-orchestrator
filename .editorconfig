@@ -11,3 +11,6 @@ end_of_line = crlf
 
 [*.md]
 trim_trailing_whitespace = false
+
+[packaging/windows/{*_info.txt,UPDATE_NOTES.md}]
+end_of_line = crlf
