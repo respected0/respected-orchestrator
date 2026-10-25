@@ -6,7 +6,7 @@ charset = utf-8
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-[*.{ps1,bat,cmd}]
+[*.{ps1,bat,cmd,iss}]
 end_of_line = crlf
 
 [*.md]
