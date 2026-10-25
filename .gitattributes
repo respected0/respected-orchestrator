@@ -4,8 +4,12 @@
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.iss text eol=crlf
+# Shown as pages of the Windows installer (Inno InfoBeforeFile / InfoAfterFile)
+packaging/windows/*_info.txt text eol=crlf
+packaging/windows/UPDATE_NOTES.md text eol=crlf
 
 *.png binary
+*.bmp binary
 *.ico binary
 *.icns binary
 *.exe binary
