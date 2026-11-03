@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import sys
 import tempfile
+import time
 
 FROZEN = bool(getattr(sys, "frozen", False))  # running as the packaged respected-orchestrator.exe
 
@@ -33,6 +34,31 @@ def path_within_root(path: Path, root: Path) -> bool:
         return False
 
 
+def _replace(temporary: str, path: Path) -> None:
+    # Windows keeps replace targets briefly locked by readers and indexers.
+    attempts = 10 if os.name == "nt" else 1
+    for attempt in range(attempts):
+        try:
+            os.replace(temporary, path)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.02 * (attempt + 1))
+
+
+def read_text_retry(path: Path, encoding: str = "utf8") -> str:
+    # A replace target can stay briefly unreadable on Windows (delete pending, AV/indexer lock).
+    attempts = 10 if os.name == "nt" else 1
+    for attempt in range(attempts):
+        try:
+            return safe_path(path).read_text(encoding=encoding)
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.02 * (attempt + 1))
+
+
 def atomic_write_json(path: Path, payload) -> None:
     path = safe_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -42,7 +68,7 @@ def atomic_write_json(path: Path, payload) -> None:
             json.dump(payload, handle, ensure_ascii=False, indent=2)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temporary, path)
+        _replace(temporary, path)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)

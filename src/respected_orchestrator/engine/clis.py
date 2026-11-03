@@ -4,9 +4,23 @@ from pathlib import Path
 import shutil
 import sys
 
-SUPPORTED_AGENTS = ("claude", "gemini", "antigravity", "agy", "codex", "cursor", "custom")
+SUPPORTED_AGENTS = ("claude", "gemini", "antigravity", "agy", "codex", "cursor", "opencode", "custom")
 EXECUTABLE = {"antigravity": "agy", "agy": "agy", "cursor": "cursor-agent"}
 LOCAL_CODEX = Path(__file__).resolve().parents[3] / ".runtime" / "codex-0.162.0-alpha.20" / "bin" / "codex.exe"
+
+
+def worker_executable(agent, found):
+    """The path the engine may spawn, or None. `.cmd`/`.bat` shims are refused because cmd.exe would re-parse the
+    prompt (audit P0 #2). OpenCode's npm shim is the one exception: it resolves to the native sibling executable that
+    ships in the same package, so the shim itself is never executed."""
+    if not found:
+        return None
+    candidate = Path(found)
+    if agent == "opencode" and candidate.suffix.lower() in {".cmd", ".bat"}:
+        candidate = candidate.parent / "node_modules" / "@opencode" / "cli" / "bin" / "opencode.exe"
+    elif candidate.suffix.lower() in {".cmd", ".bat"}:
+        return None
+    return str(candidate) if candidate.is_file() else None
 
 
 def find(names):
@@ -39,6 +53,6 @@ def resolve(agents):
     for agent, name in names.items():
         if agent == "codex" and sys.platform == "win32" and LOCAL_CODEX.is_file():
             usable.append(agent)
-        elif found[name] and Path(found[name]).suffix.lower() not in {".cmd", ".bat"}:  # a .cmd shim would re-parse the prompt (see runner.get_cli_command)
+        elif worker_executable(agent, found[name]) is not None:
             usable.append(agent)
     return usable, found["git"]

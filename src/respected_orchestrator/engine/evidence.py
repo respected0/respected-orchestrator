@@ -5,7 +5,7 @@ import json
 import os
 
 from . import winproc
-from ..context import atomic_write_json, safe_path
+from ..context import atomic_write_json, read_text_retry, safe_path
 
 
 RESTRICTED_KEYS = set()
@@ -64,7 +64,7 @@ def save_signed(ctx, path, payload):
 
 
 def load_signed(ctx, path):
-    envelope = json.loads(safe_path(path).read_text(encoding="utf8"))
+    envelope = json.loads(read_text_retry(path))
     if not isinstance(envelope, dict) or not isinstance(envelope.get("payload"), dict):
         raise ValueError("Invalid owned evidence")
     payload = envelope["payload"]

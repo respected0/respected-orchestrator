@@ -16,10 +16,11 @@ from agent_framework import CheckpointStorage, step, workflow
 from ..context import EngineContext, safe_path
 from ..engine.runner import SUPPORTED_AGENTS, tool_result, command_for, tool_available, check_result, create_task, execute_task, get_cli_command, inspect_task, project_fingerprint
 from ..engine.evidence import load_signed, save_signed
-from ..engine import budget as tokens
+from ..engine import budget as tokens, failures
 from . import roles
 from ..engine.processes import ProcessStopped, execute
 from ..engine.codex import CodexCall, CodexOutcome, _redact, run_codex_call
+from ..engine.worker_policy import SandboxStartError, WorkerPolicyError, default_policy
 
 
 WorkerResult = Mapping[str, Any]
@@ -64,14 +65,18 @@ def run_maf_slice(
     goal: str,
     workers: Mapping[str, Worker],
     reviewer: Reviewer,
-    max_corrections: int = 2,
+    max_fix_rounds: int = 2,
+    used_fix_rounds: int = 0,
+    prior_test_failures: tuple[Any, ...] = (),
     checkpoint_storage: CheckpointStorage | None = None,
     resume_checkpoint_id: str | None = None,
 ) -> dict[str, Any]:
     if not workers:
         raise ValueError("At least one worker is required")
-    if not isinstance(max_corrections, int) or not 0 <= max_corrections <= 2:
-        raise ValueError("max_corrections must be between 0 and 2")
+    if type(max_fix_rounds) is not int or not 0 <= max_fix_rounds <= 5:
+        raise ValueError("max_fix_rounds must be between 0 and 5")
+    if type(used_fix_rounds) is not int or not 0 <= used_fix_rounds <= max_fix_rounds:
+        raise ValueError("used_fix_rounds must be between 0 and max_fix_rounds")
 
     @step(replay_key=lambda task_id, correction, round_number: f"{task_id}:{round_number}")
     async def execute_worker(
@@ -91,6 +96,23 @@ def run_maf_slice(
         review_decisions: list[str] = []
         reviews: list[dict[str, Any]] = []
         corrections = {task_id: "" for task_id in workers}
+        transitions: list[dict[str, str]] = [{"from": "START", "to": "WORKER"}]
+        seen_test_failures: set[tuple[Any, ...]] = set(prior_test_failures)
+        remaining_rounds = max(0, max_fix_rounds - used_fix_rounds)
+
+        def round_budget(round_number: int) -> dict[str, int]:
+            used = min(max_fix_rounds, used_fix_rounds + round_number)
+            return {"limit": max_fix_rounds, "used": used, "remaining": max_fix_rounds - used}
+
+        def finish(state: str, *, reason: str, round_number: int,
+                   transition_from: str = "REVIEW", failure_class=None,
+                   retryable: bool = False) -> dict[str, Any]:
+            transitions.append({"from": transition_from, "to": state})
+            return _result(
+                state, worker_results, review_decisions, reviews, reported_corrections(),
+                transitions=transitions, fix_rounds=round_budget(round_number),
+                reason=reason, failure_class=failure_class, retryable=retryable,
+            )
 
         def reported_corrections() -> dict[str, str]:
             return {
@@ -99,7 +121,7 @@ def run_maf_slice(
                 if correction
             }
 
-        for round_number in range(max_corrections + 1):
+        for round_number in range(remaining_rounds + 1):
             current_workers = (
                 workers
                 if round_number == 0
@@ -118,66 +140,120 @@ def run_maf_slice(
             for task_id, outcome in zip(current_workers, outcomes):
                 if not isinstance(outcome, Mapping):
                     return _failure("invalid_worker_result", "Worker result is not an object",
-                                    worker_results, review_decisions, reviews, reported_corrections())
+                                    worker_results, review_decisions, reviews, reported_corrections(),
+                                    transitions=transitions, fix_rounds=round_budget(round_number))
                 worker_results[task_id] = outcome
 
             if any(outcome.get("status") != "COMPLETE" for outcome in worker_results.values()):
+                failure_reasons = {
+                    str((outcome.get("engine_result") or {}).get("reason") or "")
+                    for outcome in worker_results.values()
+                }
+                if failure_reasons & {"cancellation_requested", "cancelled"}:
+                    return finish("CANCELLED", reason="cancellation_requested",
+                                  round_number=round_number, transition_from="WORKER", retryable=False)
+                if failure_reasons & {"stale_project", "stale_patch", "inherited_patch_conflict"}:
+                    return finish("STALE_PATCH", reason="stale_patch", round_number=round_number,
+                                  transition_from="WORKER", failure_class="stale_patch", retryable=False)
+                test_failures = []
+                for task_id, outcome in worker_results.items():
+                    engine = outcome.get("engine_result")
+                    normalized = _normalized_test_failure(engine) if isinstance(engine, Mapping) else None
+                    if normalized is not None:
+                        test_failures.append((task_id, normalized))
+                if test_failures:
+                    if any(normalized in seen_test_failures for _, normalized in test_failures):
+                        return finish("REPEATED_TEST_FAILURE", reason="repeated_test_failure",
+                                      round_number=round_number, transition_from="TEST_FAILURE",
+                                      failure_class="test_failure", retryable=False)
+                    if round_number == remaining_rounds:
+                        return finish("FIX_ROUNDS_EXHAUSTED", reason="fix_rounds_exhausted",
+                                      round_number=round_number, failure_class="test_failure",
+                                      retryable=False)
+                    seen_test_failures.update(normalized for _, normalized in test_failures)
+                    corrections = {
+                        task_id: "Fix the failing acceptance checks using the sanitized failure evidence."
+                        for task_id, _ in test_failures
+                    }
+                    transitions.append({"from": "TEST_FAILURE", "to": "NEEDS_CHANGES"})
+                    continue
                 blocked = next(((outcome.get("engine_result") or {}).get("reason") for outcome in worker_results.values()
                                 if (outcome.get("engine_result") or {}).get("reason") in {"reuse_verification_failed", "token_budget_exceeded"}), None)
                 return _failure(blocked or "worker_failed", "Worker did not complete",
-                                worker_results, review_decisions, reviews, reported_corrections())
+                                worker_results, review_decisions, reviews, reported_corrections(),
+                                transitions=transitions, fix_rounds=round_budget(round_number))
 
             try:
                 review = await master_review(round_number, worker_results)
             except ReviewerExecutionError as error:
                 failure = _failure(error.reason, str(error), worker_results,
-                                   review_decisions, reviews, reported_corrections())
+                                   review_decisions, reviews, reported_corrections(),
+                                   transitions=transitions, fix_rounds=round_budget(round_number))
                 failure["review_failure"] = {"cause": error.cause, "retryable": error.retryable,
                                              "attempts": error.review_attempts}
                 return failure
             except InvalidReviewResultError as error:
                 return _failure("invalid_review_result", str(error), worker_results,
-                                review_decisions, reviews, reported_corrections())
+                                review_decisions, reviews, reported_corrections(),
+                                transitions=transitions, fix_rounds=round_budget(round_number))
             except Exception as error:
                 return _failure("reviewer_execution_failed", str(error), worker_results,
-                                review_decisions, reviews, reported_corrections())
+                                review_decisions, reviews, reported_corrections(),
+                                transitions=transitions, fix_rounds=round_budget(round_number))
             if not isinstance(review, Mapping):
                 return _failure("invalid_review_result", "Reviewer result is not an object",
-                                worker_results, review_decisions, reviews, reported_corrections())
+                                worker_results, review_decisions, reviews, reported_corrections(),
+                                transitions=transitions, fix_rounds=round_budget(round_number))
             decision = str(review.get("decision", "")).upper()
-            if decision not in {"APPROVED", "NEEDS_CHANGES", "REJECTED", "HUMAN_APPROVAL_REQUIRED"}:
+            if decision not in {"APPROVED", "NEEDS_CHANGES", "REJECTED", "HUMAN_APPROVAL_REQUIRED",
+                                "CANCELLED", "STALE_PATCH", "REPEATED_TEST_FAILURE"}:
                 return _failure("invalid_review_result", f"Unsupported reviewer decision: {decision}",
-                                worker_results, review_decisions, reviews, reported_corrections())
+                                worker_results, review_decisions, reviews, reported_corrections(),
+                                transitions=transitions, fix_rounds=round_budget(round_number))
             review_decisions.append(decision)
             reviews.append(dict(review))
 
             if decision == "APPROVED":
-                return _result("MASTER_APPROVED", worker_results, review_decisions,
-                               reviews, reported_corrections())
+                return finish("MASTER_APPROVED", reason="approved", round_number=round_number)
             if decision == "HUMAN_APPROVAL_REQUIRED":
-                return _result("HUMAN_APPROVAL_REQUIRED", worker_results, review_decisions,
-                               reviews, reported_corrections())
+                return finish("HUMAN_APPROVAL_REQUIRED", reason="human_approval_required",
+                              round_number=round_number)
             if decision == "REJECTED":
-                return _result("REJECTED", worker_results, review_decisions,
-                               reviews, reported_corrections())
-            if round_number == max_corrections:
-                return _result("NEEDS_CHANGES", worker_results, review_decisions,
-                               reviews, reported_corrections())
+                return finish("REJECTED", reason="reviewer_reject", round_number=round_number,
+                              failure_class="reviewer_reject", retryable=False)
+            if decision == "CANCELLED":
+                return finish("CANCELLED", reason="cancellation_requested", round_number=round_number,
+                              transition_from="WORKER", retryable=False)
+            if decision == "STALE_PATCH":
+                return finish("STALE_PATCH", reason="stale_patch", round_number=round_number,
+                              transition_from="WORKER", failure_class="stale_patch", retryable=False)
+            if decision == "REPEATED_TEST_FAILURE":
+                return finish("REPEATED_TEST_FAILURE", reason="repeated_test_failure",
+                              round_number=round_number, transition_from="TEST_FAILURE",
+                              failure_class="test_failure", retryable=False)
+            if round_number == remaining_rounds:
+                return finish("FIX_ROUNDS_EXHAUSTED", reason="fix_rounds_exhausted",
+                              round_number=round_number, failure_class="reviewer_reject",
+                              retryable=False)
 
             raw_corrections = review.get("corrections")
             if not isinstance(raw_corrections, Mapping):
                 return _failure("invalid_review_result", "NEEDS_CHANGES requires corrections",
-                                worker_results, review_decisions, reviews, reported_corrections())
+                                worker_results, review_decisions, reviews, reported_corrections(),
+                                transitions=transitions, fix_rounds=round_budget(round_number))
             corrections = {
                 task_id: str(raw_corrections.get(task_id, ""))
                 for task_id in workers
             }
             if not any(corrections.values()):
                 return _failure("invalid_review_result", "NEEDS_CHANGES corrections are empty",
-                                worker_results, review_decisions, reviews, reported_corrections())
+                                worker_results, review_decisions, reviews, reported_corrections(),
+                                transitions=transitions, fix_rounds=round_budget(round_number))
+            transitions.append({"from": "REVIEW", "to": "NEEDS_CHANGES"})
 
-        return _result("NEEDS_CHANGES", worker_results, review_decisions,
-                       reviews, reported_corrections())
+        return finish("FIX_ROUNDS_EXHAUSTED", reason="fix_rounds_exhausted",
+                      round_number=remaining_rounds, failure_class="reviewer_reject",
+                      retryable=False)
 
     async def run() -> dict[str, Any]:
         workflow_instance = slice_workflow.build(checkpoint_storage=checkpoint_storage)
@@ -196,11 +272,20 @@ def run_maf_slice(
     return asyncio.run(run())
 
 
-def _failure(reason, error, worker_results, review_decisions, reviews, corrections):
+def _failure(reason, error, worker_results, review_decisions, reviews, corrections, *,
+             transitions=None, fix_rounds=None):
+    transition_list = list(transitions or [{"from": "START", "to": "WORKER"}])
+    if not transition_list or transition_list[-1].get("to") != "FAILED":
+        transition_list.append({"from": "WORKER", "to": "FAILED"})
     return {
         "status": "FAILED",
+        "state": "FAILED",
         "reason": reason,
+        **failures.describe(reason),
         "error": error,
+        "fix_rounds": fix_rounds or {"limit": 0, "used": 0, "remaining": 0},
+        "transitions": transition_list,
+        "evidence": [],
         "worker_results": worker_results,
         "review_decisions": review_decisions,
         "reviews": reviews,
@@ -208,9 +293,17 @@ def _failure(reason, error, worker_results, review_decisions, reviews, correctio
     }
 
 
-def _result(status, worker_results, review_decisions, reviews, corrections):
+def _result(state, worker_results, review_decisions, reviews, corrections, *,
+            transitions, fix_rounds, reason, failure_class=None, retryable=False):
     return {
-        "status": status,
+        "status": state,
+        "state": state,
+        "reason": reason,
+        "failure_class": failure_class,
+        "retryable": retryable,
+        "fix_rounds": fix_rounds,
+        "transitions": transitions,
+        "evidence": [],
         "worker_results": worker_results,
         "review_decisions": review_decisions,
         "reviews": reviews,
@@ -245,6 +338,8 @@ def _review_prompt_text(stage: str, task: str, result: Mapping[str, Any], patch_
         "duration_seconds": engine_result.get("duration_seconds"),
         "patch_preview": patch_preview,
     }
+    if engine_result.get("tester") is not None:
+        evidence["tester"] = engine_result["tester"]
     return (
         f"You are the independent {stage} reviewer. Judge only the evidence below. "
         "The orchestrator already verified deterministically: the worker finished, only owned files "
@@ -333,17 +428,23 @@ def _record_review_attempt(ctx: EngineContext, run_id: str, entry: dict[str, Any
     save_signed(ctx, path, {"attempts": [*attempts, entry]})
 
 
-def _run_tool_call(tool: str, profile: str, prompt: str, run_root: Path, timeout_seconds: float) -> CodexOutcome:
+def _run_tool_call(tool: str, profile: str, prompt: str, run_root: Path, timeout_seconds: float,
+                   ctx=None) -> CodexOutcome:
     """One review through any non-Codex tool CLI. The prompt carries all evidence, so the reviewer gets an empty
     directory instead of the project. Usage comes from the tool's JSON envelope; if absent it stays UNKNOWN, never zero."""
     run_root.mkdir(parents=True, exist_ok=True)
     text, usage = "", None
     stdout_path, stderr_path = run_root / "stdout.log", run_root / "stderr.log"
+    command = command_for(tool, prompt, profile=profile)
+    (run_root / "tmp").mkdir(parents=True, exist_ok=True)
     try:
-        completed = execute(command_for(tool, prompt, profile=profile), run_root, timeout_seconds, scrub_env=True)
+        policy = default_policy(ctx, run_root, command, temp_root=run_root / "tmp", ttl=timeout_seconds)
+        completed = execute(command, run_root, timeout_seconds, scrub_env=True, policy=policy)
         text, usage, _model, error = tool_result(tool, completed.stdout)
         status = "COMPLETE" if completed.returncode == 0 and text.strip() and not error else "FAILED"
         stdout, stderr, cause = completed.stdout, completed.stderr, "" if status == "COMPLETE" else "tool_failed"
+    except (WorkerPolicyError, SandboxStartError) as error:  # fail closed: no unsandboxed reviewer
+        status, stdout, stderr, cause = "FAILED", "", f"{type(error).__name__}: {str(error)[:300]}", "sandbox_unavailable"
     except ProcessStopped as error:
         status, stdout, stderr, cause = "TIMEOUT", error.stdout, error.stderr, error.reason
     except (OSError, ValueError) as error:  # could not start the tool: recorded as a failed review, never a silent gap
@@ -365,16 +466,24 @@ def _run_codex_review(
     timeout_seconds: float,
     patch_preview: str = "",
     tool: str = "codex",
+    ctx=None,
 ) -> dict[str, Any]:
     started = time.monotonic()
     prompt = _review_prompt(stage, task, result, patch_preview, tool)
-    if tool == "codex":
-        command = get_cli_command("codex")
-        executable = codex_path or (command[0] if command else "codex")
-        outcome = run_codex_call(CodexCall(stage, profile, None, prompt, run_root), cwd=cwd, codex_path=executable,
-                                 timeout_seconds=max(0.1, timeout_seconds))
-    else:
-        outcome = _run_tool_call(tool, profile, prompt, run_root, max(0.1, timeout_seconds))
+    run_root.mkdir(parents=True, exist_ok=True)
+    (run_root / "tmp").mkdir(parents=True, exist_ok=True)
+    try:
+        if tool == "codex":
+            command = get_cli_command("codex")
+            executable = codex_path or (command[0] if command else "codex")
+            policy = default_policy(ctx, run_root, [executable], temp_root=run_root / "tmp",
+                                    readonly_roots=(cwd,), ttl=max(0.1, timeout_seconds))
+            outcome = run_codex_call(CodexCall(stage, profile, None, prompt, run_root), cwd=cwd, codex_path=executable,
+                                     timeout_seconds=max(0.1, timeout_seconds), policy=policy)
+        else:
+            outcome = _run_tool_call(tool, profile, prompt, run_root, max(0.1, timeout_seconds), ctx=ctx)
+    except (WorkerPolicyError, SandboxStartError) as error:
+        raise ReviewerExecutionError(f"{stage} reviewer sandbox unavailable", cause="sandbox_unavailable") from error
     if outcome.status != "COMPLETE":
         message = f"{stage} reviewer status: {outcome.status} ({outcome.cause or 'unknown'})"
         if outcome.cause == "provider_disconnected":  # structured evidence of a lost connection, whether or not it timed out
@@ -471,6 +580,63 @@ def _sum_usage(usages) -> dict[str, int]:
     return totals
 
 
+def _safe_checks(engine: Mapping[str, Any]) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    for item in engine.get("checks") or []:
+        if not isinstance(item, Mapping):
+            continue
+        raw_command = item.get("command")
+        if isinstance(raw_command, (list, tuple)):
+            command = [str(part)[:200] for part in raw_command[:20]]
+        elif isinstance(raw_command, str):
+            command = [raw_command[:200]]
+        else:
+            command = []
+        returncode = item.get("returncode")
+        checks.append({
+            "command": command,
+            "returncode": returncode if isinstance(returncode, int) and not isinstance(returncode, bool) else None,
+        })
+    return checks
+
+
+def _is_test_failure(engine: Mapping[str, Any]) -> bool:
+    if failures.classify(engine.get("reason")) == failures.FailureClass.TEST_FAILURE:
+        return True
+    return any(check.get("returncode") not in (None, 0) for check in _safe_checks(engine))
+
+
+def _normalized_test_failure(engine: Mapping[str, Any]) -> tuple[Any, ...] | None:
+    if not _is_test_failure(engine):
+        return None
+    return ("test_failure", tuple(
+        (tuple(check["command"]), check["returncode"]) for check in _safe_checks(engine)
+    ))
+
+
+def _repeated_test_failures(attempts) -> tuple[tuple[Any, ...], ...]:
+    """Only a fingerprint already seen twice is terminal history; one recorded failure must still reproduce
+    FIX_ROUNDS_EXHAUSTED on a re-invocation when the limit is zero."""
+    counts: dict[tuple[Any, ...], int] = {}
+    for attempt in attempts:
+        engine = attempt.get("engine_result") if isinstance(attempt, Mapping) else None
+        normalized = _normalized_test_failure(engine) if isinstance(engine, Mapping) else None
+        if normalized is not None:
+            counts[normalized] = counts.get(normalized, 0) + 1
+    return tuple(fingerprint for fingerprint, count in counts.items() if count >= 2)
+
+
+def _attempt_evidence(run_id: str, engine: Mapping[str, Any], *, failure_class: str) -> dict[str, Any]:
+    reason = str(engine.get("reason") or failure_class)[:200]
+    return {
+        "run_id": run_id,
+        "checks": _safe_checks(engine),
+        "reason": reason,
+        "failure_class": failure_class,
+        "evidence_paths": ["result.json"],
+    }
+
+
 def _review_assignment(source_request, workflow, injected, codex_path):
     """(reviewer tool, profile, deep tool, deep profile), checked before any paid step. An injected reviewer callable
     (tests, custom review) needs no assignment. Runs recorded before role assignment existed carry their reviewer in
@@ -504,7 +670,7 @@ def run_maf_coding_task(
 ) -> dict[str, Any]:
     source_request = dict(request) if request is not None else inspect_task(ctx, run_id)["request"]
     workflow = dict(source_request.get("workflow", {}))
-    max_corrections = workflow.get("max_corrections", 2)
+    max_fix_rounds = workflow.get("max_fix_rounds", 2)
     deep_review = workflow.get("deep_review", "never")
     risk_changed_files = workflow.get("risk_changed_files", 5)
     human_approval = workflow.get("human_approval", False)
@@ -528,7 +694,7 @@ def run_maf_coding_task(
     fast_ceiling = review_timeout_for(reviewer_profile)
     review_budget = sum(review_attempt_timeouts(fast_ceiling, review_retries)) + (
         sum(review_attempt_timeouts(review_timeout_for(deep_review_profile), review_retries)) if deep_review != "never" else 0)
-    derived_total = (source_request["timeout_seconds"] + review_budget) * (1 + max_corrections)
+    derived_total = (source_request["timeout_seconds"] + review_budget) * (1 + max_fix_rounds)
     total_budget = workflow.get("timeout_seconds") or derived_total
     state = SimpleNamespace(attempts=[], deadline=time.monotonic() + total_budget)
     attempts_path = ctx.run_dir(run_id) / "maf-attempts.json"
@@ -539,7 +705,7 @@ def run_maf_coding_task(
     # Plain ints captured by the step closures would change the workflow signature between invocations and break
     # checkpoint resume, so per-invocation facts live on the state object.
     state.preexisting = len(state.attempts)  # a re-invocation continues this history instead of repeating it
-    state.used_corrections = sum(1 for attempt in state.attempts if attempt.get("correction"))
+    state.used_fix_rounds = sum(1 for attempt in state.attempts if attempt.get("correction"))
     invocation_reviews: list[dict[str, Any]] = []  # every review call of THIS invocation, failed ones included
     initial_maf_result = ctx.run_dir(run_id) / "maf-result.json"
     if not initial_maf_result.is_file():
@@ -595,26 +761,33 @@ def run_maf_coding_task(
                 return {"status": "FAILED", "engine_result": {"status": "cancelled", "reason": "cancellation_requested"}}
             if project_fingerprint(project) != source_request["project_fingerprint"]:
                 return {"status": "FAILED", "engine_result": {"status": "failed", "reason": "stale_project"}}
-            previous = next((
-                attempt for attempt in reversed(state.attempts)
-                if attempt.get("status") == "completed"
-                and isinstance(attempt.get("engine_result"), Mapping)
-                and attempt["engine_result"].get("status") == "completed"
-                and isinstance(attempt.get("run_id"), str)
-            ), None)
-            if previous is None:
-                return {"status": "FAILED", "engine_result": {"status": "failed",
-                        "reason": "correction_inheritance_missing"}}
-            previous_result = previous["engine_result"]
-            previous_patch_sha256 = previous_result.get("patch_sha256")
-            if not isinstance(previous_patch_sha256, str):
-                return {"status": "FAILED", "engine_result": {"status": "failed",
-                        "reason": "correction_inheritance_missing"}}
+            latest = state.attempts[-1] if state.attempts else None
+            latest_engine = latest.get("engine_result") if isinstance(latest, Mapping) else None
+            test_failure_fix = isinstance(latest_engine, Mapping) and _is_test_failure(latest_engine)
+            previous = None
+            previous_patch_sha256 = None
+            if test_failure_fix:
+                previous = latest
+            else:
+                previous = next((
+                    attempt for attempt in reversed(state.attempts)
+                    if attempt.get("status") == "completed"
+                    and isinstance(attempt.get("engine_result"), Mapping)
+                    and attempt["engine_result"].get("status") == "completed"
+                    and isinstance(attempt.get("run_id"), str)
+                ), None)
+                if previous is None:
+                    return {"status": "FAILED", "engine_result": {"status": "failed",
+                            "reason": "correction_inheritance_missing"}}
+                previous_patch_sha256 = previous["engine_result"].get("patch_sha256")
+                if not isinstance(previous_patch_sha256, str):
+                    return {"status": "FAILED", "engine_result": {"status": "failed",
+                            "reason": "correction_inheritance_missing"}}
             child_request = {
                 key: value for key, value in source_request.items()
                 if key not in {"run_id", "created_at", "project_fingerprint",
                                "correction_of", "correction_round", "retry_of", "retry_depth",
-                               "inherited_patch_run_id", "inherited_patch_sha256"}
+                               "inherited_patch_run_id", "inherited_patch_sha256", "fix_evidence"}
             }
             implementer = primary_profile
             if escalate_profile and len(state.attempts) >= escalate_from_round:
@@ -627,14 +800,29 @@ def run_maf_coding_task(
             elif debugger:  # the debugger role, when assigned, takes the review-driven correction rounds
                 implementer = debugger["profile"]
                 child_request.update(worker=debugger["tool"], worker_profile=debugger["profile"])
-            child_request.update(
-                task=f"{source_request['task']}\n\nIndependent reviewer correction: {correction}",
-                correction_of=run_id,
-                correction_round=len(state.attempts),
-                timeout_seconds=min(source_request["timeout_seconds"], max(1, int(worker_room) + 1)),
-                inherited_patch_run_id=previous["run_id"],
-                inherited_patch_sha256=previous_patch_sha256,
-            )
+            if test_failure_fix:
+                child_request.update(
+                    task=f"{source_request['task']}\n\nFix the failing acceptance checks using the sanitized "
+                         "failure evidence. Do not reuse the failed patch.",
+                    correction_of=run_id,
+                    correction_round=len(state.attempts),
+                    timeout_seconds=min(source_request["timeout_seconds"], max(1, int(worker_room) + 1)),
+                    inherited_patch_run_id=None,
+                    inherited_patch_sha256=None,
+                    fix_evidence=_attempt_evidence(previous["run_id"], latest_engine,
+                                                   failure_class="test_failure"),
+                )
+            else:
+                child_request.update(
+                    task=f"{source_request['task']}\n\nIndependent reviewer correction: {correction}",
+                    correction_of=run_id,
+                    correction_round=len(state.attempts),
+                    timeout_seconds=min(source_request["timeout_seconds"], max(1, int(worker_room) + 1)),
+                    inherited_patch_run_id=previous["run_id"],
+                    inherited_patch_sha256=previous_patch_sha256,
+                    fix_evidence=_attempt_evidence(previous["run_id"], previous["engine_result"],
+                                                   failure_class="reviewer_reject"),
+                )
             try:
                 current_run_id = create_task(ctx, child_request)["run_id"]
                 save_signed(ctx, ctx.run_dir(current_run_id) / "maf-result.json", {
@@ -661,6 +849,14 @@ def run_maf_coding_task(
                                                                   "error": str(error)[:300]}}
                 return {"status": "COMPLETE", "run_id": reusable["run_id"], "engine_result": reusable["engine_result"],
                         "correction": reusable.get("correction", ""), "reused": True}
+            if reusable and reusable.get("status") != "completed" and isinstance(reusable.get("run_id"), str):
+                # A terminal failed run is never executed again: replay its recorded failure. The slice then
+                # reproduces the same bounded terminal state without appending a duplicate attempt or double-counting usage.
+                engine_result = reusable.get("engine_result")
+                if not isinstance(engine_result, Mapping):
+                    engine_result = {"status": "failed", "reason": str(reusable.get("reason") or "worker_failed")}
+                return {"status": "FAILED", "run_id": reusable["run_id"], "engine_result": engine_result,
+                        "correction": reusable.get("correction", ""), "reused": True}
             if budget_exceeded():
                 return {"status": "FAILED", "engine_result": {"status": "failed", "reason": "token_budget_exceeded"}}
             current_run_id = run_id
@@ -669,6 +865,11 @@ def run_maf_coding_task(
             engine_result = execute_task(ctx, current_run_id)
         except Exception as error:
             engine_result = {"status": "failed", "reason": "engine_error", "error": str(error)}
+        if engine_result.get("status") != "completed":
+            if (ctx.run_dir(run_id) / "cancel.request").exists():
+                engine_result = {**engine_result, "status": "failed", "reason": "cancellation_requested"}
+            elif project_fingerprint(project) != source_request["project_fingerprint"]:
+                engine_result = {**engine_result, "status": "failed", "reason": "stale_project"}
         record_attempt({
             "run_id": current_run_id,
             "correction_round": 0 if not correction else len(state.attempts),
@@ -730,7 +931,7 @@ def run_maf_coding_task(
         fast = _review_with_retry(
             stage="fast", task=source_request["task"], result=coding, profile=fast_profile, tool=fast_tool,
             cwd=project, base_root=ctx.run_dir(run_id) / f"review-fast-{len(state.attempts)}",
-            codex_path=codex_path, first_timeout=review_timeout_for(fast_profile, patch_bytes), retries=review_retries,
+            codex_path=codex_path, ctx=ctx, first_timeout=review_timeout_for(fast_profile, patch_bytes), retries=review_retries,
             remaining=lambda: state.deadline - time.monotonic(), record=record_review, patch_preview=preview(coding, fast_tool),
             before_attempt=lambda: require_budget("review attempt"),
         )
@@ -748,7 +949,7 @@ def run_maf_coding_task(
             deep = _review_with_retry(
                 stage="deep", task=source_request["task"], result=coding, profile=deep_profile, tool=deep_tool,
                 cwd=project, base_root=ctx.run_dir(run_id) / f"review-deep-{len(state.attempts)}",
-                codex_path=codex_path, first_timeout=review_timeout_for(deep_profile, patch_bytes), retries=review_retries,
+                codex_path=codex_path, ctx=ctx, first_timeout=review_timeout_for(deep_profile, patch_bytes), retries=review_retries,
                 remaining=lambda: state.deadline - time.monotonic(), record=record_review, patch_preview=preview(coding, deep_tool),
                 before_attempt=lambda: require_budget("deep review"),
             )
@@ -762,6 +963,12 @@ def run_maf_coding_task(
     selected_reviewer = reviewer or default_reviewer
 
     def routing_reviewer(results: Mapping[str, WorkerResult]) -> dict[str, Any]:
+        if (source_request.get("role_assignments") or {}).get("tester"):
+            coding = results["coding"]
+            try:
+                check_result(ctx, coding.get("run_id"), maf_gate=False)
+            except Exception as error:
+                raise ReviewerExecutionError(f"invalid tester evidence: {error}", cause="tester_evidence_invalid") from error
         require_budget("review")
         review = dict(selected_reviewer(results))
         if human_approval and str(review.get("decision", "")).upper() == "APPROVED":
@@ -772,10 +979,18 @@ def run_maf_coding_task(
         goal=f"Execute coding task {run_id}",
         workers={"coding": worker},
         reviewer=routing_reviewer,
-        max_corrections=max(0, max_corrections - state.used_corrections),
+        max_fix_rounds=max_fix_rounds,
+        used_fix_rounds=state.used_fix_rounds,
+        prior_test_failures=_repeated_test_failures(state.attempts),
         checkpoint_storage=checkpoint_storage,
         resume_checkpoint_id=resume_checkpoint_id,
     )
+    used_fix_rounds = sum(1 for attempt in state.attempts if attempt.get("correction"))
+    result["fix_rounds"] = {
+        "limit": max_fix_rounds,
+        "used": used_fix_rounds,
+        "remaining": max(0, max_fix_rounds - used_fix_rounds),
+    }
     result["budget"] = {"total_seconds": total_budget, "fast_review_ceiling_seconds": fast_ceiling,
                         "review_budget_seconds": review_budget, "review_retries": review_retries,
                         "total_source": "explicit" if workflow.get("timeout_seconds") else "derived"}
@@ -796,11 +1011,17 @@ def run_maf_coding_task(
     save_signed(ctx, final_path, {
         "root_run_id": run_id,
         "status": result["status"],
+        "state": result.get("state", result["status"]),
         "human_approval_required": result["status"] == "HUMAN_APPROVAL_REQUIRED",
         "reviews": [{k: r.get(k) for k in ("decision", "stage", "profile", "model", "implementer", "reason")}
                     for r in result.get("reviews", [])],
         "implementers": [a.get("implementer") for a in state.attempts],
         "reason": result.get("reason"),
+        "failure_class": result.get("failure_class"),
+        "retryable": result.get("retryable"),
+        "fix_rounds": result.get("fix_rounds"),
+        "transitions": result.get("transitions", []),
+        "evidence": result.get("evidence", []),
         "review_failure": result.get("review_failure"),
         "usage_status": result["usage_status"],
         "token_budget": result["token_budget"],

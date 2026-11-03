@@ -154,6 +154,7 @@ def run_codex_call(
     cwd: Path,
     codex_path: str = "codex",
     timeout_seconds: float = 300,
+    policy=None,
 ) -> CodexOutcome:
     call.run_root.mkdir(parents=True, exist_ok=True)
     command = [codex_path, "exec", "--json", "--skip-git-repo-check", "--sandbox", "read-only"]
@@ -178,7 +179,7 @@ def run_codex_call(
         atomic_write_json(process_path, metadata)
     try:
         completed = execute(command, cwd, timeout_seconds, on_started=record_pid, complete_when=_is_turn_completed,
-                           verify_complete=stream_verified_complete, scrub_env=True)
+                           verify_complete=stream_verified_complete, scrub_env=True, policy=policy)
         returncode = completed.returncode
         stdout = completed.stdout
         stderr = completed.stderr

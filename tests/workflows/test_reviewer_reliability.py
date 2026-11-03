@@ -95,20 +95,23 @@ class CodingFixture(unittest.TestCase):
         self.ctx = EngineContext(self.root / "data")
         (self.root / "data").mkdir()  # Hub-configured default reviewer (priority 2) for fixtures that state none
         (self.root / "data" / "settings.json").write_text('{"default_reviewer_profile": "deepseek"}', encoding="utf8")
-        self.counter = self.root / "worker-runs.txt"
         patcher = mock.patch("respected_orchestrator.engine.runner._stdin_is_tty", return_value=True)
         patcher.start()
         self.addCleanup(patcher.stop)
 
     def request(self, project_root=None, **workflow):
-        code = f"from pathlib import Path; Path('calculator.py').write_text('value = 1' + chr(10)); open({str(self.counter)!r}, 'a').write('x')"
+        # The worker may only write inside its granted roots: its worktree and its scratch root.
+        # Counting through a file outside them would (correctly) fail closed under the SEC-03 policy.
+        code = ("import os; from pathlib import Path; Path('calculator.py').write_text('value = 1' + chr(10)); "
+                "open(os.path.join(os.environ['RESPECTED_WORKER_TMP'], 'worker-runs.txt'), 'a').write('x')")
         check = "from pathlib import Path; assert Path('calculator.py').read_text() == 'value = 1' + chr(10)"
         return {"project_root": str(project_root or self.repo), "task": "set value to 1", "worker": "custom", "kind": "write",
                 "ownership": ["calculator.py"], "command": [PY, "-c", code], "acceptance": [[PY, "-c", check]],
-                "timeout_seconds": 30, "workflow": dict({"max_corrections": 0}, **workflow)}
+                "timeout_seconds": 30, "workflow": dict({"max_fix_rounds": 0}, **workflow)}
 
     def worker_runs(self):
-        return len(self.counter.read_text()) if self.counter.exists() else 0
+        # One byte per real worker execution, written into each run's granted scratch root.
+        return sum(len(path.read_text(encoding="utf8")) for path in self.ctx.data_root.rglob("worker-tmp/worker-runs.txt"))
 
 
 class MockedReviewTests(CodingFixture):
@@ -263,8 +266,11 @@ class ReviewOnlyRetryTests(CodingFixture):
         run_id = create_task(self.ctx, request)["run_id"]
         first = run_maf_coding_task(ctx=self.ctx, run_id=run_id, reviewer=self.approve)
         second = run_maf_coding_task(ctx=self.ctx, run_id=run_id, reviewer=self.approve)
-        self.assertEqual((first["reason"], second["reason"]), ("worker_failed", "worker_failed"))
+        self.assertEqual((first["state"], second["state"]), ("FIX_ROUNDS_EXHAUSTED", "FIX_ROUNDS_EXHAUSTED"))
+        self.assertEqual((first["reason"], second["reason"]), ("fix_rounds_exhausted", "fix_rounds_exhausted"))
+        self.assertEqual((first["failure_class"], second["failure_class"]), ("test_failure", "test_failure"))
         self.assertEqual(self.worker_runs(), 1)  # the terminal failed run is not executed again either
+        self.assertEqual(len(first["attempts"]), len(second["attempts"]))  # replay adds no duplicate attempt record
 
 
 class ProjectReviewOnlyRetryTests(CodingFixture):

@@ -10,7 +10,8 @@ import subprocess
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 
-_SYSTEM_TOOLS = {"powershell": r"System32\WindowsPowerShell\v1.0\powershell.exe", "icacls": r"System32\icacls.exe"}
+_SYSTEM_TOOLS = {"powershell": r"System32\WindowsPowerShell\v1.0\powershell.exe",
+                 "icacls": r"System32\icacls.exe"}
 
 
 def system_tool(name: str) -> str:
