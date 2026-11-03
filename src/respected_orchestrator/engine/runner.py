@@ -1111,6 +1111,8 @@ def check_result(ctx, run_id, *, maf_gate=True, accepted_fingerprints=()):
                 raise ValueError("MAF approval does not belong to this run")
             if approval.get("patch_sha256") != result.get("patch_sha256"):
                 raise ValueError("MAF approval is not bound to this patch; re-approve the current result")
+            if approval.get("project_fingerprint") != result.get("project_fingerprint"):
+                raise ValueError("MAF approval is stale: project state changed")
     patch = safe_path(directory / "worker.patch")
     if hashlib.sha256(patch.read_bytes()).hexdigest() != result["patch_sha256"]:
         raise ValueError("Patch tampered")
@@ -1173,7 +1175,14 @@ def approve_maf_task(ctx, run_id):
             or result.get("run_id") != run_id or not patch.is_file()
             or hashlib.sha256(patch.read_bytes()).hexdigest() != result.get("patch_sha256")):
         raise ValueError("Only an intact completed result can be approved")
+    request = load_signed(ctx, directory / "request.json")
+    project = validate_project(ctx, Path(request["project_root"]))
+    current = project_fingerprint(project)
+    if current != result.get("project_fingerprint") or current != request.get("project_fingerprint"):
+        raise ValueError("Reviewed project state changed; re-run and re-approve")
+    head = lanes._git(project, "rev-parse", "HEAD").stdout.strip()
     approval = dict(run_id=run_id, root_run_id=maf_result["root_run_id"], patch_sha256=result["patch_sha256"],
+                    project_fingerprint=current, project_head=head,
                     approved_by=getpass.getuser(), approved_at=dt.datetime.now(dt.timezone.utc).isoformat())
     save_signed(ctx, directory / "maf-approval.json", approval)
     return approval

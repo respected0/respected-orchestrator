@@ -2,6 +2,7 @@
 import hashlib
 import os
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest import mock
@@ -16,16 +17,27 @@ class HumanApprovalContractTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.ctx = EngineContext(Path(self.temp.name).resolve() / "data")
+        root = Path(self.temp.name).resolve()
+        self.ctx = EngineContext(root / "data")
+        self.project = root / "project"
+        self.project.mkdir()
+        (self.project / "tracked.txt").write_text("baseline\n", encoding="utf-8")
+        for command in (["init"], ["add", "tracked.txt"],
+                        ["-c", "user.name=Test", "-c", "user.email=t@example.invalid", "commit", "-m", "base"]):
+            subprocess.run(["git", *command], cwd=self.project, check=True, capture_output=True)
+        self.fingerprint = runner.project_fingerprint(self.project)
         self.run_id = "run-approval"
         self.directory = self.ctx.run_dir(self.run_id)
         self.directory.mkdir(parents=True)
         self.patch = self.directory / "worker.patch"
         self.patch.write_bytes(b"diff --git a/owned.txt b/owned.txt\n")
-        save_signed(self.ctx, self.directory / "request.json", {"run_id": self.run_id})
+        save_signed(self.ctx, self.directory / "request.json",
+                    {"run_id": self.run_id, "project_root": str(self.project),
+                     "project_fingerprint": self.fingerprint})
         save_signed(self.ctx, self.directory / "status.json", {"run_id": self.run_id, "status": "completed"})
         result = {"run_id": self.run_id, "status": "completed",
-                  "patch_sha256": hashlib.sha256(self.patch.read_bytes()).hexdigest()}
+                  "patch_sha256": hashlib.sha256(self.patch.read_bytes()).hexdigest(),
+                  "project_fingerprint": self.fingerprint}
         save_signed(self.ctx, self.directory / "result.json", result)
         save_signed(self.ctx, self.directory / "maf-result.json",
                     {"root_run_id": self.run_id, "status": "HUMAN_APPROVAL_REQUIRED"})
@@ -66,9 +78,18 @@ class HumanApprovalContractTests(unittest.TestCase):
             self.approve()
         self.assertFalse((self.directory / "maf-approval.json").exists())
 
+    def test_head_change_after_review_invalidates_approval(self):
+        (self.project / "tracked.txt").write_text("moved\n", encoding="utf-8")
+        subprocess.run(["git", "-c", "user.name=Test", "-c", "user.email=t@example.invalid",
+                        "commit", "-am", "moved"], cwd=self.project, check=True, capture_output=True)
+        with self.assertRaisesRegex(ValueError, "project state changed"):
+            self.approve()
+        self.assertFalse((self.directory / "maf-approval.json").exists())
+
     def test_outdated_result_is_rejected(self):
         result = {"run_id": self.run_id, "status": "failed",
-                  "patch_sha256": hashlib.sha256(self.patch.read_bytes()).hexdigest()}
+                  "patch_sha256": hashlib.sha256(self.patch.read_bytes()).hexdigest(),
+                  "project_fingerprint": self.fingerprint}
         save_signed(self.ctx, self.directory / "result.json", result)
         with self.assertRaisesRegex(ValueError, "intact"):
             self.approve()
