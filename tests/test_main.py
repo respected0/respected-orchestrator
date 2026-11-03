@@ -59,6 +59,21 @@ class MainTests(unittest.TestCase):
             self.assertEqual(call("_sandbox-exec", "--sid", "S")[0], 3)
         with mock.patch("respected_orchestrator.workflows.campaign.list_campaigns", return_value={"campaigns": []}):
             self.assertEqual(json.loads(call(*self.root, "campaign-list")[1]), {"campaigns": []})
+        with mock.patch("respected_orchestrator.workflows.campaign.cancel_campaign",
+                        return_value={"campaign_id": "camp-1", "status": "cancel_requested"}) as cancel:
+            self.assertEqual(json.loads(call(*self.root, "campaign-cancel", "camp-1")[1]),
+                             {"campaign_id": "camp-1", "status": "cancel_requested"})
+        cancel.assert_called_once()
+        with mock.patch("respected_orchestrator.engine.integration.integrate",
+                        return_value={"status": "ready_for_decision"}) as integrate:
+            code, text = call(*self.root, "integrate", stdin='{"run_ids":["a","b"]}')
+        self.assertEqual((code, json.loads(text)["status"]), (0, "ready_for_decision"))
+        integrate.assert_called_once()
+        with mock.patch("respected_orchestrator.workflows.coordinator.coordinate",
+                        return_value={"status": "planned", "authority": {"shell": False, "apply": False, "workers": False}}) as coordinate:
+            code, text = call(*self.root, "coordinate", stdin='{"goal":"g"}')
+        self.assertEqual((code, json.loads(text)["status"]), (0, "planned"))
+        coordinate.assert_called_once()
 
     def test_version_is_the_packaging_form_of_pyproject_version(self):
         import re
