@@ -1,0 +1,19 @@
+test_a_corrupt_temporary_file_is_never_read_and_cannot_damage_the_snapshot (tests.workflows.test_checkpoint.CheckpointTests.test_a_corrupt_temporary_file_is_never_read_and_cannot_damage_the_snapshot) ... ok
+test_a_different_git_head_is_needs_review (tests.workflows.test_checkpoint.CheckpointTests.test_a_different_git_head_is_needs_review) ... ok
+test_a_path_outside_the_private_data_root_is_refused (tests.workflows.test_checkpoint.CheckpointTests.test_a_path_outside_the_private_data_root_is_refused) ... ok
+test_half_of_a_validly_signed_state_is_needs_review (tests.workflows.test_checkpoint.CheckpointTests.test_half_of_a_validly_signed_state_is_needs_review) ... ok
+test_interrupted_replace_keeps_the_previous_complete_snapshot (tests.workflows.test_checkpoint.CheckpointTests.test_interrupted_replace_keeps_the_previous_complete_snapshot) ... ok
+test_newer_schema_tamper_broken_json_and_missing_files_are_never_resumed (tests.workflows.test_checkpoint.CheckpointTests.test_newer_schema_tamper_broken_json_and_missing_files_are_never_resumed) ... ok
+test_prompt_secret_api_key_and_environment_dumps_are_rejected_before_writing (tests.workflows.test_checkpoint.CheckpointTests.test_prompt_secret_api_key_and_environment_dumps_are_rejected_before_writing) ... ok
+test_run_campaign_and_project_use_the_same_contract (tests.workflows.test_checkpoint.CheckpointTests.test_run_campaign_and_project_use_the_same_contract) ... ok
+test_sigterm_mid_operation_leaves_the_last_atomic_snapshot_resumable (tests.workflows.test_checkpoint.CheckpointTests.test_sigterm_mid_operation_leaves_the_last_atomic_snapshot_resumable) ... ok
+test_the_closed_schema_contains_no_prompt_or_secret_payload (tests.workflows.test_checkpoint.CheckpointTests.test_the_closed_schema_contains_no_prompt_or_secret_payload) ... ok
+test_v1_migrates_once_and_the_second_inspection_is_byte_stable (tests.workflows.test_checkpoint.CheckpointTests.test_v1_migrates_once_and_the_second_inspection_is_byte_stable) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 1.707s
+
+OK
+
+ELAPSED_SECONDS=2.026
+EXIT_CODE=0
