@@ -115,18 +115,55 @@ class MemoryLinkTests(unittest.TestCase):
         self.exe.write_bytes(b"fake")
         self.calls = []
 
-    def fake(self, ok=True):
+    def fake(self, ok=True, token=None):
         def run(command, input=None, **kwargs):
             request = json.loads(input)
             self.calls.append(request)
             self.assertEqual((command, request["rpp"]), ([str(self.exe), "rpp"], "1"))
-            result = {"grant_id": "grant-0001", "token": "rbm_" + "a" * 32} if request["op"] == "memory.grant" else {}
+            result = {"grant_id": "grant-0001", "token": token or "rbm_" + "a" * 32} if request["op"] == "memory.grant" else {}
             reply = {"rpp": "1", "ok": ok, "result": result if ok else None,
                      "error": None if ok else {"code": "DENIED", "message": "no", "hint": ""}}
             return mock.Mock(stdout=json.dumps(reply).encode("utf-8"))
         from types import SimpleNamespace
         # only the Brain call is faked; the token file's own permission tools still run for real
         return mock.patch("respected_orchestrator.interfaces.memory_link.winproc", SimpleNamespace(run=run))
+
+    def test_read_grant_is_connected_but_read_only(self):
+        from respected_orchestrator.interfaces import memory, memory_link
+        with self.fake():
+            status = memory_link.connect(self.ctx, write=False, exe=self.exe)
+        self.assertEqual((status["connected"], status["write"], status["grant_id"]), (True, False, "grant-0001"))
+        self.assertFalse(json.loads((self.ctx.data_root / "settings.json").read_text("utf-8"))["memory_write"])
+        self.assertTrue(memory.token_set(self.ctx.data_root))
+
+    def test_write_grant_permits_one_memory_note(self):
+        from respected_orchestrator.interfaces import memory, memory_link
+        with self.fake():
+            self.assertTrue(memory_link.connect(self.ctx, write=True, exe=self.exe)["write"])
+        settings = json.loads((self.ctx.data_root / "settings.json").read_text("utf-8"))
+        reply = json.dumps({"ok": True, "error": None,
+                            "result": {"path": "inbox/note.md", "indexed": True}}).encode("utf-8")
+        with mock.patch.object(memory, "winproc") as winproc:
+            winproc.run.return_value = mock.Mock(stdout=reply)
+            result = memory.write_note(settings, self.ctx.data_root, "Decision", "Use SQLite.", ["db"],
+                                       operation_id="note-0001")
+        self.assertEqual(result["status"], "ok")
+        sent = json.loads(winproc.run.call_args.kwargs["input"].decode("utf-8"))
+        self.assertEqual((sent["op"], sent["operation_id"]), ("memory.write", "note-0001"))
+        self.assertEqual(sent["payload"]["token"], "rbm_" + "a" * 32)
+
+    def test_denied_or_malformed_grant_preserves_existing_settings(self):
+        from respected_orchestrator.interfaces import memory, memory_link, rpp
+        rpp.apply_settings(self.ctx, {"default_worker": "claude", "default_timeout_seconds": 120})
+        before = (self.ctx.data_root / "settings.json").read_bytes()
+        with self.fake(ok=False), self.assertRaises(OperationError):
+            memory_link.connect(self.ctx, write=True, exe=self.exe)
+        self.assertEqual((self.ctx.data_root / "settings.json").read_bytes(), before)
+        self.assertFalse(memory.token_set(self.ctx.data_root))
+        with self.fake(token="bad"), self.assertRaises(OperationError):
+            memory_link.connect(self.ctx, write=True, exe=self.exe)
+        self.assertEqual((self.ctx.data_root / "settings.json").read_bytes(), before)
+        self.assertFalse(memory.token_set(self.ctx.data_root))
 
     def test_connect_stores_the_grant_and_disconnect_revokes_it(self):
         from respected_orchestrator.interfaces import memory, memory_link

@@ -107,6 +107,69 @@ class IntegrationsTest(unittest.TestCase):
         with self.assertRaises(sil.OperationError):
             sil.rollback(self.ctx, "op-test-roll2")
 
+    def opencode_fixture(self, document=None):
+        folder = self.home / ".config/opencode"
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / "opencode.json"
+        if document is not None:
+            path.write_text(json.dumps(document, indent=2), encoding="utf-8")
+        return path
+
+    def test_opencode_enable_preserves_foreign_servers_and_top_level_and_disable_restores_it(self):
+        original = {"theme": "dark", "keybinds": {"leader": "ctrl+x"},
+                    "mcp": {"servers": {"other": {"type": "remote", "url": "https://example.invalid"}}}}
+        path = self.opencode_fixture(original)
+        self.go({"opencode": True})
+        document = json.loads(path.read_text("utf-8"))
+        self.assertEqual(document["mcp"]["servers"]["respected-orchestrator"],
+                         {"type": "local", "command": [LAUNCH["command"], *LAUNCH["args"]]})
+        self.assertEqual(document["mcp"]["servers"]["other"], original["mcp"]["servers"]["other"])
+        self.assertEqual({k: v for k, v in document.items() if k != "mcp"},
+                         {k: v for k, v in original.items() if k != "mcp"})
+        self.go({"opencode": False})
+        self.assertEqual(json.loads(path.read_text("utf-8")), original)
+
+    def test_opencode_rollback_restores_exact_foreign_content(self):
+        original = {"theme": "light", "mcp": {"servers": {"other": {"type": "local", "command": ["cmd", "/c", "x"]}}}}
+        path = self.opencode_fixture(original)
+        self.go({"opencode": True}, "op-test-opencode-roll")
+        sil.rollback(self.ctx, "op-test-opencode-roll")
+        self.assertEqual(json.loads(path.read_text("utf-8")), original)
+
+    def test_opencode_invalid_config_is_refused_and_never_touched(self):
+        path = self.opencode_fixture()
+        path.write_text("{not json", encoding="utf-8")
+        before = path.read_bytes()
+        with self.assertRaises(sil.OperationError):
+            sil.plan(self.ctx, {"desired": {"opencode": True}, "launcher": LAUNCH})
+        self.assertEqual(path.read_bytes(), before)
+        path.write_text(json.dumps({"mcp": []}), encoding="utf-8")
+        before = path.read_bytes()
+        with self.assertRaises(sil.OperationError):
+            sil.plan(self.ctx, {"desired": {"opencode": True}, "launcher": LAUNCH})
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_opencode_edited_own_entry_is_refused_but_switching_off_takes_it_back(self):
+        original = {"theme": "dark", "mcp": {"servers": {"other": {"type": "remote", "url": "https://example.invalid"}}}}
+        path = self.opencode_fixture(original)
+        self.go({"opencode": True})
+        edited = json.loads(path.read_text("utf-8"))
+        edited["mcp"]["servers"]["respected-orchestrator"]["command"] = ["user-edit"]
+        path.write_text(json.dumps(edited), encoding="utf-8")
+        with self.assertRaises(sil.OperationError) as caught:
+            self.go({"opencode": True})
+        self.assertEqual(caught.exception.code, "LIFECYCLE_CONFLICT")
+        self.assertEqual(json.loads(path.read_text("utf-8"))["mcp"]["servers"]["respected-orchestrator"]["command"], ["user-edit"])
+        self.go({"opencode": False})
+        document = json.loads(path.read_text("utf-8"))
+        self.assertNotIn("respected-orchestrator", document["mcp"]["servers"])
+        self.assertEqual(document["mcp"]["servers"]["other"], original["mcp"]["servers"]["other"])
+
+    def test_opencode_is_refused_when_not_installed(self):
+        rows = {r["client"]: r for r in sil.plan(self.ctx, {"desired": {"opencode": True}, "launcher": LAUNCH})["clients"]}
+        self.assertEqual(rows["opencode"]["action"], "refuse")
+        self.assertFalse(rows["opencode"]["detected"])
+
     def test_rpp_ops_are_listed_and_answer(self):
         self.assertIn("integrations.plan", rpp.handle_request({"rpp": "1", "op": "manifest"}, self.ctx)["result"]["capabilities"])
         reply = rpp.handle_request({"rpp": "1", "op": "integrations.plan", "payload": {"desired": {}}}, self.ctx)
