@@ -102,6 +102,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 
 #### DOC-01 — Rakip araştırması + ADR karar defteri
 
+**Durum:** Tamamlandı — kanıt: `KANIT_LOG.md` §DOC-01
+
 **Etiketler:** `priority:P0`, `gate:G0`, `epic:ara-t-rma-ve-karar-kay-tlar`, `size:S`  
 **Mevcut ROADMAP bağlantısı:** Araştırmaya dayalı tasarım (mevcut)  
 **Bağımlılıklar:** Yok
