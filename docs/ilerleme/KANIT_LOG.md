@@ -705,11 +705,11 @@ Ek reviewer kapıları: tester kanıtı yoksa veya oynanmışsa reviewer hiç ç
 - `docs/ilerleme/poc/qua01_docs_gate_final.log` → `128FFCA2D72C9AE111CE47CD0D182F3E93FDA9AB3EEE1523F718482F3214F2A1`
 - `docs/ilerleme/poc/qua01_docs_gate_after_docs.log` → `4E0675BD217A1DCBB9A21DA31534A112E570974ED36F3CB987B03537C7259A2A`
 - `docs/ilerleme/poc/qua01_full_suite_final.log` → `4C9F43373FEDAC86438D67BDCCE422415FCE3D8FB32D149FECE311A2799A8CC1`
-- `_qua01_roles.log` → `63A3B0D90BB911B75A1BFF24BDA3A8C513EE2536B259CD0A5F714CDE62590823`
-- `_qua01_runner_tester.log` → `BA6B00155D97FEC9782B6135BE23E77955ECA202F9E92D5298C3A7E5C512303D`
-- `_qua01_failclosed.log` → `930C0E9ED4D6C152D95D48AAFD6147DE3850BF537F305D71DD6B9D4EDE4A4F23`
-- `_qua01_maf.log` → `5C09EDA8A64DB7FF24FAD8FAA22ED82AEFB31C1B6CA100DD609D870B4FFEB210`
-- `_qua01_focused.log` → `DE2D6C31EC49DEDF3F31F849A02FA21D8F4B10365B7A5E736D341F97B8D1C791`
+- `docs/ilerleme/poc/qua01_roles.log` → `63A3B0D90BB911B75A1BFF24BDA3A8C513EE2536B259CD0A5F714CDE62590823`
+- `docs/ilerleme/poc/qua01_runner_tester.log` → `BA6B00155D97FEC9782B6135BE23E77955ECA202F9E92D5298C3A7E5C512303D`
+- `docs/ilerleme/poc/qua01_failclosed.log` → `930C0E9ED4D6C152D95D48AAFD6147DE3850BF537F305D71DD6B9D4EDE4A4F23`
+- `docs/ilerleme/poc/qua01_maf.log` → `5C09EDA8A64DB7FF24FAD8FAA22ED82AEFB31C1B6CA100DD609D870B4FFEB210`
+- `docs/ilerleme/poc/qua01_focused.log` → `DE2D6C31EC49DEDF3F31F849A02FA21D8F4B10365B7A5E736D341F97B8D1C791`
 
 Senkron dokümanların son doğrulama öncesi SHA-256 değerleri:
 
@@ -2523,6 +2523,18 @@ py docs/ilerleme/poc/eval02_real.py
 - `docs/ilerleme/poc/rel04_mcp_spawn_focused.log` -> `F049E82C91CA5BB084847EE4DDB3A81AFBE660DD267161406B6104C69E2FBB0C`
 
 
+### Kapanış hash düzeltmesi (ADP-01 sonrası son doğrulama)
+
+Yukarıdaki kronolojik kayıtlarda aynı dosya birden çok kez farklı hash ile görünür; bunlar görev kapandıktan sonra yapılan senkron düzenlemelerin tarihsel izleridir. Aşağıdaki değerler ADP-01 kapanışı sonrası çalışma ağacının geçerli SHA-256 değerleridir ve doğrulamada bunlar esas alınır:
+
+- `src/respected_orchestrator/engine/appcontainer.py` → `30B8084D552518CC727DA4C8685C84EA0E0A749947159A2A30D287F9D069C568`
+- `src/respected_orchestrator/engine/processes.py` → `FC674E411841B6629CD8F8D711B5E0C40336B46BCCE369AC153778D0714BC011`
+- `src/respected_orchestrator/engine/runner.py` → `48200B47CB1732F0EB1BCEDF06D416AAB448E7B6EB5D46F16423BA7E662F7BAD`
+- `src/respected_orchestrator/workflows/maf_workflow.py` → `5F240A0077F409EAECD6EC54EC2B59EFE5C3556919BC11363EE9FE2BC65F6340`
+- `tests/engine/test_worker_policy.py` → `E527F77513D934D995F97854C9E39A4CA54A90761CDDE0FDCCE2F0BEF7D07378`
+- `tests/workflows/test_campaign.py` → `4224292F0DC67974F55DD3508A6F1636C7BCAE78358153594A00487EADDAFF5D`
+- `tests/workflows/test_reviewer_reliability.py` → `33D85C370FD724B60BD0A457D6AE0597C039E9B42E5F071D2034480424360D48`
+- `docs/ARCHITECTURE.md` → `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
 ## Şablon (sonraki görevler)
 
 ```

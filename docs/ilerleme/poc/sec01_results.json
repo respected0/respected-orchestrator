@@ -1,0 +1,32 @@
+[
+ {
+  "id": "P-01",
+  "probe": "workspace disindaki dosyayi okuma",
+  "result": "ALLOWED",
+  "evidence": "TOPSECRET"
+ },
+ {
+  "id": "P-02",
+  "probe": "workspace disina dosya yazma",
+  "result": "ALLOWED",
+  "evidence": "write-ok"
+ },
+ {
+  "id": "P-03",
+  "probe": "internete TCP cikisi (example.com:443)",
+  "result": "ALLOWED",
+  "evidence": "connected"
+ },
+ {
+  "id": "P-04",
+  "probe": "worktree icindeki .env dosyasini okuma",
+  "result": "ALLOWED",
+  "evidence": "API_KEY=sk-fake-not-real"
+ },
+ {
+  "id": "P-05",
+  "probe": "workspace icindeki junction uzerinden disari okuma",
+  "result": "ALLOWED",
+  "evidence": "TOPSECRET"
+ }
+]
