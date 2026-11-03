@@ -370,6 +370,58 @@ def _evidence_view(ctx, operation_id, payload):
 
 
 
+def _github_issue_import(ctx, operation_id, payload):
+    from . import github_connector as github
+    labels = payload.get("allowed_labels") or []
+    if not isinstance(labels, list) or not all(isinstance(label, str) for label in labels):
+        raise RppError("BAD_REQUEST", "allowed_labels must be a list of strings.", "Send an array such as [\"bug\"].")
+    try:
+        return github.import_issue(payload.get("repo"), payload.get("number"), labels)
+    except (ValueError, OSError, json.JSONDecodeError) as error:
+        raise RppError("GITHUB_ERROR", str(error)[:500], "Check gh authentication, repository access and the issue number.") from None
+
+
+def _github_pr_plan(ctx, operation_id, payload):
+    from . import github_connector as github
+    try:
+        return github.plan_draft_pr(ctx, payload.get("run_id"), repo=payload.get("repo"),
+                                    head=payload.get("head"), base=payload.get("base"))
+    except (ValueError, OSError) as error:
+        raise RppError("GITHUB_ERROR", str(error)[:500], "Only a verified, secret-free result can be published.") from None
+
+
+def _github_pr_create(ctx, operation_id, payload):
+    from . import github_connector as github
+    if not operation_id:
+        raise RppError("BAD_REQUEST", "github.pr_create requires an operation_id.", "Send an operation_id of 8-64 characters.")
+    if payload.get("confirm") is not True:
+        raise RppError("CONFIRM_REQUIRED", "github.pr_create requires confirm: true.", "Review github.pr_plan first; then confirm explicitly.")
+    root = payload.get("project_root")
+    if not isinstance(root, str) or not root:
+        raise RppError("BAD_REQUEST", "project_root is required for the explicit push.", "Send the absolute project directory.")
+    try:
+        return github.create_draft_pr(
+            ctx, payload.get("run_id"), repo=payload.get("repo"), head=payload.get("head"), base=payload.get("base"),
+            title=str(payload.get("title") or "")[:300], body=str(payload.get("body") or "")[:100_000],
+            operation_id=operation_id, push=lambda head: github.push_branch(root, head))
+    except (ValueError, OSError) as error:
+        raise RppError("GITHUB_ERROR", str(error)[:500], "Only a verified, secret-free result can be published; nothing was merged.") from None
+
+
+def _github_ci_plan(ctx, operation_id, payload):
+    from . import github_connector as github
+    feedback = payload.get("feedback")
+    numbers = {}
+    for key in ("max_rounds", "used_rounds"):
+        value = payload.get(key)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise RppError("BAD_REQUEST", f"{key} must be a non-negative integer.", "Send an integer round budget.")
+        numbers[key] = value
+    return github.plan_ci_fix(
+        feedback, head_sha=payload.get("head_sha"), max_rounds=numbers["max_rounds"], used_rounds=numbers["used_rounds"],
+        authorized=payload.get("authorized") is not False, approval=payload.get("approval") is not False)
+
+
 _OPS = {
     "manifest": _manifest,
     "health": health,
@@ -384,6 +436,10 @@ _OPS = {
     "memory.disconnect": _memory_disconnect,
     "memory.status": _memory_status,
     "evidence.view": _evidence_view,
+    "github.issue_import": _github_issue_import,
+    "github.pr_plan": _github_pr_plan,
+    "github.pr_create": _github_pr_create,
+    "github.ci_plan": _github_ci_plan,
 }
 
 
