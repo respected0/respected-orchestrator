@@ -1427,13 +1427,13 @@ Tam keşifte görülen `unittest: error: argument command: invalid choice: 'upda
 ### Kanıt artefaktları (SHA-256)
 
 <!-- RES01_HASHES_START -->
-- `src/respected_orchestrator/workflows/checkpoint.py` -> `1B3537644A3218AC7DD0AD094580B00FD9501E3352E1A2201E3BD2DDC28C1BB4`
+- `src/respected_orchestrator/workflows/checkpoint.py` -> `39D620BEC0A53DD21D06A3A739B3DFE80158FBEC4646C147D23DA13BCC5CFB6D`
 - `tests/workflows/test_checkpoint.py` -> `6EA63522778243F4844585BD97810683184616A4DF25820690BA881CEF64527F`
-- `docs/ARCHITECTURE.md` -> `AFBD3383B05D1F790C992B42B24C12EA1A0CE27EA12524DD7424867286ACC11E`
-- `docs/ROADMAP.md` -> `9CCA33112BD48251AAFCC574F6B4D78D8BE6678D5E1D68BC9081DE058E08CB60`
-- `docs/ROADMAP_EXECUTION_PLAN.md` -> `ACC7267E8F1C869C62C1EAEE73A03BE4BB946B8DC33115BB7D48CBD53B3F7C26`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `A0FB7FC6B88A3A1D3491848C663D095DBC4E62375E2407FCA284FA1F101C4280`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `5524C65C5A751FB6DF73CE09F70E0B15FDF1054EFC50DFA373268F70AED223FC`
+- `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
+- `docs/ROADMAP.md` -> `4773B6AC7349AA203B8676BEB7C0842C87C104472468505242B1D4EC8833A94E`
+- `docs/ROADMAP_EXECUTION_PLAN.md` -> `F759DBF55ED98527325E1854EC60D33CF239E9AE98109FF88FC2B13FA14CEE57`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
 - `docs/ilerleme/poc/res01_checkpoint_focused_after_fix.log` -> `FDFE02EBE9C5554524AD02DE608772BCF25100437B6BD608D60F79BF01EDED31`
 - `docs/ilerleme/poc/res01_related_regression.log` -> `63B04555A96BC7513C0787C8DD9B61EC820F5EABDF6512954FB98471269B29C9`
 - `docs/ilerleme/poc/res01_full_suite.log` -> `BA115B1DBBCEEF5E6B44F7B5C5C259B9CFB16B2CF93391F9D8C41F6A687789BD`
@@ -1555,16 +1555,16 @@ akışıdır; gerçek sonuç `Ran ...`, `OK` ve exit `0` satırlarıdır. Tam su
 <!-- RES02_HASHES_START -->
 - `src/respected_orchestrator/workflows/project.py` -> `51F9C6D69A799980E91BCE0D7A5518ADE403FACF056723FF51ACA4656DE97674`
 - `src/respected_orchestrator/workflows/checkpoint.py` -> `39D620BEC0A53DD21D06A3A739B3DFE80158FBEC4646C147D23DA13BCC5CFB6D`
-- `src/respected_orchestrator/engine/runner.py` -> `DDAD4BD86E8995C3ADA15CBAE5F1C5A6AA0B99E9746F226C64EEE40BCD69FD9C`
-- `src/respected_orchestrator/__main__.py` -> `ECB053CC6DE239E78E7EBB5C4B7F91150A164FA85F6D92A6AE69F7CFC4FFF64B`
-- `tests/workflows/test_project_resume.py` -> `115BEA9EA2E997F81563379F11708C76ADA21C7230614BA4608C18520948FACC`
-- `docs/ARCHITECTURE.md` -> `A5C2BDC0C3E95AD99B0E7A3E5C184ACF61496BE875D259B21C0F2771D9475AAC`
-- `docs/COMMANDS.md` -> `BF268283D1A04708C9D0DBC68CF606DE4C39E5107863C9C208BEE8C1382CEDC9`
-- `docs/USAGE.md` -> `CD64C185E19B79D44399A3871C43F763C700538F9456187C5923EE07D924BCD1`
-- `docs/ROADMAP.md` -> `3B4ABD47D8E961EF081B1CF06380CDA64146A992D3CD820BDA3211D460D7F33C`
-- `docs/ROADMAP_EXECUTION_PLAN.md` -> `2F73C6E8F473D9C0C7475B9CA86C7B0BF5AB37AB3C19C79C614CB9FB77F9B01D`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `A11BEE480874BB24709759D2641EED8A14A8DE65EAD0F3336947B5C2F0FCBF83`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `E3B924B021AE47E9948C3B3BA06A42675570A2B22CE10EC5CC47C6A042637EC4`
+- `src/respected_orchestrator/engine/runner.py` -> `48200B47CB1732F0EB1BCEDF06D416AAB448E7B6EB5D46F16423BA7E662F7BAD`
+- `src/respected_orchestrator/__main__.py` -> `4455B23D9A934A86EDED7548A1957AC8630C3D76D84F1AE4CE90A33F6322371A`
+- `tests/workflows/test_project_resume.py` -> `2F8887923B5A58201712A99B69688F4E13080F8EDC8E38606D9C192E2AE0DCC3`
+- `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
+- `docs/COMMANDS.md` -> `6F0CCDA08E1B7C7C36A915A58AF4A6C232E4A09669D1D791DD7C85F06A097FBA`
+- `docs/USAGE.md` -> `4EA459BEF0F8A50B96AC1899EB69B7E63C1DD1B58DDA714B9134B04970BE8F39`
+- `docs/ROADMAP.md` -> `4773B6AC7349AA203B8676BEB7C0842C87C104472468505242B1D4EC8833A94E`
+- `docs/ROADMAP_EXECUTION_PLAN.md` -> `F759DBF55ED98527325E1854EC60D33CF239E9AE98109FF88FC2B13FA14CEE57`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
 - `docs/ilerleme/poc/res02_invariants.log` -> `A042271F883C4E7CC69BCB00C6C164CDA0C376EA94491FB38AA240794940CE47`
 - `docs/ilerleme/poc/res02_focused.log` -> `7835A6B358E8ED9A2F02DAC45FEB05579A676D1FE0D1747CA232D315EE20B727`
 - `docs/ilerleme/poc/res02_related.log` -> `F7CDE08DD75D9FBB99AE9B35FAB0CDBC37777F1900CB4270C293684AE080A831`
@@ -1669,11 +1669,11 @@ gerçek sonuç `Ran`, `OK` ve exit `0` satırlarıdır.
 - `tests/workflows/test_project_resume.py` -> `2F8887923B5A58201712A99B69688F4E13080F8EDC8E38606D9C192E2AE0DCC3`
 - `tests/interfaces/test_memory_integration.py` -> `11A3811127743EE4B0546ECB9D9C9751758065F190BC08FE9E78A13C6DC08824`
 - `tests/interfaces/test_installation.py` -> `20EC6A139DB8FC212027A2699AF7859BC2FB33641400F1973AFDBD1EC3F8CBFC`
-- `docs/ARCHITECTURE.md` -> `52C46D120CF6829F4EF6CFE1DEC0425DD8E67B43BD8C994C57D491A14F594DA5`
-- `docs/ROADMAP.md` -> `169C206970367B500AF7D9B09120AB3D7A7491543CA14E8AD7986D424654AE0A`
-- `docs/ROADMAP_EXECUTION_PLAN.md` -> `8464DD79EDB14374161865BAF8393D8984C504C5B8FD602A391890F05D37ED6D`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `3C03F7711B654FF4FA8E3FAD48043B05100149A84F5A655DCEF4CF4CF3218AC8`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `8DDE0C663DC5E03965F365A7E27BD1AADA0295DA734CA7CB508A406A1EA7DFD2`
+- `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
+- `docs/ROADMAP.md` -> `4773B6AC7349AA203B8676BEB7C0842C87C104472468505242B1D4EC8833A94E`
+- `docs/ROADMAP_EXECUTION_PLAN.md` -> `F759DBF55ED98527325E1854EC60D33CF239E9AE98109FF88FC2B13FA14CEE57`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
 - `docs/ilerleme/poc/res03_focused.log` -> `EDBFCA902AFEEBF47E558EC597311293EF7375A9EBE44F679704014F7D1DCBFD`
 - `docs/ilerleme/poc/res03_packaging.log` -> `612F405ED5229D45EC3015F6A8020A53A503E45D4D3EF4B577EF48ADA6CCFBEE`
 - `docs/ilerleme/poc/res03_full_suite.log` -> `18D3800BB82200BDE9D60E5BBD51F2B0F29726ADFA328F2ED99C42A40797DD10`
@@ -1772,9 +1772,9 @@ Timeout bütçesi: ilk 20 sn'lik bütçe model erken yanıt verdiği için `comp
 ### Test sonuçları
 
 - Odaklı: `Ran 63 tests ... OK` (`docs/ilerleme/poc/adp01_fenced_focused.log`).
-- Tam regresyon: `Ran 500 tests ... OK` (`docs/ilerleme/poc/adp01_full_suite.log`).
-- Paketleme: `py packaging/build_dist.py` başarılı; `Ran 7 tests ... OK`
-  (`docs/ilerleme/poc/adp01_packaging.log`).
+- Tam regresyon: `Ran 603 tests ... OK` (`docs/ilerleme/poc/adp01_full_suite.log`).
+- Paketleme: `py packaging/build_dist.py` başarılı (`adp01_packaging.log`); frozen build/security
+  `Ran 7 tests ... OK` (`docs/ilerleme/poc/adp01_packaging_tests.log`).
 - Ortam: `opencode v2.2.3`, model `amd/DeepSeek-V4.1-Flash`, Windows.
 
 ### Kanıt artefaktları (SHA-256)
@@ -1782,11 +1782,12 @@ Timeout bütçesi: ilk 20 sn'lik bütçe model erken yanıt verdiği için `comp
 <!-- ADP01_HASHES_START -->
 - `src/respected_orchestrator/engine/opencode_acp.py` -> `8FA34A34F19D2FB0B1A6E9D90D2156A4E574ED68BFCFA2AF2F35C581E6167A00`
 - `src/respected_orchestrator/engine/opencode_auth.py` -> `7DB2AE187168363A853C9E52B70D95A07B612D21C16268C8269ED6DD5FA0E9B9`
-- `src/respected_orchestrator/engine/runner.py` -> `EA5768223B5C5FE3DF4F7951559C993D5098661FE7E352DAA716F73B80E2E37A`
+- `src/respected_orchestrator/engine/runner.py` -> `48200B47CB1732F0EB1BCEDF06D416AAB448E7B6EB5D46F16423BA7E662F7BAD`
 - `tests/engine/test_opencode_acp.py` -> `ED1D72BB2EE8A78752C2E268D3C68FEF028CB9684AAD1F509369C569D471CBFA`
-- `docs/ilerleme/poc/adp01_fenced_focused.log` -> `0A97D79ADD31E81CD6EFF260A8B83D0304A2F671D19B508FE988449E6FD1F94D`
-- `docs/ilerleme/poc/adp01_full_suite.log` -> `743BA7A567C07375C9C82773F3165592E9F14436CA2D35F8B8CB087F72496079`
-- `docs/ilerleme/poc/adp01_packaging.log` -> `CCEC94CE25F5C63E1EAF9ED326B25D0B2C6BC2184CF71C5DB610D4D69B21E335`
+- `docs/ilerleme/poc/adp01_fenced_focused.log` -> `36051B9C2332D1E0A671E4100433AF1CF74BC6F1C11D8FA63C9C55DD064C14B5`
+- `docs/ilerleme/poc/adp01_full_suite.log` -> `3523ECEBB966623FE6B617367A3011B5EBC6948FC3A960721783E06BDFFF431C`
+- `docs/ilerleme/poc/adp01_packaging.log` -> `26EC259AA977D423F97B86C28734887896F29B5EBD8DF5BC8DCDEE58BE720F17`
+- `docs/ilerleme/poc/adp01_packaging_tests.log` -> `980BB980AF09C9BD3D17E92C48424774D49956C0A82C2035C071FBF9E93AA4C8`
 - `docs/ilerleme/poc/adp01_timeout_decision.md` -> `14F27087CE7DD71255F9AF85599B4FDD419D0B27314FE6EBCD71D444870D5A80`
 - `docs/ilerleme/poc/adp01_real_e2e.py` -> `44BEBE12C1198D12F5748447FEA14E9E53A1C2B2DA0B424990CC3ADFE926E49A`
 - `docs/ilerleme/poc/adp01_real_e2e_run.log` -> `77D4173588309AA9D109B7AA314FFE0166DA68D9A70666ADD56B5046C187A7BD`
@@ -1798,12 +1799,12 @@ Timeout bütçesi: ilk 20 sn'lik bütçe model erken yanıt verdiği için `comp
 - `docs/ilerleme/poc/adp01_real_auth_missing.log` -> `86909347E3A2BC5D76EC802A1D663E2593C613CCE504CA727AFEC8109879D548`
 - `docs/ilerleme/poc/adp01_real_mcp.log` -> `C4311EA426FE6C7487340B7011C7D2EAA796D4F0A8D656211877A756DF8BF76E`
 - `docs/ilerleme/poc/adp01_real_summary.log` -> `0CF25F7A8B4EFCE77C3AFA246E42EC2D203F4237C24A888A750D3E56504B0483`
-- `docs/ARCHITECTURE.md` -> `7DB03E98CD9BBF9118F9D1AF27B4A760E72B0CE0B722FCCBCF7BC5F9E1DE2588`
-- `docs/COMMANDS.md` -> `F0A68CCE1B931346A11A9FEB79F16D842AD8777ED2983CD1417C96C63A910E09`
-- `docs/USAGE.md` -> `FCDEC94499F78230E305C0FBE75B21BEB246047FBD5FA91698FFDB05963B873D`
+- `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
+- `docs/COMMANDS.md` -> `6F0CCDA08E1B7C7C36A915A58AF4A6C232E4A09669D1D791DD7C85F06A097FBA`
+- `docs/USAGE.md` -> `4EA459BEF0F8A50B96AC1899EB69B7E63C1DD1B58DDA714B9134B04970BE8F39`
 - `docs/ROADMAP.md` -> `4773B6AC7349AA203B8676BEB7C0842C87C104472468505242B1D4EC8833A94E`
-- `docs/ROADMAP_EXECUTION_PLAN.md` -> `30254E4A54BD5A3DF9C5C1AD7A80B208CC3B2F04599199819C01CCC95DB3894D`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `37A05BB2235C96B8D64D1E2CC329B6B209DEE64B388B6DFE3D5853E8DF3B98A3`
+- `docs/ROADMAP_EXECUTION_PLAN.md` -> `F759DBF55ED98527325E1854EC60D33CF239E9AE98109FF88FC2B13FA14CEE57`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
 <!-- ADP01_HASHES_END -->
 
 `KANIT_LOG.md` kendi hash listesine dahil edilmez.
@@ -1881,10 +1882,10 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
 - `src/respected_orchestrator/engine/provider_policy.py` -> `A4904EA9FED3B59ED61E6A1F453ECD32C1894ED210E7495E3EB2F8406EE5D3CE`
 - `tests/engine/test_provider_policy.py` -> `77CB4CA5BE5ACF916C647F5A05C23A257C61144AFE9518846932E68FD4E3F920`
 - `docs/adr/ADR-007-provider-key-network-threat-model.md` -> `41735F348DA4F25089F0524A9A6946CA9453D83179297B483A37D9964D2F724C`
-- `docs/ARCHITECTURE.md` -> `532B8AADE7B2CCE28F197AB59B0487348CA9E11EB27AF1C5579F625C4B6A5036`
-- `docs/ROADMAP_EXECUTION_PLAN.md` -> `EE222E81701B220777817B178F782CA39BA3E3BCB015ECE1C92B2EA1D39C721B`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `F6DD4CCCE3BFDC2D0B0FF1BD3BB50CCC04C1B1A8723A9B89F1A9E91F6162F8BF`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DDA55676F010B4A4B8BCA9C7C52B9A4F9C6EB1A50B88711F6791D23A388F04EB`
+- `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
+- `docs/ROADMAP_EXECUTION_PLAN.md` -> `F759DBF55ED98527325E1854EC60D33CF239E9AE98109FF88FC2B13FA14CEE57`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
 - `docs/ilerleme/poc/doc01_check.py` -> `9D765DB66BA2C49D9157FEEDF81C364D79B3B3D67957E4A5C0F2E6C998EEDC9F`
 - `docs/ilerleme/poc/adp02_focused.log` -> `252A7CCE280B94CE4C8CF9C7E3CA7C4C6EF16FEA271D5CEBDF1368D8A5F48A8B`
 - `docs/ilerleme/poc/adp02_full_suite.log` -> `BEE08E716D408688F91A4FA52241657E5A7197377DBAB52F36909FEFDD6FA079`
@@ -1955,9 +1956,9 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
 <!-- COST02_HASHES_START -->
 - `src/respected_orchestrator/engine/pricing.py` -> `E552300D521F83DEEDCAEE68BD7FDEED61BCB4BFF9D9EE444E91D2C2177ACF42`
 - `tests/engine/test_pricing.py` -> `E44B09E8F87DCDAA269F310B9CBAFE3C8B76B1EB410F28B7E28774E53CB3788F`
-- `docs/ARCHITECTURE.md` -> `92F69502A605B6FAD58C6314EEB05143496472D1E8CF4E19E5FA3CF57C63DA2C`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `27DFB4494D43BD0A11CC6F22BD456DECF6908D8E2D47A5E42085E58F41BF9CD8`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `6F30FEB0E563C9E2A9D4387338C70467EC43B94DF94098C74C7D10D8AA5B7AF0`
+- `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
 - `docs/ilerleme/poc/cost02_focused.log` -> `865297ED1702FE8621131A866B14CD6C839126F2BD3D8E9B7CDFED34DA82AEDA`
 - `docs/ilerleme/poc/cost02_full_suite.log` -> `806EC65EB48EFE808E6B5BD7207FDADBC3364ECB49B4B1B9E97C409DF77C971B`
 - `docs/ilerleme/poc/cost02_packaging.log` -> `9A2C4220BC6340F5DD05DBBB76BCD1D301B670D5C2F45B8665E6208ECF56696A`
@@ -2051,10 +2052,10 @@ kasa round-trip'i test edildi.
 - `docs/ilerleme/poc/adp03_real_smoke.log` -> `824079B8246AE99866B768904A226654BF06E72247576B353FE940EC8165E80A`
 - `docs/ilerleme/poc/adp03_full_suite.log` -> `A78BC5DEF3D2BBA509B57BB1A0545E7FE879BCF85CA3F98EEFACC121E9BF2772`
 - `docs/ilerleme/poc/adp03_packaging.log` -> `50731967B9DC86B46BB0D5A80175C80B8C05AF69C89FA1029E0F91DA55B6992B`
-- `docs/ARCHITECTURE.md` -> `B96E7FED5BBC863C17BE1D3AABE07F737A340FC8D74B8C77299577DE52684F3A`
-- `docs/ROADMAP_EXECUTION_PLAN.md` -> `4C433E04F6C510A7DE5F6B809E39FAB5CA8712CC13E9A9553EDA249A6D3D82CC`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `019B2F3FAB9440A064D57D5E1D82DFB598C300EC3212189E88CC891348FC95EF`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `5D67F7144EB77105318A0C3187195C359582DC856794AC9FBA40AE0EE467E492`
+- `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
+- `docs/ROADMAP_EXECUTION_PLAN.md` -> `F759DBF55ED98527325E1854EC60D33CF239E9AE98109FF88FC2B13FA14CEE57`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
 <!-- ADP03_HASHES_END -->
 
 `KANIT_LOG.md` kendi hash listesine dahil edilmez.
@@ -2131,10 +2132,10 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
 - `docs/ilerleme/poc/ext01_focused.log` -> `399507809DD42F7E79A71B1C035827D2BFAED05406C89EED7B033189EDB2E818`
 - `docs/ilerleme/poc/ext01_full_suite.log` -> `55A3C307FB02C3147DD37E4CE1FA934E8E467E3FE11EAE2E00D74CA42FF2EB30`
 - `docs/ilerleme/poc/ext01_packaging.log` -> `A5B09FD7C0BBA0525214A75015AC584A217CECFCFC7B05449D9A5E404913DECD`
-- `docs/ARCHITECTURE.md` -> `5563D20A913A2A6CC337221CCC85D54107A7DC603249ACD6741771BAF21D62AC`
-- `docs/ROADMAP_EXECUTION_PLAN.md` -> `D294F8E350FC8F431192E04A5D08BDC0EDAA0A2A211BDC1737EE9CC719C38AE6`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `1398B078FD90F0226F52486A561472DC42F603B13D19C0B9A91F0BCEA9E9D3AF`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `AC171D5F8F32C975B50641EB0B1A5B61580000A50055FC01E3D9A16F216BF7BA`
+- `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
+- `docs/ROADMAP_EXECUTION_PLAN.md` -> `F759DBF55ED98527325E1854EC60D33CF239E9AE98109FF88FC2B13FA14CEE57`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
 <!-- EXT01_HASHES_END -->
 
 `KANIT_LOG.md` kendi hash listesine dahil edilmez.
@@ -2196,9 +2197,9 @@ py docs/ilerleme/poc/eval02_real.py
 - `docs/ilerleme/poc/eval02_results.json` -> `02EC598D4562B8B1553F08267DC0F927F94E0A0D6827B2E4BAA7C288454C7B22`
 - `docs/ilerleme/poc/eval02_real.log` -> `F020F5E057820EB8ED167EEB9A3E7025EA51177747E88A5F7F38A0B26CEFE559`
 - `docs/ilerleme/poc/eval02_eval03_focused.log` -> `95E354833E2418305AFA98C394A00FD9242369851E798DC0000F5FFFD8A68B6F`
-- `docs/ARCHITECTURE.md` -> `F54981A1B39CFB5C919903ABACB6C1E05854F097E01A5A629604482BA532A5B4`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `A7CC45D18E7FD99C82F8AB403E4B8A6F169901975A818A1AF24D44DF6E7EC6B1`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DD90BBF848E4DFA6B2AF16E2F5971E94D878AF7DAF705CCAD322B12FEB00484B`
+- `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
 <!-- EVAL02_HASHES_END -->
 
 `KANIT_LOG.md` kendi hash listesine dahil edilmez.
@@ -2250,9 +2251,9 @@ py docs/ilerleme/poc/eval02_real.py
 - `docs/ilerleme/poc/eval03_report.json` -> `8664A080FC9E4E2D96040C8A694DD19B1450F41A3C2FF37D262F5D3EBE9EFC47`
 - `docs/ilerleme/poc/eval03_report.md` -> `F06E5F2092B22A45C65EF1CB379188C0F2E7B6267802657FDCC01E561D1F1306`
 - `docs/ilerleme/poc/eval02_eval03_focused.log` -> `95E354833E2418305AFA98C394A00FD9242369851E798DC0000F5FFFD8A68B6F`
-- `docs/ARCHITECTURE.md` -> `A5FA66B5E2F6BA661E98D042BA9E815D0A41A3E97C3C44B901C791171FD4048A`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `CCB246DE2F5F95BF578E99AEECA7F121506F0478D70D623DA7490D816BCE7F80`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `07EA81CF5E3090D1E08C6E7EBEF696A5D11F3B0A7E92070E6185853276C1704D`
+- `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
 <!-- EVAL03_HASHES_END -->
 
 `KANIT_LOG.md` kendi hash listesine dahil edilmez.
@@ -2291,8 +2292,8 @@ py docs/ilerleme/poc/eval02_real.py
 
 ### Kanıt artefaktları (SHA-256)
 
-- `src/respected_orchestrator/interfaces/rpp.py` -> `5E5A4A3A7F2754BE640268102EF54A04AA627605D35B710EFD80A65524577F59`
-- `src/respected_orchestrator/__main__.py` -> `0669B561B5A62A028A814DA1BC3CAB41D305205A6DE3CC5BCE7C307C31CE2C41`
+- `src/respected_orchestrator/interfaces/rpp.py` -> `342D273F3E6793FDD3A8EA31CFE7817C86D9CD02A0737326A5AC4FCDD84AA891`
+- `src/respected_orchestrator/__main__.py` -> `4455B23D9A934A86EDED7548A1957AC8630C3D76D84F1AE4CE90A33F6322371A`
 - `tests/interfaces/test_evidence_api.py` -> `EE1996D0DF39831C05F88A5DDB4DBD21724B2092563457C5D6DB441211CDCEAE`
 - `docs/ilerleme/poc/ux02_focused.log` -> `934D70DE616EEB83DD03F349DB811D15DE4B81747536547AB0D45E9D7E4579E2`
 
@@ -2301,18 +2302,23 @@ py docs/ilerleme/poc/eval02_real.py
 ## UX-03 — Hub Decision Center ve gerçek insan onayı
 
 - Durum: Tamamlandı (sözleşme ve terminal yolu; Hub UI kapsam dışı).
-- Kapsam: İnsan onayı sınırını genişletmeyen sözleşme testleri eklendi. MCP/agent kendini onaylayamaz; onay
-  yalnızca etkileşimli TTY üzerinden alınır; onay patch SHA'sına bağlanır; replay, ekran drift'i, iptal ve
-  güncelliğini yitirmiş sonuç reddedilir. `approve_maf_task` mevcut davranışı korunur; yeni yetki yolu açılmadı.
-- Doğrulama: `tests.interfaces.test_human_approval_contract` — 7/7 senaryo (`Ran 7 tests ... OK`).
+- Kapsam: İnsan onayı sınırını genişletmeyen sözleşme testleri. MCP/agent kendini onaylayamaz; onay yalnızca
+  etkileşimli TTY üzerinden alınır. Onay patch SHA'sına, proje parmak izine ve onay anındaki git HEAD'ine bağlanır;
+  replay, ekran drift'i, iptal, eski sonuç ve review sonrası değişen HEAD/çalışma ağacı reddedilir. `approve_maf_task`
+  onay dosyasını yalnızca güncel proje durumu request ve result ile eşleşiyorsa yazar; yeni yetki yolu açılmadı.
+- Doğrulama: `tests.interfaces.test_human_approval_contract` — 8/8 senaryo (`Ran 8 tests ... OK`);
+  HEAD değişimi ve bayat proje parmak izi ayrıca reddedildi (`docs/ilerleme/poc/ux03_focused_final.log`).
+  Geniş odaklı paket: `Ran 107 tests ... OK` (`docs/ilerleme/poc/remaining_tasks_focused_final.log`).
 - Kalan risk: Hub Decision Center ekranı ayrı depoda; buradaki kanıt terminal `maf-approve` yolunun sözleşmesidir.
+  Git deposu olmayan projede HEAD bağı kurulamaz.
 
 ### Kanıt artefaktları (SHA-256)
 
-- `tests/interfaces/test_human_approval_contract.py` -> `6EDB118DB38702ADAB5B1B38A663613FD0E2A26FE616690DABF86E6CA81F812C`
-- `docs/ilerleme/poc/ux03_focused.log` -> `7C9B948C9B5318EE142E93334F6DB5E7BE26C904778174B72774CEFB98B915B2`
+- `src/respected_orchestrator/engine/runner.py` -> `48200B47CB1732F0EB1BCEDF06D416AAB448E7B6EB5D46F16423BA7E662F7BAD`
+- `tests/interfaces/test_human_approval_contract.py` -> `79D5DD43857436FDE01397AA51580126F2AE2035C3256C662A6B8470346AB7F8`
+- `docs/ilerleme/poc/ux03_focused_final.log` -> `BBA853145F4F00B7F8FDF23B0FF946295B531521E166B74884DBA7091665E269`
+- `docs/ilerleme/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
 
----
 
 ## COST-01 — Gemini/Cursor kullanımını gerçek CLI ile ölç
 
@@ -2338,109 +2344,134 @@ py docs/ilerleme/poc/eval02_real.py
   engelli profil sessizce kullanılmaz; write rolüne salt-okunur araç verilmez; kayıp modelde yalnızca açık
   fallback; eşit kayıtta pahalı aday kaybeder; açık kullanıcı ataması ezilmez.
 - Doğrulama: `tests.workflows.test_auto_assign_v2` + `test_roles` + `test_track_record` — 31 test OK
-  (`docs/ilerleme/poc/cost03_focused.log`).
+  (`docs/ilerleme/poc/cost03_focused_final.log`).
 - Kalan risk: Geçmiş yalnızca runs/ok/tokens/seconds taşır; model kalitesi ve görev zorluğu ayrı ölçülmez.
 
 ### Kanıt artefaktları (SHA-256)
 
 - `tests/workflows/test_auto_assign_v2.py` -> `5B6BA3449746A69B29E1CCEB7C3F3CC67D23939E947A8F44891CBED3D28E4C38`
 - `src/respected_orchestrator/workflows/roles.py` -> `4AD4F1718251ED4937E2EDA18DA0894902B61878867E517C13EDA4F4B84BC5C9`
-- `docs/ilerleme/poc/cost03_focused.log` -> `D70FA6F7665466297849BCC26A885E86B8C61E6EC5D323831782D83BA3BC4078`
+- `docs/ilerleme/poc/cost03_focused_final.log` -> `8190CBF12E8378C9ED084FA6C9A5F5745435BFD625C747E12E129BB30EF15652`
 
----
 
 ## GH-01 — GitHub Issue salt okunur içe aktar
 
-- Durum: Tamamlandı (adaptör düzeyinde).
+- Durum: Tamamlandı (adaptör + RPP/CLI).
 - Kapsam: `interfaces/github_connector.import_issue`, `gh issue view` ile tek issue okur; başlık/gövde
   güvenilmeyen plan girdisidir, izin listesi dışındaki etiketler atılır. Kaynak repo/issue/revision/url kayda
   geçer. Issue metninden worker başlatılmaz; GitHub yazma isteği yoktur. 404, kısıtlı repo, iptal ve rate-limit
-  hata olarak döner; repo/issue biçimi `gh` çağrısından önce doğrulanır.
-- Doğrulama: `tests.interfaces.test_github_connector` (9 test) ve canlı read-only kontrol: `gh 2.102.0`,
-  hesap `respected0`, issue listesi boş. Push/PR açılmadı.
-- Kalan risk: RPP/CLI'ye bağlanmadı; token low-scope kurulmadı.
+  hata olarak döner; repo/issue biçimi `gh` çağrısından önce doğrulanır. RPP `github.issue_import` ve CLI
+  `github-import-issue` aynı sözleşmeyi kullanır.
+- Doğrulama: `tests.interfaces.test_github_connector` + `test_github_rpp`; geniş odaklı paket 107/107 OK.
+  Canlı read-only kontrol: `gh 2.102.0`, hesap `respected0`, `gh issue view 1 --repo cli/cli` gerçek JSON;
+  hiçbir push/PR/yorum çalıştırılmadı (`docs/ilerleme/poc/gh_live_readonly.log`).
+- Kalan risk: Issue gövdesi prompt enjeksiyonu taşıyabilir; otomatik worker başlatma bilinçli olarak yoktur.
 
 ### Kanıt artefaktları (SHA-256)
 
-- `src/respected_orchestrator/interfaces/github_connector.py` -> `1BEB154629898E17F3057F8D341B7F41ED74A702AC6DDB3CE220B9274ECD23D5`
+- `src/respected_orchestrator/interfaces/github_connector.py` -> `35C1ED0DE2F050CF4F484DA2649B7026AF4E7D644FCB081C190DFB286B1CB330`
+- `src/respected_orchestrator/interfaces/rpp.py` -> `342D273F3E6793FDD3A8EA31CFE7817C86D9CD02A0737326A5AC4FCDD84AA891`
+- `src/respected_orchestrator/__main__.py` -> `4455B23D9A934A86EDED7548A1957AC8630C3D76D84F1AE4CE90A33F6322371A`
 - `tests/interfaces/test_github_connector.py` -> `1193A3A0FC5980BB949322E212954E5FAF1480132123455C621266A41AD3D91F`
-- `docs/ilerleme/poc/gh01_gh02_gh03_focused.log` -> `F7E747546741315C6CA9808AF738ED04A0CF129684F9E0F85A19FE8736BB8CDB`
+- `tests/interfaces/test_github_rpp.py` -> `51AC743BFB3216DA90C2DCAA3EFC9DE28BBE2183E091523E166618064846134C`
+- `docs/ilerleme/poc/gh_live_readonly.log` -> `113EF393948797893C1832C280BEC17BFAC142A70F099F90F75AFFE05987603C`
+- `docs/ilerleme/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
 
----
 
 ## GH-02 — Doğrulanmış patch'ten taslak PR aç
 
-- Durum: Tamamlandı (adaptör düzeyinde).
-- Kapsam: `create_draft_pr` yalnızca imzalı ve `completed` kanıt, eşleşen patch SHA'sı ve açık `operation_id`
-  ile çalışır. Push yetkisi çağıran tarafından verilir; secret içeren diff reddedilir; aynı operation_id ikinci
-  PR üretmez; merge komutu hiç üretilmez. Başarısız/eski kanıtta PR açılmaz.
-- Doğrulama: `tests.interfaces.test_github_connector` — draft PR, failed evidence, duplicate, denied/conflict/
-  secret diff ve merge-yok senaryoları.
-- Kalan risk: Canlı draft PR açılmadı (push yasak); gerçek GitHub yazma yolu test edilmedi.
+- Durum: Tamamlandı (adaptör + RPP/CLI; push açık onay ister).
+- Kapsam: `plan_draft_pr` yalnızca imzalı `completed`, secret içermeyen ve doğrulaması geçmiş sonuçtan plan üretir;
+  `create_draft_pr` RPP `github.pr_create` ile açık `operation_id`, `confirm: true` ve operatörün verdiği
+  `project_root` olmadan çalışmaz. Branch push yalnızca bu açık çağrıda yapılır; merge komutu üretilmez.
+  CLI yüzeyi `github-pr-plan` ve `github-pr-create` aynı RPP sözleşmesini kullanır.
+- Doğrulama: `test_github_connector` + `test_github_rpp`; 107/107 odaklı paket OK. Eksik onay, yanlış run,
+  başarısız/secret'lı sonuç ve operation_id sınırları reddedilir.
+- Kalan risk: Gerçek uzak PR açma yazma yetkisi verilmediği için canlı uçta denenmedi; plan/oluşturma sınırı
+  test ve kod düzeyinde kanıtlandı. Otomatik merge yoktur.
 
 ### Kanıt artefaktları (SHA-256)
 
-- `src/respected_orchestrator/interfaces/github_connector.py` -> `1BEB154629898E17F3057F8D341B7F41ED74A702AC6DDB3CE220B9274ECD23D5`
-- `tests/interfaces/test_github_connector.py` -> `1193A3A0FC5980BB949322E212954E5FAF1480132123455C621266A41AD3D91F`
-- `docs/ilerleme/poc/gh01_gh02_gh03_focused.log` -> `F7E747546741315C6CA9808AF738ED04A0CF129684F9E0F85A19FE8736BB8CDB`
+- `src/respected_orchestrator/interfaces/github_connector.py` -> `35C1ED0DE2F050CF4F484DA2649B7026AF4E7D644FCB081C190DFB286B1CB330`
+- `src/respected_orchestrator/interfaces/rpp.py` -> `342D273F3E6793FDD3A8EA31CFE7817C86D9CD02A0737326A5AC4FCDD84AA891`
+- `src/respected_orchestrator/__main__.py` -> `4455B23D9A934A86EDED7548A1957AC8630C3D76D84F1AE4CE90A33F6322371A`
+- `tests/interfaces/test_github_rpp.py` -> `51AC743BFB3216DA90C2DCAA3EFC9DE28BBE2183E091523E166618064846134C`
+- `docs/ilerleme/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
 
----
 
 ## GH-03 — CI/review geri bildirimini sınırlı düzeltmeye bağla
 
-- Durum: Tamamlandı (adaptör düzeyinde).
+- Durum: Tamamlandı (adaptör + RPP/CLI).
 - Kapsam: `plan_ci_fix` CI/review geri bildirimini sınırlı düzeltme planına çevirir; round bütçesi aşılırsa,
   SHA eskiyse, reviewer yetkisizse veya insan onayı yoksa düzeltme üretmez. Sınırsız retry yok; gerekçe kanıt
-  paketine yazılabilir biçimde döner. PR'a yorum/merge yazılmaz.
-- Doğrulama: `tests.interfaces.test_github_connector` — 6 sınırlı senaryo.
-- Kalan risk: Gerçek CI/status akışına bağlanmadı; RPP/CLI yüzeyi yok.
+  paketine yazılabilir biçimde döner. PR'a yorum/merge yazılmaz. RPP `github.ci_plan` ve CLI `github-ci-plan`
+  yüzeyi eklendi; `max_rounds`/`used_rounds` negatif veya bool olamaz.
+- Doğrulama: `test_github_connector` sınırlı senaryoları + `test_github_rpp`; 107/107 odaklı paket OK.
+- Kalan risk: Canlı CI webhook'una bağlanmadı; geri bildirim çağıran tarafından sağlanır. Bu teslimde GitHub
+  yazma işlemi yapılmadı.
 
 ### Kanıt artefaktları (SHA-256)
 
-- `src/respected_orchestrator/interfaces/github_connector.py` -> `1BEB154629898E17F3057F8D341B7F41ED74A702AC6DDB3CE220B9274ECD23D5`
-- `tests/interfaces/test_github_connector.py` -> `1193A3A0FC5980BB949322E212954E5FAF1480132123455C621266A41AD3D91F`
-- `docs/ilerleme/poc/gh01_gh02_gh03_focused.log` -> `F7E747546741315C6CA9808AF738ED04A0CF129684F9E0F85A19FE8736BB8CDB`
+- `src/respected_orchestrator/interfaces/github_connector.py` -> `35C1ED0DE2F050CF4F484DA2649B7026AF4E7D644FCB081C190DFB286B1CB330`
+- `src/respected_orchestrator/interfaces/rpp.py` -> `342D273F3E6793FDD3A8EA31CFE7817C86D9CD02A0737326A5AC4FCDD84AA891`
+- `tests/interfaces/test_github_rpp.py` -> `51AC743BFB3216DA90C2DCAA3EFC9DE28BBE2183E091523E166618064846134C`
+- `docs/ilerleme/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
 
----
 
 ## EXT-02 — Serena/context MCP için read-only deneme adaptörleri
 
-- Durum: Tamamlandı (adaptör düzeyinde).
-- Kapsam: `interfaces/readonly_probe.query_repo`, EXT-01 yetenek manifestosu arkasında yalnızca `mcp.serena` ve
-  `mcp.context` araçlarını `read` izniyle çalıştırır. Sağlayıcı yoksa, araç onaylı değilse veya yazma izni
-  istiyorsa fail-closed. Mutlak yol, sürücü harfi, UNC ve `..` kaçışları reddedilir; çıktı güvenilmeyen veri
-  olarak 20.000 karakterle sınırlanır ve secret redaksiyonu uygulanır. Tool yokken orchestrator core çalışır.
-- Doğrulama: `tests.interfaces.test_readonly_probe` + `test_capability_manifest` — 10 test OK.
-- Kalan risk: Gerçek Serena/context sunucusu kurulu değil; sağlayıcı enjekte edilen callable'dır.
+- Durum: Tamamlandı (adaptör + gerçek stdio MCP istemcisi); Serena/context sunucusu bu makinede kurulu değil.
+- Kapsam: `interfaces/mcp_client.StdioMcpClient` gerçek alt süreçle JSON-RPC `initialize`, `tools/list`,
+  `tools/call` ve kontrollü kapanış yapar; yanıt kimliği, protokol biçimi, zaman aşımı ve maksimum bayt sınırı
+  fail-closed'dır. Alt süreç `winproc.popen` ile gizli pencerede başlatılır. `readonly_probe.query_repo`, EXT-01
+  yetenek manifestosu arkasında yalnızca `mcp.serena`/`mcp.context` araçlarını `read` izniyle çalıştırır; sağlayıcı
+  yoksa `PROVIDER_MISSING`, araç onaysız veya yazma izinliyse hata verir. Mutlak yol, sürücü harfi, UNC ve `..`
+  kaçışları reddedilir; çıktı 20.000 karakterle sınırlanır ve secret redaksiyonu uygulanır.
+- Doğrulama: `tests.interfaces.test_mcp_client` + `test_readonly_probe` + `test_capability_manifest`;
+  `ext02_mcp_focused.log` 14/14 OK, geniş paket 107/107 OK. Sağlayıcı probe: `serena`, `serena-mcp-server`,
+  `uvx` MISSING; `npx`/`codex` var. Gerçek sunucu yokken sahte başarı yazılmadı
+  (`docs/ilerleme/poc/ext02_provider_probe.log`).
+- Kalan risk: Serena/context gerçek sunucusu kurulu değil; protokol gerçek bir stdio alt süreciyle kanıtlandı,
+  ancak canlı Serena sorgusu koşulmadı. Sunucu kurulunca komut manifestoya verilerek aynı yol kullanılır.
 
 ### Kanıt artefaktları (SHA-256)
 
-- `src/respected_orchestrator/interfaces/readonly_probe.py` -> `86C1FE14140890ECF004FCE80A8EF12BB228B7915123DA59F78EAEB1EC978166`
-- `tests/interfaces/test_readonly_probe.py` -> `ED7F0DE109193D496EC63BF6CB69DB30CF69AD6402E8CF7C2EEBBAFBE6003979`
-- `docs/ilerleme/poc/ext02_focused.log` -> `0EC08864BA720FABFF36750D13B8C7DCAC8F1741E9C27A002767FF2D5136DC90`
+- `src/respected_orchestrator/interfaces/readonly_probe.py` -> `FFD2B79601EB752BE41134FCC094581AADD8B4E0FE9C08504116F735D73EADE3`
+- `src/respected_orchestrator/interfaces/mcp_client.py` -> `E7C6B21011EBF6B3CF100CD3A4029398F19539663B156969C37345882E7FA846`
+- `tests/interfaces/test_mcp_client.py` -> `6BEFC113B964731C167C31793F6FDE8477BEFD1AC38BB5E525B361187DD78B02`
+- `docs/ilerleme/poc/ext02_mcp_focused.log` -> `DFBCC912CEC7948C0099890D47719E250C6BA477F635A4502FACD3FD0C03C616`
+- `docs/ilerleme/poc/ext02_provider_probe.log` -> `3AD8FCA85E2168C9DE83C154502D0B6D8D0D02BE0393F88BAD8F8D417923DF57`
+- `docs/ilerleme/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
 
----
 
 ## REL-01 — Authenticode imzalı Windows kurucu hattı
 
-- Durum: Tamamlandı — fail-closed doğrulama hattı hazır; gerçek sertifika yok, imzalı kurucu üretilmedi.
+- Durum: Tamamlandı (gerçek imza hattı; üretim güvenilir sertifikası yok).
 - Kapsam: `release_signature.verify` yalnızca geçerli Authenticode durumunda `signed=True` döner; eksik dosya,
   beklenen SHA uyuşmazlığı (tampered), desteklenmeyen platform, çevrimdışı/bilinmeyen durum, geçersiz imza,
-  yanlış imzalayan ve süresi dolmuş sertifika reddedilir. `sign` sertifikayı yalnızca operatör girdisinden alır;
-  imza anahtarı repodan gelmez. `packaging/build_installer.py` `--sign-cert` ve `--require-signed` ile
-  imzasız artefaktı başarı saymaz.
-- Doğrulama: `tests.packaging.test_release_signature` — 6 test OK (`docs/ilerleme/poc/rel01_focused.log`).
-- Kalan risk: Authenticode sertifikası, zaman damgası sunucusu ve imzalı yayın artefaktı yok; bu nedenle
-  "imzalı kurucu" iddia edilmez. Sertifika temini operasyonel bağımlılıktır.
+  yanlış imzalayan ve süresi dolmuş sertifika reddedilir. `sign` modern `signtool sign /fd SHA256 /f <pfx>`
+  biçimini kullanır; sertifika yalnızca operatör girdisinden gelir. `build_installer.py --sign-cert` ve
+  `--require-signed` imzasız artefaktı başarı saymaz.
+- Doğrulama: `tests.packaging.test_release_signature` — 7/7 OK (`rel01_signature_tests.log`).
+  Gerçek koşu: repo dışındaki self-signed test sertifikası (`CN=Respected Test Signer`, thumbprint
+  `C888E6DEEDD43B89C5B211953AEEB316005DAD42`, NotAfter `2026-12-03`) ile kurucu imzalandı;
+  `signed=true`, SHA-256 `BE996EBB...A4F29D`. Tampered (`68C0C7...AB`) ve yanlış imzalayan
+  (`wrong_signer`) reddedildi. Loglar: `rel01_real_build.log`, `rel01_real_verify.log`,
+  `rel01_real_tamper.log`, `rel01_real_wrong_signer.log`.
+- Kalan risk: Test sertifikası güvenilir dağıtım sertifikası değildir; zaman damgası ve üretim imzalı yayın
+  artefaktı yoktur. "Üretim imzalı" iddia edilmez; sertifika temini operasyonel bağımlılıktır.
 
 ### Kanıt artefaktları (SHA-256)
 
-- `src/respected_orchestrator/release_signature.py` -> `CD8BBA562D89FBF0CBABBB986DD3A093EEA3BBA9A827A4D332C6B1198291C2A4`
+- `src/respected_orchestrator/release_signature.py` -> `0E2E8D23D5A20FD749C07392701E01229EA2D51F1EFD9163500928041F350B8D`
 - `packaging/build_installer.py` -> `4E973860CABD9DEB876B40C302D03AE1D7DAE19555CDA65D1BB771F6EE0A30DF`
-- `tests/packaging/test_release_signature.py` -> `7B236F0E508B8356140A7DFF84B17D12BC38ED9A2F804075F34CB66F0E6F22E4`
-- `docs/ilerleme/poc/rel01_focused.log` -> `A5A26C573A8446D19716A022A6E1D972933340FF30F14D7A10E6547DA2E4C827`
+- `tests/packaging/test_release_signature.py` -> `DE980B94230C7C85FBBFFB905019656DE4F884EDB643907896B73509A38E525D`
+- `docs/ilerleme/poc/rel01_real_build.log` -> `FFD1545EC1F75137D97ED0E6386F3A670867A9D85EC6FE3596C5007D20B50D44`
+- `docs/ilerleme/poc/rel01_real_verify.log` -> `AFDCC14366B5A93787242E92640A59918D2145281160E86E41B64B63313379A3`
+- `docs/ilerleme/poc/rel01_real_tamper.log` -> `89C27A6C01B71FC764D9A5A119260A7A486F86C39B9BB871BC62AAE91863A951`
+- `docs/ilerleme/poc/rel01_real_wrong_signer.log` -> `22A106DD4EEC79F96F8D2323BA010DD9B7B273B9D3647D1EF016FF51AB934785`
+- `docs/ilerleme/poc/rel01_signature_tests.log` -> `BDE96833580F5476E44D42613369CB652F0B31401B450885997AF52458910920`
 
----
 
 ## REL-03 — İlk göreve giden kurulum rehberi ve health
 
@@ -2448,35 +2479,49 @@ py docs/ilerleme/poc/eval02_real.py
 - Kapsam: `interfaces/health_wizard.guide(checks, data_root)` rpp `health` yanıtına `wizard` alanı ekler:
   sonraki adım, salt-okunur örnek görev ve platform ipucu. Örnek görev yalnızca okuma yapar; Hub yokken core
   çalışır; kaldırma veriyi purge edilmedikçe korur.
-- Doğrulama: `test_health_wizard + test_rpp + startup_cost` — 28 test OK (`docs/ilerleme/poc/rel03_focused.log`).
-- Kalan risk: Rehber metinseldir; otomatik onarım/onboarding yapmaz.
+- Doğrulama: `test_health_wizard + test_rpp + startup_cost` — 28 test OK (`rel03_focused.log`).
+  Gerçek CLI: `py -m respected_orchestrator health` → `status=healthy`, `hub_required=false`,
+  `worker_cli` içinde `opencode`, salt-okunur `sample_task` (`docs/ilerleme/poc/rel03_real_health.log`).
+  Geniş odaklı paket 107/107 OK.
+- Kalan risk: Rehber metinseldir; otomatik onarım/onboarding yapmaz. Sağlıklı kurulumda `steps` boş kalır.
 
 ### Kanıt artefaktları (SHA-256)
 
 - `src/respected_orchestrator/interfaces/health_wizard.py` -> `4D90FF2CF21C374EAB19A329B95E827C2D5A62C84CA3795E991A65EE5BB30A7C`
-- `src/respected_orchestrator/interfaces/rpp.py` -> `5E5A4A3A7F2754BE640268102EF54A04AA627605D35B710EFD80A65524577F59`
+- `src/respected_orchestrator/interfaces/rpp.py` -> `342D273F3E6793FDD3A8EA31CFE7817C86D9CD02A0737326A5AC4FCDD84AA891`
 - `tests/interfaces/test_health_wizard.py` -> `9700E059804B784D0E72CF3EFC4A5CF542236410D2CF68D4A919B1C557918CCF`
+- `docs/ilerleme/poc/rel03_real_health.log` -> `190404542E536DF12BFE83BEF73DB7F3AD70A76AC7B85D406356763D2761E6EE`
 - `docs/ilerleme/poc/rel03_focused.log` -> `D10019731E4C005A5037A3BCA2D96B4019840CB56DCBE430BF124DAAC3DB3C9F`
+- `docs/ilerleme/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
 
----
 
 ## REL-04 — macOS/Linux güvenlik eşdeğerliği ve platform kapısı
 
 - Durum: Tamamlandı (karar kapısı); POSIX GA değil.
 - Kapsam: `release_platform.decide` yalnızca Windows'u GA sayar ve 10 güvenlik fixture'ının tamamı `pass`
-  değilse `no-go` döner. Eksik veya kırmızı fixture yayını bloklar. macOS/Linux tüm fixture'lar geçse bile
-  "platform parity not proven" gerekçesiyle `no-go` kalır. Karar `docs/ADR-REL04-platform-parity.md` içinde.
-- Doğrulama: `tests.packaging.test_release_platform` — 6 test OK (`docs/ilerleme/poc/rel04_focused.log`).
-- Kalan risk: POSIX'te gerçek sandbox/izin eşdeğerliği kanıtlanmadı; GA iddiası yoktur.
+  değilse `no-go` döner. Fixture matrisi gerçek testleri çalıştırır; Windows-only bağımlılık veya skip
+  `blocked` sayılır, asla `pass` değil. macOS/Linux tüm fixture'lar geçse bile "platform parity not proven"
+  gerekçesiyle `no-go` kalır. Karar `docs/ADR-REL04-platform-parity.md` içinde.
+- Doğrulama: `tests.packaging.test_release_platform` — 6 test OK. Gerçek matris:
+  Windows 10/10 `pass`, `release=go` (`rel04_fixture_windows.log`);
+  Linux WSL Python 3.14.4: `migration`, `installer_rollback`, `mcp_recursion` pass, 7 fixture `msvcrt`
+  yokluğundan `blocked`, `release=no-go` (`rel04_fixture_linux.log`);
+  macOS bu makinede yok, fixture koşulmadı, `release=no-go` (`rel04_fixture_macos.log`).
+  MCP spawn gizli pencere düzeltmesi sonrası odaklı paket 19/19 OK (`rel04_mcp_spawn_focused.log`); geniş paket 107/107.
+- Kalan risk: POSIX'te gerçek sandbox/izin eşdeğerliği kanıtlanmadı; `blocked` pass sayılmaz. macOS fiziksel
+  olarak koşulmadı. GA yalnızca Windows'tur.
 
 ### Kanıt artefaktları (SHA-256)
 
 - `src/respected_orchestrator/release_platform.py` -> `B50167A8CB86A1A40DA4A0F8E02235CCE6F6E9A468C091E344293FF918B3FDF8`
 - `tests/packaging/test_release_platform.py` -> `42E7918C294A38FF1CFC385929C91B74D3C2F041A41F5C51113E2D9DFA7ADDAF`
 - `docs/ADR-REL04-platform-parity.md` -> `56A29A646A53E22B7D1F5CEEC746046C08E9C4EDC007F18870565E36440F4034`
-- `docs/ilerleme/poc/rel04_focused.log` -> `8A73E971D0B843854647E29C1F5F1CB3F66DDFF08DE89F7D1921AA88A356AB2A`
+- `docs/ilerleme/poc/rel04_fixture_matrix.py` -> `1FC935A2DAFC8926F04B13FA62A2EDE4920DF0331EB015D8DF46909E260BE7AB`
+- `docs/ilerleme/poc/rel04_fixture_windows.log` -> `AFC206685AF559EF857ADA4DD52D033620B97CFC96942FA36D48EAB1E006C523`
+- `docs/ilerleme/poc/rel04_fixture_linux.log` -> `D3EC4B86A62A3E0B1AFC74491B55298A7BDD9D6DB42D4A7C7856D0D3A821A1B2`
+- `docs/ilerleme/poc/rel04_fixture_macos.log` -> `FAE2C5A300B4D42206B0BBB5B6D71ADC16F3F5F39820EC89EFB2E94D66FD1622`
+- `docs/ilerleme/poc/rel04_mcp_spawn_focused.log` -> `F049E82C91CA5BB084847EE4DDB3A81AFBE660DD267161406B6104C69E2FBB0C`
 
----
 
 ## Şablon (sonraki görevler)
 

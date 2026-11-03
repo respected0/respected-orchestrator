@@ -736,7 +736,7 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 - [ ] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### GH-02 — Doğrulanmış patch'ten taslak PR aç
-**Durum:** Tamamlandı (2026-11-03) — kanıt: `KANIT_LOG.md` §GH-02
+**Durum:** Tamamlandı (2026-11-03; adaptör + RPP/CLI — canlı PR yazma yetkisi verilmedi) — kanıt: `KANIT_LOG.md` §GH-02
 
 
 **Etiketler:** `priority:P2`, `gate:G4`, `epic:github-teslimat-hatt`, `size:L`  
@@ -756,7 +756,7 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 - [ ] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### GH-03 — CI/review geri bildirimini sınırlı düzeltmeye bağla
-**Durum:** Tamamlandı (2026-11-03) — kanıt: `KANIT_LOG.md` §GH-03
+**Durum:** Tamamlandı (2026-11-03; plan sınırı — canlı CI webhook yok) — kanıt: `KANIT_LOG.md` §GH-03
 
 
 **Etiketler:** `priority:P2`, `gate:G4`, `epic:github-teslimat-hatt`, `size:L`  
@@ -797,7 +797,7 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 - [x] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### EXT-02 — Serena/context MCP için read-only deneme adaptörleri
-**Durum:** Tamamlandı (2026-11-03) — kanıt: `KANIT_LOG.md` §EXT-02
+**Durum:** Tamamlandı (2026-11-03; gerçek stdio istemcisi — Serena/context sunucusu bu makinede yok) — kanıt: `KANIT_LOG.md` §EXT-02
 
 
 **Etiketler:** `priority:P2`, `gate:G4`, `epic:skills-ve-mcp-izinleri`, `size:M`  

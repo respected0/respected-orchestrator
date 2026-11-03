@@ -279,3 +279,25 @@ gösterir; maliyet bilinmiyorsa `unknown` yazar. Kanıt imzası bozuksa veya pat
 `stale`/hata döner, sessizce başarı göstermez. Onay yalnızca etkileşimli terminalde `maf-approve` ile alınır;
 Hub Decision Center ve MCP bu sınırı genişletmez. `health` çıktısındaki `wizard` alanı ilk görevi ve sonraki
 adımı anlatır.
+
+## 12. GitHub teslimatı
+
+`gh` CLI'da oturum açmış olmanız gerekir. Issue ve CI geri bildirimi güvenilmeyen girdidir; otomatik worker veya merge yoktur.
+
+```powershell
+'{"repo":"owner/name","number":1}' | respected-orchestrator github-import-issue
+'{"run_id":"run-...","repo":"owner/name","head":"dal","base":"main"}' | respected-orchestrator github-pr-plan
+'{"run_id":"run-...","repo":"owner/name","head":"dal","base":"main","confirm":true,"operation_id":"op-1","project_root":"C:\proje"}' | respected-orchestrator github-pr-create
+'{"feedback":{},"head_sha":"abc","max_rounds":3,"used_rounds":0}' | respected-orchestrator github-ci-plan
+```
+
+`github-pr-plan` hiçbir şey yazmaz. `github-pr-create` yalnızca imzalı `completed` sonuç, secret'sız patch, açık `confirm: true`,
+`operation_id` ve operatörün verdiği `project_root` ile dalı iter ve taslak PR açar; merge etmez. Aynı işlemler RPP'de
+`github.issue_import|pr_plan|pr_create|ci_plan` adlarıyla bulunur.
+
+## 13. İmzalı kurucu ve platform sınırı
+
+Kurucu `--sign-cert` veya `RESPECTED_SIGN_CERT` ile verilen PFX kullanılarak Authenticode ile imzalanır; `--require-signed`
+imzasız artefaktı başarı saymaz. Doğrulama fail-closed'dır: kurcalanmış SHA, yanlış imzalayan, süresi dolmuş sertifika ve
+desteklenmeyen platform reddedilir. Depoda üretim sertifikası yoktur; bu hattın kanıtı self-signed test sertifikasıyladır.
+Yayın kapısı yalnızca Windows'u GA sayar; Linux ve macOS `no-go` kalır (`KANIT_LOG.md` §REL-01, §REL-04).

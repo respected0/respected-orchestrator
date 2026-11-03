@@ -22,7 +22,7 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 | `config` | Bütün ayarları gösterir (gizli değerler `***set***`). |
 | `config get ANAHTAR` | Bir ayarı gösterir. |
 | `config set A=D [A=D...]` | Doğrular ve uygular; geçersizse hiçbir şey yazmaz (çıkış 2). Mantıksal değerler `true`/`false`. Anahtarlar: [USAGE.md](USAGE.md#8-ayarlar). |
-| `health` | Veri klasörü yazılabilir mi, Git var mı, en az bir çalışan aracı bulunuyor mu, motor anahtarı okunabilir mi; sağlıklıysa 0. |
+| `health` | Veri klasörü yazılabilir mi, Git var mı, en az bir çalışan aracı bulunuyor mu, motor anahtarı okunabilir mi; sağlıklıysa 0. Yanıttaki `wizard` salt-okunur ilk-görev rehberidir. |
 | `status` | Sürüm, veri klasörü, bulunan çalışan araçlarının yolları ve Git. |
 
 ## Brain hafızası ve AI araçları
@@ -39,7 +39,8 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 | `rpp` | stdin'den bir RPP isteği okur, stdout'a bir yanıt yazar. Hub bunu kullanır. |
 
 **RPP işlemleri** (protokol sürümü `"1"`): `manifest`, `health`, `settings.schema|validate|apply|readback`,
-`integrations.plan|apply|rollback`, `memory.connect|disconnect|status`.
+`integrations.plan|apply|rollback`, `memory.connect|disconnect|status`, `evidence.view`,
+`github.issue_import|pr_plan|pr_create|ci_plan`.
 
 **MCP araçları:** `orchestrator_status`, `orchestrator_plan`, `orchestrator_task_start`, `orchestrator_project_start`,
 `orchestrator_list`, `orchestrator_progress`, `orchestrator_evidence`, `orchestrator_resume`, `orchestrator_cancel`,
@@ -156,3 +157,24 @@ imza geçersizse yapılandırılmış hata verir. Aynı çıktı RPP `evidence.v
 
 `health` yanıtındaki `wizard` alanı ilk görev ve sonraki adımı gösterir; onay yalnızca etkileşimli terminalde
 `maf-approve` ile alınır, MCP/agent üzerinden onay verilemez.
+
+## GitHub (GH-01/02/03)
+
+`gh` CLI ile oturum açmış olmayı gerektirir. Issue ve CI geri bildirimi güvenilmeyen plan girdisidir; otomatik
+worker başlatılmaz, merge komutu üretilmez.
+
+| Komut | Girdi | Ne yapar |
+|---|---|---|
+| `github-import-issue` | stdin: `{"repo":"owner/name","number":1,"allowed_labels":["bug"]}` | Issue'yu salt-okunur içe aktarır; etiketleri izin listesine göre süzer. |
+| `github-pr-plan` | stdin: `{"run_id":"run-...","repo":"owner/name","head":"branch","base":"main"}` | İmzalı `completed` ve secret'sız sonuçtan taslak PR planı üretir; yazmaz. |
+| `github-pr-create` | stdin: `{"run_id":"run-...","confirm":true,"operation_id":"op-...","project_root":"C:\\proje","head":"branch"}` | Planı doğrular, yalnızca bu açık onayla branch'i push edip taslak PR açar. |
+| `github-ci-plan` | stdin: `{"feedback":{...},"head_sha":"...","max_rounds":3,"used_rounds":0,"authorized":true,"approval":true}` | Round/SHA/reviewer/onay sınırlı düzeltme planı üretir; PR'a yorum/merge yazmaz. |
+
+Aynı sözleşme RPP `github.issue_import|pr_plan|pr_create|ci_plan` operasyonlarından da kullanılır.
+
+## İmzalı kurucu ve yayın kapısı
+
+Paketleme sırasında Authenticode imzası `--sign-cert` (veya `RESPECTED_SIGN_CERT`) ile verilen PFX'ten alınır;
+`--require-signed` imzasız artefaktı başarı saymaz. Doğrulama `release_signature.verify` ile fail-closed'dır:
+tampered SHA, yanlış imzalayan, süresi dolmuş sertifika ve desteklenmeyen platform reddedilir. Depoda üretim
+sertifikası yoktur; self-signed sertifika yalnızca hattı kanıtlar. Platform kapısı yalnızca Windows'u GA sayar.

@@ -58,10 +58,10 @@ Bunlar mevcut ürünün belgelenmiş tasarım sözleşmeleridir; yeni özellik e
 | `ADP-02` | API anahtarı, ağ ve sağlayıcı tehdit modeli | P2 | G3 | `SEC-01`, `REL-02` | Tamamlandı — kanıt: `KANIT_LOG.md` §ADP-02 |
 | `ADP-03` | OpenRouter/API sağlayıcı adaptörü | P2 | G4 | `ADP-02`, `COST-02`, `SEC-04` | Tamamlandı — kanıt: `KANIT_LOG.md` §ADP-03 |
 | `EXT-01` | Skill/MCP yetenek manifestosu ve izin denetimi | P2 | G3 | `SEC-01` | Tamamlandı — kanıt: `KANIT_LOG.md` §EXT-01 |
-| `EXT-02` | Serena/context MCP için read-only deneme adaptörleri | P2 | G4 | `EXT-01`, `SEC-04` | Bekliyor |
-| `REL-01` | Authenticode imzalı Windows kurucu hattı | P2 | G4 | — | Bekliyor |
-| `REL-03` | İlk göreve giden kurulum rehberi ve health wizard | P2 | G4 | `UX-02`, `REL-01` | Bekliyor |
-| `REL-04` | macOS/Linux için güvenlik eşdeğerliği ve platform kararı | P2 | G4 | `SEC-04` | Bekliyor |
+| `EXT-02` | Serena/context MCP için read-only deneme adaptörleri | P2 | G4 | `EXT-01`, `SEC-04` | Tamamlandı — gerçek stdio istemcisi; Serena/context sunucusu bu makinede yok: `KANIT_LOG.md` §EXT-02 |
+| `REL-01` | Authenticode imzalı Windows kurucu hattı | P2 | G4 | — | Tamamlandı — self-signed test sertifikasıyla gerçek hat; üretim sertifikası yok: `KANIT_LOG.md` §REL-01 |
+| `REL-03` | İlk göreve giden kurulum rehberi ve health wizard | P2 | G4 | `UX-02`, `REL-01` | Tamamlandı — kanıt: `KANIT_LOG.md` §REL-03 |
+| `REL-04` | macOS/Linux için güvenlik eşdeğerliği ve platform kararı | P2 | G4 | `SEC-04` | Tamamlandı — karar kapısı; Windows go, Linux/macOS no-go: `KANIT_LOG.md` §REL-04 |
 ## 5. İlk grup
 
 Bağımsız başlangıç işleri, bu sırayla:
