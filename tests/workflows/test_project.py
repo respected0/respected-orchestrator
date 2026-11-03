@@ -46,7 +46,7 @@ class ProjectTests(unittest.TestCase):
         lane = {"name": name, "after": [], "request": {
             "project_root": str(self.source), "task": f"{name} task", "worker": "custom", "kind": "write",
             "ownership": [owned], "command": command, "acceptance": [accept], "timeout_seconds": 30,
-            "workflow": {"max_corrections": 0}}}
+            "workflow": {"max_fix_rounds": 0}}}
         return {"name": name, "after": list(after), "workstreams": [lane], "auto_apply": auto_apply,
                 "verify": [{"command": verify or check_file(owned, "new\n"), "cwd": str(self.source)}]}
 

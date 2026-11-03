@@ -41,7 +41,7 @@ class ProjectRecoveryTests(unittest.TestCase):
         return {"name": name, "after": list(after), "request": {
             "project_root": str(self.source), "task": f"{name} task", "worker": "custom", "kind": "write",
             "ownership": [owned], "command": command, "acceptance": [accept], "timeout_seconds": 30,
-            "workflow": {"max_corrections": 0}}}
+            "workflow": {"max_fix_rounds": 0}}}
 
     def phase(self, name, lanes, after=(), verify=None, auto_apply=True):
         return {"name": name, "after": list(after), "workstreams": lanes, "auto_apply": auto_apply,

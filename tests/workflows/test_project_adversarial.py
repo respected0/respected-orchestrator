@@ -47,7 +47,7 @@ class ProjectAdversarialTests(unittest.TestCase):
         lane = {"name": name, "after": [], "request": {
             "project_root": str(self.source), "task": f"{name} task", "worker": "custom", "kind": "write",
             "ownership": [owned], "command": command, "acceptance": [accept], "timeout_seconds": 30,
-            "workflow": {"max_corrections": 0}}}
+            "workflow": {"max_fix_rounds": 0}}}
         return {"name": name, "after": list(after), "workstreams": [lane], "auto_apply": auto_apply,
                 "verify": [{"command": verify or check_file(owned, "new\n"), "cwd": str(self.source)}]}
 
@@ -172,7 +172,7 @@ class ProjectAdversarialTests(unittest.TestCase):
             "project_root": str(self.source), "task": "one task", "worker": "custom", "kind": "write",
             "ownership": ["f.txt"], "command": write_if("", "f.txt", "new\n"),
             "acceptance": [check_file("f.txt", "new\n")], "timeout_seconds": 30,
-            "workflow": {"max_corrections": 0}}}
+            "workflow": {"max_fix_rounds": 0}}}
         phase = {"name": "one", "after": [], "workstreams": [lane], "auto_apply": True,
                  "verify": [{"command": check_file("f.txt", "new\n"), "cwd": str(self.source)}]}
         project_id = self.create([phase])
