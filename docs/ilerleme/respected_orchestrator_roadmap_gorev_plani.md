@@ -293,6 +293,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 
 #### EVAL-02 — Doğrudan ajan vs Orchestrator karşılaştırma başlangıcı
 
+**Durum:** Tamamlandı — kanıt: `KANIT_LOG.md` §EVAL-02
+
 **Etiketler:** `priority:P0`, `gate:G0`, `epic:l-m-ve-benchmark`, `size:M`  
 **Mevcut ROADMAP bağlantısı:** Yeni; nicel referans eksikliği  
 **Bağımlılıklar:** EVAL-01
@@ -302,10 +304,10 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 **Test senaryoları:** Her iki modda 10 ortak görev x 3 tekrar; kota dolması, bilinmeyen token, environment drift denemesi.
 
 **Ölçülebilir kabul kriterleri:**
-- [ ] En az 60 tam koşu raporu veya tamamlanamayanların ayrı nedenleri.
-- [ ] başarı ve güvenlik oranları birbirinden bağımsız.
-- [ ] sürüm/tarih/runtime metadata %100 mevcut.
-- [ ] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
+- [x] En az 60 tam koşu raporu veya tamamlanamayanların ayrı nedenleri.
+- [x] başarı ve güvenlik oranları birbirinden bağımsız.
+- [x] sürüm/tarih/runtime metadata %100 mevcut.
+- [x] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### EVAL-03 — Kıyas raporu ve regresyon kapısı
 

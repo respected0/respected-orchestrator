@@ -1,0 +1,1428 @@
+{
+  "schema": "respected.eval.compare.v1",
+  "metadata": {
+    "python": "3.13.15",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "machine": "AMD64",
+    "git": "git version 2.55.0.windows.5",
+    "timestamp_utc": "2026-11-03T03:27:23.322054+00:00",
+    "model": "golden-fixture",
+    "comparison_schema": "respected.eval.compare.v1"
+  },
+  "repeat": 3,
+  "timeout": 20.0,
+  "fixture_ids": [
+    "RSP-001",
+    "RSP-002",
+    "RSP-003",
+    "RSP-004",
+    "RSP-005",
+    "RSP-006",
+    "RSP-007",
+    "RSP-008",
+    "RSP-009",
+    "RSP-010",
+    "RSP-011",
+    "RSP-012",
+    "RSP-013",
+    "RSP-014",
+    "RSP-015",
+    "RSP-016",
+    "RSP-017",
+    "RSP-018",
+    "RSP-019",
+    "RSP-020"
+  ],
+  "modes": [
+    {
+      "mode": "direct",
+      "tasks": [
+        {
+          "task_id": "RSP-001",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "a361a96f3f25de1617e956b667b9fdf2b0f21e4e",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1251,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "a361a96f3f25de1617e956b667b9fdf2b0f21e4e",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1125,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "a361a96f3f25de1617e956b667b9fdf2b0f21e4e",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1107,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-002",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "987495e918157038253320f21a6d22e673857833",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1105,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "987495e918157038253320f21a6d22e673857833",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1103,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "987495e918157038253320f21a6d22e673857833",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1149,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-003",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "a213fcde79b8fe68bb454c0848fc5204b5d96fe6",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1632,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "a213fcde79b8fe68bb454c0848fc5204b5d96fe6",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1357,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "a213fcde79b8fe68bb454c0848fc5204b5d96fe6",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1278,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-004",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "a1cd9219bdad63112bbfaa20d9a4b5f5c8fbd7ac",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1248,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "a1cd9219bdad63112bbfaa20d9a4b5f5c8fbd7ac",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1188,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "a1cd9219bdad63112bbfaa20d9a4b5f5c8fbd7ac",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.115,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-005",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "8c5f3481bd2ae326d8f33d59c8dfcd4d3829e5ee",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1172,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "8c5f3481bd2ae326d8f33d59c8dfcd4d3829e5ee",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1206,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "8c5f3481bd2ae326d8f33d59c8dfcd4d3829e5ee",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1179,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-006",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "ad6f7c15dc626403bff4ea4dbd8d2891858f5d09",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1257,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "ad6f7c15dc626403bff4ea4dbd8d2891858f5d09",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.11,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "ad6f7c15dc626403bff4ea4dbd8d2891858f5d09",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.125,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-007",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "32592c8eed73804fba8112d566179d0363fc6230",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1277,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "32592c8eed73804fba8112d566179d0363fc6230",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1147,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "32592c8eed73804fba8112d566179d0363fc6230",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1199,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-008",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "1c454d9b08212bebcbf5eb6a8ea3c9889e90da16",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1221,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "1c454d9b08212bebcbf5eb6a8ea3c9889e90da16",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1134,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "1c454d9b08212bebcbf5eb6a8ea3c9889e90da16",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1109,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-009",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "7cb0153f2cd38348605f597e414b4fabd23c4049",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1189,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "7cb0153f2cd38348605f597e414b4fabd23c4049",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1128,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "7cb0153f2cd38348605f597e414b4fabd23c4049",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1112,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-010",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "9496f53cdad11fee8d1e1b7cf24def9fbf71a119",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1125,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "9496f53cdad11fee8d1e1b7cf24def9fbf71a119",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1136,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "9496f53cdad11fee8d1e1b7cf24def9fbf71a119",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1173,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-011",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "0745a2025fe6430be2f368171bbcc88a0c672ce0",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1144,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "0745a2025fe6430be2f368171bbcc88a0c672ce0",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1116,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "0745a2025fe6430be2f368171bbcc88a0c672ce0",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1117,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-012",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "9e55eb685796ab49b25bf6c43d868a808c9faf7b",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1122,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "9e55eb685796ab49b25bf6c43d868a808c9faf7b",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1154,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "9e55eb685796ab49b25bf6c43d868a808c9faf7b",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1216,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-013",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "2b9114b072938a7f1c62475fa5ba503c4613d917",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1362,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "2b9114b072938a7f1c62475fa5ba503c4613d917",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1133,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "2b9114b072938a7f1c62475fa5ba503c4613d917",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1142,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-014",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "ef33a7f0541a20e24f1604c088851df999b9923b",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1255,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "ef33a7f0541a20e24f1604c088851df999b9923b",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1109,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "ef33a7f0541a20e24f1604c088851df999b9923b",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1132,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-015",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "d0101a78bcf96aca126415cdc7278207da6548db",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1254,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "d0101a78bcf96aca126415cdc7278207da6548db",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1144,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "d0101a78bcf96aca126415cdc7278207da6548db",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1178,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-016",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "7348e271471b00d923f880ec598b929c1f9e9e7d",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1377,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "7348e271471b00d923f880ec598b929c1f9e9e7d",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.113,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "7348e271471b00d923f880ec598b929c1f9e9e7d",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1177,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-017",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "fa926a1e2835975d493307189c661123ac7ec382",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1118,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "fa926a1e2835975d493307189c661123ac7ec382",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.112,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "fa926a1e2835975d493307189c661123ac7ec382",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1214,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-018",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "6c4179639d44a16b7668e20288569ba066201dad",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1198,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "6c4179639d44a16b7668e20288569ba066201dad",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1169,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "6c4179639d44a16b7668e20288569ba066201dad",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1118,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-019",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "4a633cc41c6ac3884869fc7b75e403ce1e195337",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.127,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "4a633cc41c6ac3884869fc7b75e403ce1e195337",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1141,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "4a633cc41c6ac3884869fc7b75e403ce1e195337",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1122,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-020",
+          "mode": "direct",
+          "status": "failed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "d256f609d37b24dce730bd2af72a344b2af8aba9",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1161,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "d256f609d37b24dce730bd2af72a344b2af8aba9",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.1141,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "d256f609d37b24dce730bd2af72a344b2af8aba9",
+              "start_sha_matches": true,
+              "status": "failed",
+              "duration_seconds": 0.117,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "orchestrated",
+      "tasks": [
+        {
+          "task_id": "RSP-001",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "a361a96f3f25de1617e956b667b9fdf2b0f21e4e",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1095,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "a361a96f3f25de1617e956b667b9fdf2b0f21e4e",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1131,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "a361a96f3f25de1617e956b667b9fdf2b0f21e4e",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1193,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-002",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "987495e918157038253320f21a6d22e673857833",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1113,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "987495e918157038253320f21a6d22e673857833",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1096,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "987495e918157038253320f21a6d22e673857833",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.112,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-003",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "a213fcde79b8fe68bb454c0848fc5204b5d96fe6",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1177,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "a213fcde79b8fe68bb454c0848fc5204b5d96fe6",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1154,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "a213fcde79b8fe68bb454c0848fc5204b5d96fe6",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.122,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-004",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "a1cd9219bdad63112bbfaa20d9a4b5f5c8fbd7ac",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1175,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "a1cd9219bdad63112bbfaa20d9a4b5f5c8fbd7ac",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.113,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "a1cd9219bdad63112bbfaa20d9a4b5f5c8fbd7ac",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1088,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-005",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "8c5f3481bd2ae326d8f33d59c8dfcd4d3829e5ee",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1348,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "8c5f3481bd2ae326d8f33d59c8dfcd4d3829e5ee",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1118,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "8c5f3481bd2ae326d8f33d59c8dfcd4d3829e5ee",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1178,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-006",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "ad6f7c15dc626403bff4ea4dbd8d2891858f5d09",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1114,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "ad6f7c15dc626403bff4ea4dbd8d2891858f5d09",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1083,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "ad6f7c15dc626403bff4ea4dbd8d2891858f5d09",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.118,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-007",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "32592c8eed73804fba8112d566179d0363fc6230",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1167,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "32592c8eed73804fba8112d566179d0363fc6230",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1159,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "32592c8eed73804fba8112d566179d0363fc6230",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1117,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-008",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "1c454d9b08212bebcbf5eb6a8ea3c9889e90da16",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.121,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "1c454d9b08212bebcbf5eb6a8ea3c9889e90da16",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1098,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "1c454d9b08212bebcbf5eb6a8ea3c9889e90da16",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1114,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-009",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "7cb0153f2cd38348605f597e414b4fabd23c4049",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1198,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "7cb0153f2cd38348605f597e414b4fabd23c4049",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1244,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "7cb0153f2cd38348605f597e414b4fabd23c4049",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1107,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-010",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "9496f53cdad11fee8d1e1b7cf24def9fbf71a119",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1201,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "9496f53cdad11fee8d1e1b7cf24def9fbf71a119",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1182,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "9496f53cdad11fee8d1e1b7cf24def9fbf71a119",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1131,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-011",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "0745a2025fe6430be2f368171bbcc88a0c672ce0",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1075,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "0745a2025fe6430be2f368171bbcc88a0c672ce0",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1163,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "0745a2025fe6430be2f368171bbcc88a0c672ce0",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1124,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-012",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "9e55eb685796ab49b25bf6c43d868a808c9faf7b",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1149,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "9e55eb685796ab49b25bf6c43d868a808c9faf7b",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.124,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "9e55eb685796ab49b25bf6c43d868a808c9faf7b",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1179,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-013",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "2b9114b072938a7f1c62475fa5ba503c4613d917",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1097,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "2b9114b072938a7f1c62475fa5ba503c4613d917",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1287,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "2b9114b072938a7f1c62475fa5ba503c4613d917",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.119,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-014",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "ef33a7f0541a20e24f1604c088851df999b9923b",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.112,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "ef33a7f0541a20e24f1604c088851df999b9923b",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1151,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "ef33a7f0541a20e24f1604c088851df999b9923b",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.118,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-015",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "d0101a78bcf96aca126415cdc7278207da6548db",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1297,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "d0101a78bcf96aca126415cdc7278207da6548db",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1091,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "d0101a78bcf96aca126415cdc7278207da6548db",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1107,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-016",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "7348e271471b00d923f880ec598b929c1f9e9e7d",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1119,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "7348e271471b00d923f880ec598b929c1f9e9e7d",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1077,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "7348e271471b00d923f880ec598b929c1f9e9e7d",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1161,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-017",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "fa926a1e2835975d493307189c661123ac7ec382",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1241,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "fa926a1e2835975d493307189c661123ac7ec382",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1121,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "fa926a1e2835975d493307189c661123ac7ec382",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1068,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-018",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "6c4179639d44a16b7668e20288569ba066201dad",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1154,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "6c4179639d44a16b7668e20288569ba066201dad",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1078,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "6c4179639d44a16b7668e20288569ba066201dad",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1146,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-019",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "4a633cc41c6ac3884869fc7b75e403ce1e195337",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1209,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "4a633cc41c6ac3884869fc7b75e403ce1e195337",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.109,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "4a633cc41c6ac3884869fc7b75e403ce1e195337",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1128,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        },
+        {
+          "task_id": "RSP-020",
+          "mode": "orchestrated",
+          "status": "passed",
+          "runs": [
+            {
+              "run": 1,
+              "start_sha": "d256f609d37b24dce730bd2af72a344b2af8aba9",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1311,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 2,
+              "start_sha": "d256f609d37b24dce730bd2af72a344b2af8aba9",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.123,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            },
+            {
+              "run": 3,
+              "start_sha": "d256f609d37b24dce730bd2af72a344b2af8aba9",
+              "start_sha_matches": true,
+              "status": "passed",
+              "duration_seconds": 0.1115,
+              "security_violation": false,
+              "cost": "bilinmiyor"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "direct": {
+      "tasks": 20,
+      "runs": 60,
+      "success_rate": 0.0,
+      "security_violations": 0,
+      "interventions": 0,
+      "duration_seconds": 7.1011,
+      "cost": "bilinmiyor"
+    },
+    "orchestrated": {
+      "tasks": 20,
+      "runs": 60,
+      "success_rate": 1.0,
+      "security_violations": 0,
+      "interventions": 0,
+      "duration_seconds": 6.9339,
+      "cost": "bilinmiyor"
+    }
+  }
+}

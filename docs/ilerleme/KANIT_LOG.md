@@ -2149,6 +2149,62 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
 
 ---
 
+## EVAL-02 — Doğrudan ajan vs Orchestrator karşılaştırma başlangıcı
+
+- Durum: Tamamlandı.
+- Kapsam: Aynı fixture, commit, makine ve eşit timeout ile doğrudan ve orkestre kolların karşılaştırılması.
+  Doğrudan kol bir değişiklik uygulamaz; orkestre kol doğrulanmış altın yamayı uygular. Bu koşu harness
+  tutarlılığını ölçer; model kalitesi iddiası değildir.
+- Çıktı / değişen dosyalar: `tests/evals/compare.py`, `tests/evals/test_compare.py`,
+  `docs/ilerleme/poc/eval02_real.py`, `docs/ilerleme/poc/eval02_results.json`, `docs/ilerleme/poc/eval02_real.log`,
+  `docs/ilerleme/poc/eval02_eval03_focused.log`, `docs/ARCHITECTURE.md`,
+  `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`,
+  `docs/ilerleme/respected_orchestrator_github_issues.csv`.
+- Doğrulama komutu:
+
+```text
+$env:PYTHONPATH='src'
+py -m unittest tests.evals.test_compare tests.evals.test_report
+py docs/ilerleme/poc/eval02_real.py
+```
+
+### Gerçek koşu
+
+- 20 fixture x 3 tekrar x 2 kol = 120 tam koşu.
+- Doğrudan kol: 60 koşu, başarı `0.0`, güvenlik ihlali `0`, süre `7.1011 sn`, maliyet `bilinmiyor`.
+- Orkestre kol: 60 koşu, başarı `1.0`, güvenlik ihlali `0`, süre `6.9339 sn`, maliyet `bilinmiyor`.
+- Metadata: Python, platform, makine, git sürümü, UTC zaman damgası ve `model=golden-fixture` her raporda mevcut.
+
+### Test sonuçları
+
+- Odaklı: `Ran 9 tests ... OK` (`docs/ilerleme/poc/eval02_eval03_focused.log`).
+- Gerçek koşu: `docs/ilerleme/poc/eval02_real.log`, rapor `docs/ilerleme/poc/eval02_results.json`.
+
+### Kalan risk / shortcut
+
+- Koşu gerçek bir modeli değil, altın yama kolunu kullanır; model karşılaştırması için kimlikli sağlayıcı ve kota
+  gerekir. Bu nedenle sonuç ürün başarısı olarak sunulmaz (`shortcut: model yerine altın fixture, kimlikli koşu
+  sağlanınca`).
+- Güvenlik ihlali sayacı bu harness'ta her iki kolda da sıfırdır; gerçek izolasyon testleri SEC serisindedir.
+
+### Kanıt artefaktları (SHA-256)
+
+<!-- EVAL02_HASHES_START -->
+- `tests/evals/compare.py` -> `931FA1F82662628E147A85B78332F9C4CAE1F856AEA69BC285E6D3D6E9F90972`
+- `tests/evals/test_compare.py` -> `83552BCADD9306FE5A311F4F157C2C7DF6F2940F10A93AF4FE09A0026DD08920`
+- `docs/ilerleme/poc/eval02_real.py` -> `52D1B5FD9DE5666F00662D43F9B2E9EED9AD8B7D673CE56D4CA0E784BCFBC840`
+- `docs/ilerleme/poc/eval02_results.json` -> `02EC598D4562B8B1553F08267DC0F927F94E0A0D6827B2E4BAA7C288454C7B22`
+- `docs/ilerleme/poc/eval02_real.log` -> `F020F5E057820EB8ED167EEB9A3E7025EA51177747E88A5F7F38A0B26CEFE559`
+- `docs/ilerleme/poc/eval02_eval03_focused.log` -> `95E354833E2418305AFA98C394A00FD9242369851E798DC0000F5FFFD8A68B6F`
+- `docs/ARCHITECTURE.md` -> `F54981A1B39CFB5C919903ABACB6C1E05854F097E01A5A629604482BA532A5B4`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `A7CC45D18E7FD99C82F8AB403E4B8A6F169901975A818A1AF24D44DF6E7EC6B1`
+- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DD90BBF848E4DFA6B2AF16E2F5971E94D878AF7DAF705CCAD322B12FEB00484B`
+<!-- EVAL02_HASHES_END -->
+
+`KANIT_LOG.md` kendi hash listesine dahil edilmez.
+
+---
+
 ## Şablon (sonraki görevler)
 
 ```
