@@ -1904,6 +1904,77 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
 
 ---
 
+## COST-02 — Sürüm kontrollü fiyat kataloğu ve belirsizlik sözleşmesi
+
+- Durum: Tamamlandı.
+- Kapsam: Model fiyatını sürüm ve zaman damgasına bağlı, deterministik ve belirsizliği açıkça gösteren bir katalog
+  sözleşmesi. Canlı fiyat çağrısı zorunlu değildir; hiçbir eksik veri sıfır maliyet sayılmaz.
+- Çıktı / değişen dosyalar: `src/respected_orchestrator/engine/pricing.py`, `tests/engine/test_pricing.py`,
+  `docs/ARCHITECTURE.md`, `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`,
+  `docs/ilerleme/respected_orchestrator_github_issues.csv`, `docs/ilerleme/poc/cost02_*`.
+- Doğrulama komutu:
+
+```text
+$env:PYTHONPATH='src'
+py -m unittest tests.engine.test_pricing
+py -m unittest discover -s tests -t .
+py packaging/build_dist.py
+py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_security
+```
+
+### Sözleşme
+
+- `pricing.quote(catalog, model, input_tokens, output_tokens, at=...)` yalnızca `effective_from` değeri `at`'dan
+  büyük olmayan en yeni katalog girdisini seçer. Aynı girdi her zaman aynı sonucu verir.
+- Her rakamsal teklif `at`, `model_version`, `effective_from`, `currency` ve `unit` taşır; liste fiyatı olduğu için
+  `estimate_only=true`. `observed_tokens` verilirse `confidence=observed`, verilmezse `estimated` olur.
+- Model katalogda yoksa, kullanım eksik/negatifse veya sağlayıcı erişilemezse `amount=None`, `status=unknown` ve
+  gerekçe (`model_unknown`, `usage_unknown`, `provider_unavailable`, `not_yet_effective`) döner. `display()` bunu
+  `"unknown"` olarak gösterir; sıfır gösterilmez.
+- Gizli API anahtarı bu modüle girmez; fiyat kataloğu anahtar veya sağlayıcı durumu saklamaz.
+
+### Test senaryoları (5/5)
+
+| Senaryo | Beklenen | Sonuç |
+|---|---|---|
+| Model unknown | `unknown`, tutar `None`, gösterim `"unknown"` | geçti |
+| Fiyat değişti | Zaman damgasına göre `v1`/`v2` ve farklı tutar | geçti |
+| Input/output ayrı | Girdi ve çıktı ayrı birim fiyatla toplanır (`9.0 USD`) | geçti |
+| Eksik kullanım | `usage_unknown`, tutar `None` | geçti |
+| Sağlayıcı downtime | `provider_unavailable`, sessiz fallback yok | geçti |
+
+### Test sonuçları
+
+- Odaklı: `Ran 6 tests ... OK` (`docs/ilerleme/poc/cost02_focused.log`).
+- Tam regresyon: `Ran 512 tests ... OK` (`docs/ilerleme/poc/cost02_full_suite.log`).
+- Paketleme: `py packaging/build_dist.py` başarılı; `Ran 7 tests ... OK`
+  (`docs/ilerleme/poc/cost02_packaging.log`).
+
+### Kanıt artefaktları (SHA-256)
+
+<!-- COST02_HASHES_START -->
+- `src/respected_orchestrator/engine/pricing.py` -> `E552300D521F83DEEDCAEE68BD7FDEED61BCB4BFF9D9EE444E91D2C2177ACF42`
+- `tests/engine/test_pricing.py` -> `E44B09E8F87DCDAA269F310B9CBAFE3C8B76B1EB410F28B7E28774E53CB3788F`
+- `docs/ARCHITECTURE.md` -> `92F69502A605B6FAD58C6314EEB05143496472D1E8CF4E19E5FA3CF57C63DA2C`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `27DFB4494D43BD0A11CC6F22BD456DECF6908D8E2D47A5E42085E58F41BF9CD8`
+- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `6F30FEB0E563C9E2A9D4387338C70467EC43B94DF94098C74C7D10D8AA5B7AF0`
+- `docs/ilerleme/poc/cost02_focused.log` -> `865297ED1702FE8621131A866B14CD6C839126F2BD3D8E9B7CDFED34DA82AEDA`
+- `docs/ilerleme/poc/cost02_full_suite.log` -> `806EC65EB48EFE808E6B5BD7207FDADBC3364ECB49B4B1B9E97C409DF77C971B`
+- `docs/ilerleme/poc/cost02_packaging.log` -> `9A2C4220BC6340F5DD05DBBB76BCD1D301B670D5C2F45B8665E6208ECF56696A`
+<!-- COST02_HASHES_END -->
+
+`KANIT_LOG.md` kendi hash listesine dahil edilmez.
+
+### Kalan risk / shortcut
+
+- Katalogda gerçek sağlayıcı fiyatları yok; operatör sürümlü veri sağlamalıdır. Canlı fiyat çekilmediği için
+  liste fiyatı ile faturalanan tutar arasında fark olabilir (`estimate_only`).
+- Fiyat seçimi `effective_from` sırasına dayanır; aynı zaman damgasına sahip iki girdi varsa belirsizlik vardır ve
+  katalog verisi bunu üretmemelidir.
+- Para birimi dönüşümü yapılmaz; farklı para birimleri toplanmaz.
+
+---
+
 ## Şablon (sonraki görevler)
 
 ```

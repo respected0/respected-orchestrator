@@ -108,6 +108,10 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   `RESPECTED_PROVIDER_CODE_GATE=1` ister; yalnızca `https` ve açık allowlist'teki tam alan adına izin verir. Her
   redirect hedefi yeniden doğrulanır; proxy de allowlist'ten geçer. 401/429/5xx başka sağlayıcıya sessiz fallback
   yapmaz. Anahtar istek anında kasadan okunur, log/kanıt/ayar JSON'una yazılmaz ve `***set***` ile maskelenir.
+- **Fiyat kataloğu (COST-02):** `engine/pricing.py` sürüm kontrollü katalogdan deterministik teklif üretir. Her
+  rakamsal teklif `at`, `model_version`, `effective_from` ve `currency` taşır; model, kullanım veya sağlayıcı
+  bilinmiyorsa tutar `None` ve durum `unknown` olur, sıfıra çevrilmez. Fiyatlar liste fiyatıdır
+  (`estimate_only`); canlı fiyat çağrısı zorunlu değildir.
 
 ## 3. Doğrulama kum havuzu
 

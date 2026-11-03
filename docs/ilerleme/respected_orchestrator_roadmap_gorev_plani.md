@@ -593,6 +593,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 
 #### COST-02 — Sürüm kontrollü fiyat kataloğu ve belirsizlik sözleşmesi
 
+**Durum:** Tamamlandı — kanıt: `KANIT_LOG.md` §COST-02
+
 **Etiketler:** `priority:P1`, `gate:G2`, `epic:telemetri-ve-model-y-nlendirme`, `size:M`  
 **Mevcut ROADMAP bağlantısı:** Otomatik atama fiyatı + OpenRouter bekliyor (mevcut)  
 **Bağımlılıklar:** REL-02
@@ -602,11 +604,11 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 **Test senaryoları:** Model unknown, fiyat değişti, input/output ayrı, eksik kullanım, sağlayıcı downtime.
 
 **Ölçülebilir kabul kriterleri:**
-- [ ] 5/5 durum deterministik.
-- [ ] bilinmeyen ücret için unknown gösterimi %100.
-- [ ] her rakamsal fiyat hesaplamasında timestamp+model version mevcut.
-- [ ] canlı fiyat zorunlu tutulmaz.
-- [ ] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
+- [x] 5/5 durum deterministik.
+- [x] bilinmeyen ücret için unknown gösterimi %100.
+- [x] her rakamsal fiyat hesaplamasında timestamp+model version mevcut.
+- [x] canlı fiyat zorunlu tutulmaz.
+- [x] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### COST-03 — Risk ve başarım tabanlı auto_assign v2
 
