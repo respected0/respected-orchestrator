@@ -75,7 +75,7 @@ def sign(path, *, certificate=None, timestamp_url=None, run=None):
     certificate = certificate or os.environ.get("RESPECTED_SIGN_CERT")
     if not certificate:
         raise ValueError("RESPECTED_SIGN_CERT is not set; refusing to mark anything as signed")
-    command = ["signtool", "sign", "/sha256", "/fd", "SHA256", "/f", certificate]
+    command = ["signtool", "sign", "/fd", "SHA256", "/f", certificate]
     password = os.environ.get("RESPECTED_SIGN_PASSWORD")
     if password:
         command += ["/p", password]

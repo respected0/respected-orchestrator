@@ -58,6 +58,16 @@ class ReleaseSignatureTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "RESPECTED_SIGN_CERT"):
                 sig.sign(self.exe)
 
+    def test_signing_uses_modern_fd_hash_option(self):
+        commands = []
+        def run(command, **kwargs):
+            commands.append(command)
+            return result({})
+        with mock.patch.dict(os.environ, {"RESPECTED_SIGN_CERT": "cert.pfx"}, clear=True):
+            sig.sign(self.exe, run=run)
+        self.assertIn("/fd", commands[0])
+        self.assertNotIn("/sha256", commands[0])
+
 
 if __name__ == "__main__":
     unittest.main()
