@@ -61,12 +61,18 @@ class ResolutionTests(unittest.TestCase):
         with self.assertRaises(roles.RoleError):  # the legacy single-profile key still means "unset" when empty
             resolve({"default_reviewer_profile": ""}, {}, ["implementer", "reviewer"])
 
-    def test_roles_nothing_can_execute_are_refused_in_a_task(self):
+    def test_coordinator_is_a_planning_stage_not_a_task_role_and_tester_has_no_free_form_command(self):
         from respected_orchestrator.engine import runner
         workflow = dict(reviewer_tool=None, reviewer_profile=None, deep_review_tool=None, deep_review_profile=None)
         with self.assertRaises(roles.RoleError) as caught:
-            runner._explicit_roles({"roles": {"tester": {"profile": "x"}}}, workflow)
+            runner._explicit_roles({"roles": {"coordinator": {"profile": "x"}}}, workflow)
         self.assertEqual(caught.exception.code, "ROLE_NOT_EXECUTABLE")
+        self.assertIn("coordinate", caught.exception.hint)
+        got = runner._explicit_roles({"roles": {"tester": {"profile": "x"}}}, workflow)
+        self.assertEqual(got["tester"], {"profile": "x"})
+        with self.assertRaises(roles.RoleError) as caught:
+            roles.normalize("tester", {"profile": "x", "command": ["rm", "-rf", "."]}, tools=TOOLS)
+        self.assertEqual(caught.exception.code, "BAD_ASSIGNMENT")
 
     def test_nothing_is_assigned_silently(self):
         with self.assertRaises(roles.RoleError) as caught:

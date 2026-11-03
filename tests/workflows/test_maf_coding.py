@@ -12,8 +12,9 @@ from agent_framework import InMemoryCheckpointStorage
 
 from respected_orchestrator.context import EngineContext
 from respected_orchestrator.__main__ import main
+from respected_orchestrator.workflows import maf_workflow
 from respected_orchestrator.workflows.maf_workflow import run_maf_coding_task
-from respected_orchestrator.engine.runner import approve_maf_task, check_result, create_task, inspect_task
+from respected_orchestrator.engine.runner import approve_maf_task, check_result, create_task, execute_task, inspect_task
 from respected_orchestrator.engine.codex import CodexOutcome
 
 
@@ -39,7 +40,7 @@ class MafCodingTaskTest(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
-    def create_run(self, *, command=None, acceptance=None, **workflow) -> str:
+    def create_run(self, *, command=None, acceptance=None, roles=None, **workflow) -> str:
         request = {
             "project_root": str(self.repo),
             "task": "fixture coding task",
@@ -53,6 +54,8 @@ class MafCodingTaskTest(unittest.TestCase):
         }
         if workflow:
             request["workflow"] = workflow
+        if roles:
+            request["roles"] = roles
         run_id = create_task(self.ctx, request)["run_id"]
         (self.ctx.run_dir(run_id) / "worker.patch").write_text("+value = 1\n", encoding="utf8")
         return run_id
@@ -90,8 +93,51 @@ class MafCodingTaskTest(unittest.TestCase):
         with mock.patch("respected_orchestrator.workflows.maf_workflow.execute_task", return_value=result):
             output = run_maf_coding_task(ctx=self.ctx, run_id=run_id)
 
+        self.assertEqual(output["status"], "REPEATED_TEST_FAILURE")
+        self.assertEqual(output["reason"], "repeated_test_failure")
+        self.assertFalse(output["retryable"])
+
+    def test_review_prompt_includes_tester_evidence_only_when_present(self) -> None:
+        result = {"engine_result": {"changed_files": ["calculator.py"], "checks": [
+            {"command": ["python", "-m", "unittest"], "returncode": 0}]}}
+        report = {"stage": "tester", "status": "passed", "commands": [{"returncode": 0}]}
+        absent = maf_workflow._review_prompt_text("fast", "task", result)
+        present = maf_workflow._review_prompt_text(
+            "fast", "task", {**result, "engine_result": {**result["engine_result"], "tester": report}})
+        self.assertNotIn('"tester":', absent)
+        self.assertIn('"tester":', present)
+        self.assertIn('"stage": "tester"', present)
+
+    def test_missing_tester_evidence_blocks_review_before_the_reviewer_runs(self) -> None:
+        run_id = self.create_run(roles={"tester": {"tool": "custom", "profile": "qa"}}, max_fix_rounds=0)
+        result = self.completed_result(run_id)
+        reviewer = mock.Mock(return_value={"decision": "APPROVED"})
+        with mock.patch("respected_orchestrator.workflows.maf_workflow.execute_task", return_value=result):
+            output = run_maf_coding_task(ctx=self.ctx, run_id=run_id, reviewer=reviewer)
         self.assertEqual(output["status"], "FAILED")
-        self.assertEqual(output["reason"], "worker_failed")
+        self.assertEqual(output["review_failure"]["cause"], "tester_evidence_invalid")
+        self.assertEqual(output["review_decisions"], [])
+        reviewer.assert_not_called()
+
+    def test_tampered_tester_evidence_blocks_review_before_the_reviewer_runs(self) -> None:
+        command = [sys.executable, "-c",
+                   "from pathlib import Path; Path('calculator.py').write_text('value = 1\\n', encoding='utf8')"]
+        acceptance = [[sys.executable, "-c",
+                       "from pathlib import Path; assert Path('calculator.py').read_text(encoding='utf8') == 'value = 1\\n'"]]
+        run_id = self.create_run(roles={"tester": {"tool": "custom", "profile": "qa"}},
+                                 command=command, acceptance=acceptance, max_fix_rounds=0)
+        completed = execute_task(self.ctx, run_id)
+        self.assertEqual(completed["status"], "completed")
+        report_path = self.ctx.run_dir(run_id) / "tester-report.json"
+        envelope = json.loads(report_path.read_text(encoding="utf8"))
+        envelope["payload"]["duration_seconds"] += 1
+        report_path.write_text(json.dumps(envelope), encoding="utf8")
+        reviewer = mock.Mock(return_value={"decision": "APPROVED"})
+        with mock.patch("respected_orchestrator.workflows.maf_workflow.execute_task", return_value=completed):
+            output = run_maf_coding_task(ctx=self.ctx, run_id=run_id, reviewer=reviewer)
+        self.assertEqual(output["status"], "FAILED")
+        self.assertEqual(output["review_failure"]["cause"], "tester_evidence_invalid")
+        reviewer.assert_not_called()
 
     def test_checkpoint_resume_does_not_duplicate_completed_execution(self) -> None:
         run_id = self.create_run()
@@ -120,7 +166,7 @@ class MafCodingTaskTest(unittest.TestCase):
         self.assertEqual(second["attempts"], first["attempts"])
 
     def test_correction_uses_a_new_isolated_run_and_re_review_approves(self) -> None:
-        run_id = self.create_run(max_corrections=1)
+        run_id = self.create_run(max_fix_rounds=1)
 
         def fake_execute(ctx, current_run_id):
             return self.completed_result(current_run_id)
@@ -149,7 +195,7 @@ class MafCodingTaskTest(unittest.TestCase):
                    "from pathlib import Path; Path('calculator.py').write_text('value = 1\\n', encoding='utf8')"]
         acceptance = [[sys.executable, "-c",
                        "from pathlib import Path; assert Path('calculator.py').read_text(encoding='utf8') == 'value = 1\\n'"]]
-        run_id = self.create_run(max_corrections=2, command=command, acceptance=acceptance)
+        run_id = self.create_run(max_fix_rounds=2, command=command, acceptance=acceptance)
         reviews = 0
 
         def reviewer(results):
@@ -185,7 +231,7 @@ class MafCodingTaskTest(unittest.TestCase):
             "project_root": str(self.repo), "task": "t", "worker": "custom", "kind": "write",
             "ownership": ["calculator.py"], "command": command, "acceptance": acceptance, "timeout_seconds": 20,
             "worker_profile": "deepseek",
-            "workflow": {"reviewer_profile": "glm", "escalate_profile": "glm", "max_corrections": 2},
+            "workflow": {"reviewer_profile": "glm", "escalate_profile": "glm", "max_fix_rounds": 2},
         })["run_id"]
         seen = []
 
@@ -216,7 +262,7 @@ class MafCodingTaskTest(unittest.TestCase):
             "project_root": str(self.repo), "task": "t", "worker": "custom", "kind": "write",
             "ownership": ["calculator.py"], "command": command, "acceptance": acceptance, "timeout_seconds": 20,
             "worker_profile": "impl", "roles": {"debugger": {"tool": "custom", "profile": "dbg"}},
-            "workflow": {"reviewer_profile": "rev", "max_corrections": 1},
+            "workflow": {"reviewer_profile": "rev", "max_fix_rounds": 1},
         })["run_id"]
         answers = iter([{"decision": "NEEDS_CHANGES", "corrections": {"coding": "again"}, "stage": "fast", "profile": "rev"},
                         {"decision": "APPROVED", "stage": "fast", "profile": "rev"}])
@@ -236,7 +282,7 @@ class MafCodingTaskTest(unittest.TestCase):
         command = [sys.executable, "-c",
                    "from pathlib import Path; Path('calculator.py').write_text('value = 1\\n', encoding='utf8')"]
         acceptance = [[sys.executable, "-c", "assert True"]]
-        run_id = self.create_run(max_corrections=1, command=command, acceptance=acceptance)
+        run_id = self.create_run(max_fix_rounds=1, command=command, acceptance=acceptance)
 
         def reviewer(results):
             patch_path = self.ctx.run_dir(run_id) / "worker.patch"
@@ -250,8 +296,8 @@ class MafCodingTaskTest(unittest.TestCase):
         self.assertEqual(final["engine_result"]["reason"], "engine_error")
         self.assertIn("tampered", final["engine_result"]["error"])
 
-    def test_correction_retry_limit_is_bounded_at_two(self) -> None:
-        run_id = self.create_run(max_corrections=2)
+    def test_fix_rounds_are_bounded_by_the_configured_limit(self) -> None:
+        run_id = self.create_run(max_fix_rounds=2)
 
         def reviewer(results):
             return {"decision": "NEEDS_CHANGES", "corrections": {"coding": "try again"}}
@@ -260,8 +306,10 @@ class MafCodingTaskTest(unittest.TestCase):
                         side_effect=lambda ctx, current: self.completed_result(current)):
             output = run_maf_coding_task(ctx=self.ctx, run_id=run_id, reviewer=reviewer)
 
-        self.assertEqual(output["status"], "NEEDS_CHANGES")
+        self.assertEqual(output["status"], "FIX_ROUNDS_EXHAUSTED")
+        self.assertEqual(output["reason"], "fix_rounds_exhausted")
         self.assertEqual(len(output["attempts"]), 3)
+        self.assertEqual(output["fix_rounds"], {"limit": 2, "used": 2, "remaining": 0})
         self.assertEqual(output["review_decisions"], ["NEEDS_CHANGES"] * 3)
 
     def test_token_usage_sums_worker_and_reviewer_without_double_counting_cache(self) -> None:
@@ -295,7 +343,7 @@ class MafCodingTaskTest(unittest.TestCase):
         )
 
     def test_reviewer_prompt_includes_bounded_patch_preview(self) -> None:
-        run_id = self.create_run(max_corrections=0)
+        run_id = self.create_run(max_fix_rounds=0)
         (self.ctx.run_dir(run_id) / "worker.patch").write_text("+MARKER\n" + "x" * 9000, encoding="utf8")
         outcome = self._codex_outcome({"decision": "APPROVED", "reason": "ok"})
         with mock.patch("respected_orchestrator.workflows.maf_workflow.execute_task",
@@ -308,13 +356,13 @@ class MafCodingTaskTest(unittest.TestCase):
 
     def test_review_requires_deterministic_evidence_and_states_criteria(self) -> None:
         for bad_checks in ([], [{"command": ["x"], "returncode": 1}]):
-            run_id = self.create_run(max_corrections=0)  # a re-invoked run resumes its history, so each case is its own run
+            run_id = self.create_run(max_fix_rounds=0)  # a re-invoked run resumes its history, so each case is its own run
             bad = dict(self.completed_result(run_id), checks=bad_checks)
             with mock.patch("respected_orchestrator.workflows.maf_workflow.execute_task", return_value=bad),                  mock.patch("respected_orchestrator.workflows.maf_workflow.run_codex_call") as codex_call:
                 output = run_maf_coding_task(ctx=self.ctx, run_id=run_id)
             self.assertEqual(output["status"], "FAILED")
             codex_call.assert_not_called()
-        run_id = self.create_run(max_corrections=0)
+        run_id = self.create_run(max_fix_rounds=0)
         outcome = self._codex_outcome({"decision": "APPROVED", "reason": "ok"})
         with mock.patch("respected_orchestrator.workflows.maf_workflow.execute_task",
                         return_value=self.completed_result(run_id)),              mock.patch("respected_orchestrator.workflows.maf_workflow.run_codex_call", return_value=outcome) as codex_call:
@@ -325,7 +373,7 @@ class MafCodingTaskTest(unittest.TestCase):
         self.assertIn("Do not demand evidence about how the worker worked", prompt)
 
     def test_stalled_reviewer_is_capped_and_never_approves(self) -> None:
-        run_id = self.create_run(max_corrections=0, review_timeout_seconds=7)
+        run_id = self.create_run(max_fix_rounds=0, review_timeout_seconds=7)
         stalled = CodexOutcome(status="TIMEOUT", output="", usage={}, events_path=self.root / "e.jsonl",
                                stdout_path=self.root / "o.log", stderr_path=self.root / "s.log")
         with mock.patch("respected_orchestrator.workflows.maf_workflow.execute_task",
@@ -343,7 +391,7 @@ class MafCodingTaskTest(unittest.TestCase):
 
     def test_optional_deep_review_routes_before_approval(self) -> None:
         run_id = self.create_run(deep_review="always", reviewer_profile="independent",
-                                 deep_review_profile="deep", max_corrections=0)
+                                 deep_review_profile="deep", max_fix_rounds=0)
         outcomes = [
             self._codex_outcome({"decision": "APPROVED", "reason": "fast evidence is bounded"}),
             self._codex_outcome({"decision": "APPROVED", "reason": "deep evidence is bounded"}),
@@ -361,7 +409,7 @@ class MafCodingTaskTest(unittest.TestCase):
         self.assertEqual(output["reviews"][0]["deep_review"]["profile"], "deep")
 
     def test_human_approval_is_not_automatically_accepted(self) -> None:
-        run_id = self.create_run(human_approval=True, max_corrections=0)
+        run_id = self.create_run(human_approval=True, max_fix_rounds=0)
         output = run_maf_coding_task(
             ctx=self.ctx, run_id=run_id,
             reviewer=lambda results: {"decision": "APPROVED"},
@@ -375,7 +423,7 @@ class MafCodingTaskTest(unittest.TestCase):
         self.assertEqual(check_result(self.ctx, run_id)["status"], "verified")
 
     def test_invalid_human_approvals_are_rejected(self) -> None:
-        run_id = self.create_run(human_approval=True, max_corrections=0)
+        run_id = self.create_run(human_approval=True, max_fix_rounds=0)
         run_maf_coding_task(ctx=self.ctx, run_id=run_id,
                             reviewer=lambda results: {"decision": "APPROVED"})
         path = self.ctx.run_dir(run_id) / "maf-approval.json"
@@ -395,7 +443,7 @@ class MafCodingTaskTest(unittest.TestCase):
             check_result(self.ctx, run_id)
 
     def test_cross_run_approval_is_rejected(self) -> None:
-        run_id = self.create_run(human_approval=True, max_corrections=0)
+        run_id = self.create_run(human_approval=True, max_fix_rounds=0)
         run_maf_coding_task(ctx=self.ctx, run_id=run_id,
                             reviewer=lambda results: {"decision": "APPROVED"})
         approve_maf_task(self.ctx, run_id)
@@ -406,7 +454,7 @@ class MafCodingTaskTest(unittest.TestCase):
             check_result(self.ctx, run_id)
 
     def approvable_run(self) -> str:
-        run_id = self.create_run(human_approval=True, max_corrections=0)
+        run_id = self.create_run(human_approval=True, max_fix_rounds=0)
         run_maf_coding_task(ctx=self.ctx, run_id=run_id, reviewer=lambda results: {"decision": "APPROVED"})
         return run_id
 
@@ -435,9 +483,9 @@ class MafCodingTaskTest(unittest.TestCase):
 
     def test_budget_reserves_review_room_and_honours_explicit_hard_cap(self) -> None:
         for workflow, total, source in (
-                (dict(reviewer_profile="glm", max_corrections=0), 10 + 900 + 1350, "derived"),  # first attempt + one longer retry
-                (dict(reviewer_profile="deepseek", max_corrections=1), (10 + 600 + 900) * 2, "derived"),
-                (dict(max_corrections=0, timeout_seconds=40), 40, "explicit")):
+                (dict(reviewer_profile="glm", max_fix_rounds=0), 10 + 900 + 1350, "derived"),  # first attempt + one longer retry
+                (dict(reviewer_profile="deepseek", max_fix_rounds=1), (10 + 600 + 900) * 2, "derived"),
+                (dict(max_fix_rounds=0, timeout_seconds=40), 40, "explicit")):
             run_id = self.create_run(**workflow)
             with mock.patch("respected_orchestrator.workflows.maf_workflow.execute_task",
                             return_value=self.completed_result(run_id)):
@@ -446,7 +494,7 @@ class MafCodingTaskTest(unittest.TestCase):
             self.assertEqual((output["budget"]["total_seconds"], output["budget"]["total_source"]), (total, source))
 
     def test_invalid_reviewer_output_blocks_deterministic_acceptance(self) -> None:
-        run_id = self.create_run(max_corrections=0)
+        run_id = self.create_run(max_fix_rounds=0)
         output = run_maf_coding_task(
             ctx=self.ctx, run_id=run_id,
             reviewer=lambda results: {"decision": "SHIP_IT"},
