@@ -1,0 +1,13 @@
+test_01_same_line_conflict_is_rejected_without_real_repo_change (tests.engine.test_integration.IntegrationScenarios.test_01_same_line_conflict_is_rejected_without_real_repo_change) ... ok
+test_02_independent_patches_run_one_combined_verification_and_are_ready (tests.engine.test_integration.IntegrationScenarios.test_02_independent_patches_run_one_combined_verification_and_are_ready) ... ok
+test_03_head_drift_is_rejected_before_staging (tests.engine.test_integration.IntegrationScenarios.test_03_head_drift_is_rejected_before_staging) ... ok
+test_04_first_patch_applies_and_second_fails_without_partial_real_apply (tests.engine.test_integration.IntegrationScenarios.test_04_first_patch_applies_and_second_fails_without_partial_real_apply) ... ok
+test_05_combined_verification_failure_publishes_no_decision_evidence (tests.engine.test_integration.IntegrationScenarios.test_05_combined_verification_failure_publishes_no_decision_evidence) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 35.735s
+
+OK
+
+ELAPSED_SECONDS=36.036
+EXIT_CODE=0
