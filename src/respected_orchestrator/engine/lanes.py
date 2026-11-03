@@ -475,6 +475,7 @@ def _names_generated_location(owned: str) -> bool:
 def collect_worker_changes(lane: Lane, ownership: Sequence[str] = ()) -> ChangeSet:
     if not lane.baseline_commit:
         raise LaneError("lane baseline commit is missing")
+    mode_paths = _unsafe_git_mode_paths(lane)
     tracked = _git_path_list(
         lane.worktree,
         "diff",
@@ -494,6 +495,7 @@ def collect_worker_changes(lane: Lane, ownership: Sequence[str] = ()) -> ChangeS
     ignored = _git_path_list(lane.worktree, "ls-files", "--others", "--ignored", "--exclude-standard", "-z", "--")
     statuses: dict[str, str] = {}
     unsafe: list[str] = []
+    unsafe.extend(mode_paths)
     for path in tracked:
         target = lane.worktree / path
         statuses[path] = "D" if not target.exists() else "M"
@@ -548,6 +550,8 @@ def export_worker_patch(lane: Lane, output: Path, ownership: Sequence[str] = ())
     if not lane.baseline_commit:
         raise LaneError("lane baseline commit is missing")
     changes = collect_worker_changes(lane, ownership)
+    if changes.unsafe_paths:
+        raise LaneError("refusing to export unsafe paths: " + ", ".join(changes.unsafe_paths))
     untracked = [path for path, status_code in changes.statuses.items() if status_code == "?"]
     # A path the ownership itself names inside build-looking output (e.g. dist/notes.md) may be git-ignored: the lane was
     # explicitly authorised for it, so it is added with -f. Any other ignored file (a stray .env...) still makes the
@@ -573,6 +577,12 @@ def export_worker_patch(lane: Lane, output: Path, ownership: Sequence[str] = ())
 
 
 def check_patch_against_master(repo_root: Path, patch: Path) -> RunStatus:
+    try:
+        content = patch.read_bytes()
+    except OSError:
+        return RunStatus.INTEGRATION_CONFLICT
+    if _patch_has_unsafe_mode(content):
+        return RunStatus.INTEGRATION_CONFLICT
     completed = winproc.run(
         ["git", "apply", "--check", "--binary", "--whitespace=nowarn", str(patch)],
         cwd=repo_root,
@@ -693,3 +703,41 @@ def _git_path_list(cwd: Path, *args: str) -> tuple[str, ...]:
         for item in completed.stdout.split(b"\0")
         if item
     )
+
+
+_UNSAFE_GIT_MODES = frozenset({"120000", "160000"})  # symlink, gitlink/submodule
+_UNSAFE_PATCH_MODE = re.compile(
+    r"^(?:old mode|new mode|new file mode|deleted file mode|create mode|delete mode) "
+    r"(?:120000|160000)$",
+    re.MULTILINE,
+)
+
+
+def _unsafe_git_mode_paths(lane: Lane) -> tuple[str, ...]:
+    """Paths whose index/HEAD modes are links or gitlinks, even if a regular file masks the link on Windows."""
+    completed = winproc.run(
+        ["git", "diff", "--raw", "--no-renames", "--full-index", "-z", lane.baseline_commit, "--"],
+        cwd=lane.worktree,
+        capture_output=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise LaneError(completed.stderr.decode("utf-8", errors="replace").strip())
+    records = [item for item in completed.stdout.split(b"\0") if item]
+    if len(records) % 2:
+        raise LaneError("unexpected git raw-diff format")
+    unsafe: list[str] = []
+    for index in range(0, len(records), 2):
+        metadata, raw_path = records[index], records[index + 1]
+        fields = metadata.decode("ascii", errors="strict").split(" ")
+        if not fields or not fields[0].startswith(":") or len(fields) < 2:
+            raise LaneError("unexpected git raw-diff metadata")
+        old_mode, new_mode = fields[0][1:], fields[1]
+        if {old_mode, new_mode} & _UNSAFE_GIT_MODES:
+            unsafe.append(raw_path.decode("utf-8", errors="strict").replace("\\", "/"))
+    return tuple(sorted(set(unsafe)))
+
+
+def _patch_has_unsafe_mode(content: bytes) -> bool:
+    text = content.decode("utf-8", errors="replace")
+    return bool(_UNSAFE_PATCH_MODE.search(text))

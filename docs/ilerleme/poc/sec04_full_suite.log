@@ -1,0 +1,30 @@
+python : ................................................................................................usage: python.
+exe -m unittest [-h] --sid SID ...
+At line:2 char:48
++ ... suite.log'; python -m unittest discover -s tests -t . *> $log; $code= ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (..................] --sid SID ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+python.exe -m unittest: error: no command
+............C:\Users\Furkan\Documents\respected-ecosystem\respected-orchestrator\src\respected_orchestrator\workflows\m
+af_workflow.py:77: ExperimentalWarning: [FUNCTIONAL_WORKFLOWS] step is experimental and may change or be removed in fut
+ure versions without notice.
+.......................................................................................................................
+........................................usage: python.exe -m unittest [-h]
+                              {status,create,start,list,inspect,artifact,cancel,check,retry,_execute,maf,maf-approve,ap
+ply,campaign-start,campaign-run,campaign-status,campaign-list,project-start,project-run,project-resume,project-status,p
+roject-cancel,rpp,roles,plan,mcp,setup,repair,uninstall,config,health,memory,integrations,_selfcheck}
+                              ...
+python.exe -m unittest: error: argument command: invalid choice: 'update' (choose from 'status', 'create', 'start', 'li
+st', 'inspect', 'artifact', 'cancel', 'check', 'retry', '_execute', 'maf', 'maf-approve', 'apply', 'campaign-start', 'c
+ampaign-run', 'campaign-status', 'campaign-list', 'project-start', 'project-run', 'project-resume', 'project-status', '
+project-cancel', 'rpp', 'roles', 'plan', 'mcp', 'setup', 'repair', 'uninstall', 'config', 'health', 'memory', 'integrat
+ions', '_selfcheck')
+.......................................................................................................................
+...
+----------------------------------------------------------------------
+Ran 389 tests in 469.282s
+
+OK
+EXIT_CODE=0
