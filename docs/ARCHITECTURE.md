@@ -118,6 +118,11 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   `provider_error`, süre aşımı `timeout` ve `[DONE]` görmeden biten akış `stream_incomplete` olarak
   ayrılır; hiçbiri başka sağlayıcıya veya modele sessiz fallback yapmaz. Kullanım bilinmiyorsa `None`
   ve `usage_status=UNKNOWN` kalır. `models()` yalnızca genel model kataloğunu okur ve anahtar istemez.
+- **Yetenek manifestosu (EXT-01):** `engine/capability_manifest.py` skill ve MCP araçlarını fail-closed
+  denetler. Manifest yoksa, alanı eksikse ya da SHA-256 tutmuyorsa çalışmaz; `trust` yalnızca `trusted`, provenance
+  kurulum kaydıyla eşleşmek zorundadır. Araç yalnızca manifestte bildirilen ve görev planında açıkça onaylanan
+  işlemi yapabilir; bildirilmeyen araç/izin otomatik yetkilendirilmez. `exec` kapalıdır, veri kapsamı repo dışına
+  çıkamaz. Açıklama metni yetki sayılmaz; metin içindeki talimatlar yeni izin vermez.
 
 ## 3. Doğrulama kum havuzu
 

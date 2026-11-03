@@ -57,7 +57,7 @@ Bunlar mevcut ürünün belgelenmiş tasarım sözleşmeleridir; yeni özellik e
 | `ADP-01` | OpenCode CLI çalışanı ve MCP kayıt desteği | P2 | G3 | `SEC-04` | Tamamlandı — kanıt: `KANIT_LOG.md` §ADP-01 |
 | `ADP-02` | API anahtarı, ağ ve sağlayıcı tehdit modeli | P2 | G3 | `SEC-01`, `REL-02` | Tamamlandı — kanıt: `KANIT_LOG.md` §ADP-02 |
 | `ADP-03` | OpenRouter/API sağlayıcı adaptörü | P2 | G4 | `ADP-02`, `COST-02`, `SEC-04` | Tamamlandı — kanıt: `KANIT_LOG.md` §ADP-03 |
-| `EXT-01` | Skill/MCP yetenek manifestosu ve izin denetimi | P2 | G3 | `SEC-01` | Bekliyor |
+| `EXT-01` | Skill/MCP yetenek manifestosu ve izin denetimi | P2 | G3 | `SEC-01` | Tamamlandı — kanıt: `KANIT_LOG.md` §EXT-01 |
 | `EXT-02` | Serena/context MCP için read-only deneme adaptörleri | P2 | G4 | `EXT-01`, `SEC-04` | Bekliyor |
 | `REL-01` | Authenticode imzalı Windows kurucu hattı | P2 | G4 | — | Bekliyor |
 | `REL-03` | İlk göreve giden kurulum rehberi ve health wizard | P2 | G4 | `UX-02`, `REL-01` | Bekliyor |

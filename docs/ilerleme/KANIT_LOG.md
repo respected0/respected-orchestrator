@@ -2070,6 +2070,85 @@ kasa round-trip'i test edildi.
 
 ---
 
+## EXT-01 — Skill/MCP yetenek manifestosu ve izin denetimi
+
+- Durum: Tamamlandı.
+- Kapsam: Skill ve MCP araçları için fail-closed yetenek manifestosu; araç/işlem, okuma-yazma-ağ erişimi, veri
+  kapsamı, sürüm, provenance ve güven düzeyi. Görev planındaki açık araç onayı olmadan hiçbir araç çalışmaz.
+  Brain ve Hub'dan bağımsızdır; yalnızca standart kütüphane kullanır.
+- Çıktı / değişen dosyalar: `src/respected_orchestrator/engine/capability_manifest.py`,
+  `tests/engine/test_capability_manifest.py`, `docs/ARCHITECTURE.md`, `docs/ROADMAP_EXECUTION_PLAN.md`,
+  `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`,
+  `docs/ilerleme/respected_orchestrator_github_issues.csv`, `docs/ilerleme/poc/ext01_*`.
+- Doğrulama komutu:
+
+```text
+$env:PYTHONPATH='src'
+py -m unittest tests.engine.test_capability_manifest
+py -m unittest discover -s tests -t .
+py packaging/build_dist.py
+py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_security
+```
+
+### Sözleşme
+
+- Manifest zorunlu alanları: `name`, `version`, `provenance`, `trust`, `tools`, `read`, `write`, `net`, `data_scope`;
+  isteğe bağlı `description` ve zorunlu `sha256`.
+- `sha256`, manifestin `sha256` hariç kanonik JSON gövdesi üzerinden hesaplanır. İçerik sonradan değişirse veya
+  onay kaydındaki digest eşleşmezse `MANIFEST_HASH_CHANGED` ile reddedilir.
+- `trust` yalnızca `trusted`; provenance boş olamaz ve onay kaydındaki provenance ile eşleşmelidir. Eşleşmezse
+  `UNTRUSTED_SKILL` / `PROVENANCE_MISMATCH` döner.
+- Araç allowlist'i `repo.search`, `repo.patch`, `test.run`, `mcp.serena`, `mcp.context`. `exec` kapalıdır; yazma
+  yalnızca `workspace`, okuma `repo`/`docs`/`evidence`, ağ `none`/`loopback`/`allowlist` olabilir.
+- `tools` içindeki her işlem ilgili üst düzey izinle desteklenmek zorundadır; yoksa `EXCESS_PERMISSION`. Veri kapsamı
+  mutlak yol, sürücü harfi veya `..` içeremez.
+- `authorize()` yalnızca manifestte bildirilen ve görev planında açıkça onaylanan araçları döndürür; bildirilmeyen
+  araç `CAPABILITY_NOT_DECLARED`, onaysız araç `CAPABILITY_NOT_APPROVED` ile engellenir. Varsayılan kapalıdır.
+- `description` yalnızca metindir; içindeki talimatlar yetki üretmez.
+
+### Test senaryoları (5/5)
+
+| Senaryo | Beklenen | Sonuç |
+|---|---|---|
+| Manifest yok | `MANIFEST_MISSING` | geçti |
+| Fazla izin (yazma izni yokken yazma işlemi) | `EXCESS_PERMISSION` | geçti |
+| Değiştirilen hash / yanlış onay digest'i | `MANIFEST_HASH_CHANGED` | geçti |
+| Untrusted skill | `UNTRUSTED_SKILL` | geçti |
+| Zararlı açıklama | metin yetki vermez; bildirilmeyen araç `CAPABILITY_NOT_DECLARED` | geçti |
+
+### Test sonuçları
+
+- Odaklı: `Ran 5 tests ... OK` (`docs/ilerleme/poc/ext01_focused.log`).
+- Tam regresyon: `Ran 528 tests ... OK` (`docs/ilerleme/poc/ext01_full_suite.log`).
+- Paketleme: `py packaging/build_dist.py` başarılı; `Ran 7 tests ... OK`
+  (`docs/ilerleme/poc/ext01_packaging.log`).
+
+### Kanıt artefaktları (SHA-256)
+
+<!-- EXT01_HASHES_START -->
+- `src/respected_orchestrator/engine/capability_manifest.py` -> `362F41C6519A9152845CFF6F81FBC223691DC57ECD5323517A49ADE54B5CACEA`
+- `tests/engine/test_capability_manifest.py` -> `1622D43E787CEAECB20E3C2CDA33996F66B86D1295BA008C71D16C8F6B3CB106`
+- `docs/ilerleme/poc/ext01_focused.log` -> `399507809DD42F7E79A71B1C035827D2BFAED05406C89EED7B033189EDB2E818`
+- `docs/ilerleme/poc/ext01_full_suite.log` -> `55A3C307FB02C3147DD37E4CE1FA934E8E467E3FE11EAE2E00D74CA42FF2EB30`
+- `docs/ilerleme/poc/ext01_packaging.log` -> `A5B09FD7C0BBA0525214A75015AC584A217CECFCFC7B05449D9A5E404913DECD`
+- `docs/ARCHITECTURE.md` -> `5563D20A913A2A6CC337221CCC85D54107A7DC603249ACD6741771BAF21D62AC`
+- `docs/ROADMAP_EXECUTION_PLAN.md` -> `D294F8E350FC8F431192E04A5D08BDC0EDAA0A2A211BDC1737EE9CC719C38AE6`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `1398B078FD90F0226F52486A561472DC42F603B13D19C0B9A91F0BCEA9E9D3AF`
+- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `AC171D5F8F32C975B50641EB0B1A5B61580000A50055FC01E3D9A16F216BF7BA`
+<!-- EXT01_HASHES_END -->
+
+`KANIT_LOG.md` kendi hash listesine dahil edilmez.
+
+### Kalan risk / shortcut
+
+- Manifest imzası yoktur; güven, kurulum sırasında kaydedilen provenance ve digest kaydına dayanır. Anahtar imzalı
+  manifest ileride ayrı bir görevdir.
+- Onay kaydı çağıran tarafından sağlanır; bu modül kaydın kendisini üretmez, yalnızca eşleşmeyi denetler.
+- Araç allowlist'i sabittir; yeni MCP aracı eklemek kod değişikliği ister (`shortcut: sabit allowlist, yeni araç
+  kaydı ürünleşince`).
+
+---
+
 ## Şablon (sonraki görevler)
 
 ```

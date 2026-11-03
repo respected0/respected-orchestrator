@@ -745,6 +745,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 
 #### EXT-01 — Skill/MCP yetenek manifestosu ve izin denetimi
 
+**Durum:** Tamamlandı — kanıt: `KANIT_LOG.md` §EXT-01
+
 **Etiketler:** `priority:P2`, `gate:G3`, `epic:skills-ve-mcp-izinleri`, `size:M`  
 **Mevcut ROADMAP bağlantısı:** Yeni; MCP güven sınırlarının genişletilmesi  
 **Bağımlılıklar:** SEC-01
@@ -754,11 +756,11 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 **Test senaryoları:** Manifest yok, fazla izin, değiştirilen hash, untrusted skill, malicious description.
 
 **Ölçülebilir kabul kriterleri:**
-- [ ] 5/5 engelleme/geçiş.
-- [ ] bildirilmeyen yetenek otomatik yetkilendirilmez.
-- [ ] her manifest hash ve provenance taşıyor.
-- [ ] varsayılan kapalı.
-- [ ] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
+- [x] 5/5 engelleme/geçiş.
+- [x] bildirilmeyen yetenek otomatik yetkilendirilmez.
+- [x] her manifest hash ve provenance taşıyor.
+- [x] varsayılan kapalı.
+- [x] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### EXT-02 — Serena/context MCP için read-only deneme adaptörleri
 
