@@ -31,6 +31,7 @@ def _clients():
              "codex": ("toml", home / ".codex/config.toml", home / ".codex"),
              "cursor": ("json", home / ".cursor/mcp.json", home / ".cursor"),
              "gemini": ("json", home / ".gemini/settings.json", home / ".gemini"),
+             "opencode": ("opencode-json", home / ".config/opencode/opencode.json", home / ".config/opencode"),
              "windsurf": ("json", home / ".codeium/windsurf/mcp_config.json", home / ".codeium/windsurf")}
     if sys.platform == "win32":
         table["claude-desktop"] = ("json", appdata / "Claude/claude_desktop_config.json", appdata / "Claude")
@@ -50,6 +51,9 @@ def _entry(client, launcher):
     command, args = launcher.get("command"), launcher.get("args", [])
     if not isinstance(command, str) or not command or not isinstance(args, list) or not all(isinstance(a, str) for a in args):
         raise _fail("BAD_REQUEST", "launcher needs a command string and an args string list.", "Pass {command, args}.")
+    if client == "opencode":
+        # OpenCode's local MCP schema keeps the executable and every argument in one command array.
+        return {"type": "local", "command": [command, *args]}
     entry = {"command": command, "args": args}
     return {"type": "stdio", **entry} if client == "claude-code" else entry
 
@@ -78,6 +82,21 @@ def _toml_span(text):
     return None if start is None else (start, len(lines) if end is None else end, lines)
 
 
+def _servers(document, kind, path):
+    """The mutable server mapping for this client's schema. JSON clients use top-level ``mcpServers``; OpenCode nests
+    them under ``mcp.servers``. A foreign shape is refused instead of being replaced."""
+    if kind == "opencode-json":
+        mcp = document.setdefault("mcp", {})
+        if not isinstance(mcp, dict):
+            raise _fail("LIFECYCLE_CONFLICT", f"{path} has an unexpected mcp shape; nothing was changed.", "Leave this client off.")
+        servers = mcp.setdefault("servers", {})
+    else:
+        servers = document.setdefault("mcpServers", {})
+    if not isinstance(servers, dict):
+        raise _fail("LIFECYCLE_CONFLICT", f"{path} has an unexpected server shape; nothing was changed.", "Leave this client off.")
+    return servers
+
+
 def _read(kind, path):
     """(text or None, entry-text or None); entry-text is the canonical form used for ownership digests."""
     try:
@@ -86,16 +105,16 @@ def _read(kind, path):
         return None, None
     except (OSError, UnicodeDecodeError) as error:
         raise _fail("LIFECYCLE_CONFLICT", f"Cannot read {path}: {error}", "Fix the file or leave this client off.")
-    if kind == "json":
+    if kind in ("json", "opencode-json"):
         if not text.strip():
             return text, None
         try:
             document = json.loads(text)
         except ValueError:
             raise _fail("LIFECYCLE_CONFLICT", f"{path} is not valid JSON; nothing was changed.", "Repair the file or leave this client off.")
-        servers = document.get("mcpServers", {}) if isinstance(document, dict) else None
-        if not isinstance(servers, dict):
+        if not isinstance(document, dict):
             raise _fail("LIFECYCLE_CONFLICT", f"{path} has an unexpected shape; nothing was changed.", "Leave this client off.")
+        servers = _servers(document, kind, path)
         return text, (_canon(servers[NAME]) if NAME in servers else None)
     span = _toml_span(text)
     return text, (None if span is None else "".join(span[2][span[0]:span[1]]).strip())
@@ -103,11 +122,11 @@ def _read(kind, path):
 
 def _write(kind, path, text, entry):
     """Return the new file text with our entry set (entry dict) or removed (None); everything else is preserved."""
-    if kind == "json":
+    if kind in ("json", "opencode-json"):
         document = json.loads(text) if text and text.strip() else {}
-        servers = document.setdefault("mcpServers", {})
+        servers = _servers(document, kind, path)
         if entry is None:
-            servers.pop(NAME, None)  # an emptied mcpServers stays: the client may own it
+            servers.pop(NAME, None)  # an emptied server mapping stays: the client may own it
         else:
             servers[NAME] = entry
         return json.dumps(document, ensure_ascii=False, indent=2) + "\n"
@@ -130,7 +149,7 @@ def _parse(kind, canon):
     """Inverse of the canonical entry text (what _read returned) -> entry dict or None."""
     if not canon:
         return None
-    if kind == "json":
+    if kind in ("json", "opencode-json"):
         return json.loads(canon)
     return {"command": json.loads(canon.split("command = ", 1)[1].splitlines()[0]),
             "args": json.loads(canon.split("args = ", 1)[1].splitlines()[0])}
@@ -204,7 +223,7 @@ def plan(ctx, payload):
                            if state == "foreign" else "Respected's entry was edited since it was written; leaving it alone")
             elif want:
                 new = _entry(client, launcher or {})
-                new_text = _canon(new) if kind == "json" else _toml_block(new).strip()
+                new_text = _canon(new) if kind in ("json", "opencode-json") else _toml_block(new).strip()
                 row.update(action="create" if state == "absent" else ("unchanged" if current == new_text else "update"),
                            entry=new)
             elif state in ("owned", "modified"):  # our own entry is ours even after a hand edit: taking it back is what was asked
@@ -229,7 +248,7 @@ def _set_entry(client, entry):
 def _verify(client, entry):
     kind, path, _ = _clients()[client]
     _text, current = _read(kind, path)
-    expected = None if entry is None else (_canon(entry) if kind == "json" else _toml_block(entry).strip())
+    expected = None if entry is None else (_canon(entry) if kind in ("json", "opencode-json") else _toml_block(entry).strip())
     if current != expected:
         raise _fail("INTERNAL", f"Read-back of {path} does not match what was written.", "Roll back this operation.")
 
@@ -264,7 +283,7 @@ def apply(ctx, operation_id, payload):
                 backup.write_text(prior_text, encoding="utf-8", newline="")
             _verify(client, new_entry)
             done.append((client, before))
-            after = None if new_entry is None else (_canon(new_entry) if kind == "json" else _toml_block(new_entry).strip())
+            after = None if new_entry is None else (_canon(new_entry) if kind in ("json", "opencode-json") else _toml_block(new_entry).strip())
             receipt["changes"].append({"client": client, "config": row["config"], "action": row["action"],
                                        "before": before, "after": after, "entry": new_entry,
                                        "file_existed": prior_text is not None})

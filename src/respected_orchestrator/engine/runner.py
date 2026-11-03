@@ -12,15 +12,16 @@ import sys
 import time
 from uuid import uuid4
 
-from . import lanes, sandbox
+from . import failures, lanes, opencode_acp, opencode_auth, sandbox
 from . import budget, track_record, winproc
 from .evidence import key_path, load_signed, save_signed
 from ..interfaces import memory
 from ..hints import hint
 from ..workflows import roles
-from ..context import EngineContext, engine_command, safe_path, validate_project
-from .clis import EXECUTABLE, LOCAL_CODEX, SUPPORTED_AGENTS
+from ..context import EngineContext, engine_command, path_within_root, safe_path, validate_project
+from .clis import EXECUTABLE, LOCAL_CODEX, SUPPORTED_AGENTS, worker_executable
 from .processes import ProcessStopped, execute
+from .worker_policy import SandboxStartError, WorkerPolicyError, default_policy, extra_readonly_roots
 from .codex import _is_turn_completed, stream_verified_complete
 
 SELF_CHECK = (
@@ -39,6 +40,9 @@ NO_SHELL_SELF_CHECK = (
     + SELF_CHECK[SELF_CHECK.index("\n## Token discipline"):]
 )
 TERMINAL = {"completed", "failed", "cancelled", "timed_out", "interrupted"}
+_IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif",
+                ".svg": "image/svg+xml"}
+MAX_ARTIFACT_BYTES = 10 * 1024 * 1024
 # Stable 0.162.0/0.162.1 lack OpenAI's active-runtime ACL fix (#51822).
 # the brief travels as one command-line argument; Windows caps a command line at 32 767 characters (audit P1 #18)
 MAX_TASK_CHARS = 20000 if sys.platform == "win32" else 60000
@@ -49,10 +53,10 @@ def get_cli_command(agent: str) -> list[str] | None:
         return [str(safe_path(LOCAL_CODEX))]
     executable = EXECUTABLE.get(agent, agent)
     found = shutil.which(executable)
-    # cmd.exe would re-parse the prompt of a .cmd/.bat shim (truncation, command injection): such workers are unavailable (audit P0 #2)
-    if found and Path(found).suffix.lower() in {".cmd", ".bat"}:
-        return None
-    return [found] if found else None
+    # cmd.exe would re-parse the prompt of a .cmd/.bat shim (truncation, command injection): such workers are unavailable (audit P0 #2).
+    # OpenCode's npm shim resolves to its native sibling instead (clis.worker_executable).
+    resolved = worker_executable(agent, found)
+    return [resolved] if resolved else None
 
 
 def tool_available(tool):
@@ -84,7 +88,49 @@ def command_for(worker, prompt, custom=(), profile=None, write=False):
         # danger-full-access user config or wait for a human that is not there.
         return [*command, "exec", "--sandbox", "workspace-write", "-c", 'approval_policy="never"',
                 *(["-p", profile] if profile else []), "--json", prompt]
+    if worker == "opencode":
+        # ACP is a long-lived stdio session. The prompt and profile travel in JSON-RPC,
+        # never in argv, so Windows command-line limits and shell re-parsing do not apply.
+        return [*command, "acp"]
     return [*command, "exec", "--json", prompt]
+
+
+def worker_network_mode(worker):
+    """OpenCode reaches its model provider, so it has one explicit operator opt-in.
+
+    Every other worker, and OpenCode without ``RESPECTED_OPENCODE_NETWORK=allow``,
+    keeps the AppContainer's default network denial. The switch is deliberately
+    environment-scoped rather than model-controlled: a task prompt cannot grant
+    itself network access. ADP-02 owns the provider/egress threat model.
+    """
+    if worker == "opencode" and os.environ.get("RESPECTED_OPENCODE_NETWORK", "").strip().casefold() == "allow":
+        return "allow"
+    return "deny"
+
+
+def worker_environment(worker, temp_root):
+    """Environment overrides that keep a worker's own state inside its granted scratch root.
+
+    OpenCode otherwise resolves HOME/XDG to the signed-in user's profile, which the AppContainer cannot
+    read and must never receive. The isolated directories also keep provider state and caches per run.
+    """
+    environment = dict(os.environ)
+    if worker == "opencode":
+        home = Path(temp_root) / "home"
+        environment.update({
+            "HOME": str(home),
+            "USERPROFILE": str(home),
+            "APPDATA": str(home / "AppData" / "Roaming"),
+            "LOCALAPPDATA": str(home / "AppData" / "Local"),
+            "XDG_CONFIG_HOME": str(home / ".config"),
+            "XDG_DATA_HOME": str(home / ".local" / "share"),
+            "XDG_CACHE_HOME": str(home / ".cache"),
+            "XDG_STATE_HOME": str(home / ".local" / "state"),
+            # OpenCode walks parent directories for project config. The AppContainer cannot
+            # access the protected engine/data parents, so discovery must stay inside the worker root.
+            "OPENCODE_DISABLE_PROJECT_CONFIG": "1",
+        })
+    return environment
 
 
 def _usage(raw_input, cached, output, reasoning):
@@ -242,7 +288,9 @@ def _tool_field(value):
 def _workflow(value):
     if not isinstance(value, dict):
         raise ValueError("Workflow must be a JSON object")
-    max_corrections = value.get("max_corrections", 2)
+    if "max_corrections" in value:
+        raise ValueError("max_corrections is not supported; use max_fix_rounds")
+    max_fix_rounds = value.get("max_fix_rounds", 2)
     deep_review = value.get("deep_review", "never")
     reviewer_profile = _profile_field(value.get("reviewer_profile"))  # None = unassigned here: Hub default / auto / error later
     deep_review_profile = _profile_field(value.get("deep_review_profile"))
@@ -262,8 +310,9 @@ def _workflow(value):
         raise ValueError("Invalid escalation profile")
     if type(escalate_from_round) is not int or not 1 <= escalate_from_round <= 2:
         raise ValueError("Invalid escalation round")
-    if (type(max_corrections) is not int or not 0 <= max_corrections <= 2
-            or deep_review not in {"never", "always", "risk_based"}
+    if type(max_fix_rounds) is not int or not 0 <= max_fix_rounds <= 5:
+        raise ValueError("max_fix_rounds must be between 0 and 5")
+    if (deep_review not in {"never", "always", "risk_based"}
             or (independent is not None and not isinstance(independent, bool))
             or type(risk_changed_files) is not int or risk_changed_files < 1
             or (timeout_seconds is not None and (type(timeout_seconds) is not int or not 1 <= timeout_seconds <= 14400))
@@ -275,7 +324,7 @@ def _workflow(value):
             or not isinstance(value.get("human_approval", False), bool)):
         raise ValueError("Invalid workflow policy")
     return {
-        "max_corrections": max_corrections,
+        "max_fix_rounds": max_fix_rounds,
         "deep_review": deep_review,
         "reviewer_profile": reviewer_profile,
         "deep_review_profile": deep_review_profile,
@@ -294,6 +343,39 @@ def _workflow(value):
     }
 
 
+def _fix_evidence(value):
+    if value is None:
+        return None
+    fields = {"run_id", "checks", "reason", "failure_class", "evidence_paths"}
+    if not isinstance(value, dict) or set(value) != fields:
+        raise ValueError("Invalid fix evidence")
+    if (not isinstance(value["run_id"], str) or not value["run_id"]
+            or not isinstance(value["reason"], str) or len(value["reason"]) > 200
+            or not isinstance(value["failure_class"], str) or not value["failure_class"]
+            or len(value["failure_class"]) > 64
+            or not isinstance(value["checks"], list)
+            or not isinstance(value["evidence_paths"], list)
+            or any(not isinstance(path, str) or not path for path in value["evidence_paths"])):
+        raise ValueError("Invalid fix evidence")
+    checks = []
+    for item in value["checks"]:
+        if not isinstance(item, dict) or set(item) != {"command", "returncode"}:
+            raise ValueError("Invalid fix evidence")
+        command = item["command"]
+        returncode = item["returncode"]
+        if (not isinstance(command, list) or any(not isinstance(part, str) for part in command)
+                or (returncode is not None and (type(returncode) is not int))):
+            raise ValueError("Invalid fix evidence")
+        checks.append({"command": list(command), "returncode": returncode})
+    return {
+        "run_id": value["run_id"],
+        "checks": checks,
+        "reason": value["reason"],
+        "failure_class": value["failure_class"],
+        "evidence_paths": list(value["evidence_paths"]),
+    }
+
+
 def project_fingerprint(project):
     digest = hashlib.sha256()
     for args in [("rev-parse", "HEAD"), ("diff", "--binary", "--full-index", "HEAD", "--")]:
@@ -307,6 +389,32 @@ def project_fingerprint(project):
     return digest.hexdigest()
 
 
+def source_fingerprint(project):
+    """Deterministic content identity for a Git or plain-directory source.
+
+    Git sources reuse the guarded task fingerprint (HEAD, uncommitted diff, untracked files). Plain sources hash every
+    regular file except repository metadata. Both are fail-closed: unreadable or linked contents raise instead of being
+    silently omitted from a recovery decision.
+    """
+    root = safe_path(Path(project))
+    if (root / ".git").exists():
+        return project_fingerprint(root)
+    digest = hashlib.sha256(b"RESPECTED-NON-GIT-SOURCE-V1\0")
+    files = sorted((path for path in root.rglob("*") if path.is_file()), key=lambda path: path.relative_to(root).as_posix())
+    for path in files:
+        relative = path.relative_to(root)
+        if ".git" in relative.parts:
+            continue
+        target = safe_path(path)
+        content = target.read_bytes()
+        name = relative.as_posix().encode("utf8")
+        digest.update(len(name).to_bytes(8, "big"))
+        digest.update(name)
+        digest.update(len(content).to_bytes(8, "big"))
+        digest.update(content)
+    return digest.hexdigest()
+
+
 def _explicit_roles(request, workflow):
     """Assignments the task prompt states itself: `roles` plus the per-field spellings (worker, worker_profile,
     workflow.reviewer_*). Stating one role two ways with different values is an error, never a silent pick."""
@@ -314,8 +422,9 @@ def _explicit_roles(request, workflow):
     if not isinstance(asked, dict):
         raise roles.RoleError("BAD_ASSIGNMENT", "roles must be an object of role -> assignment")
     for role in asked:
-        if role in ("tester", "coordinator"):  # accepted by the settings model but nothing runs them yet: never pretend (audit P2)
-            raise roles.RoleError("ROLE_NOT_EXECUTABLE", f"Role {role} cannot be executed yet", "Use planner, implementer, reviewer, deep_reviewer, debugger or master.")
+        if role == "coordinator":  # plans and assigns work; a single task run is not its stage, so never pretend
+            raise roles.RoleError("ROLE_NOT_EXECUTABLE", "The coordinator plans work; it does not run one task",
+                                  "Use the coordinate command for planning; use implementer, reviewer, deep_reviewer, tester, debugger or master for a task.")
     asked = {role: dict(value) if isinstance(value, dict) else {"profile": value} for role, value in asked.items()}
     spelled = {"implementer": (request.get("worker"), request.get("worker_profile")),
                "reviewer": (workflow["reviewer_tool"], workflow["reviewer_profile"]),
@@ -406,11 +515,13 @@ def create_task(ctx: EngineContext, request: dict, *, settings: dict | None = No
     settings = roles.read_settings(ctx.data_root) if settings is None else settings
     memory_policy = _memory_policy(request, memory_settings, settings_root(ctx, main_root))
     # A reviewer is only required when the MAF workflow runs (it re-checks and fails before any paid work).
-    assigned = roles.resolve(settings, _explicit_roles(request, workflow), ["implementer"], optional=["reviewer", "debugger"],
-                             tools=list(SUPPORTED_AGENTS), available=tool_available, check_roles={"implementer"},
+    assigned = roles.resolve(settings, _explicit_roles(request, workflow), ["implementer"], optional=["reviewer", "tester", "debugger"],
+                             tools=list(SUPPORTED_AGENTS), available=tool_available, check_roles={"implementer", "tester"},
                              history=history or (lambda: _track_record(ctx)))
     assigned = _keep_sources(assigned, request.get("role_assignments"))
     reviewer = assigned.get("reviewer")
+    if assigned.get("tester") and not acceptance:
+        raise ValueError("A tester assignment requires at least one acceptance command")
     # Unspecified deep reviewer = the reviewer (a documented inheritance, not a model rule).
     deep = assigned.get("deep_reviewer", reviewer)
     required = workflow["require_independent_review"]
@@ -429,8 +540,8 @@ def create_task(ctx: EngineContext, request: dict, *, settings: dict | None = No
     correction_round = request.get("correction_round", 0)
     if correction_of is not None and (not isinstance(correction_of, str) or not correction_of):
         raise ValueError("Correction parent must be a run identity")
-    if type(correction_round) is not int or not 0 <= correction_round <= 2:
-        raise ValueError("Correction round must be 0..2")
+    if type(correction_round) is not int or not 0 <= correction_round <= 5:
+        raise ValueError("Correction round must be 0..5")
     inherited_patch_run_id = request.get("inherited_patch_run_id")
     inherited_patch_sha256 = request.get("inherited_patch_sha256")
     if inherited_patch_run_id is not None:
@@ -443,6 +554,7 @@ def create_task(ctx: EngineContext, request: dict, *, settings: dict | None = No
     if inherited_patch_sha256 is not None and not (
             isinstance(inherited_patch_sha256, str) and re.fullmatch(r"[0-9a-f]{64}", inherited_patch_sha256)):
         raise ValueError("Invalid inherited patch hash")
+    fix_evidence = _fix_evidence(request.get("fix_evidence"))
     timeout = request.get("timeout_seconds", 900)
     if type(timeout) is not int or not 1 <= timeout <= 3600:
         raise ValueError("Deadline must be 1..3600 seconds")
@@ -481,7 +593,8 @@ def create_task(ctx: EngineContext, request: dict, *, settings: dict | None = No
                    correction_of=correction_of,
                    correction_round=correction_round,
                    inherited_patch_run_id=inherited_patch_run_id,
-                   inherited_patch_sha256=inherited_patch_sha256, apply_root=apply_root, memory_policy=memory_policy)
+                   inherited_patch_sha256=inherited_patch_sha256, fix_evidence=fix_evidence,
+                   apply_root=apply_root, memory_policy=memory_policy)
     save_signed(ctx, directory / "request.json", payload)
     save_signed(ctx, directory / "status.json", {"run_id": run_id, "status": "queued"})
     return {"run_id": run_id, "status": "queued"}
@@ -495,6 +608,9 @@ def _write_status(ctx, directory, status, **details):
     if status in TERMINAL and _ACTIVE_LANE is not None:
         lanes.remove_lane(_ACTIVE_LANE)  # first: a terminal status that anyone can read means the project is already clean
         _ACTIVE_LANE = None
+    if status != "completed":
+        for key, value in failures.describe(details.get("reason"), details.get("provider_status")).items():
+            details.setdefault(key, value)
     payload = dict(run_id=directory.name, status=status, updated_at=dt.datetime.now(dt.timezone.utc).isoformat(), **details)
     save_signed(ctx, directory / "status.json", payload)
     return payload
@@ -640,31 +756,106 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
             checklist = NO_SHELL_SELF_CHECK
         else:
             checklist = SELF_CHECK
-        brief.write_text(text + checklist, encoding="utf8")
+        brief_text = text + checklist
+        brief.write_text(brief_text, encoding="utf8")
         _write_status(ctx, directory, "running", pid=os.getpid(), phase="worker", **details)
-        command = command_for(request["worker"], brief.read_text(encoding="utf8"), request["command"],
+        command = command_for(request["worker"], brief_text, request["command"],
                               request.get("worker_profile"), write=request["kind"] == "write")
         def live_output(name, line):
             with safe_path(directory / f'{name}.log').open('a', encoding='utf8') as handle:
                 handle.write(lanes._redact(line))
+        is_opencode = request["worker"] == "opencode"
+        acp_lines = opencode_acp.LineQueue() if is_opencode else None
+        acp_result = {}
+        def output(name, line):
+            live_output(name, line)
+            if acp_lines is not None and name == "stdout":
+                acp_lines.push(name, line)
+        def output_closed(name):
+            if acp_lines is not None and name == "stdout":
+                acp_lines.close(name)
+        def ready(stdin):
+            try:
+                profile = (request.get("worker_profile") or os.environ.get("RESPECTED_OPENCODE_MODEL", "")).strip()
+                acp_result["value"] = opencode_acp.run_session(
+                    stdin, acp_lines, cwd=lane.worktree, prompt=brief_text, model=profile or None,
+                    write=request["kind"] == "write", deadline=deadline, cancel_path=cancel,
+                )
+            finally:
+                if stdin is not None and not stdin.closed:
+                    stdin.close()
         codex_json = "--json" in command and (request["worker"] == "codex" or Path(command[0]).stem.casefold() == "codex")
-        completed = execute(command, lane.worktree, deadline - time.monotonic(), cancel_path=cancel, on_output=live_output,
-                            complete_when=_is_turn_completed if codex_json else None,
-                            verify_complete=stream_verified_complete if codex_json else None,
-                            scrub_env=True)
+        worker_tmp = safe_path(directory / "worker-tmp")
+        worker_tmp.mkdir(exist_ok=True)
+        worker_env = worker_environment(request["worker"], worker_tmp)
+        try:
+            policy = default_policy(ctx, lane.worktree, command, temp_root=worker_tmp,
+                                    network_mode=worker_network_mode(request["worker"]),
+                                    readonly_roots=extra_readonly_roots(), ttl=request["timeout_seconds"])
+        except WorkerPolicyError as error:
+            return _write_status(ctx, directory, "failed", reason="sandbox_unavailable", detail=str(error)[:300], **details)
+        try:
+            if is_opencode:
+                try:
+                    # The worker HOME is isolated, so provider credentials must be copied into it
+                    # before ACP starts.  They travel through a pipe and stay out of logs/argv.
+                    opencode_auth.sync_credentials([command[0]], worker_env, deadline=deadline)
+                except opencode_auth.OpenCodeAuthError as error:
+                    # Exception text is deliberately not persisted: an export/import error
+                    # could carry provider data, and only the stable class is evidence here.
+                    (directory / "auth-error.log").write_text(
+                        "OpenCode credential bridge failed", encoding="utf8")
+                    return _write_status(ctx, directory, "failed", reason="worker_failed",
+                                         provider_status="AUTH_REQUIRED",
+                                         detail="OpenCode credentials are unavailable for the isolated worker",
+                                         **details)
+            completed = execute(command, lane.worktree, deadline - time.monotonic(), cancel_path=cancel,
+                                on_ready=ready if is_opencode else None, on_output=output,
+                                on_output_closed=output_closed if is_opencode else None,
+                                complete_when=_is_turn_completed if codex_json else None,
+                                verify_complete=stream_verified_complete if codex_json else None,
+                                env=worker_env, scrub_env=True, policy=policy,
+                                interactive=is_opencode)
+        except opencode_acp.AcpError as error:
+            (directory / "acp-error.log").write_text(lanes._redact(str(error)), encoding="utf8")
+            if error.kind in {"cancelled", "timed_out"}:
+                raise ProcessStopped(error.kind, "", str(error)) from error
+            return _write_status(ctx, directory, "failed", reason="worker_failed",
+                                 provider_status=error.provider_status, detail=str(error)[:300], **details)
+        finally:
+            if is_opencode:
+                try:
+                    opencode_auth.clear_worker_home(worker_tmp)
+                except opencode_auth.OpenCodeAuthError:
+                    pass
         (directory / "stdout.log").write_text(lanes._redact(completed.stdout), encoding="utf8")
         (directory / "stderr.log").write_text(lanes._redact(completed.stderr), encoding="utf8")
-        text, tool_usage, tool_model, tool_error = tool_result(request["worker"], completed.stdout)
-        if tool_usage is not None or tool_model:
-            details.update(usage=tool_usage, model=tool_model)
-        payload = _codex_payload(completed.stdout) if codex_json else lanes._parse_json_object(
-            completed.stdout if request["worker"] in ("agy", "antigravity") else text)
-        if codex_json:
-            details.update(_codex_metadata(completed.stdout))
-        if tool_error:
-            return _write_status(ctx, directory, "failed", reason="worker_failed", exit_code=completed.returncode,
-                                 provider_status=tool_error, **details)
-        classification = lanes.classify_worker_exit(completed.returncode, json.dumps(payload) if codex_json else text, completed.stderr, False)
+        if is_opencode:
+            session = acp_result.get("value")
+            if not isinstance(session, dict) or not isinstance(session.get("payload"), dict):
+                return _write_status(ctx, directory, "failed", reason="invalid_worker_result", **details)
+            payload = session["payload"]
+            usage = session.get("usage") if isinstance(session.get("usage"), dict) else {}
+            report = _usage(usage.get("inputTokens"), usage.get("cachedReadTokens", 0),
+                            usage.get("outputTokens"), usage.get("thoughtTokens"))
+            if report is not None:
+                details["usage"] = report
+            if isinstance(session.get("model"), str) and session["model"]:
+                details["model"] = session["model"]
+            diagnostic = json.dumps(payload)
+        else:
+            text, tool_usage, tool_model, tool_error = tool_result(request["worker"], completed.stdout)
+            if tool_usage is not None or tool_model:
+                details.update(usage=tool_usage, model=tool_model)
+            payload = _codex_payload(completed.stdout) if codex_json else lanes._parse_json_object(
+                completed.stdout if request["worker"] in ("agy", "antigravity") else text)
+            if codex_json:
+                details.update(_codex_metadata(completed.stdout))
+            if tool_error:
+                return _write_status(ctx, directory, "failed", reason="worker_failed", exit_code=completed.returncode,
+                                     provider_status=tool_error, **details)
+            diagnostic = json.dumps(payload) if codex_json else text
+        classification = lanes.classify_worker_exit(completed.returncode, diagnostic, completed.stderr, False)
         logical_failure = payload is not None and (payload.get("error") or ("status" in payload and str(payload["status"]).casefold() not in {"success", "complete", "completed", "ok"}))
         if completed.returncode != 0 or classification is not lanes.RunStatus.COMPLETE or logical_failure:
             return _write_status(ctx, directory, "failed", reason="worker_failed", exit_code=completed.returncode, provider_status=classification.value, **details)
@@ -678,14 +869,32 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
         _write_status(ctx, directory, "running", pid=os.getpid(), phase="verifying", **details)
         generated_seen = list(changes.generated)  # what the worker left, reported even though bytecode is dropped below
         _drop_bytecode(lane.worktree)  # worker-planted bytecode is excluded from the patch, so it must not decide acceptance (audit P1 #19)
+        tester = (request.get("role_assignments") or {}).get("tester")
+        tester_checks = []
+        tester_started_at = dt.datetime.now(dt.timezone.utc) if tester else None
         try:
-            sandboxed = [sandbox.wrap(ctx.data_root, key_path(ctx), command) for command in request["acceptance"]]
+            # The tester is an engine-owned verification stage, not another model call. Its commands are exactly the
+            # task's acceptance commands and run once. Without a tester, keep the established evidence-only wrapper.
+            sandboxed = [] if tester else [sandbox.wrap(ctx.data_root, key_path(ctx), command) for command in request["acceptance"]]
         except sandbox.SandboxError as error:  # fail closed: worker-written code never runs with the engine's authority
             return _write_status(ctx, directory, "failed", reason="sandbox_unavailable", detail=str(error)[:300], **details)
-        for index, (command, wrapped) in enumerate(zip(request["acceptance"], sandboxed), 1):
-            check = execute(wrapped, lane.worktree, deadline - time.monotonic(), cancel_path=cancel, scrub_env=True)
+        for index, command in enumerate(request["acceptance"], 1):
+            check_started = time.monotonic()
+            if tester:
+                tester_tmp = safe_path(directory / "tester-tmp")
+                tester_tmp.mkdir(exist_ok=True)
+                tester_policy = default_policy(ctx, lane.worktree, command, temp_root=tester_tmp,
+                                               readonly_roots=extra_readonly_roots(), ttl=request["timeout_seconds"])
+                check = execute(command, lane.worktree, deadline - time.monotonic(), cancel_path=cancel,
+                                scrub_env=True, policy=tester_policy)
+            else:
+                check = execute(sandboxed[index - 1], lane.worktree, deadline - time.monotonic(), cancel_path=cancel,
+                                scrub_env=True)
             (directory / f"check-{index}.log").write_text(lanes._redact(check.stdout + "\n" + check.stderr), encoding="utf8")
             checks.append(dict(command=command, returncode=check.returncode))
+            if tester:
+                tester_checks.append(dict(command=command, returncode=check.returncode,
+                                          duration_seconds=round(time.monotonic() - check_started, 3)))
             if check.returncode:
                 return _write_status(ctx, directory, "failed", reason="test_failed", checks=checks, **details)
         changes, allowed = scope_ok()
@@ -698,12 +907,34 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
             return _write_status(ctx, directory, "failed", reason="stale_project", **details)
         if patch.path.stat().st_size and lanes.check_patch_against_master(project, patch.path) is not lanes.RunStatus.COMPLETE:
             return _write_status(ctx, directory, "failed", reason="integration_conflict", **details)
+        tester_report = None
+        if tester:
+            tester_finished_at = dt.datetime.now(dt.timezone.utc)
+            tester_report = dict(
+                schema_version=1,
+                stage="tester",
+                run_id=run_id,
+                project_fingerprint=request["project_fingerprint"],
+                patch_sha256=patch.sha256,
+                status="passed",
+                assignment=tester,
+                commands=tester_checks,
+                started_at=tester_started_at.isoformat(),
+                finished_at=tester_finished_at.isoformat(),
+                duration_seconds=round((tester_finished_at - tester_started_at).total_seconds(), 3),
+            )
+            save_signed(ctx, directory / "tester-report.json", tester_report)
         result = dict(run_id=run_id, status="completed", checks=checks, changed_files=list(changes.paths),
                       generated_artifacts=generated_seen[:100], generated_artifact_count=len(generated_seen),
+                      artifact_images=_preserve_images(lane, directory, generated_seen),
                       patch_sha256=patch.sha256, project_fingerprint=request["project_fingerprint"],
                       duration_seconds=round(time.monotonic() - started, 3), **details)
+        if tester_report is not None:
+            result["tester"] = tester_report
         save_signed(ctx, directory / "result.json", result)
         return _write_status(ctx, directory, "completed", **{k: v for k, v in result.items() if k not in {"run_id", "status"}})
+    except (WorkerPolicyError, SandboxStartError) as error:  # fail closed: no worker exists without an enforced boundary
+        return _write_status(ctx, directory, "failed", reason="sandbox_unavailable", detail=str(error)[:300], **details)
     except ProcessStopped as error:
         (directory / "stopped.log").write_text(lanes._redact(error.stdout + "\n" + error.stderr), encoding="utf8")
         if details.get("workspace") and '"turn.completed"' not in error.stdout:
@@ -740,6 +971,39 @@ def cancel_task(ctx, run_id):
         return status
     safe_path(directory / "cancel.request").touch(exist_ok=True)
     return dict(run_id=run_id, status="cancellation_requested")
+
+
+def _preserve_images(lane, directory, generated):
+    """Copy image output out of the lane before the worktree is removed, so the task screen can show it."""
+    kept = []
+    target = directory / "artifacts"
+    for name in generated:
+        source = lane.worktree / name
+        kind = _IMAGE_TYPES.get(source.suffix.lower())
+        if not kind or not path_within_root(source, lane.worktree) or not source.is_file() or source.stat().st_size > MAX_ARTIFACT_BYTES:
+            continue
+        target.mkdir(exist_ok=True)
+        safe_name = f"{len(kept) + 1}-{re.sub(r'[^A-Za-z0-9._-]', '_', source.name)}"
+        shutil.copyfile(source, target / safe_name)
+        kept.append(safe_name)
+        if len(kept) >= 20:
+            break
+    return kept
+
+
+def artifact_data(ctx, run_id, name):
+    """One preserved image as a data URL; nothing outside this run's artifacts directory is readable."""
+    directory = ctx.run_dir(run_id)
+    if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9._-]{1,120}", name):
+        raise ValueError("Invalid artifact name")
+    path = safe_path(directory / "artifacts" / name)
+    if path.parent != directory / "artifacts" or not path.is_file() or path.stat().st_size > MAX_ARTIFACT_BYTES:
+        raise ValueError("Artifact not found")
+    kind = _IMAGE_TYPES.get(path.suffix.lower())
+    if not kind:
+        raise ValueError("Artifact is not an image")
+    import base64
+    return {"name": name, "data_url": f"data:{kind};base64,{base64.b64encode(path.read_bytes()).decode('ascii')}"}
 
 
 def inspect_task(ctx, run_id):
@@ -779,6 +1043,48 @@ def list_tasks(ctx):
     return {"runs": runs}
 
 
+def _acceptance_evidence(checks, acceptance):
+    return (isinstance(checks, list) and isinstance(acceptance, list)
+            and len(checks) == len(acceptance)
+            and all(isinstance(check, dict) and check.get("command") == list(command)
+                    and type(check.get("returncode")) is int and check["returncode"] == 0
+                    for check, command in zip(checks, acceptance)))
+
+
+def _verify_tester_evidence(ctx, directory, request, result, checks):
+    assignment = (request.get("role_assignments") or {}).get("tester")
+    report_path = directory / "tester-report.json"
+    summary = result.get("tester")
+    if not assignment:
+        if summary is not None or report_path.exists():
+            raise ValueError("Unexpected tester evidence")
+        return
+    if not isinstance(summary, dict) or not report_path.is_file():
+        raise ValueError("Result has no signed tester evidence")
+    report = load_signed(ctx, report_path)
+    if report.get("schema_version") != 1 or report.get("stage") != "tester" or report.get("status") != "passed":
+        raise ValueError("Invalid tester evidence")
+    if report.get("run_id") != request["run_id"]:
+        raise ValueError("Tester evidence belongs to another run")
+    if report.get("project_fingerprint") != request["project_fingerprint"]:
+        raise ValueError("Tester evidence belongs to another project state")
+    if report.get("patch_sha256") != result.get("patch_sha256"):
+        raise ValueError("Tester evidence is not bound to this patch")
+    if report.get("assignment") != assignment:
+        raise ValueError("Tester evidence assignment mismatch")
+    commands = report.get("commands")
+    if (not isinstance(commands, list) or len(commands) != len(checks)
+            or any(not isinstance(entry, dict) or entry.get("command") != check.get("command")
+                   or type(entry.get("returncode")) is not int or entry["returncode"] != 0
+                   or type(entry.get("duration_seconds")) not in (int, float) or entry["duration_seconds"] < 0
+                   for entry, check in zip(commands, checks))):
+        raise ValueError("Tester command evidence mismatch")
+    if (not isinstance(report.get("started_at"), str) or not report["started_at"]
+            or not isinstance(report.get("finished_at"), str) or not report["finished_at"]
+            or type(report.get("duration_seconds")) not in (int, float) or report["duration_seconds"] < 0):
+        raise ValueError("Invalid tester timing evidence")
+    if summary != report:
+        raise ValueError("Tester summary does not match signed report")
 def check_result(ctx, run_id, *, maf_gate=True, accepted_fingerprints=()):
     directory = ctx.run_dir(run_id)
     request = load_signed(ctx, directory / "request.json")
@@ -788,8 +1094,10 @@ def check_result(ctx, run_id, *, maf_gate=True, accepted_fingerprints=()):
         raise ValueError("Unsuccessful or pending result cannot be accepted")
     if result.get("run_id") != run_id or result.get("project_fingerprint") != request["project_fingerprint"]:
         raise ValueError("Result ownership mismatch")
-    if request["kind"] == "write" and (len(result.get("checks", [])) != len(request["acceptance"]) or any(c.get("returncode") != 0 for c in result["checks"])):
+    checks = result.get("checks")
+    if not _acceptance_evidence(checks, request["acceptance"]):
         raise ValueError("Result has no successful acceptance evidence")
+    _verify_tester_evidence(ctx, directory, request, result, checks)
     maf_result_path = directory / "maf-result.json"
     if maf_gate and maf_result_path.is_file():  # maf_gate=False: re-verify a completed worker before it is (re)reviewed
         maf_result = load_signed(ctx, maf_result_path)
@@ -837,7 +1145,8 @@ def apply_task(ctx, run_id, accepted_fingerprints=()):
         lanes._git(project, "apply", "--check", "--binary", "--whitespace=nowarn", str(patch))
         lanes._git(project, "apply", "--binary", "--whitespace=nowarn", str(patch))
     applied = dict(run_id=run_id, patch_sha256=load_signed(ctx, directory / "result.json")["patch_sha256"],
-                   changed_files=verified["changed_files"], applied_at=dt.datetime.now(dt.timezone.utc).isoformat())
+                   changed_files=verified["changed_files"], source_fingerprint=source_fingerprint(project),
+                   applied_at=dt.datetime.now(dt.timezone.utc).isoformat())
     save_signed(ctx, marker, applied)
     return dict(applied, status="applied")
 
@@ -877,6 +1186,8 @@ def retry_task(ctx, run_id):
         raise ValueError("Only unsuccessful terminal tasks can be retried")
     if request["retry_depth"] >= 2:
         raise ValueError("Retry budget exhausted (three total attempts)")
+    if inspected.get("retryable") is False:
+        raise ValueError(f"Failure class '{inspected.get('failure_class', 'unknown')}' requires manual resolution")
     claim = safe_path(ctx.run_dir(run_id) / '.retry-claim')
     try:
         descriptor = os.open(claim, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
