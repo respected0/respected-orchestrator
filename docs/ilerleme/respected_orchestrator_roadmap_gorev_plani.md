@@ -195,6 +195,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 
 #### SEC-01 — Tehdit modeli ve yetki matrisi
 
+**Durum:** Tamamlandı — kanıt: `KANIT_LOG.md` §SEC-01
+
 **Etiketler:** `priority:P0`, `gate:G0`, `epic:worker-g-venli-i`, `size:M`  
 **Mevcut ROADMAP bağlantısı:** Yeni; mimari §2 ve §3 açıklığından  
 **Bağımlılıklar:** Yok
