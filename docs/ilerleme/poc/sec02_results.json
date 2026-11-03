@@ -1,0 +1,249 @@
+{
+  "technology": "Windows AppContainer; no capability SIDs; workspace ACL granted to container SID",
+  "profile": "RespectedOrchestratorSec021793330253",
+  "sid": "S-1-15-2-1566145076-2105695943-3173097029-1102805912-347658739-2406148094-1401061964",
+  "baseline_tcp_error": null,
+  "trials": [
+    {
+      "run": 1,
+      "created": true,
+      "create_error": 0,
+      "exit_code": 0,
+      "result": {
+        "forbidden": {
+          "read_outside": {
+            "ok": false,
+            "error": "PermissionError: [Errno 13] Permission denied: 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\sec02_fw66_rem\\\\outside\\\\secret.txt'"
+          },
+          "write_outside": {
+            "ok": false,
+            "error": "PermissionError: [Errno 13] Permission denied: 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\sec02_fw66_rem\\\\outside\\\\pwn.txt'"
+          },
+          "read_engine_key": {
+            "ok": false,
+            "error": "PermissionError: [Errno 13] Permission denied: 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\sec02_fw66_rem\\\\data\\\\.engine-key'"
+          },
+          "tcp_egress": {
+            "ok": false,
+            "error": "PermissionError: [WinError 10013] Erişim izinlerince izin verilmeyen bir şekilde bir yuvaya erişilmeye çalışıldı"
+          },
+          "delete_outside": {
+            "ok": false,
+            "error": "PermissionError: [WinError 5] Erişim engellendi: 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\sec02_fw66_rem\\\\outside\\\\delete-me.txt'"
+          }
+        },
+        "allowed": {
+          "1": {
+            "ok": true,
+            "value": true
+          },
+          "2": {
+            "ok": true,
+            "value": true
+          },
+          "3": {
+            "ok": true,
+            "value": true
+          }
+        },
+        "children": [
+          {
+            "launched": true,
+            "exit_code": 0,
+            "result": {
+              "blocked": true,
+              "allowed": true
+            },
+            "stderr": ""
+          },
+          {
+            "launched": true,
+            "exit_code": 0,
+            "result": {
+              "blocked": true,
+              "allowed": true
+            },
+            "stderr": ""
+          },
+          {
+            "launched": true,
+            "exit_code": 0,
+            "result": {
+              "blocked": true,
+              "allowed": true
+            },
+            "stderr": ""
+          }
+        ]
+      }
+    },
+    {
+      "run": 2,
+      "created": true,
+      "create_error": 0,
+      "exit_code": 0,
+      "result": {
+        "forbidden": {
+          "read_outside": {
+            "ok": false,
+            "error": "PermissionError: [Errno 13] Permission denied: 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\sec02_fw66_rem\\\\outside\\\\secret.txt'"
+          },
+          "write_outside": {
+            "ok": false,
+            "error": "PermissionError: [Errno 13] Permission denied: 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\sec02_fw66_rem\\\\outside\\\\pwn.txt'"
+          },
+          "read_engine_key": {
+            "ok": false,
+            "error": "PermissionError: [Errno 13] Permission denied: 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\sec02_fw66_rem\\\\data\\\\.engine-key'"
+          },
+          "tcp_egress": {
+            "ok": false,
+            "error": "PermissionError: [WinError 10013] Erişim izinlerince izin verilmeyen bir şekilde bir yuvaya erişilmeye çalışıldı"
+          },
+          "delete_outside": {
+            "ok": false,
+            "error": "PermissionError: [WinError 5] Erişim engellendi: 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\sec02_fw66_rem\\\\outside\\\\delete-me.txt'"
+          }
+        },
+        "allowed": {
+          "1": {
+            "ok": true,
+            "value": true
+          },
+          "2": {
+            "ok": true,
+            "value": true
+          },
+          "3": {
+            "ok": true,
+            "value": true
+          }
+        },
+        "children": [
+          {
+            "launched": true,
+            "exit_code": 0,
+            "result": {
+              "blocked": true,
+              "allowed": true
+            },
+            "stderr": ""
+          },
+          {
+            "launched": true,
+            "exit_code": 0,
+            "result": {
+              "blocked": true,
+              "allowed": true
+            },
+            "stderr": ""
+          },
+          {
+            "launched": true,
+            "exit_code": 0,
+            "result": {
+              "blocked": true,
+              "allowed": true
+            },
+            "stderr": ""
+          }
+        ]
+      }
+    },
+    {
+      "run": 3,
+      "created": true,
+      "create_error": 0,
+      "exit_code": 0,
+      "result": {
+        "forbidden": {
+          "read_outside": {
+            "ok": false,
+            "error": "PermissionError: [Errno 13] Permission denied: 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\sec02_fw66_rem\\\\outside\\\\secret.txt'"
+          },
+          "write_outside": {
+            "ok": false,
+            "error": "PermissionError: [Errno 13] Permission denied: 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\sec02_fw66_rem\\\\outside\\\\pwn.txt'"
+          },
+          "read_engine_key": {
+            "ok": false,
+            "error": "PermissionError: [Errno 13] Permission denied: 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\sec02_fw66_rem\\\\data\\\\.engine-key'"
+          },
+          "tcp_egress": {
+            "ok": false,
+            "error": "PermissionError: [WinError 10013] Erişim izinlerince izin verilmeyen bir şekilde bir yuvaya erişilmeye çalışıldı"
+          },
+          "delete_outside": {
+            "ok": false,
+            "error": "PermissionError: [WinError 5] Erişim engellendi: 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\sec02_fw66_rem\\\\outside\\\\delete-me.txt'"
+          }
+        },
+        "allowed": {
+          "1": {
+            "ok": true,
+            "value": true
+          },
+          "2": {
+            "ok": true,
+            "value": true
+          },
+          "3": {
+            "ok": true,
+            "value": true
+          }
+        },
+        "children": [
+          {
+            "launched": true,
+            "exit_code": 0,
+            "result": {
+              "blocked": true,
+              "allowed": true
+            },
+            "stderr": ""
+          },
+          {
+            "launched": true,
+            "exit_code": 0,
+            "result": {
+              "blocked": true,
+              "allowed": true
+            },
+            "stderr": ""
+          },
+          {
+            "launched": true,
+            "exit_code": 0,
+            "result": {
+              "blocked": true,
+              "allowed": true
+            },
+            "stderr": ""
+          }
+        ]
+      }
+    }
+  ],
+  "codex": {
+    "path": "C:\\Users\\Furkan\\AppData\\Local\\Programs\\OpenAI\\Codex\\bin\\codex.exe",
+    "launched": true,
+    "exit_code": 0,
+    "note": "Non-zero exit means the CLI needs files outside the allowed roots; it is reported unsupported, not silently run unsandboxed."
+  },
+  "unsupported_cli_probe": {
+    "created": false,
+    "exit_code": null,
+    "create_error": 2,
+    "note": "A missing CLI is reported unsupported; there is no widened fallback."
+  },
+  "summary": {
+    "forbidden_blocked": "15/15",
+    "allowed_workspace_writes": "9/9",
+    "child_policy_inherited": "9/9",
+    "network_baseline_connected": true,
+    "codex_launched": true,
+    "codex_exit_code": 0,
+    "windows_sandbox_binary": true,
+    "pass": true
+  }
+}
