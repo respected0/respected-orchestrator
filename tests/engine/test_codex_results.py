@@ -124,18 +124,20 @@ class CodexResultTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             executable = Path(temporary) / "codex.exe"
             executable.touch()
+            installed = Path(temporary) / "installed-codex"
+            installed.touch()
             with mock.patch.object(runner, "LOCAL_CODEX", executable), \
                     mock.patch.object(runner.sys, "platform", "win32"), \
-                    mock.patch.object(runner.shutil, "which", return_value="installed-codex"):
+                    mock.patch.object(runner.shutil, "which", return_value=str(installed)):
                 self.assertEqual(runner.get_cli_command("codex"), [str(executable)])
-                self.assertEqual(runner.get_cli_command("claude"), ["installed-codex"])
+                self.assertEqual(runner.get_cli_command("claude"), [str(installed)])
             with mock.patch.object(runner, "LOCAL_CODEX", Path(temporary) / "absent.exe"), \
                     mock.patch.object(runner.sys, "platform", "win32"), \
-                    mock.patch.object(runner.shutil, "which", return_value="installed-codex"):
-                self.assertEqual(runner.get_cli_command("codex"), ["installed-codex"])
+                    mock.patch.object(runner.shutil, "which", return_value=str(installed)):
+                self.assertEqual(runner.get_cli_command("codex"), [str(installed)])
             with mock.patch.object(runner.sys, "platform", "linux"), \
-                    mock.patch.object(runner.shutil, "which", return_value="installed-codex"):
-                self.assertEqual(runner.get_cli_command("codex"), ["installed-codex"])
+                    mock.patch.object(runner.shutil, "which", return_value=str(installed)):
+                self.assertEqual(runner.get_cli_command("codex"), [str(installed)])
 
 
 if __name__ == "__main__":

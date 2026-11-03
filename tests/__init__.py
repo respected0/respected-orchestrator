@@ -28,7 +28,7 @@ if not os.environ.get("RESPECTED_TEST_SANDBOX"):
 # Tests mock every worker call, but role and command resolution still asks whether the CLI is installed. Put empty
 # stand-ins for the missing ones on PATH so a machine without codex/claude/agy (CI) resolves them like a dev machine.
 _shims = Path(tempfile.mkdtemp(prefix="respected-test-clis-"))
-for _exe in ("claude", "gemini", "agy", "codex", "cursor-agent"):
+for _exe in ("claude", "gemini", "agy", "codex", "cursor-agent", "opencode"):
     if shutil.which(_exe) is None:
         (_shims / f"{_exe}.exe").touch()
 os.environ["PATH"] = str(_shims) + os.pathsep + os.environ.get("PATH", "")

@@ -12,7 +12,7 @@ from unittest import mock
 
 from respected_orchestrator.engine import lanes
 from respected_orchestrator.context import EngineContext
-from respected_orchestrator.engine.runner import check_result, create_task, execute_task
+from respected_orchestrator.engine.runner import artifact_data, check_result, create_task, execute_task
 
 PY = sys.executable
 
@@ -200,6 +200,15 @@ class EndToEndTests(Fixture):
         self.assertEqual(result["changed_files"], ["src/pkg/mod.py"])
         self.assertEqual(result["generated_artifact_count"], 4)
         self.assertEqual(check_result(self.ctx, run_id)["changed_files"], ["src/pkg/mod.py"])
+
+    def test_an_image_left_in_build_output_is_preserved_and_served_as_a_data_url(self):
+        screenshot = ("from pathlib import Path; p = Path('build/shot.png'); p.parent.mkdir(parents=True, exist_ok=True); "
+                      "p.write_bytes(b'\\x89PNG\\r\\n\\x1a\\n')")
+        run_id = self.task(screenshot + "; " + self.EDIT)
+        result = execute_task(self.ctx, run_id)
+        self.assertEqual(result["artifact_images"], ["1-shot.png"])
+        image = artifact_data(self.ctx, run_id, "1-shot.png")
+        self.assertTrue(image["data_url"].startswith("data:image/png;base64,"))
 
     def test_acceptance_that_writes_bytecode_does_not_fail_a_correct_lane(self):
         # the 2026-10-11 py_compile acceptance bug: acceptance itself leaves __pycache__

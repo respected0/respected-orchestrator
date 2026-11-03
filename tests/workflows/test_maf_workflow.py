@@ -55,7 +55,7 @@ class MafWorkflowTest(unittest.TestCase):
             goal="demo",
             workers={"fast": fast, "complex": complex_worker},
             reviewer=reviewer,
-            max_corrections=1,
+            max_fix_rounds=1,
         )
 
         self.assertEqual(result["status"], "MASTER_APPROVED")
@@ -89,6 +89,8 @@ class MafWorkflowTest(unittest.TestCase):
 
         self.assertEqual(result["status"], "REJECTED")
         self.assertEqual(result["review_decisions"], ["REJECTED"])
+        self.assertEqual(result["failure_class"], "reviewer_reject")
+        self.assertFalse(result["retryable"])
 
     def test_invalid_reviewer_output_fails_closed(self) -> None:
         result = run_maf_slice(
@@ -112,6 +114,7 @@ class MafWorkflowTest(unittest.TestCase):
 
         self.assertEqual(result["status"], "FAILED")
         self.assertEqual(result["reason"], "reviewer_execution_failed")
+        self.assertEqual(result["failure_class"], "infrastructure")
 
     def test_needs_changes_without_correction_payload_is_invalid(self) -> None:
         result = run_maf_slice(
