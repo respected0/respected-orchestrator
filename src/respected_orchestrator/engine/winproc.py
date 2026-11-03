@@ -38,3 +38,11 @@ def run(*args, **kwargs):
     for key, value in options.items():
         kwargs.setdefault(key, value)
     return subprocess.run(*args, **kwargs)
+
+
+def popen(*args, **kwargs):
+    """subprocess.Popen with a hidden window; flags the caller already chose are kept."""
+    options = hidden_options(kwargs.pop("creationflags", 0))
+    for key, value in options.items():
+        kwargs.setdefault(key, value)
+    return subprocess.Popen(*args, **kwargs)

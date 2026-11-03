@@ -40,8 +40,8 @@ class SpawnSitesTests(unittest.TestCase):
         raw = re.compile(r"subprocess\.(run|Popen|call|check_call|check_output)\(")
         found = {path.name: len(raw.findall(path.read_text(encoding="utf8"))) for path in SRC.rglob("*.py")}
         found = {name: count for name, count in found.items() if count}
-        # winproc.run wraps subprocess.run; processes.execute and lanes._spawn_detached each own their Popen call(s)
-        self.assertEqual(found, {"winproc.py": 1, "processes.py": 1, "lanes.py": 2})
+        # winproc.run/popen wrap the only subprocess calls; processes.execute and lanes._spawn_detached own the other Popen call(s)
+        self.assertEqual(found, {"winproc.py": 2, "processes.py": 1, "lanes.py": 2})
         self.assertIn("winproc.hidden_options", inspect.getsource(lanes._spawn_detached))
         self.assertNotIn("subprocess.DETACHED_PROCESS", inspect.getsource(lanes._spawn_detached))  # a detached process has no console to share
         self.assertIn("winproc.hidden_options", (SRC / "engine" / "processes.py").read_text(encoding="utf8"))

@@ -1,0 +1,7 @@
+﻿EXT-02 provider probe 2026-11-03T16:51:41.8166596+03:00
+serena => MISSING
+serena-mcp-server => MISSING
+uvx => MISSING
+npx => C:\Program Files\nodejs\npx.ps1
+codex => C:\Users\Furkan\AppData\Local\Programs\OpenAI\Codex\bin\codex.exe
+PROVIDER_MISSING expected when no server command exists; no fake success recorded.
