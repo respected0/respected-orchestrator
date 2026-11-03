@@ -1,0 +1,20 @@
+test_a_chain_preserves_dependency_order (tests.workflows.test_planner.PlannerTests.test_a_chain_preserves_dependency_order) ... ok
+test_a_cycle_is_rejected_with_its_path (tests.workflows.test_planner.PlannerTests.test_a_cycle_is_rejected_with_its_path) ... ok
+test_all_overlap_pairs_are_reported_in_one_diagnostic (tests.workflows.test_planner.PlannerTests.test_all_overlap_pairs_are_reported_in_one_diagnostic) ... ok
+test_an_invalid_verify_command_is_rejected (tests.workflows.test_planner.PlannerTests.test_an_invalid_verify_command_is_rejected) ... ok
+test_context_files_cannot_close_their_own_block (tests.workflows.test_planner.PlannerTests.test_context_files_cannot_close_their_own_block) ... ok
+test_context_files_stay_inside_the_project (tests.workflows.test_planner.PlannerTests.test_context_files_stay_inside_the_project) ... ok
+test_custom_tool_cannot_plan (tests.workflows.test_planner.PlannerTests.test_custom_tool_cannot_plan) ... ok
+test_invalid_outcomes_are_drafted_with_the_problem (tests.workflows.test_planner.PlannerTests.test_invalid_outcomes_are_drafted_with_the_problem) ... ok
+test_json_extraction (tests.workflows.test_planner.PlannerTests.test_json_extraction) ... ok
+test_malformed_spec_types_are_invalid_drafts_not_crashes (tests.workflows.test_planner.PlannerTests.test_malformed_spec_types_are_invalid_drafts_not_crashes) ... ok
+test_overlapping_parallel_ownership_marks_every_conflict (tests.workflows.test_planner.PlannerTests.test_overlapping_parallel_ownership_marks_every_conflict) ... ok
+test_rejects_bad_requests (tests.workflows.test_planner.PlannerTests.test_rejects_bad_requests) ... ok
+test_three_independent_nodes_are_valid_and_start_nothing (tests.workflows.test_planner.PlannerTests.test_three_independent_nodes_are_valid_and_start_nothing) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 2.399s
+
+OK
+
+EXIT_CODE=0

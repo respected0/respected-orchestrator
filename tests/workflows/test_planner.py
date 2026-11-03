@@ -78,6 +78,86 @@ class PlannerTests(unittest.TestCase):
         self.assertEqual(prompt.count(f"END UNTRUSTED FILE a.md {nonce}"), 1)
         self.assertNotIn("--- END UNTRUSTED FILE a.md ---", prompt)
 
+    def lane(self, name, ownership, after=None):
+        return {"name": name, "after": after or [], "request": {
+            "project_root": str(self.repo), "task": name, "kind": "write", "ownership": ownership,
+            "acceptance": [["python", "-c", "1"]], "timeout_seconds": 60,
+            "workflow": {"max_fix_rounds": 1, "max_weighted_tokens": 10000},
+        }}
+
+    def planned(self, spec):
+        return self.plan(result=(json.dumps(spec), {"estimated_weighted_tokens": 1}, None, None))
+
+    def test_three_independent_nodes_are_valid_and_start_nothing(self):
+        done = self.planned({"goal": "g", "phases": [{"name": "p", "workstreams": [
+            self.lane("one", ["a.txt"]), self.lane("two", ["b.txt"]), self.lane("three", ["c.txt"]),
+        ]}]})
+        self.assertEqual((done["status"], done["problem"]), ("drafted", None))
+        dag = json.loads(Path(done["draft"]).read_text(encoding="utf8"))["dag"]
+        self.assertEqual([node["id"] for node in dag["nodes"]], ["p/one", "p/three", "p/two"])
+        self.assertTrue(all(not node["depends_on"] for node in dag["nodes"]))
+        for node in dag["nodes"]:
+            self.assertTrue({"id", "depends_on", "ownership", "forbidden", "acceptance", "budget"} <= set(node))
+            self.assertEqual(node["budget"], {"timeout_seconds": 60, "max_weighted_tokens": 10000})
+        self.assertEqual(done["dag"], dag)
+        for stopped in ("projects", "campaigns", "runs"):
+            self.assertFalse((self.ctx.data_root / stopped).exists(), stopped)
+
+    def test_a_chain_preserves_dependency_order(self):
+        done = self.planned({"goal": "g", "phases": [{"name": "p", "workstreams": [
+            self.lane("one", ["a.txt"]), self.lane("two", ["b.txt"], ["one"]), self.lane("three", ["c.txt"], ["two"]),
+        ]}]})
+        self.assertEqual(done["status"], "drafted", done["problem"])
+        self.assertEqual(done["dag"]["topological_order"], ["p/one", "p/two", "p/three"])
+        self.assertEqual([node["depends_on"] for node in done["dag"]["nodes"]], [[], ["p/one"], ["p/two"]])
+
+    def test_a_cycle_is_rejected_with_its_path(self):
+        done = self.planned({"goal": "g", "phases": [{"name": "p", "workstreams": [
+            self.lane("one", ["a.txt"], ["two"]), self.lane("two", ["b.txt"], ["one"]),
+        ]}]})
+        self.assertEqual(done["status"], "invalid")
+        self.assertIn("Cycle detected: p/one -> p/two -> p/one", done["problem"])
+        self.assertIsNone(done["dag"])
+
+    def test_overlapping_parallel_ownership_marks_every_conflict(self):
+        done = self.planned({"goal": "g", "phases": [{"name": "p", "workstreams": [
+            self.lane("one", ["src"]), self.lane("two", ["src/a.py"]), self.lane("three", ["other.txt"]),
+        ]}]})
+        self.assertEqual(done["status"], "invalid")
+        self.assertIn("p/one and p/two share src", done["problem"])
+
+    def test_all_overlap_pairs_are_reported_in_one_diagnostic(self):
+        done = self.planned({"goal": "g", "phases": [{"name": "p", "workstreams": [
+            self.lane("one", ["src"]), self.lane("two", ["src/a.py"]), self.lane("three", ["src/b.py"]),
+        ]}]})
+        self.assertEqual(done["status"], "invalid")
+        self.assertIn("p/one and p/three share src", done["problem"])
+        self.assertIn("p/one and p/two share src", done["problem"])
+
+    def test_malformed_spec_types_are_invalid_drafts_not_crashes(self):
+        malformed = [
+            {"goal": "g", "phases": [{"name": "p", "verify": None, "workstreams": [self.lane("one", ["a.txt"])]}]},
+            {"goal": "g", "phases": [{"name": "p", "workstreams": [
+                dict(self.lane("one", ["a.txt"]), request=dict(self.lane("one", ["a.txt"])["request"], project_root=None)),
+            ]}]},
+            {"goal": "g", "budget": {"max_weighted_tokens": "many"}, "phases": [{"name": "p", "workstreams": [self.lane("one", ["a.txt"])]}]},
+        ]
+        for spec in malformed:
+            with self.subTest(spec=spec):
+                done = self.planned(spec)
+                self.assertEqual(done["status"], "invalid")
+                self.assertIn("spec rejected by the engine", done["problem"])
+                self.assertIsNone(done["dag"])
+
+    def test_an_invalid_verify_command_is_rejected(self):
+        done = self.planned({"goal": "g", "phases": [{
+            "name": "p", "workstreams": [self.lane("one", ["a.txt"])],
+            "verify": [{"command": "python -c 1", "cwd": str(self.repo), "timeout_seconds": 5}],
+        }]})
+        self.assertEqual(done["status"], "invalid")
+        self.assertIn("spec rejected by the engine", done["problem"])
+        self.assertIn("Command must be a non-empty JSON string array", done["problem"])
+
 
 if __name__ == "__main__":
     unittest.main()
