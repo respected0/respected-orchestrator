@@ -140,3 +140,19 @@ Git HEAD, checkpoint adımı veya checkpoint bütünlüğü değişmişse komut 
 Onay yalnızca etkileşimli terminalde alınır. `RESPECTED_ORCH_CHILD=1` ve `RESPECTED_ORCH_DELEGATED=1` alt süreçleri
 reddedilir; MCP'de onay aracı yoktur. Onay verilse bile `auto_apply=false` aşamasında apply başlamaz. Bayat patch
 zorlanmaz; `stale patch` nedeniyle bloke kalır.
+
+## Kanıt görünümü
+
+```powershell
+respected-orchestrator evidence run-2026-11-03-abc
+```
+
+İmzalı kanıtı salt-okunur, redakte edilmiş sunum modeli olarak döndürür. Patch/proje değişmişse `stale`,
+imza geçersizse yapılandırılmış hata verir. Aynı çıktı RPP `evidence.view` operasyonundan da alınır.
+
+```powershell
+'{"rpp":"1","op":"evidence.view","payload":{"run_id":"run-2026-11-03-abc"}}' | respected-orchestrator rpp
+```
+
+`health` yanıtındaki `wizard` alanı ilk görev ve sonraki adımı gösterir; onay yalnızca etkileşimli terminalde
+`maf-approve` ile alınır, MCP/agent üzerinden onay verilemez.

@@ -383,3 +383,23 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   çalışan böyle bir doğrulama komutunu kendi kendini denerken çalıştıramayıp görevi başarısız bildirebilir. Motorun kendi
   doğrulaması ayrıca kısıtlı belirteçle yapılır.
 - Kurucu Authenticode ile imzalı değildir.
+
+## 11. Kanıt görünümü, GitHub sınırı ve yayın kapıları
+
+- **Kanıt görünümü (UX-01/UX-02):** `interfaces/evidence_view.view` imzalı `request/status/result` kayıtlarını
+  yalnızca okur; patch SHA'sı ve proje parmak izi değişmişse `stale`, imza geçersizse hata üretir. Görünüm
+  redakte edilir, ortam secret'ları çağrı anında maskelenir ve maliyet bilinmiyorsa `unknown` kalır. RPP
+  `evidence.view` ile CLI `evidence <run_id>` aynı JSON'u döndürür; hiçbir yazma yapılmaz.
+- **İnsan onayı (UX-03):** Decision Center yeni onay yetkisi açmaz. `maf-approve` yalnızca etkileşimli TTY'de,
+  patch SHA'sına bağlı olarak çalışır; MCP/agent onayı, replay, ekran drift'i ve eski sonuç reddedilir.
+- **GitHub sınırı (GH-01/02/03):** `interfaces/github_connector` issue'yu salt-okunur ve güvenilmeyen plan
+  girdisi olarak alır; taslak PR yalnızca imzalı `completed` kanıt ve açık `operation_id` ile açılır; CI
+  düzeltmesi round/SHA/reviewer/onay sınırlarına tabidir. Merge komutu üretilmez. Adaptör RPP/CLI'ye bağlı
+  değildir.
+- **Salt-okunur MCP denemesi (EXT-02):** `interfaces/readonly_probe` yalnızca manifestte `read` izinli
+  `mcp.serena`/`mcp.context` araçlarını çalıştırır; yol kaçışı, sağlayıcı yokluğu ve secret sızıntısı
+  fail-closed'dır. Tool çıktısı güvenilmeyen veridir.
+- **Yayın kapıları (REL-01/REL-03/REL-04):** Authenticode doğrulaması fail-closed'dır; sertifika yoksa artefakt
+  imzasız kalır ve `--require-signed` başarısız olur. `health` yanıtındaki `wizard` salt-okunur ilk-görev
+  rehberi verir. Platform kapısı yalnızca Windows'u GA sayar; 10 güvenlik fixture'ı eksik/kırmızıysa veya
+  platform POSIX ise yayın `no-go` olur (`docs/ADR-REL04-platform-parity.md`).

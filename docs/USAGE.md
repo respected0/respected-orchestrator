@@ -265,3 +265,17 @@ Brain hafıza bağlantısı varsa önce `memory disconnect` ile kapatmak izni Br
 
 Hata bildirirken `--version` çıktısı, Windows sürümü, hata kodu ve kişisel bilgilerden arındırılmış komut yeterlidir.
 Görev metninizi, projenizin kodunu ve kimlik bilgilerinizi herkese açık yere koymayın.
+
+## 11. Kanıt görünümü ve onay sınırı
+
+Tamamlanan bir görevin kanıtını salt-okunur görmek için:
+
+```powershell
+respected-orchestrator evidence run-2026-11-03-abc
+```
+
+Görünüm patch SHA'sı, değişen dosyalar, check sonuçları, reviewer/test bilgisi ve riskleri redakte ederek
+gösterir; maliyet bilinmiyorsa `unknown` yazar. Kanıt imzası bozuksa veya patch/proje değişmişse görünüm
+`stale`/hata döner, sessizce başarı göstermez. Onay yalnızca etkileşimli terminalde `maf-approve` ile alınır;
+Hub Decision Center ve MCP bu sınırı genişletmez. `health` çıktısındaki `wizard` alanı ilk görevi ve sonraki
+adımı anlatır.

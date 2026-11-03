@@ -2259,6 +2259,225 @@ py docs/ilerleme/poc/eval02_real.py
 
 ---
 
+## UX-01 — Kanıt paketi görünüm şeması
+
+- Durum: Tamamlandı.
+- Kapsam: `interfaces/evidence_view.py`, imzalı engine kanıtı üzerinde salt-okunur ve redakte sunum modeli.
+  `view(ctx, run_id)` yalnızca okur: schema_version, task_id, status, reason, patch_summary (SHA + değişen
+  dosyalar), checks, reviewer, tester, usage, risks ve cost. Kanıt dosyalarına yazmaz, HMAC kaydını değiştirmez.
+  Geçerli, eski (patch/proje değişmiş), başarısız ve kurcalanmış kanıt ayrı durum ve sebep üretir; ortam
+  değişkenlerindeki secret değerler redakte edilir. Değer import anında değil `view()` çağrısında okunur.
+- Doğrulama: `tests.interfaces.test_evidence_view` — geçerli/stale/failed/tampered ve env-secret senaryoları
+  (`Ran 2 tests ... OK`; 6 görünüm durumu).
+- Kalan risk: Hub görsel katmanı bu depoda değil; evidence'ta maliyet yoksa `cost=unknown` döner, sıfır üretilmez.
+
+### Kanıt artefaktları (SHA-256)
+
+- `src/respected_orchestrator/interfaces/evidence_view.py` -> `A30C024E1722A6D385A56096023CCD4BB4005DB3FBAA771C2A52F60DFB28538C`
+- `tests/interfaces/test_evidence_view.py` -> `E8113016330CD935B84E3613B494A8B829FECB33B4CB7CCD7540F78998BB00F8`
+- `docs/ilerleme/poc/ux01_focused.log` -> `C04969C576A34C9B1FB5D7920FAAEA49DDC248063B5DEFB33FC91576F387323E`
+
+---
+
+## UX-02 — Hub ve CLI için salt okunur evidence API
+
+- Durum: Tamamlandı.
+- Kapsam: RPP `evidence.view` operasyonu ve CLI `evidence <run_id>` komutu aynı normalize görünümü üretir.
+  `run-...` kimliği doğrulanır; traversal, olmayan görev, kilitli/kurcalanmış kanıt ve şema uyuşmazlığı
+  yapılandırılmış hata döndürür. GET benzeri çağrı kanıt dosyalarını veya repo durumunu değiştirmez.
+- Doğrulama: `tests.interfaces.test_evidence_api` — 5/5 vaka, RPP/CLI eşitliği ve kanıt hash'inin sabit kaldığı
+  kontrolü (`Ran 24 tests ... OK` evidence_view/evidence_api/startup_cost birlikte).
+- Kalan risk: Hub bu API'yi çağırmıyor; Hub kaldırıldığında CLI yolu tek başına çalışır.
+
+### Kanıt artefaktları (SHA-256)
+
+- `src/respected_orchestrator/interfaces/rpp.py` -> `5E5A4A3A7F2754BE640268102EF54A04AA627605D35B710EFD80A65524577F59`
+- `src/respected_orchestrator/__main__.py` -> `0669B561B5A62A028A814DA1BC3CAB41D305205A6DE3CC5BCE7C307C31CE2C41`
+- `tests/interfaces/test_evidence_api.py` -> `EE1996D0DF39831C05F88A5DDB4DBD21724B2092563457C5D6DB441211CDCEAE`
+- `docs/ilerleme/poc/ux02_focused.log` -> `934D70DE616EEB83DD03F349DB811D15DE4B81747536547AB0D45E9D7E4579E2`
+
+---
+
+## UX-03 — Hub Decision Center ve gerçek insan onayı
+
+- Durum: Tamamlandı (sözleşme ve terminal yolu; Hub UI kapsam dışı).
+- Kapsam: İnsan onayı sınırını genişletmeyen sözleşme testleri eklendi. MCP/agent kendini onaylayamaz; onay
+  yalnızca etkileşimli TTY üzerinden alınır; onay patch SHA'sına bağlanır; replay, ekran drift'i, iptal ve
+  güncelliğini yitirmiş sonuç reddedilir. `approve_maf_task` mevcut davranışı korunur; yeni yetki yolu açılmadı.
+- Doğrulama: `tests.interfaces.test_human_approval_contract` — 7/7 senaryo (`Ran 7 tests ... OK`).
+- Kalan risk: Hub Decision Center ekranı ayrı depoda; buradaki kanıt terminal `maf-approve` yolunun sözleşmesidir.
+
+### Kanıt artefaktları (SHA-256)
+
+- `tests/interfaces/test_human_approval_contract.py` -> `6EDB118DB38702ADAB5B1B38A663613FD0E2A26FE616690DABF86E6CA81F812C`
+- `docs/ilerleme/poc/ux03_focused.log` -> `7C9B948C9B5318EE142E93334F6DB5E7BE26C904778174B72774CEFB98B915B2`
+
+---
+
+## COST-01 — Gemini/Cursor kullanımını gerçek CLI ile ölç
+
+- Durum: Engelli — sağlayıcı CLI'ları bu makinede kurulu değil.
+- Probe: `where.exe gemini` -> NOT_FOUND, `cursor` -> NOT_FOUND, `cursor-agent` -> NOT_FOUND,
+  `opencode` -> `C:\Users\Furkan\AppData\Roaming\npm\opencode(.cmd)`.
+- Karar: Kullanım/token verisi uydurulmadı; bilinmeyen değer `0` yazılmadı. Gemini/Cursor CLI'ları kurulup
+  gerçek kullanım çıktısı alınana kadar görev engelli kalır; OpenCode tarafı ADP-01/COST-03 ile ölçülebilir.
+- Doğrulama: `docs/ilerleme/poc/cost01_cli_probe.log`.
+- Kalan risk: Sağlayıcı başına maliyet ve token sayısı bilinmiyor; raporlarda `unknown` olarak kalmalı.
+
+### Kanıt artefaktları (SHA-256)
+
+- `docs/ilerleme/poc/cost01_cli_probe.log` -> `BB8E5C20F27CD086EFE31802BDCE4AB1D677781408F618D379E3526AE73AA935`
+
+---
+
+## COST-03 — Risk ve başarım tabanlı auto_assign v2
+
+- Durum: Tamamlandı.
+- Kapsam: `workflows/roles.recommend` ölçülen track record ile adayları sıralar. Yetersiz geçmişte havuz sırası
+  kullanılır ve bunun ölçülmüş öneri olmadığı gerekçede yazılır; eşit skorlar havuz sırasıyla deterministik;
+  engelli profil sessizce kullanılmaz; write rolüne salt-okunur araç verilmez; kayıp modelde yalnızca açık
+  fallback; eşit kayıtta pahalı aday kaybeder; açık kullanıcı ataması ezilmez.
+- Doğrulama: `tests.workflows.test_auto_assign_v2` + `test_roles` + `test_track_record` — 31 test OK
+  (`docs/ilerleme/poc/cost03_focused.log`).
+- Kalan risk: Geçmiş yalnızca runs/ok/tokens/seconds taşır; model kalitesi ve görev zorluğu ayrı ölçülmez.
+
+### Kanıt artefaktları (SHA-256)
+
+- `tests/workflows/test_auto_assign_v2.py` -> `5B6BA3449746A69B29E1CCEB7C3F3CC67D23939E947A8F44891CBED3D28E4C38`
+- `src/respected_orchestrator/workflows/roles.py` -> `4AD4F1718251ED4937E2EDA18DA0894902B61878867E517C13EDA4F4B84BC5C9`
+- `docs/ilerleme/poc/cost03_focused.log` -> `D70FA6F7665466297849BCC26A885E86B8C61E6EC5D323831782D83BA3BC4078`
+
+---
+
+## GH-01 — GitHub Issue salt okunur içe aktar
+
+- Durum: Tamamlandı (adaptör düzeyinde).
+- Kapsam: `interfaces/github_connector.import_issue`, `gh issue view` ile tek issue okur; başlık/gövde
+  güvenilmeyen plan girdisidir, izin listesi dışındaki etiketler atılır. Kaynak repo/issue/revision/url kayda
+  geçer. Issue metninden worker başlatılmaz; GitHub yazma isteği yoktur. 404, kısıtlı repo, iptal ve rate-limit
+  hata olarak döner; repo/issue biçimi `gh` çağrısından önce doğrulanır.
+- Doğrulama: `tests.interfaces.test_github_connector` (9 test) ve canlı read-only kontrol: `gh 2.102.0`,
+  hesap `respected0`, issue listesi boş. Push/PR açılmadı.
+- Kalan risk: RPP/CLI'ye bağlanmadı; token low-scope kurulmadı.
+
+### Kanıt artefaktları (SHA-256)
+
+- `src/respected_orchestrator/interfaces/github_connector.py` -> `1BEB154629898E17F3057F8D341B7F41ED74A702AC6DDB3CE220B9274ECD23D5`
+- `tests/interfaces/test_github_connector.py` -> `1193A3A0FC5980BB949322E212954E5FAF1480132123455C621266A41AD3D91F`
+- `docs/ilerleme/poc/gh01_gh02_gh03_focused.log` -> `F7E747546741315C6CA9808AF738ED04A0CF129684F9E0F85A19FE8736BB8CDB`
+
+---
+
+## GH-02 — Doğrulanmış patch'ten taslak PR aç
+
+- Durum: Tamamlandı (adaptör düzeyinde).
+- Kapsam: `create_draft_pr` yalnızca imzalı ve `completed` kanıt, eşleşen patch SHA'sı ve açık `operation_id`
+  ile çalışır. Push yetkisi çağıran tarafından verilir; secret içeren diff reddedilir; aynı operation_id ikinci
+  PR üretmez; merge komutu hiç üretilmez. Başarısız/eski kanıtta PR açılmaz.
+- Doğrulama: `tests.interfaces.test_github_connector` — draft PR, failed evidence, duplicate, denied/conflict/
+  secret diff ve merge-yok senaryoları.
+- Kalan risk: Canlı draft PR açılmadı (push yasak); gerçek GitHub yazma yolu test edilmedi.
+
+### Kanıt artefaktları (SHA-256)
+
+- `src/respected_orchestrator/interfaces/github_connector.py` -> `1BEB154629898E17F3057F8D341B7F41ED74A702AC6DDB3CE220B9274ECD23D5`
+- `tests/interfaces/test_github_connector.py` -> `1193A3A0FC5980BB949322E212954E5FAF1480132123455C621266A41AD3D91F`
+- `docs/ilerleme/poc/gh01_gh02_gh03_focused.log` -> `F7E747546741315C6CA9808AF738ED04A0CF129684F9E0F85A19FE8736BB8CDB`
+
+---
+
+## GH-03 — CI/review geri bildirimini sınırlı düzeltmeye bağla
+
+- Durum: Tamamlandı (adaptör düzeyinde).
+- Kapsam: `plan_ci_fix` CI/review geri bildirimini sınırlı düzeltme planına çevirir; round bütçesi aşılırsa,
+  SHA eskiyse, reviewer yetkisizse veya insan onayı yoksa düzeltme üretmez. Sınırsız retry yok; gerekçe kanıt
+  paketine yazılabilir biçimde döner. PR'a yorum/merge yazılmaz.
+- Doğrulama: `tests.interfaces.test_github_connector` — 6 sınırlı senaryo.
+- Kalan risk: Gerçek CI/status akışına bağlanmadı; RPP/CLI yüzeyi yok.
+
+### Kanıt artefaktları (SHA-256)
+
+- `src/respected_orchestrator/interfaces/github_connector.py` -> `1BEB154629898E17F3057F8D341B7F41ED74A702AC6DDB3CE220B9274ECD23D5`
+- `tests/interfaces/test_github_connector.py` -> `1193A3A0FC5980BB949322E212954E5FAF1480132123455C621266A41AD3D91F`
+- `docs/ilerleme/poc/gh01_gh02_gh03_focused.log` -> `F7E747546741315C6CA9808AF738ED04A0CF129684F9E0F85A19FE8736BB8CDB`
+
+---
+
+## EXT-02 — Serena/context MCP için read-only deneme adaptörleri
+
+- Durum: Tamamlandı (adaptör düzeyinde).
+- Kapsam: `interfaces/readonly_probe.query_repo`, EXT-01 yetenek manifestosu arkasında yalnızca `mcp.serena` ve
+  `mcp.context` araçlarını `read` izniyle çalıştırır. Sağlayıcı yoksa, araç onaylı değilse veya yazma izni
+  istiyorsa fail-closed. Mutlak yol, sürücü harfi, UNC ve `..` kaçışları reddedilir; çıktı güvenilmeyen veri
+  olarak 20.000 karakterle sınırlanır ve secret redaksiyonu uygulanır. Tool yokken orchestrator core çalışır.
+- Doğrulama: `tests.interfaces.test_readonly_probe` + `test_capability_manifest` — 10 test OK.
+- Kalan risk: Gerçek Serena/context sunucusu kurulu değil; sağlayıcı enjekte edilen callable'dır.
+
+### Kanıt artefaktları (SHA-256)
+
+- `src/respected_orchestrator/interfaces/readonly_probe.py` -> `86C1FE14140890ECF004FCE80A8EF12BB228B7915123DA59F78EAEB1EC978166`
+- `tests/interfaces/test_readonly_probe.py` -> `ED7F0DE109193D496EC63BF6CB69DB30CF69AD6402E8CF7C2EEBBAFBE6003979`
+- `docs/ilerleme/poc/ext02_focused.log` -> `0EC08864BA720FABFF36750D13B8C7DCAC8F1741E9C27A002767FF2D5136DC90`
+
+---
+
+## REL-01 — Authenticode imzalı Windows kurucu hattı
+
+- Durum: Tamamlandı — fail-closed doğrulama hattı hazır; gerçek sertifika yok, imzalı kurucu üretilmedi.
+- Kapsam: `release_signature.verify` yalnızca geçerli Authenticode durumunda `signed=True` döner; eksik dosya,
+  beklenen SHA uyuşmazlığı (tampered), desteklenmeyen platform, çevrimdışı/bilinmeyen durum, geçersiz imza,
+  yanlış imzalayan ve süresi dolmuş sertifika reddedilir. `sign` sertifikayı yalnızca operatör girdisinden alır;
+  imza anahtarı repodan gelmez. `packaging/build_installer.py` `--sign-cert` ve `--require-signed` ile
+  imzasız artefaktı başarı saymaz.
+- Doğrulama: `tests.packaging.test_release_signature` — 6 test OK (`docs/ilerleme/poc/rel01_focused.log`).
+- Kalan risk: Authenticode sertifikası, zaman damgası sunucusu ve imzalı yayın artefaktı yok; bu nedenle
+  "imzalı kurucu" iddia edilmez. Sertifika temini operasyonel bağımlılıktır.
+
+### Kanıt artefaktları (SHA-256)
+
+- `src/respected_orchestrator/release_signature.py` -> `CD8BBA562D89FBF0CBABBB986DD3A093EEA3BBA9A827A4D332C6B1198291C2A4`
+- `packaging/build_installer.py` -> `4E973860CABD9DEB876B40C302D03AE1D7DAE19555CDA65D1BB771F6EE0A30DF`
+- `tests/packaging/test_release_signature.py` -> `7B236F0E508B8356140A7DFF84B17D12BC38ED9A2F804075F34CB66F0E6F22E4`
+- `docs/ilerleme/poc/rel01_focused.log` -> `A5A26C573A8446D19716A022A6E1D972933340FF30F14D7A10E6547DA2E4C827`
+
+---
+
+## REL-03 — İlk göreve giden kurulum rehberi ve health
+
+- Durum: Tamamlandı.
+- Kapsam: `interfaces/health_wizard.guide(checks, data_root)` rpp `health` yanıtına `wizard` alanı ekler:
+  sonraki adım, salt-okunur örnek görev ve platform ipucu. Örnek görev yalnızca okuma yapar; Hub yokken core
+  çalışır; kaldırma veriyi purge edilmedikçe korur.
+- Doğrulama: `test_health_wizard + test_rpp + startup_cost` — 28 test OK (`docs/ilerleme/poc/rel03_focused.log`).
+- Kalan risk: Rehber metinseldir; otomatik onarım/onboarding yapmaz.
+
+### Kanıt artefaktları (SHA-256)
+
+- `src/respected_orchestrator/interfaces/health_wizard.py` -> `4D90FF2CF21C374EAB19A329B95E827C2D5A62C84CA3795E991A65EE5BB30A7C`
+- `src/respected_orchestrator/interfaces/rpp.py` -> `5E5A4A3A7F2754BE640268102EF54A04AA627605D35B710EFD80A65524577F59`
+- `tests/interfaces/test_health_wizard.py` -> `9700E059804B784D0E72CF3EFC4A5CF542236410D2CF68D4A919B1C557918CCF`
+- `docs/ilerleme/poc/rel03_focused.log` -> `D10019731E4C005A5037A3BCA2D96B4019840CB56DCBE430BF124DAAC3DB3C9F`
+
+---
+
+## REL-04 — macOS/Linux güvenlik eşdeğerliği ve platform kapısı
+
+- Durum: Tamamlandı (karar kapısı); POSIX GA değil.
+- Kapsam: `release_platform.decide` yalnızca Windows'u GA sayar ve 10 güvenlik fixture'ının tamamı `pass`
+  değilse `no-go` döner. Eksik veya kırmızı fixture yayını bloklar. macOS/Linux tüm fixture'lar geçse bile
+  "platform parity not proven" gerekçesiyle `no-go` kalır. Karar `docs/ADR-REL04-platform-parity.md` içinde.
+- Doğrulama: `tests.packaging.test_release_platform` — 6 test OK (`docs/ilerleme/poc/rel04_focused.log`).
+- Kalan risk: POSIX'te gerçek sandbox/izin eşdeğerliği kanıtlanmadı; GA iddiası yoktur.
+
+### Kanıt artefaktları (SHA-256)
+
+- `src/respected_orchestrator/release_platform.py` -> `B50167A8CB86A1A40DA4A0F8E02235CCE6F6E9A468C091E344293FF918B3FDF8`
+- `tests/packaging/test_release_platform.py` -> `42E7918C294A38FF1CFC385929C91B74D3C2F041A41F5C51113E2D9DFA7ADDAF`
+- `docs/ADR-REL04-platform-parity.md` -> `56A29A646A53E22B7D1F5CEEC746046C08E9C4EDC007F18870565E36440F4034`
+- `docs/ilerleme/poc/rel04_focused.log` -> `8A73E971D0B843854647E29C1F5F1CB3F66DDFF08DE89F7D1921AA88A356AB2A`
+
+---
+
 ## Şablon (sonraki görevler)
 
 ```

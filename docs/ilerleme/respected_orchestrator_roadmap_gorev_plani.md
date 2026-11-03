@@ -141,6 +141,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 - [x] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### REL-01 — Authenticode imzalı Windows kurucu hattı
+**Durum:** Tamamlandı (2026-11-03) — fail-closed hat; sertifika yok: `KANIT_LOG.md` §REL-01
+
 
 **Etiketler:** `priority:P2`, `gate:G4`, `epic:yay-n-ve-g-ncelleme`, `size:M`  
 **Mevcut ROADMAP bağlantısı:** Yayın / Authenticode (mevcut)  
@@ -158,6 +160,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 - [ ] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### REL-03 — İlk göreve giden kurulum rehberi ve health wizard
+**Durum:** Tamamlandı (2026-11-03) — kanıt: `KANIT_LOG.md` §REL-03
+
 
 **Etiketler:** `priority:P2`, `gate:G4`, `epic:yay-n-ve-g-ncelleme`, `size:M`  
 **Mevcut ROADMAP bağlantısı:** Yeni; Hub opsiyonelliği korunacak  
@@ -175,6 +179,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 - [ ] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### REL-04 — macOS/Linux için güvenlik eşdeğerliği ve platform kararı
+**Durum:** Tamamlandı (2026-11-03) — karar kapısı: `KANIT_LOG.md` §REL-04
+
 
 **Etiketler:** `priority:P2`, `gate:G4`, `epic:yay-n-ve-g-ncelleme`, `size:L`  
 **Mevcut ROADMAP bağlantısı:** Yayın / macOS Linux (mevcut)  
@@ -478,6 +484,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 ### Epic: Kanıt ve karar merkezi
 
 #### UX-01 — Kanıt paketi görünüm şeması
+**Durum:** Tamamlandı (2026-11-03) — kanıt: `KANIT_LOG.md` §UX-01
+
 
 **Etiketler:** `priority:P2`, `gate:G3`, `epic:kan-t-ve-karar-merkezi`, `size:M`  
 **Mevcut ROADMAP bağlantısı:** Yeni; mevcut signed evidence read-only görünümü  
@@ -495,6 +503,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 - [ ] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### UX-02 — Hub ve CLI için salt okunur evidence API
+**Durum:** Tamamlandı (2026-11-03) — kanıt: `KANIT_LOG.md` §UX-02
+
 
 **Etiketler:** `priority:P2`, `gate:G3`, `epic:kan-t-ve-karar-merkezi`, `size:M`  
 **Mevcut ROADMAP bağlantısı:** Yeni; RPP ürüne özel ops / mevcut MCP evidence  
@@ -512,6 +522,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 - [ ] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### UX-03 — Hub Decision Center ve gerçek insan onayı
+**Durum:** Tamamlandı (2026-11-03) — kanıt: `KANIT_LOG.md` §UX-03 (Hub UI kapsam dışı)
+
 
 **Etiketler:** `priority:P2`, `gate:G3`, `epic:kan-t-ve-karar-merkezi`, `size:L`  
 **Mevcut ROADMAP bağlantısı:** Yeni; Hub-only alternatif işlem güven sınırı  
@@ -588,6 +600,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 ### Epic: Telemetri ve model yönlendirme
 
 #### COST-01 — Gemini/Cursor kullanımını gerçek CLI ile doğrula
+**Durum:** Engelli (2026-11-03) — Gemini/Cursor CLI yok; kanıt: `KANIT_LOG.md` §COST-01
+
 
 **Etiketler:** `priority:P1`, `gate:G2`, `epic:telemetri-ve-model-y-nlendirme`, `size:M`  
 **Mevcut ROADMAP bağlantısı:** Token tasarrufu (mevcut)  
@@ -623,6 +637,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 - [x] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### COST-03 — Risk ve başarım tabanlı auto_assign v2
+**Durum:** Tamamlandı (2026-11-03) — kanıt: `KANIT_LOG.md` §COST-03
+
 
 **Etiketler:** `priority:P2`, `gate:G3`, `epic:telemetri-ve-model-y-nlendirme`, `size:L`  
 **Mevcut ROADMAP bağlantısı:** Otomatik atama zorluğu/fiyat (mevcut)  
@@ -701,6 +717,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 ### Epic: GitHub teslimat hattı
 
 #### GH-01 — GitHub Issue salt okunur içe aktar
+**Durum:** Tamamlandı (2026-11-03) — kanıt: `KANIT_LOG.md` §GH-01
+
 
 **Etiketler:** `priority:P2`, `gate:G3`, `epic:github-teslimat-hatt`, `size:M`  
 **Mevcut ROADMAP bağlantısı:** Yeni; mevcut planlama üzerine  
@@ -718,6 +736,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 - [ ] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### GH-02 — Doğrulanmış patch'ten taslak PR aç
+**Durum:** Tamamlandı (2026-11-03) — kanıt: `KANIT_LOG.md` §GH-02
+
 
 **Etiketler:** `priority:P2`, `gate:G4`, `epic:github-teslimat-hatt`, `size:L`  
 **Mevcut ROADMAP bağlantısı:** Yeni; verify/review sonrası  
@@ -736,6 +756,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 - [ ] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### GH-03 — CI/review geri bildirimini sınırlı düzeltmeye bağla
+**Durum:** Tamamlandı (2026-11-03) — kanıt: `KANIT_LOG.md` §GH-03
+
 
 **Etiketler:** `priority:P2`, `gate:G4`, `epic:github-teslimat-hatt`, `size:L`  
 **Mevcut ROADMAP bağlantısı:** Yeni; MAF ve PR hattı  
@@ -775,6 +797,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 - [x] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### EXT-02 — Serena/context MCP için read-only deneme adaptörleri
+**Durum:** Tamamlandı (2026-11-03) — kanıt: `KANIT_LOG.md` §EXT-02
+
 
 **Etiketler:** `priority:P2`, `gate:G4`, `epic:skills-ve-mcp-izinleri`, `size:M`  
 **Mevcut ROADMAP bağlantısı:** Yeni; HTML'deki tamamlayıcı araçlara açık mimari  
