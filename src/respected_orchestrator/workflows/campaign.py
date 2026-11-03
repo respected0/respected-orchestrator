@@ -14,13 +14,14 @@ from uuid import uuid4
 from ..engine import lanes
 from ..engine import winproc
 from ..context import FROZEN, EngineContext, engine_command, safe_path
-from ..engine.processes import execute
+from ..engine.processes import ProcessStopped, execute
 from . import roles
-from ..engine.runner import SUPPORTED_AGENTS, _track_record, _command, command_for, create_task, tool_available, tool_result
+from ..engine.runner import SUPPORTED_AGENTS, _track_record, _command, _scope, command_for, create_task, tool_available, tool_result
 from ..engine.evidence import load_signed, save_signed
 
 LANE_TIMEOUT_DEFAULT = 7200
 FINAL_TIMEOUT_DEFAULT = 1800
+MAX_PARALLEL_DEFAULT = 4
 _NAME = re.compile(r"[a-z0-9][a-z0-9-]{0,39}")
 _MIRROR_SKIP = {".git", "node_modules", ".venv", "venv", "__pycache__", ".runtime", ".local", "build", "dist",
                 ".pytest_cache", "target", ".next", ".engine-key"}
@@ -81,10 +82,14 @@ def _spec(value, settings=None):
         number = (final if key == "timeout_seconds" else value).get(key, default)
         if type(number) is not int or not 1 <= number <= 14400:
             raise ValueError(f"Invalid {key}")
+    max_parallel = value.get("max_parallel", min(MAX_PARALLEL_DEFAULT, len(lanes)))
+    if type(max_parallel) is not int or not 1 <= max_parallel <= 8:
+        raise ValueError("Invalid max_parallel")
     return {"goal": str(value.get("goal", ""))[:4000], "workstreams": lanes,
             "final": {"command": command, "timeout_seconds": final.get("timeout_seconds", FINAL_TIMEOUT_DEFAULT),
                       "allow_apply": final.get("allow_apply") is True, "skip": final.get("skip") is True},
-            "lane_timeout_seconds": value.get("lane_timeout_seconds", LANE_TIMEOUT_DEFAULT)}
+            "lane_timeout_seconds": value.get("lane_timeout_seconds", LANE_TIMEOUT_DEFAULT),
+            "max_parallel": max_parallel}
 
 
 def campaign_dir(ctx, campaign_id):
@@ -143,25 +148,43 @@ def start_campaign(ctx, request):
 
 
 def list_campaigns(ctx, limit=30):
-    """Newest-first identities of the campaign folders in this data root (a link or a plain file is never a campaign)."""
+    """Newest-first campaigns in this data root, with the goal the user gave them (a link or a plain file is never a campaign)."""
     root = safe_path(ctx.data_root / "campaigns")
     if not root.is_dir():
         return dict(campaigns=[])
-    names = [entry.name for entry in root.iterdir()
-             if re.fullmatch(r"camp-[a-z0-9-]{1,60}", entry.name) and entry.is_dir() and not entry.is_symlink()]
-    return dict(campaigns=sorted(names, reverse=True)[:limit])
+    items = []
+    for entry in sorted(root.iterdir(), key=lambda item: item.name, reverse=True):
+        if not (re.fullmatch(r"camp-[a-z0-9-]{1,60}", entry.name) and entry.is_dir() and not entry.is_symlink()):
+            continue
+        spec = load_signed(ctx, entry / "campaign.json") if (entry / "campaign.json").is_file() else {}
+        items.append({"id": entry.name, "goal": str(spec.get("goal", ""))[:4000], "created_at": str(spec.get("created_at", ""))})
+        if len(items) == limit:
+            break
+    return dict(campaigns=items)
 
 
 def campaign_status(ctx, campaign_id):
     directory = campaign_dir(ctx, campaign_id)
     result = load_signed(ctx, directory / "result.json") if (directory / "result.json").is_file() else None
+    spec = load_signed(ctx, directory / "campaign.json") if (directory / "campaign.json").is_file() else {}
+    final_review = load_signed(ctx, directory / "final.json") if (directory / "final.json").is_file() else None
+    final_text = ""
+    review_file = directory / "final-review.md"
+    if review_file.is_file():
+        final_text = review_file.read_text(encoding="utf8", errors="replace")[:100_000]
     events = []
     if (directory / "events.jsonl").is_file():
         events = [json.loads(line) for line in (directory / "events.jsonl").read_text(encoding="utf8").splitlines() if line]
     supervisor = load_signed(ctx, directory / "supervisor.json") if (directory / "supervisor.json").is_file() else {}
     alive = lanes._pid_is_alive(supervisor.get("pid", -1)) if supervisor else False
-    return dict(campaign_id=campaign_id, status=(result or {}).get("status", "running" if alive else "interrupted"),
-                result=result, events=events, supervisor_alive=alive)
+    cancel_requested = (directory / "cancel").is_file()
+    fallback = "cancel_requested" if cancel_requested else "running" if alive else "interrupted"
+    return dict(campaign_id=campaign_id, status=(result or {}).get("status", fallback),
+                result=result, events=events, supervisor_alive=alive,
+                goal=spec.get("goal", ""), created_at=spec.get("created_at"),
+                cancel_requested=cancel_requested,
+                workstreams=[{key: lane.get(key) for key in ("name", "request", "after")} for lane in spec.get("workstreams", [])],
+                final_review=final_review, final_text=final_text)
 
 
 def _mirror_ignore(_directory, names):
@@ -192,14 +215,14 @@ def _build_mirror(source, mirror):
                 raise RuntimeError(f"mirror git {args[0]} failed: {done.stderr.decode(errors='replace')[-300:]}")
 
 
-def _maf_lane(lane_ctx, run_id, timeout, main_root=None):
+def _maf_lane(lane_ctx, run_id, timeout, main_root=None, cancel_path=None):
     """Real lane: a separate process runs the whole MAF pipeline for one run in its own data root."""
     engine = _engine_dir()
     command = engine_command("--data-root", str(lane_ctx.data_root), "maf", run_id)
     env = _engine_env(engine)
     if main_root is not None:  # lanes hold no settings.json or memory token; the child resolves them from here
         env["RESPECTED_ORCH_MAIN_ROOT"] = str(main_root)
-    completed = execute(command, engine, timeout, env=env, scrub_env=True)
+    completed = execute(command, engine, timeout, cancel_path=cancel_path, env=env, scrub_env=True)
     lines = [line for line in completed.stdout.splitlines() if line.strip().startswith("{")]
     if not lines:
         return {"status": "FAILED", "reason": "maf_no_output", "error": completed.stderr[-500:]}
@@ -261,22 +284,93 @@ def _final_prompt(spec, directory, lanes, engine, project_review=False):
     )[:24000]
 
 
-def run_campaign(ctx, campaign_id, lane_runner=None):
+def _scope_inside(left, right):
+    return left == right or left.startswith(right.rstrip("/") + "/") or right.startswith(left.rstrip("/") + "/")
+
+
+def _lane_scope(lane):
+    """A lane's normalized project root and ownership, or None when the request cannot be scoped yet."""
+    request = lane.get("request") if isinstance(lane, dict) else None
+    if not isinstance(request, dict):
+        return None
+    try:
+        root = Path(request["project_root"]).resolve()
+        ownership = tuple(os.path.normcase(item) for item in _scope(root, request.get("ownership", [])))
+    except (KeyError, OSError, TypeError, ValueError):
+        return None
+    return os.path.normcase(str(root)), ownership
+
+
+def _scopes_overlap(left, right):
+    if left is None or right is None or left[0] != right[0]:
+        return False
+    return any(_scope_inside(a, b) for a in left[1] for b in right[1])
+
+
+def _normalized_status(value):
+    status = str(value or "FAILED").upper()
+    return {"TIMEOUT": "TIMED_OUT", "CANCELED": "CANCELLED"}.get(status, status)
+
+
+def _stopped_status(reason):
+    if reason == "cancelled":
+        return "CANCELLED"
+    if reason in {"timed_out", "timeout"}:
+        return "TIMED_OUT"
+    return "FAILED"
+
+
+def cancel_campaign(ctx, campaign_id):
+    directory = campaign_dir(ctx, campaign_id)
+    if (directory / "result.json").is_file():
+        result = load_signed(ctx, directory / "result.json")
+        return dict(campaign_id=campaign_id, status=result.get("status", "unknown"), already_finished=True)
+    (directory / "cancel").write_text(_now(), encoding="utf8")
+    return dict(campaign_id=campaign_id, status="cancel_requested")
+
+
+def run_campaign(ctx, campaign_id, lane_runner=None, cancel_path=None):
     directory = campaign_dir(ctx, campaign_id)
     spec = load_signed(ctx, directory / "campaign.json")
     if (directory / "result.json").is_file():
         result = load_signed(ctx, directory / "result.json")
-        _start_final_master(ctx, directory, spec, result["lanes"])  # no-op once claimed
+        if result.get("status") != "LANES_CANCELLED":  # cancellation never launches a final master
+            _start_final_master(ctx, directory, spec, result["lanes"])  # no-op once claimed
         return result
     timeout = spec["lane_timeout_seconds"]
-    lane_runner = lane_runner or (lambda lane_ctx, run_id: _maf_lane(lane_ctx, run_id, timeout, ctx.data_root))
-    lock, finished, summaries = threading.Lock(), {}, {}
-    for lane in spec["workstreams"]:
-        finished[lane["name"]] = threading.Event()
+    max_parallel = spec.get("max_parallel", min(MAX_PARALLEL_DEFAULT, len(spec["workstreams"])))
+    cancel_path = Path(cancel_path) if cancel_path is not None else directory / "cancel"
+    lane_runner = lane_runner or (lambda lane_ctx, run_id: _maf_lane(lane_ctx, run_id, timeout, ctx.data_root,
+                                                                     cancel_path=cancel_path))
+    condition = threading.Condition()
+    summaries, states, transitions = {}, {}, {}
+    by_name = {lane["name"]: lane for lane in spec["workstreams"]}
+    pending = [lane["name"] for lane in spec["workstreams"]]
+    running = {}
+    scopes = {name: _lane_scope(lane) for name, lane in by_name.items()}
 
     def event(kind, **fields):
-        with lock, (directory / "events.jsonl").open("a", encoding="utf8") as handle:
+        with condition, (directory / "events.jsonl").open("a", encoding="utf8") as handle:
             handle.write(json.dumps(dict(event=kind, at=_now(), **fields), ensure_ascii=True) + "\n")
+
+    def transition(name, state, reason=None):
+        previous = states.get(name)
+        if previous == state:
+            return
+        states[name] = state
+        transitions.setdefault(name, []).append(dict(**{"from": previous, "to": state},
+                                                     at=_now(), reason=reason))
+        event("lane.state", lane=name, previous=previous, state=state, reason=reason)
+
+    def finish(name, summary):
+        status = _normalized_status(summary.get("status"))
+        if cancel_path.exists() and status != "CANCELLED":
+            summary = dict(summary, reason="cancellation_requested")
+            status = "CANCELLED"
+        summary = dict(summary, name=name, status=status, state=status)
+        summaries[name] = summary
+        transition(name, status, summary.get("reason"))
+        event("lane.completed", lane=name, status=status)
 
     def run_lane(lane):
         name = lane["name"]
@@ -288,11 +382,6 @@ def run_campaign(ctx, campaign_id, lane_runner=None):
                 if not root.is_relative_to(safe_path(ctx.data_root / "campaigns")) or not (root / "lane.json").is_file():
                     raise ValueError("resume_lane_data_root must be an existing lane of this data root")
                 lane_ctx = EngineContext(root)
-            for dependency in lane.get("after", []):
-                finished[dependency].wait()
-                if summaries[dependency]["status"] != "MASTER_APPROVED":
-                    summaries[name] = dict(name=name, status="SKIPPED", reason=f"dependency {dependency} not approved")
-                    return
             record = lane_ctx.data_root / "lane.json"
             if record.is_file():
                 done = load_signed(lane_ctx, record)
@@ -308,25 +397,81 @@ def run_campaign(ctx, campaign_id, lane_runner=None):
                 save_signed(lane_ctx, record, done)
             event("lane.started", lane=name, run_id=done["run_id"], resumed=bool(resume))
             output = lane_runner(lane_ctx, done["run_id"])
-            summaries[name] = _lane_summary(name, lane_ctx, output)
+            if not isinstance(output, dict):
+                raise ValueError("lane runner must return a JSON object")
+            summary = _lane_summary(name, lane_ctx, output)
+        except ProcessStopped as error:
+            summary = dict(name=name, status=_stopped_status(error.reason), reason=error.reason,
+                           error=str(error)[:500])
+        except TimeoutError as error:
+            summary = dict(name=name, status="TIMED_OUT", reason="timed_out", error=str(error)[:500])
         except Exception as error:  # a broken lane must never stop the others or the final review
-            summaries[name] = dict(name=name, status="FAILED", reason="lane_error", error=str(error)[:500])
-        finally:
-            event("lane.completed", lane=name, status=summaries[name]["status"])
-            finished[name].set()
+            summary = dict(name=name, status="FAILED", reason="lane_error", error=str(error)[:500])
+        with condition:
+            finish(name, summary)
+            condition.notify_all()
 
-    threads = [threading.Thread(target=run_lane, args=(lane,)) for lane in spec["workstreams"]]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join()  # blocks until completion; nothing polls
+    with condition:
+        for name in pending:
+            states[name] = None
+            transition(name, "QUEUED")
+        while pending or running:
+            for name, thread in list(running.items()):  # reap before filling freed capacity
+                if not thread.is_alive():
+                    thread.join()
+                    running.pop(name, None)
+
+            if cancel_path.exists():
+                for name in list(pending):
+                    pending.remove(name)
+                    finish(name, dict(name=name, status="CANCELLED", reason="cancellation_requested"))
+            else:
+                changed = True  # propagate one failed prerequisite through its whole dependent chain
+                while changed:
+                    changed = False
+                    for name in list(pending):
+                        failed = [dependency for dependency in by_name[name].get("after", [])
+                                  if dependency in summaries and summaries[dependency]["status"] != "MASTER_APPROVED"]
+                        if failed:
+                            pending.remove(name)
+                            finish(name, dict(name=name, status="SKIPPED",
+                                              reason=f"dependency {failed[0]} not approved"))
+                            changed = True
+
+                for name in list(pending):
+                    if len(running) >= max_parallel:
+                        break
+                    dependencies = by_name[name].get("after", [])
+                    if not all(dependency in summaries and summaries[dependency]["status"] == "MASTER_APPROVED"
+                               for dependency in dependencies):
+                        continue
+                    if any(_scopes_overlap(scopes[name], scopes[active]) for active in running):
+                        continue  # overlapping ownership waits for a free lane; independent work still fills slots
+                    pending.remove(name)
+                    transition(name, "RUNNING")
+                    thread = threading.Thread(target=run_lane, args=(by_name[name],))
+                    running[name] = thread
+                    thread.start()
+
+                if pending and not running:  # validated DAGs cannot reach this, but never spin forever on corrupt state
+                    for name in list(pending):
+                        pending.remove(name)
+                        finish(name, dict(name=name, status="FAILED", reason="scheduler_deadlock"))
+
+            if pending or running:
+                condition.wait(0.05)
+
     lanes = [summaries[lane["name"]] for lane in spec["workstreams"]]
+    cancelled = any(lane["status"] == "CANCELLED" for lane in lanes)
     approved = all(lane["status"] == "MASTER_APPROVED" for lane in lanes)
-    result = dict(campaign_id=campaign_id, status="LANES_APPROVED" if approved else "LANES_NEED_REVIEW",
-                  lanes=lanes, completed_at=_now())
+    result = dict(campaign_id=campaign_id,
+                  status="LANES_CANCELLED" if cancelled else "LANES_APPROVED" if approved else "LANES_NEED_REVIEW",
+                  lanes=lanes, scheduler=dict(max_parallel=max_parallel, states=dict(states), transitions=transitions),
+                  completed_at=_now())
     save_signed(ctx, directory / "result.json", result)
     event("campaign.completed", status=result["status"])
-    _start_final_master(ctx, directory, spec, lanes)
+    if not cancelled:
+        _start_final_master(ctx, directory, spec, lanes)
     return result
 
 
