@@ -123,6 +123,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 
 #### REL-02 — Şema değişiklikleri için göç testi kapısı
 
+**Durum:** Tamamlandı — kanıt: `KANIT_LOG.md` §REL-02
+
 **Etiketler:** `priority:P0`, `gate:G0`, `epic:yay-n-ve-g-ncelleme`, `size:M`  
 **Mevcut ROADMAP bağlantısı:** Güncelleme / migrate.STEPS (mevcut)  
 **Bağımlılıklar:** Yok
