@@ -8,7 +8,7 @@ Kurulumdan kaldırmaya kadar kişinin yapacağı her şey. Komutların tam liste
 - Windows 10/11 (beta yalnızca Windows'u destekler).
 - **Git**: her görev projenin yalıtılmış bir Git çalışma ağacında çalışır; proje bir Git deposu olmalıdır.
 - Görevleri yapacak en az bir AI aracının komut satırı, **oturumu açık** olarak: Codex, Claude Code, Gemini CLI,
-  Antigravity ya da Cursor. Kota ve hesap o aracındır.
+  Antigravity, Cursor ya da OpenCode. Kota ve hesap o aracındır.
 - Python gerekmez. Brain ve Hub isteğe bağlıdır.
 
 ## 2. Kurulum
@@ -100,12 +100,39 @@ Yamayı uygulamadan önce `inspect` çıktısındaki değişikliklere bakın; uy
 inceleyip kendiniz commit edin. Başarısız bir görev `retry RUN_ID` ile yeniden denenir (toplam en fazla üç deneme);
 `cancel RUN_ID` görevi ve bütün süreçlerini durdurur.
 
-**Gözden geçirmeli iş akışı (MAF):** `maf RUN_ID` görevi uygulama, gözden geçirme ve en fazla iki düzeltme turuyla yürütür;
-gözden geçiren aracı `default_reviewer_tool` ya da istekteki `workflow` belirler. Sonucu bir insan `maf-approve RUN_ID` ile
-onaylar (etkileşimli terminal ister).
+**Gözden geçirmeli iş akışı (MAF):** `maf RUN_ID` görevi uygulama, doğrulama ve gözden geçirme adımlarıyla yürütür;
+düzeltme turları `max_fix_rounds` ile sınırlıdır (varsayılan 2, üst sınır 5). Gözden geçiren aracı
+`default_reviewer_tool` ya da istekteki `workflow` belirler. Sonucu bir insan `maf-approve RUN_ID` ile onaylar
+(etkileşimli terminal ister).
 
-Daha büyük işler için: `plan` bir hedeften çok aşamalı bir proje taslağı çıkarır (başlatmaz), `project-start` onu
-başlatır; `campaign-start` birden çok paralel hattı yürütüp sonunda bir son inceleme yaptırır. Biçimler: [COMMANDS.md](COMMANDS.md#projeler-ve-kampanyalar).
+Daha büyük işler için: `plan` bir hedeften çok aşamalı bir proje taslağı çıkarır (başlatmaz), DAG/ownership
+doğrulamasından geçen taslağı `spec` ve `dag` alanlarıyla kaydeder; `project-start` onu başlatır. Döngü, bilinmeyen
+bağımlılık veya paralel ownership çakışması taslağı reddeder ve hiçbir worker başlamaz. `coordinate` aynı doğrulamayı
+yapıp rol atamalarını da üretir; `command`, `auto_apply`, `allow_apply` veya `shell` öneremez, worker/proje/kampanya
+başlatamaz ve apply edemez. Açık atama kullanılamıyorsa sessizce başka profile geçmez; `ROLE_UNAVAILABLE` döner. `campaign-start` birden çok paralel
+hattı sınırlı eşzamanlılıkla (`max_parallel`, varsayılan `min(4, hat sayısı)`) yürütür; aynı proje kökünde ownership
+çakışan hatları sıraya alır ve sonunda bir son inceleme yaptırır. `campaign-cancel ID` bekleyen/çalışan hatları iptal eder
+ve son master'ı başlatmaz. Biçimler: [COMMANDS.md](COMMANDS.md#projeler-ve-kampanyalar).
+
+İki ayrı doğrulanmış sonucu birlikte denemek için `integrate` kullanın. Komut gerçek projede değil, geçici bir detached
+worktree'de sıralı `git apply` ve tek birleşik doğrulama çalıştırır. Başarıda yalnızca karar kanıtı ve `combined.patch`
+üretir; gerçek projeye uygulamak ayrı bir `apply RUN_ID` kararıdır.
+
+**Çökme sonrası resume:** `project-resume ID`, projeyi checkpoint'teki `campaign`, `apply`, `verify`, `review` veya
+`complete` sınırından sürdürür. Aynı operation ve aynı tamamlanmış iş yeniden ücretlendirilmez; imzalı `applied.json`
+ile açıklanabilen apply tekrarlanmaz. Canlı bir süreç kilidi varsa resume reddedilir, yalnızca ölü/bozuk kilit temizlenir.
+Kaynak dosyaları veya Git HEAD checkpoint'ten sonra değiştiyse, checkpoint adımı bilinmiyorsa ya da checkpoint
+doğrulanamıyorsa önce terminalde insan onayı gerekir:
+
+```powershell
+& $exe project-approve PROJECT_ID
+& $exe project-resume PROJECT_ID
+```
+
+Onay; proje, operation, checkpoint SHA-256'sı, kaynak parmak izi, HEAD ve onaylayan kişiye bağlıdır; bunlardan biri
+değişirse yeniden onay gerekir. Onay yalnızca etkileşimli terminalden alınır; worker/alt süreç ve MCP self-approval
+reddedilir. Resume onayı `auto_apply=false` aşamasının apply yetkisini genişletmez. Kaynakla çakışan eski patch
+`stale patch` olarak bloke edilir ve zorla uygulanmaz.
 
 ## 5. Hub'dan kullanım
 
@@ -134,9 +161,14 @@ yaptır, sonucu doğrula" diyebilirsiniz.
 & $exe integrations set codex=off                 # kaydı kaldır
 ```
 
-İstemciler: `claude-code`, `claude-desktop`, `codex`, `cursor`, `gemini`, `windsurf`. Aynı işi Hub'da Orchestrator →
+İstemciler: `claude-code`, `claude-desktop`, `codex`, `cursor`, `gemini`, `windsurf`, `opencode`. Aynı işi Hub'da Orchestrator →
 Ayarlar → "AI araçlarından kullan (MCP)" yapar (önce ne ekleneceğini gösterir). Ürün yalnızca kendi girdisini ekler ve kaldırır;
 aracın ve sizin diğer ayarlarınız korunur. Kayıttan sonra AI aracını yeniden başlatın.
+
+OpenCode çalışanı gerçek ACP oturumu kullanır ve sonucu güvenli biçimde ayrıştırır: çıplak JSON ya da tek bir
+fenced JSON bloğu kabul edilir; fence dışındaki açıklama metni sorun değildir, ancak serbest metinden JSON çıkarılmaz.
+Birden fazla fence, yarım fence, bozuk JSON ve geçersiz `status` başarısız sayılır. OpenCode ağ erişimi varsayılan
+kapalıdır; `RESPECTED_OPENCODE_NETWORK=allow` yalnızca gerektiğinde verilir.
 
 AI aracı şu araçları görür: `orchestrator_status`, `orchestrator_plan`, `orchestrator_task_start`,
 `orchestrator_project_start`, `orchestrator_list`, `orchestrator_progress`, `orchestrator_evidence`,

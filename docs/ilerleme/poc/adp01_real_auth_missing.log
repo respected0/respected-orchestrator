@@ -1,0 +1,238 @@
+{
+  "name": "auth_missing",
+  "run_id": "run-20261103010018-5bcac76e1868",
+  "created": {
+    "run_id": "run-20261103010018-5bcac76e1868",
+    "status": "queued"
+  },
+  "started": {
+    "run_id": "run-20261103010018-5bcac76e1868",
+    "status": "queued",
+    "pid": 2772
+  },
+  "status": {
+    "request": {
+      "run_id": "run-20261103010018-5bcac76e1868",
+      "task": "Read owned.txt and reply with exactly {\"status\":\"success\",\"summary\":\"ADP01_AUTH\"} and nothing else.",
+      "project_root": "C:\\Users\\Furkan\\AppData\\Local\\Temp\\respected-adp01-e2e-tj7g2s1v\\project",
+      "master": "user",
+      "worker": "opencode",
+      "kind": "read",
+      "ownership": [
+        "owned.txt"
+      ],
+      "forbidden": [
+        "outside.txt"
+      ],
+      "acceptance": [],
+      "command": [],
+      "include_untracked": [],
+      "context_paths": [],
+      "timeout_seconds": 300,
+      "created_at": "2026-11-03T01:00:18.624409+00:00",
+      "project_fingerprint": "a4d285c58ec975dc1341677709cb4ea56c778c072d17ab9113a514781e59a025",
+      "retry_of": null,
+      "retry_depth": 0,
+      "worker_profile": "amd/DeepSeek-V4.1-Flash",
+      "workflow": {
+        "max_fix_rounds": 2,
+        "deep_review": "never",
+        "reviewer_profile": null,
+        "deep_review_profile": null,
+        "reviewer_tool": null,
+        "deep_review_tool": null,
+        "require_independent_review": false,
+        "risk_changed_files": 5,
+        "timeout_seconds": null,
+        "review_timeout_seconds": null,
+        "review_retries": 1,
+        "max_weighted_tokens": null,
+        "unknown_step_tokens": 50000,
+        "human_approval": false,
+        "escalate_profile": null,
+        "escalate_from_round": 2
+      },
+      "role_assignments": {
+        "implementer": {
+          "tool": "opencode",
+          "profile": "amd/DeepSeek-V4.1-Flash",
+          "source": "explicit"
+        }
+      },
+      "role_notes": [],
+      "correction_of": null,
+      "correction_round": 0,
+      "inherited_patch_run_id": null,
+      "inherited_patch_sha256": null,
+      "fix_evidence": null,
+      "apply_root": null,
+      "memory_policy": {
+        "use": false,
+        "source": "off"
+      }
+    },
+    "run_id": "run-20261103010018-5bcac76e1868",
+    "status": "failed",
+    "updated_at": "2026-11-03T01:00:20.744633+00:00",
+    "reason": "worker_failed",
+    "provider_status": "AUTH_REQUIRED",
+    "detail": "OpenCode credentials are unavailable for the isolated worker",
+    "workspace": "C:\\Users\\Furkan\\AppData\\Local\\Temp\\respected-adp01-e2e-tj7g2s1v\\data\\workspaces\\run-20261103010018-5bcac76e1868",
+    "failure_class": "auth",
+    "retryable": false,
+    "retry_policy": "manual",
+    "logs": {
+      "auth-error.log": "OpenCode credential bridge failed",
+      "supervisor.log": "{\"run_id\": \"run-20261103010018-5bcac76e1868\", \"status\": \"failed\", \"updated_at\": \"2026-11-03T01:00:20.744633+00:00\", \"reason\": \"worker_failed\", \"provider_status\": \"AUTH_REQUIRED\", \"detail\": \"OpenCode credentials are unavailable for the isolated worker\", \"workspace\": \"C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\respected-adp01-e2e-tj7g2s1v\\\\data\\\\workspaces\\\\run-20261103010018-5bcac76e1868\", \"failure_class\": \"auth\", \"retryable\": false, \"retry_policy\": \"manual\"}\r\n"
+    },
+    "patch_preview": ""
+  },
+  "check": null,
+  "snapshots": [
+    {
+      "request": {
+        "run_id": "run-20261103010018-5bcac76e1868",
+        "task": "Read owned.txt and reply with exactly {\"status\":\"success\",\"summary\":\"ADP01_AUTH\"} and nothing else.",
+        "project_root": "C:\\Users\\Furkan\\AppData\\Local\\Temp\\respected-adp01-e2e-tj7g2s1v\\project",
+        "master": "user",
+        "worker": "opencode",
+        "kind": "read",
+        "ownership": [
+          "owned.txt"
+        ],
+        "forbidden": [
+          "outside.txt"
+        ],
+        "acceptance": [],
+        "command": [],
+        "include_untracked": [],
+        "context_paths": [],
+        "timeout_seconds": 300,
+        "created_at": "2026-11-03T01:00:18.624409+00:00",
+        "project_fingerprint": "a4d285c58ec975dc1341677709cb4ea56c778c072d17ab9113a514781e59a025",
+        "retry_of": null,
+        "retry_depth": 0,
+        "worker_profile": "amd/DeepSeek-V4.1-Flash",
+        "workflow": {
+          "max_fix_rounds": 2,
+          "deep_review": "never",
+          "reviewer_profile": null,
+          "deep_review_profile": null,
+          "reviewer_tool": null,
+          "deep_review_tool": null,
+          "require_independent_review": false,
+          "risk_changed_files": 5,
+          "timeout_seconds": null,
+          "review_timeout_seconds": null,
+          "review_retries": 1,
+          "max_weighted_tokens": null,
+          "unknown_step_tokens": 50000,
+          "human_approval": false,
+          "escalate_profile": null,
+          "escalate_from_round": 2
+        },
+        "role_assignments": {
+          "implementer": {
+            "tool": "opencode",
+            "profile": "amd/DeepSeek-V4.1-Flash",
+            "source": "explicit"
+          }
+        },
+        "role_notes": [],
+        "correction_of": null,
+        "correction_round": 0,
+        "inherited_patch_run_id": null,
+        "inherited_patch_sha256": null,
+        "fix_evidence": null,
+        "apply_root": null,
+        "memory_policy": {
+          "use": false,
+          "source": "off"
+        }
+      },
+      "run_id": "run-20261103010018-5bcac76e1868",
+      "status": "queued",
+      "logs": {
+        "supervisor.log": ""
+      },
+      "patch_preview": ""
+    },
+    {
+      "request": {
+        "run_id": "run-20261103010018-5bcac76e1868",
+        "task": "Read owned.txt and reply with exactly {\"status\":\"success\",\"summary\":\"ADP01_AUTH\"} and nothing else.",
+        "project_root": "C:\\Users\\Furkan\\AppData\\Local\\Temp\\respected-adp01-e2e-tj7g2s1v\\project",
+        "master": "user",
+        "worker": "opencode",
+        "kind": "read",
+        "ownership": [
+          "owned.txt"
+        ],
+        "forbidden": [
+          "outside.txt"
+        ],
+        "acceptance": [],
+        "command": [],
+        "include_untracked": [],
+        "context_paths": [],
+        "timeout_seconds": 300,
+        "created_at": "2026-11-03T01:00:18.624409+00:00",
+        "project_fingerprint": "a4d285c58ec975dc1341677709cb4ea56c778c072d17ab9113a514781e59a025",
+        "retry_of": null,
+        "retry_depth": 0,
+        "worker_profile": "amd/DeepSeek-V4.1-Flash",
+        "workflow": {
+          "max_fix_rounds": 2,
+          "deep_review": "never",
+          "reviewer_profile": null,
+          "deep_review_profile": null,
+          "reviewer_tool": null,
+          "deep_review_tool": null,
+          "require_independent_review": false,
+          "risk_changed_files": 5,
+          "timeout_seconds": null,
+          "review_timeout_seconds": null,
+          "review_retries": 1,
+          "max_weighted_tokens": null,
+          "unknown_step_tokens": 50000,
+          "human_approval": false,
+          "escalate_profile": null,
+          "escalate_from_round": 2
+        },
+        "role_assignments": {
+          "implementer": {
+            "tool": "opencode",
+            "profile": "amd/DeepSeek-V4.1-Flash",
+            "source": "explicit"
+          }
+        },
+        "role_notes": [],
+        "correction_of": null,
+        "correction_round": 0,
+        "inherited_patch_run_id": null,
+        "inherited_patch_sha256": null,
+        "fix_evidence": null,
+        "apply_root": null,
+        "memory_policy": {
+          "use": false,
+          "source": "off"
+        }
+      },
+      "run_id": "run-20261103010018-5bcac76e1868",
+      "status": "failed",
+      "updated_at": "2026-11-03T01:00:20.744633+00:00",
+      "reason": "worker_failed",
+      "provider_status": "AUTH_REQUIRED",
+      "detail": "OpenCode credentials are unavailable for the isolated worker",
+      "workspace": "C:\\Users\\Furkan\\AppData\\Local\\Temp\\respected-adp01-e2e-tj7g2s1v\\data\\workspaces\\run-20261103010018-5bcac76e1868",
+      "failure_class": "auth",
+      "retryable": false,
+      "retry_policy": "manual",
+      "logs": {
+        "auth-error.log": "OpenCode credential bridge failed",
+        "supervisor.log": "{\"run_id\": \"run-20261103010018-5bcac76e1868\", \"status\": \"failed\", \"updated_at\": \"2026-11-03T01:00:20.744633+00:00\", \"reason\": \"worker_failed\", \"provider_status\": \"AUTH_REQUIRED\", \"detail\": \"OpenCode credentials are unavailable for the isolated worker\", \"workspace\": \"C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\respected-adp01-e2e-tj7g2s1v\\\\data\\\\workspaces\\\\run-20261103010018-5bcac76e1868\", \"failure_class\": \"auth\", \"retryable\": false, \"retry_policy\": \"manual\"}\r\n"
+      },
+      "patch_preview": ""
+    }
+  ]
+}

@@ -34,7 +34,7 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 | `memory disconnect` | İzni Brain tarafında iptal eder, ayarları temizler. |
 | `memory status` | `{"connected", "write", ...}` |
 | `integrations` | Hangi AI aracında MCP girdisi olduğunu ve olabileceğini gösterir. |
-| `integrations set İSTEMCİ=on\|off [...]` | Kendini AI araçlarına MCP sunucusu olarak kaydeder ya da kaydı kaldırır. İstemciler: `claude-code`, `claude-desktop`, `codex`, `cursor`, `gemini`, `windsurf`. Girdi kurulu programı gösterir (`respected-orchestrator.exe mcp`); başka girdiler korunur. |
+| `integrations set İSTEMCİ=on\|off [...]` | Kendini AI araçlarına MCP sunucusu olarak kaydeder ya da kaydı kaldırır. İstemciler: `claude-code`, `claude-desktop`, `codex`, `cursor`, `gemini`, `windsurf`, `opencode`. Girdi kurulu programı gösterir (`respected-orchestrator.exe mcp`); başka girdiler korunur. OpenCode girdisi `~/.config/opencode/opencode.json` içindeki `mcp.servers` altına yazılır ve geri alma önceki dosyayı byte düzeyinde geri yükler. |
 | `mcp [--allow-auto-apply] [--allow-privileged]` | AI araçları için stdio MCP sunucusu. İki bayrak da MCP üzerinden normalde reddedilen işlemleri açar ([ARCHITECTURE.md](ARCHITECTURE.md#6-mcp-sunucusu-ve-izinler)); Hub ve `integrations` hiçbirini vermez. |
 | `rpp` | stdin'den bir RPP isteği okur, stdout'a bir yanıt yazar. Hub bunu kullanır. |
 
@@ -60,7 +60,9 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 | `maf RUN_ID` | | Görevi MAF iş akışıyla yürütür: uygulama, gözden geçirme, düzeltme turları. |
 | `maf-approve RUN_ID` | | MAF sonucunu insan olarak onaylar; etkileşimli terminal ister, MCP'den yapılamaz. |
 | `roles` | stdin: `{"roles": {...}, "needed": ["implementer", ...]}` | Rol atamasını kuru çalıştırır: hangi araç ve profilin, hangi kaynaktan seçileceğini gösterir. |
-| `plan` | stdin: `{"goal", "project_root", "context_files"?, "roles"?}` | `planner` rolündeki araçla bir proje taslağı çıkarır, motorla doğrular, `drafts/` altına kaydeder; başlatmaz. |
+| `plan` | stdin: `{"goal", "project_root", "context_files"?, "roles"?}` | `planner` rolündeki araçla bir proje taslağı çıkarır, DAG/ownership doğrulamasıyla birlikte motorla doğrular, `drafts/` altına `spec` ve `dag` olarak kaydeder; hiçbir worker/proje/kampanya başlatmaz. |
+| `coordinate` | stdin: `{"goal", "project_root", "spec"?, "context_files"?, "roles"?}` | `coordinator` rolündeki araçla ya da verilen `spec` ile plan ve rol ataması üretir. Aynı DAG/project validator'larından geçirir; `command`, `auto_apply`, `allow_apply` ve `shell` önerilerini reddeder. `drafts/` altına doğrulanmış taslak yazar; worker/proje/kampanya başlatmaz ve apply etmez. Açık atama kullanılamıyorsa `ROLE_UNAVAILABLE` döner. |
+| `integrate` | stdin: `{"project_root", "run_ids": ["RUN-A", "RUN-B"], "verification": [{"command": [...], "timeout_seconds"?}]}` | İki doğrulanmış sonucu geçici detached worktree'de birleştirir ve birleşik doğrulamayı çalıştırır. Gerçek repoyu değiştirmez; başarıda karar için imzalı `integration.json` ve `combined.patch` üretir (`ready_for_decision`). Çakışma, HEAD drift veya doğrulama hatasında kanıt yayımlamaz. |
 
 **Görev isteği** (`create`):
 
@@ -75,7 +77,7 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 | `timeout_seconds` | Görevin en uzun süresi (1–3600 saniye); verilmezse `default_timeout_seconds` |
 | `worker`, `worker_profile` | Çalışan araç ve profili; verilmezse ayarlardaki varsayılan |
 | `roles` | Rol atamaları: `{rol: profil \| {tool, profile, fallbacks}}` |
-| `workflow` | MAF ayarları: `reviewer_tool`, `reviewer_profile`, `deep_review_tool`, `deep_review_profile`, `max_corrections` (0–2), `escalate_profile`, `require_independent_review` |
+| `workflow` | MAF ayarları: `reviewer_tool`, `reviewer_profile`, `deep_review_tool`, `deep_review_profile`, `max_fix_rounds` (0–5, varsayılan 2), `escalate_profile`, `require_independent_review` |
 | `memory` | `{"use": true, "query"?: "..."}`: Brain hafızasından parça ekle (bağlantı gerekir) |
 | `context_paths` | Çalışana bağlam olarak verilecek dosyalar |
 | `command` | Yalnızca `worker: "custom"` için çalışan komutu (MCP'den reddedilir) |
@@ -101,19 +103,40 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 |---|---|---|
 | `project-start` | stdin: proje tanımı | Aşamalı bir projeyi ayrık denetleyiciyle başlatır; kimliğini döner. |
 | `project-status ID` | | Aşamalar, hatlar, doğrulamalar. |
-| `project-resume ID` | | Durmuş bir projeyi kaldığı yerden sürdürür. |
+| `project-resume ID` | terminal | Doğrulanmış checkpoint sınırından sürdürür; onay gerekiyorsa reddeder. |
+| `project-approve ID` | terminal | Kaynak/HEAD drift, bilinmeyen adım veya doğrulanamayan checkpoint için tek kullanımlık onay kaydı oluşturur. |
 | `project-cancel ID` | | Projeyi ve hatlarını durdurur. |
 | `campaign-start` | stdin: kampanya tanımı | Paralel hatları ayrık denetleyiciyle başlatır; bitince son incelemeyi bir kez çalıştırır. |
 | `campaign-status ID` | | Hatların durumu ve son inceleme. |
+| `campaign-cancel ID` | | Bekleyen/çalışan kampanya hatlarını iptal eder; son master başlatılmaz. |
 | `campaign-list` | | Kampanyalar, en yenisi önce. |
 
 **Proje tanımı:** `{"goal", "budget": {"max_seconds", "max_phase_attempts"}, "phases": [{"name", "after", "auto_apply",
 "lane_timeout_seconds", "verify": [{"command", "cwd", "timeout_seconds"}], "workstreams": [{"name", "after", "request"}]}]}`.
-Her hattın `request`'i bir görev isteğidir; aynı aşamada paralel çalışan hatlar ayrık dosyalara sahip olmalıdır. `plan`
-komutunun ürettiği taslak bu biçimdedir.
+Her hattın `request`'i bir görev isteğidir; aynı aşamada paralel çalışan hatlar ayrık dosyalara sahip olmalıdır. Aşama
+`after` bağımlılıkları önceki aşamanın bütün hatlarına genişler; aynı aşamadaki `after` yalnızca o aşamanın hatlarını
+bağlar. `plan` komutunun ürettiği taslak bu biçimdedir ve geçerli taslakta düğümlerin `id`, `depends_on`, `ownership`,
+`forbidden`, `acceptance`, `budget` alanlarını, topolojik sırayı ve `valid` bayrağını taşıyan bir `dag` bulunur. Döngü,
+bilinmeyen bağımlılık, paralel ownership çakışması veya geçersiz verify komutu taslağı `invalid` yapar.
 
-**Kampanya tanımı:** `{"goal", "workstreams": [{"name", "after"?, "request"}] (1–8 hat), "lane_timeout_seconds"?,
+**Kampanya tanımı:** `{"goal", "workstreams": [{"name", "after"?, "request"}] (1–8 hat), "lane_timeout_seconds"?, "max_parallel"?,
 "final"?: {"command"?, "timeout_seconds"?, "allow_apply"?, "skip"?}}`. Hat adları küçük harfli kısa adlardır (`a-z0-9-`);
-`after` bağımlılıkları döngü içeremez. `final` verilmezse son inceleme `master` rolündeki araçla (yoksa `claude -p`) yapılır.
+`after` bağımlılıkları döngü içeremez. `max_parallel` 1–8 arasındadır; verilmezse `min(4, hat sayısı)` kullanılır. Aynı
+proje kökünde ownership kapsamı çakışan hatlar sırayla çalıştırılır. `campaign-cancel ID` bekleyen ve çalışan hatları
+iptal eder; iptal edilen kampanyada son master başlatılmaz. `final` verilmezse son inceleme `master` rolündeki araçla
+(yoksa `claude -p`) yapılır.
 
 `project-run` ve `campaign-run` denetleyicilerin kendi giriş noktalarıdır; elle çalıştırılmaz.
+
+`project-resume` yalnızca `resume`, `campaign`, `apply`, `verify`, `review`, `complete` adım whitelist'ini kabul eder.
+Canlı bir kilit sahibi varsa hiçbir süreç başlatmaz; yalnızca ölü PID veya bozuk kilidi temizler. Kaynak parmak izi,
+Git HEAD, checkpoint adımı veya checkpoint bütünlüğü değişmişse komut `human approval` hatası verir. Onay:
+
+```powershell
+& $exe project-approve PROJECT_ID
+& $exe project-resume PROJECT_ID
+```
+
+Onay yalnızca etkileşimli terminalde alınır. `RESPECTED_ORCH_CHILD=1` ve `RESPECTED_ORCH_DELEGATED=1` alt süreçleri
+reddedilir; MCP'de onay aracı yoktur. Onay verilse bile `auto_apply=false` aşamasında apply başlamaz. Bayat patch
+zorlanmaz; `stale patch` nedeniyle bloke kalır.
