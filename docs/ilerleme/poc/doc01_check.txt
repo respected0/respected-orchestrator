@@ -1,0 +1,6 @@
+PASS kaynak tablosu: 21 kaynak, tümü https + 2026-10-30
+PASS profiller: 4 çerçeve + 10 rakip, alanlar ve kaynaklar tam
+PASS doğrulanmamış iddialar: 6 işaretli
+PASS benchmark kararları EVAL-01 kanıtına bağlı, ajan başarısı doğrulanmadı olarak işaretli
+PASS ADR: 6 karar kaydı, Durum/Bağlam/Karar/Sonuçlar/Kaynaklar alanları tam
+RESULT PASS 2026-10-30
