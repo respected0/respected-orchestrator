@@ -1,4 +1,4 @@
-﻿"""Respected Product Protocol (RPP) 1: one JSON request in, one JSON response line out.
+"""Respected Product Protocol (RPP) 1: one JSON request in, one JSON response line out.
 
 Not a daemon and no network listener. Settings go through `apply_settings`/`read_settings`, the same code as the
 `config` command. Installing, repairing and removing are the installer's work, not protocol operations. Every failure is
@@ -268,7 +268,9 @@ def health(ctx, operation_id=None, payload=None):
         status = "healthy"
     else:
         status = "degraded"
-    return {"status": status, "version": __version__, "checks": checks}
+    from . import health_wizard
+    return {"status": status, "version": __version__, "checks": checks,
+            "wizard": health_wizard.guide(checks, ctx.data_root)}
 
 
 def _settings_schema(ctx, operation_id, payload):
@@ -356,6 +358,18 @@ def _memory_status(ctx, operation_id, payload):
     return _memory_link(lambda m: m.status(ctx))
 
 
+def _evidence_view(ctx, operation_id, payload):
+    from . import evidence_view
+    run_id = payload.get("run_id")
+    if not isinstance(run_id, str) or not re.fullmatch(r"run-[a-z0-9-]{1,100}", run_id):
+        raise RppError("BAD_REQUEST", "evidence.view requires a valid run_id.", "Send a run_id such as run-abc123.")
+    try:
+        return evidence_view.view(ctx, run_id)
+    except (OSError, ValueError) as error:
+        raise RppError("EVIDENCE_UNAVAILABLE", str(error), "Check that the run exists and its signed evidence is intact.") from None
+
+
+
 _OPS = {
     "manifest": _manifest,
     "health": health,
@@ -369,6 +383,7 @@ _OPS = {
     "memory.connect": _memory_connect,
     "memory.disconnect": _memory_disconnect,
     "memory.status": _memory_status,
+    "evidence.view": _evidence_view,
 }
 
 

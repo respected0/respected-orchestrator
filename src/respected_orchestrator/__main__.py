@@ -145,7 +145,7 @@ def main(argv=None):
     from .workflows import roles
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=default_data_root(), help=argparse.SUPPRESS)
-    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "plan", "coordinate", "mcp", *SHARED, "_selfcheck"])
+    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "plan", "coordinate", "mcp", *SHARED, "_selfcheck"])
     parser.add_argument("args", nargs=argparse.REMAINDER)
     try:
         args = parser.parse_args(argv)
@@ -173,6 +173,9 @@ def main(argv=None):
                            git=runner.shutil.which("git"))
         elif args.command == "create":
             payload = runner.create_task(ctx, _stdin_json())
+        elif args.command == "evidence":
+            from .interfaces import evidence_view
+            payload = evidence_view.view(ctx, args.args[0])
         elif args.command == "roles":  # dry run: stdin {"roles": {...}, "needed": [...]} -> the assignments that would apply
             request = _stdin_json()
             payload = dict(assignments=roles.resolve(
