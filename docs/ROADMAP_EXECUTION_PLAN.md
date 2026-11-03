@@ -56,7 +56,7 @@ Bunlar mevcut ürünün belgelenmiş tasarım sözleşmeleridir; yeni özellik e
 | `RES-03` | Brain ile isteğe bağlı karar hafızası sözleşmesi | P2 | G3 | `RES-01` | Tamamlandı — kanıt: `KANIT_LOG.md` §RES-03 |
 | `ADP-01` | OpenCode CLI çalışanı ve MCP kayıt desteği | P2 | G3 | `SEC-04` | Tamamlandı — kanıt: `KANIT_LOG.md` §ADP-01 |
 | `ADP-02` | API anahtarı, ağ ve sağlayıcı tehdit modeli | P2 | G3 | `SEC-01`, `REL-02` | Tamamlandı — kanıt: `KANIT_LOG.md` §ADP-02 |
-| `ADP-03` | OpenRouter/API sağlayıcı adaptörü | P2 | G4 | `ADP-02`, `COST-02`, `SEC-04` | Bekliyor |
+| `ADP-03` | OpenRouter/API sağlayıcı adaptörü | P2 | G4 | `ADP-02`, `COST-02`, `SEC-04` | Tamamlandı — kanıt: `KANIT_LOG.md` §ADP-03 |
 | `EXT-01` | Skill/MCP yetenek manifestosu ve izin denetimi | P2 | G3 | `SEC-01` | Bekliyor |
 | `EXT-02` | Serena/context MCP için read-only deneme adaptörleri | P2 | G4 | `EXT-01`, `SEC-04` | Bekliyor |
 | `REL-01` | Authenticode imzalı Windows kurucu hattı | P2 | G4 | — | Bekliyor |

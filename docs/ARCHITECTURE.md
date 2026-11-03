@@ -112,6 +112,12 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   rakamsal teklif `at`, `model_version`, `effective_from` ve `currency` taşır; model, kullanım veya sağlayıcı
   bilinmiyorsa tutar `None` ve durum `unknown` olur, sıfıra çevrilmez. Fiyatlar liste fiyatıdır
   (`estimate_only`); canlı fiyat çağrısı zorunlu değildir.
+- **Sağlayıcı adaptörü (ADP-03):** `engine/provider.py` OpenRouter çağrılarını `require_access` kapısından
+  geçirir; `secret_vault.py` anahtarı Windows DPAPI ile şifreli tutar, düz metin dosya yoktur. Aynı
+  `idempotency_key` ikinci kez ağ çağrısı yapmaz. 401 `unauthorized`, 429 `rate_limited`, 5xx
+  `provider_error`, süre aşımı `timeout` ve `[DONE]` görmeden biten akış `stream_incomplete` olarak
+  ayrılır; hiçbiri başka sağlayıcıya veya modele sessiz fallback yapmaz. Kullanım bilinmiyorsa `None`
+  ve `usage_status=UNKNOWN` kalır. `models()` yalnızca genel model kataloğunu okur ve anahtar istemez.
 
 ## 3. Doğrulama kum havuzu
 

@@ -669,6 +669,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 
 #### ADP-03 — OpenRouter/API sağlayıcı adaptörü
 
+**Durum:** Tamamlandı — kanıt: `KANIT_LOG.md` §ADP-03
+
 **Etiketler:** `priority:P2`, `gate:G4`, `epic:adapt-rler-ve-api`, `size:L`  
 **Mevcut ROADMAP bağlantısı:** Her AI ile çalışma / OpenRouter (mevcut)  
 **Bağımlılıklar:** ADP-02, COST-02, SEC-04
@@ -678,11 +680,11 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 **Test senaryoları:** Yerel mock API; 200/401/429/500/timeout; partial stream; gerçek opt-in bir test modelinde yazma görevi.
 
 **Ölçülebilir kabul kriterleri:**
-- [ ] 6/6 mock API koşulu.
-- [ ] 401/429 için yetkisiz sessiz provider fallback 0.
-- [ ] 1 gerçek e2e smoke.
-- [ ] anahtarların diske düz metin sızması 0.
-- [ ] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
+- [x] 6/6 mock API koşulu.
+- [x] 401/429 için yetkisiz sessiz provider fallback 0.
+- [x] 1 gerçek e2e smoke.
+- [x] anahtarların diske düz metin sızması 0.
+- [x] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 ### Epic: GitHub teslimat hattı
 

@@ -1975,6 +1975,101 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
 
 ---
 
+## ADP-03 — OpenRouter/API sağlayıcı adaptörü
+
+- Durum: Tamamlandı.
+- Kapsam: ADP-02 ağ kapısını uygulayan OpenRouter adaptörü; DPAPI anahtar kasası, model kataloğu okuma, idempotent
+  istek, zaman aşımı/rate-limit/hata sınıflandırması, kısmi akış reddi ve bilinmeyen kullanımın korunması.
+  Adaptör henüz CLI'ye bağlanmadı; sözleşme ve test edilebilir istemci hazırdır.
+- Çıktı / değişen dosyalar: `src/respected_orchestrator/engine/provider.py`,
+  `src/respected_orchestrator/engine/secret_vault.py`, `tests/engine/test_provider.py`,
+  `docs/ilerleme/poc/adp03_real_smoke.py`, `docs/ARCHITECTURE.md`, `docs/ROADMAP_EXECUTION_PLAN.md`,
+  `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`,
+  `docs/ilerleme/respected_orchestrator_github_issues.csv`, `docs/ilerleme/poc/adp03_*`.
+- Doğrulama komutu:
+
+```text
+$env:PYTHONPATH='src'
+py -m unittest tests.engine.test_provider
+$env:RESPECTED_PROVIDER_NETWORK='allow'
+$env:RESPECTED_PROVIDER_CODE_GATE='1'
+py docs/ilerleme/poc/adp03_real_smoke.py
+py -m unittest discover -s tests -t .
+py packaging/build_dist.py
+py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_security
+```
+
+### Adaptör davranışı
+
+- Her `complete`, `complete_stream` ve `models` çağrısı önce `require_access` ile opt-in, kod kapısı, `https` ve
+  `openrouter.ai` allowlist'ini doğrular. Kapı geçilmeden transport çağrılmaz.
+- Anahtar `SecretVault` içinde Windows DPAPI ile kullanıcıya bağlı şifreli blob olarak saklanır; kasa yoksa
+  `auth_missing` döner. Test, dosya byte'larında düz metin anahtar olmadığını doğrular.
+- Aynı `idempotency_key` ikinci kez geldiğinde önbellekteki sonuç döner ve ağ çağrısı sayısı artmaz.
+- Durum sınıfları: 401 `unauthorized`, 429 `rate_limited`, 5xx `provider_error`, ağ/süre `timeout` veya `network`,
+  `[DONE]` görmeden biten akış `stream_incomplete`, bozuk gövde `invalid_response`. Hiçbiri başka sağlayıcıya veya
+  modele sessiz fallback yapmaz.
+- Sağlayıcı `usage` bildirmezse sonuç `usage=None`, `usage_status=UNKNOWN` olur; sıfır varsayılmaz.
+
+### Mock API senaryoları (6/6)
+
+| Senaryo | Beklenen | Sonuç |
+|---|---|---|
+| 200 | `completed`, içerik korunur, bilinen kullanım aktarılır | geçti |
+| 401 | `unauthorized`; tek çağrı, fallback yok | geçti |
+| 429 | `rate_limited`; tek çağrı, fallback yok | geçti |
+| 500 | `provider_error` | geçti |
+| timeout | `timeout` | geçti |
+| partial stream | `[DONE]` yoksa `stream_incomplete` | geçti |
+
+Ek olarak idempotent tekrar (1 ağ çağrısı), eksik anahtar (`auth_missing`, 0 çağrı), bilinmeyen kullanım ve DPAPI
+kasa round-trip'i test edildi.
+
+### Gerçek E2E smoke
+
+- `adp03_real_smoke.py` gerçek `https://openrouter.ai/api/v1/models` isteğini aynı kapıdan yaptı:
+  451 model, liste SHA-256 `8391D3BFA965DC13497A85C98E3D447F20A905E17971AFF437121E6C5C11BEAC`.
+- Ortamda OpenRouter API anahtarı yok; kimlikli sohbet/yazma smoke'u çalıştırılamadı. 200 yazma yolu yerel mock ile,
+  anahtar yokluğu `auth_missing` testiyle kanıtlandı. Bu bir başarı sayılmadı; gerçek anahtarlı smoke kalan iştir.
+
+### Test sonuçları
+
+- Odaklı: `Ran 11 tests ... OK` (`docs/ilerleme/poc/adp03_focused.log`).
+- Tam regresyon: `Ran 523 tests ... OK` (`docs/ilerleme/poc/adp03_full_suite.log`).
+- Paketleme: `py packaging/build_dist.py` başarılı; `Ran 7 tests ... OK`
+  (`docs/ilerleme/poc/adp03_packaging.log`).
+- Gerçek smoke: `docs/ilerleme/poc/adp03_real_smoke.log`.
+
+### Kanıt artefaktları (SHA-256)
+
+<!-- ADP03_HASHES_START -->
+- `src/respected_orchestrator/engine/provider.py` -> `959492EBE99A73A4C3863153FC2A60398DF2D12E0FEFFF7FF3C70A3836E81601`
+- `src/respected_orchestrator/engine/secret_vault.py` -> `806E7A177FBACCECC236DFFC203BE81FF7C5B14989F2587252FD65FDCD598BB6`
+- `tests/engine/test_provider.py` -> `40AA45CD1EA79DA951E566EDA58164A3E7E5D723FE003E237D298D5EEF61ED83`
+- `docs/ilerleme/poc/adp03_real_smoke.py` -> `A739714CEF74D5D81CD235046329409ED197A3C3100D645909979F5AA1D2583A`
+- `docs/ilerleme/poc/adp03_focused.log` -> `258E13E4EB477D88B0C1CBE7E8DB0090101D1AE3848FA4519DC2C5675A2EF7F7`
+- `docs/ilerleme/poc/adp03_real_smoke.log` -> `824079B8246AE99866B768904A226654BF06E72247576B353FE940EC8165E80A`
+- `docs/ilerleme/poc/adp03_full_suite.log` -> `A78BC5DEF3D2BBA509B57BB1A0545E7FE879BCF85CA3F98EEFACC121E9BF2772`
+- `docs/ilerleme/poc/adp03_packaging.log` -> `50731967B9DC86B46BB0D5A80175C80B8C05AF69C89FA1029E0F91DA55B6992B`
+- `docs/ARCHITECTURE.md` -> `B96E7FED5BBC863C17BE1D3AABE07F737A340FC8D74B8C77299577DE52684F3A`
+- `docs/ROADMAP_EXECUTION_PLAN.md` -> `4C433E04F6C510A7DE5F6B809E39FAB5CA8712CC13E9A9553EDA249A6D3D82CC`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `019B2F3FAB9440A064D57D5E1D82DFB598C300EC3212189E88CC891348FC95EF`
+- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `5D67F7144EB77105318A0C3187195C359582DC856794AC9FBA40AE0EE467E492`
+<!-- ADP03_HASHES_END -->
+
+`KANIT_LOG.md` kendi hash listesine dahil edilmez.
+
+### Kalan risk / shortcut
+
+- Kimlikli gerçek yazma smoke'u anahtar olmadığı için yapılmadı; adaptörün gerçek sağlayıcıda 200 gövde biçimi ve
+  streaming davranışı ilk anahtarlı koşuda doğrulanmalıdır.
+- `complete_stream` SSE olaylarının satır sınırında geldiğini varsayar; gerçek sağlayıcı olayı parçalarsa artımlı
+  tampon gerekir (`shortcut: satır sınırı varsayımı, gerçek akış parçalarsa`).
+- Adaptör CLI/MAF akışına bağlı değildir; bağlanana kadar ürün davranışı değişmez.
+- Rate-limit için otomatik yeniden deneme yok; `retryable` işareti çağırana bırakılır.
+
+---
+
 ## Şablon (sonraki görevler)
 
 ```
