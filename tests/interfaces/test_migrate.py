@@ -57,6 +57,50 @@ class MigrateTest(unittest.TestCase):
                 self.assertEqual(migrate_data(data), [], "a second run must change nothing")
                 self.assertEqual({path.name: path.read_bytes() for path in data.glob("*.json")}, settled)
 
+    def test_two_old_versions_move_to_current_and_the_second_run_is_byte_stable(self):
+        (self.data / "settings.json").write_text('{"default_worker": "codex"}', encoding="utf-8")
+        steps = {
+            ("settings.json", 1): lambda d: {"worker": d["default_worker"]},
+            ("settings.json", 2): lambda d: {**d, "theme": "dark"},
+        }
+        self.assertEqual(migrate_data(self.data, current={"settings.json": 3}, steps=steps), ["settings.json"])
+        document = json.loads((self.data / "settings.json").read_text("utf-8"))
+        self.assertEqual(document, {"worker": "codex", "theme": "dark", "schema_version": 3})
+        self.assertEqual(json.loads((self.data / "settings.json.v1.bak").read_text("utf-8")),
+                         {"default_worker": "codex"})
+        settled = (self.data / "settings.json").read_bytes()
+        self.assertEqual(migrate_data(self.data, current={"settings.json": 3}, steps=steps), [])
+        self.assertEqual((self.data / "settings.json").read_bytes(), settled)
+
+    def test_a_failing_step_leaves_the_original_bytes_and_no_backup(self):
+        original = '{"default_worker": "codex"}'
+        (self.data / "settings.json").write_text(original, encoding="utf-8")
+
+        def explode(_document):
+            raise RuntimeError("step failed")
+
+        with self.assertRaises(RuntimeError):
+            migrate_data(self.data, current={"settings.json": 3}, steps={
+                ("settings.json", 1): lambda d: {"worker": d["default_worker"]},
+                ("settings.json", 2): explode,
+            })
+        self.assertEqual((self.data / "settings.json").read_text("utf-8"), original)
+        self.assertFalse(list(self.data.glob("*.bak")))
+
+    def test_a_missing_step_is_refused_without_writing(self):
+        original = '{"schema_version": 1}'
+        (self.data / "settings.json").write_text(original, encoding="utf-8")
+        with self.assertRaises(MigrationError):
+            migrate_data(self.data, current={"settings.json": 3},
+                         steps={("settings.json", 1): lambda d: d})
+        self.assertEqual((self.data / "settings.json").read_text("utf-8"), original)
+        self.assertFalse(list(self.data.glob("*.bak")))
+
+    def test_every_current_file_has_a_shipped_version_and_a_release_fixture(self):
+        self.assertEqual(set(CURRENT), set(SHIPPED))
+        for name in CURRENT:
+            self.assertTrue(list(RELEASES.glob(f"*/{name}")), name)
+
     def test_the_first_release_data_is_kept_as_a_fixture(self):
         for name in SHIPPED:
             self.assertTrue(list(RELEASES.glob(f"*/{name}")), f"{name}: add the file of the first release to tests/fixtures/releases")
