@@ -648,6 +648,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 
 #### ADP-02 — API anahtarı, ağ ve sağlayıcı tehdit modeli
 
+**Durum:** Tamamlandı — kanıt: `KANIT_LOG.md` §ADP-02
+
 **Etiketler:** `priority:P2`, `gate:G3`, `epic:adapt-rler-ve-api`, `size:L`  
 **Mevcut ROADMAP bağlantısı:** Her AI ile çalışma / API (mevcut)  
 **Bağımlılıklar:** SEC-01, REL-02
@@ -657,11 +659,11 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 **Test senaryoları:** Kasıtlı 401, HTTP redirect, proxy, log exposure, secret persistence, denied domain.
 
 **Ölçülebilir kabul kriterleri:**
-- [ ] En az 6 tehdit senaryosu test planıyla karara bağlanır.
-- [ ] 0 key JSON/log/evidence.
-- [ ] opt-in kapalıyken ağ çağrısı 0.
-- [ ] provider code gate olmadan canlı API kullanılmaz.
-- [ ] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
+- [x] En az 6 tehdit senaryosu test planıyla karara bağlanır: ADR-007 + 6/6 politika testi.
+- [x] 0 key JSON/log/evidence: anahtar maskelenir, kalıcı ayara yazılmaz.
+- [x] opt-in kapalıyken ağ çağrısı 0: `ProviderDenied` soket öncesi.
+- [x] provider code gate olmadan canlı API kullanılmaz: `RESPECTED_PROVIDER_CODE_GATE=1` zorunlu.
+- [x] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### ADP-03 — OpenRouter/API sağlayıcı adaptörü
 

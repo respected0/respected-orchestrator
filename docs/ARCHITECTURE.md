@@ -103,6 +103,11 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   kullanıcı deposundan `auth export --standalone` ile alınıp yalnızca çalışanın izole HOME'una
   `auth import --standalone` ile aktarılır; sır kanıt, log ve görev metnine yazılmaz. OpenCode ağ erişimi varsayılan
   kapalıdır; yalnızca `RESPECTED_OPENCODE_NETWORK=allow` ile açılır.
+- **Sağlayıcı ağ kapısı (ADR-007):** Kendi API sağlayıcı adaptörleri (ADP-03) ağ varsayılan kapalıyken çalışmaz.
+  `engine/provider_policy.py` soket açmadan önce `RESPECTED_PROVIDER_NETWORK=allow` ve
+  `RESPECTED_PROVIDER_CODE_GATE=1` ister; yalnızca `https` ve açık allowlist'teki tam alan adına izin verir. Her
+  redirect hedefi yeniden doğrulanır; proxy de allowlist'ten geçer. 401/429/5xx başka sağlayıcıya sessiz fallback
+  yapmaz. Anahtar istek anında kasadan okunur, log/kanıt/ayar JSON'una yazılmaz ve `***set***` ile maskelenir.
 
 ## 3. Doğrulama kum havuzu
 

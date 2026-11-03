@@ -1820,6 +1820,90 @@ Timeout bütçesi: ilk 20 sn'lik bütçe model erken yanıt verdiği için `comp
 
 ---
 
+## ADP-02 — API anahtarı, ağ ve sağlayıcı tehdit modeli
+
+- Durum: Tamamlandı.
+- Kapsam: Canlı sağlayıcı adaptöründen (ADP-03) önce anahtar saklama, ağ opt-in'i, kod kapısı, egress/redirect/proxy
+  allowlist'i, 401/429/5xx sessiz fallback yasağı, sır maskeleme ve kalıcılık sınırlarının ADR ile karara
+  bağlanması. Bu görev canlı API çağrısı yapmaz; yalnızca fail-closed politika kapısını ve test planını sabitler.
+- Çıktı / değişen dosyalar: `src/respected_orchestrator/engine/provider_policy.py`,
+  `tests/engine/test_provider_policy.py`, `docs/adr/ADR-007-provider-key-network-threat-model.md`,
+  `docs/ARCHITECTURE.md`, `docs/ROADMAP_EXECUTION_PLAN.md`,
+  `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`,
+  `docs/ilerleme/respected_orchestrator_github_issues.csv`, `docs/ilerleme/poc/adp02_*`.
+- Doğrulama komutu:
+
+```text
+$env:PYTHONPATH='src'
+py -m unittest tests.engine.test_provider_policy tests.docs.test_decision_records
+py -m unittest discover -s tests -t .
+py packaging/build_dist.py
+py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_security
+```
+
+### Karar (ADR-007)
+
+- **Anahtar deposu:** Anahtar ayar JSON'una, loga veya kanıta yazılmaz. Windows'ta kullanıcıya özel DPAPI kasasından
+  yalnızca istek anında okunur; süreç ortamına kalıcı konmaz. Kasa yoksa adaptör çalışmaz, düz metin fallback yoktur.
+- **Opt-in ve kod kapısı:** Ağ varsayılan kapalıdır. Canlı sağlayıcı yolu ancak
+  `RESPECTED_PROVIDER_NETWORK=allow` ve `RESPECTED_PROVIDER_CODE_GATE=1` birlikte verildiğinde açılır;
+  `require_access` soket açmadan `ProviderDenied` fırlatır.
+- **Egress:** Yalnızca `https`, URL'de kimlik bilgisi olmayan ve açık allowlist'teki tam alan adı kabul edilir.
+  Her redirect hedefi aynı kapıdan yeniden geçer; proxy host'u da allowlist'te olmak zorundadır.
+- **Hata sınıfları:** 401, 429 ve 5xx ayrı sınıflandırılır; hiçbiri başka sağlayıcıya sessiz fallback yapmaz.
+  Kullanıcı açıkça seçmedikçe model değişmez.
+- **Sızıntı ve kalıcılık:** Anahtar değeri log, kanıt, `settings.json`, `result.json` ve hata metninde
+  `***set***` olarak maskelenir. İstek/yanıt gövdeleri varsayılan olarak saklanmaz; yalnızca kullanım sayıları ve
+  durum sınıfı tutulur.
+
+### Test senaryoları (6/6)
+
+| Senaryo | Beklenen | Sonuç |
+|---|---|---|
+| Opt-in kapalı | Soket öncesi `ProviderDenied`; ağ çağrısı 0 | geçti |
+| Kod kapısı kapalı | Canlı sağlayıcı reddedilir | geçti |
+| Yasak alan adı | Allowlist dışı host reddedilir | geçti |
+| HTTP redirect | Hedef yeniden doğrulanır; yabancı host reddedilir | geçti |
+| Proxy / URL'de kimlik | `http` ve `user:pass@host` reddedilir | geçti |
+| Log/kanıt sızıntısı | Anahtar `***set***` ile maskelenir | geçti |
+
+### Test sonuçları
+
+- Odaklı: `Ran 7 tests ... OK` (`docs/ilerleme/poc/adp02_focused.log`; politika 6/6 + ADR kapısı).
+- Tam regresyon: `Ran 506 tests ... OK` (`docs/ilerleme/poc/adp02_full_suite.log`).
+- Paketleme: `py packaging/build_dist.py` başarılı; `Ran 7 tests ... OK`
+  (`docs/ilerleme/poc/adp02_packaging.log`).
+- Canlı sağlayıcı çağrısı bu görevde yapılmadı; ADP-03 adaptörü `require_access` çağırmadan istek başlatamaz.
+
+### Kanıt artefaktları (SHA-256)
+
+<!-- ADP02_HASHES_START -->
+- `src/respected_orchestrator/engine/provider_policy.py` -> `A4904EA9FED3B59ED61E6A1F453ECD32C1894ED210E7495E3EB2F8406EE5D3CE`
+- `tests/engine/test_provider_policy.py` -> `77CB4CA5BE5ACF916C647F5A05C23A257C61144AFE9518846932E68FD4E3F920`
+- `docs/adr/ADR-007-provider-key-network-threat-model.md` -> `41735F348DA4F25089F0524A9A6946CA9453D83179297B483A37D9964D2F724C`
+- `docs/ARCHITECTURE.md` -> `532B8AADE7B2CCE28F197AB59B0487348CA9E11EB27AF1C5579F625C4B6A5036`
+- `docs/ROADMAP_EXECUTION_PLAN.md` -> `EE222E81701B220777817B178F782CA39BA3E3BCB015ECE1C92B2EA1D39C721B`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `F6DD4CCCE3BFDC2D0B0FF1BD3BB50CCC04C1B1A8723A9B89F1A9E91F6162F8BF`
+- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DDA55676F010B4A4B8BCA9C7C52B9A4F9C6EB1A50B88711F6791D23A388F04EB`
+- `docs/ilerleme/poc/doc01_check.py` -> `9D765DB66BA2C49D9157FEEDF81C364D79B3B3D67957E4A5C0F2E6C998EEDC9F`
+- `docs/ilerleme/poc/adp02_focused.log` -> `252A7CCE280B94CE4C8CF9C7E3CA7C4C6EF16FEA271D5CEBDF1368D8A5F48A8B`
+- `docs/ilerleme/poc/adp02_full_suite.log` -> `BEE08E716D408688F91A4FA52241657E5A7197377DBAB52F36909FEFDD6FA079`
+- `docs/ilerleme/poc/adp02_packaging.log` -> `71256C6B5EB217111E373BECEE08A800C04462B56F1ACAD0ABE4800E802DB423`
+<!-- ADP02_HASHES_END -->
+
+`KANIT_LOG.md` kendi hash listesine dahil edilmez.
+
+### Kalan risk / shortcut
+
+- ADP-02 kararı uygulama değil sözleşmedir; canlı adaptör, DPAPI kasası ve gerçek 401/429/5xx davranışı ADP-03'te
+  test edilecektir.
+- Allowlist tam alan adı eşleşmesidir; alt alan adı veya joker desteği bilinçli olarak yoktur.
+- Sağlayıcıya giden görev metni ve dosya içeriği sağlayıcı tarafından görülür; opt-in bunu kabul etmek demektir.
+- `docs/ilerleme/poc/doc01_check.py` ADR erişim tarihini artık herhangi bir ISO tarihi olarak doğrular; araştırma
+  kaynak tablosunun ortak erişim tarihi (`2026-10-30`) değişmedi.
+
+---
+
 ## Şablon (sonraki görevler)
 
 ```
