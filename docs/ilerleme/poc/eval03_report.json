@@ -1,0 +1,24 @@
+{
+  "kpis": {
+    "acceptance_success_rate": 1.0,
+    "worker_violations": 0,
+    "cost": "bilinmiyor",
+    "duration_seconds": 6.9339
+  },
+  "gate": {
+    "ok": true,
+    "regressions": [],
+    "baseline": {
+      "acceptance_success_rate": 1.0,
+      "worker_violations": 0,
+      "cost": "bilinmiyor",
+      "duration_seconds": 6.9339
+    },
+    "current": {
+      "acceptance_success_rate": 1.0,
+      "worker_violations": 0,
+      "cost": "bilinmiyor",
+      "duration_seconds": 6.9339
+    }
+  }
+}

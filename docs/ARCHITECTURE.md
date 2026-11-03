@@ -123,6 +123,10 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   kurulum kaydıyla eşleşmek zorundadır. Araç yalnızca manifestte bildirilen ve görev planında açıkça onaylanan
   işlemi yapabilir; bildirilmeyen araç/izin otomatik yetkilendirilmez. `exec` kapalıdır, veri kapsamı repo dışına
   çıkamaz. Açıklama metni yetki sayılmaz; metin içindeki talimatlar yeni izin vermez.
+<!-- EVAL-03_ARCH -->- **KPI ve regresyon kapısı (EVAL-03):** `tests/evals/report.py` her raporda kabul başarısı, worker
+  ihlali, maliyet ve süre KPI'larını üretir. Eksik veri sıfıra çevrilmez; `missing_kpi` hatası verir. İki koşu
+  arasında başarı düşerse veya worker ihlali artarsa regresyon kapısı kapanır; farklı fixture/repeat/timeout
+  raporları karşılaştırılamaz sayılır.
 <!-- EVAL-02_ARCH -->- **Karşılaştırma koşucusu (EVAL-02):** `tests/evals/compare.py` aynı fixture, commit, makine ve zaman
   aşımıyla doğrudan ve orkestre kolları çalıştırır. Doğrudan kol değişiklik uygulamaz; orkestre kol doğrulanmış
   altın fixture yamasını uygular. Başarı oranı ile güvenlik ihlali ayrı metriklerdir; maliyet ölçülmediyse

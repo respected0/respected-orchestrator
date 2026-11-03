@@ -311,6 +311,8 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 
 #### EVAL-03 — Kıyas raporu ve regresyon kapısı
 
+**Durum:** Tamamlandı — kanıt: `KANIT_LOG.md` §EVAL-03
+
 **Etiketler:** `priority:P1`, `gate:G2`, `epic:l-m-ve-benchmark`, `size:M`  
 **Mevcut ROADMAP bağlantısı:** Yeni; model seçimi ölçümü için taban  
 **Bağımlılıklar:** EVAL-02
@@ -320,10 +322,10 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 **Test senaryoları:** Bilinen 2 artı/eksi senaryoyla medyan ve hata payı; geçersiz karşılaştırmada engelleme.
 
 **Ölçülebilir kabul kriterleri:**
-- [ ] 4 ana KPI (kabul başarısı, worker ihlali, maliyet, süre) her raporda bulunur.
-- [ ] 0 eksik veriye sahte sıfır atanır.
-- [ ] en az 2 koşuda regresyonu gösteren testler geçer.
-- [ ] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
+- [x] 4 ana KPI (kabul başarısı, worker ihlali, maliyet, süre) her raporda bulunur.
+- [x] 0 eksik veriye sahte sıfır atanır.
+- [x] en az 2 koşuda regresyonu gösteren testler geçer.
+- [x] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 ### Epic: Doğrulamalı teslimat
 

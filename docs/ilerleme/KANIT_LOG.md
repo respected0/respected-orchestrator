@@ -2205,6 +2205,60 @@ py docs/ilerleme/poc/eval02_real.py
 
 ---
 
+## EVAL-03 — Kıyas raporu ve regresyon kapısı
+
+- Durum: Tamamlandı.
+- Kapsam: JSON/Markdown rapor, dört KPI (kabul başarısı, worker ihlali, maliyet, süre) ve iki koşu arası regresyon
+  kapısı. Eksik veri sahte sıfır üretmez; farklı fixture/repeat/timeout raporları engellenir.
+- Çıktı / değişen dosyalar: `tests/evals/report.py`, `tests/evals/test_report.py`,
+  `docs/ilerleme/poc/eval03_report.json`, `docs/ilerleme/poc/eval03_report.md`,
+  `docs/ilerleme/poc/eval02_eval03_focused.log`, `docs/ARCHITECTURE.md`,
+  `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`,
+  `docs/ilerleme/respected_orchestrator_github_issues.csv`.
+- Doğrulama komutu:
+
+```text
+$env:PYTHONPATH='src'
+py -m unittest tests.evals.test_compare tests.evals.test_report
+py docs/ilerleme/poc/eval02_real.py
+```
+
+### Rapor ve kapı
+
+- Üretilen gerçek rapor: `eval03_report.json` (KPI + kapı sonucu) ve `eval03_report.md` (insan okunur tablo).
+- KPI'lar: kabul başarısı `1.0`, worker ihlali `0`, maliyet `bilinmiyor`, süre `6.9339 sn`.
+- Kendisiyle karşılaştırma kapısı geçti (`ok=true`); regresyon testleri başarı düşüşünü ve ihlal artışını ayrı ayrı yakalar.
+- Eksik `cost` alanı `missing_kpi` hatası verir; `0` üretmez. Farklı fixture listesi, repeat veya timeout
+  `incomparable` ile reddedilir.
+
+### Test sonuçları
+
+- Odaklı: `Ran 9 tests ... OK` (`docs/ilerleme/poc/eval02_eval03_focused.log`).
+
+### Kalan risk / shortcut
+
+- Gerçek rapor altın fixture kolundan üretildi; model başarısı değildir. Kimlikli model koşusu sağlanınca aynı
+  rapor şeması kullanılmalıdır.
+- Regresyon eşiği yalnızca kesin düşüş/artış arar; istatistiksel güven aralığı hesaplamaz (`shortcut: kesin eşik,
+  tekrarlı örneklem büyüyünce`).
+
+### Kanıt artefaktları (SHA-256)
+
+<!-- EVAL03_HASHES_START -->
+- `tests/evals/report.py` -> `1FB26693D95C1CD59ED1F6A63CF0F22AA69DD80675EDD3D8C6FD1F4500CC8FE9`
+- `tests/evals/test_report.py` -> `44AC155A1EF14B7D62F9F4821DB474DC635F5D8EFF23408B134BF082C70407C3`
+- `docs/ilerleme/poc/eval03_report.json` -> `8664A080FC9E4E2D96040C8A694DD19B1450F41A3C2FF37D262F5D3EBE9EFC47`
+- `docs/ilerleme/poc/eval03_report.md` -> `F06E5F2092B22A45C65EF1CB379188C0F2E7B6267802657FDCC01E561D1F1306`
+- `docs/ilerleme/poc/eval02_eval03_focused.log` -> `95E354833E2418305AFA98C394A00FD9242369851E798DC0000F5FFFD8A68B6F`
+- `docs/ARCHITECTURE.md` -> `A5FA66B5E2F6BA661E98D042BA9E815D0A41A3E97C3C44B901C791171FD4048A`
+- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `CCB246DE2F5F95BF578E99AEECA7F121506F0478D70D623DA7490D816BCE7F80`
+- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `07EA81CF5E3090D1E08C6E7EBEF696A5D11F3B0A7E92070E6185853276C1704D`
+<!-- EVAL03_HASHES_END -->
+
+`KANIT_LOG.md` kendi hash listesine dahil edilmez.
+
+---
+
 ## Şablon (sonraki görevler)
 
 ```
