@@ -145,7 +145,7 @@ def main(argv=None):
     from .workflows import roles
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=default_data_root(), help=argparse.SUPPRESS)
-    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "campaign-start", "campaign-run", "campaign-status", "campaign-list", "project-start", "project-run", "project-resume", "project-status", "project-cancel", "rpp", "roles", "plan", "mcp", *SHARED, "_selfcheck"])
+    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "plan", "coordinate", "mcp", *SHARED, "_selfcheck"])
     parser.add_argument("args", nargs=argparse.REMAINDER)
     try:
         args = parser.parse_args(argv)
@@ -182,6 +182,12 @@ def main(argv=None):
         elif args.command == "plan":  # planner role: draft a project spec (never started); stdin {goal, project_root, ...}
             from .workflows.planner import plan
             payload = plan(ctx, _stdin_json())
+        elif args.command == "coordinate":  # coordinator role: validated plan + assignments only; stdin {goal, project_root, ...}
+            from .workflows.coordinator import coordinate
+            payload = coordinate(ctx, _stdin_json())
+        elif args.command == "integrate":  # stdin: two verified run ids + verification commands; never applies to the real repo
+            from .engine.integration import integrate
+            payload = integrate(ctx, _stdin_json())
         elif args.command == "mcp":  # stdio MCP server for Claude Code/Codex/any client; optional args --allow-auto-apply, --allow-privileged
             from .interfaces.mcp_server import serve
             return serve(ctx.data_root, allow_auto_apply="--allow-auto-apply" in args.args, allow_privileged="--allow-privileged" in args.args)
@@ -202,7 +208,9 @@ def main(argv=None):
         else:
             if len(args.args) != 1:
                 raise ValueError("Exactly one run identity is required")
-            if args.command == "maf":
+            if args.command == "artifact":
+                payload = runner.artifact_data(ctx, args.args[0], _stdin_json().get("name"))
+            elif args.command == "maf":
                 from .workflows.maf_workflow import run_maf_coding_task
                 payload = run_maf_coding_task(ctx=ctx, run_id=args.args[0])
             elif args.command == "maf-approve":
@@ -212,10 +220,12 @@ def main(argv=None):
             elif args.command.startswith("project-"):
                 from .workflows import project
                 payload = {"project-run": project.run_project, "project-resume": project.resume_project,
+                           "project-approve": project.approve_project_resume,
                            "project-status": project.project_status, "project-cancel": project.cancel_project}[args.command](ctx, args.args[0])
-            elif args.command in {"campaign-run", "campaign-status"}:
+            elif args.command in {"campaign-run", "campaign-status", "campaign-cancel"}:
                 from .workflows import campaign
-                payload = (campaign.run_campaign if args.command == "campaign-run" else campaign.campaign_status)(ctx, args.args[0])
+                payload = {"campaign-run": campaign.run_campaign, "campaign-status": campaign.campaign_status,
+                           "campaign-cancel": campaign.cancel_campaign}[args.command](ctx, args.args[0])
             else:
                 method = {"start": runner.start_task, "inspect": runner.inspect_task, "cancel": runner.cancel_task,
                           "check": runner.check_result, "retry": runner.retry_task, "_execute": runner.execute_task}[args.command]
