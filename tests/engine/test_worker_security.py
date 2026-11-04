@@ -220,7 +220,7 @@ class WorkerSecurityMatrixTest(unittest.TestCase):
 
         patch = self.root / "symlink.patch"
         patch.write_bytes(subprocess.run(
-            ["git", "diff", "--binary", "--full-index", "HEAD"],
+            ["git", "diff", "--cached", "--binary", "--full-index", "HEAD"],
             cwd=repo, capture_output=True, check=True,
         ).stdout)
         self.assertIn(b"new file mode 120000", patch.read_bytes())
