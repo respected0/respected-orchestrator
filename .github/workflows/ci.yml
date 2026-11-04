@@ -33,7 +33,8 @@ jobs:
       - name: Build the packaged engine
         run: python packaging/build_dist.py --output dist
       - name: Worker isolation security matrix (AppContainer)
-        run: python -m unittest tests.engine.test_worker_security -v
+        # the runner is elevated and the boundary refuses that; run from a UAC-filtered token (fails if still elevated)
+        run: python tests/tools/deelevate.py -- python -m unittest tests.engine.test_worker_security -v
       - name: Verify and acceptance sandbox matrix (restricted token)
         run: python -m unittest tests.engine.test_sandbox -v
       - name: Security regression registry gate
@@ -42,6 +43,8 @@ jobs:
         run: python -m unittest tests.packaging.test_frozen_security -v
       - name: Unit, integration, adversarial and packaged-build tests
         # tests/packaging runs the built exe with no Python on PATH and is required here (CI is set)
+        env:
+          ORCH_ALLOW_ELEVATED_SKIP: "1"  # the matrix already ran de-elevated above
         run: python -m unittest discover -s tests -t .
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

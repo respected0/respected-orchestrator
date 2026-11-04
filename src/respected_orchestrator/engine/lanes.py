@@ -715,26 +715,29 @@ _UNSAFE_PATCH_MODE = re.compile(
 
 def _unsafe_git_mode_paths(lane: Lane) -> tuple[str, ...]:
     """Paths whose index/HEAD modes are links or gitlinks, even if a regular file masks the link on Windows."""
-    completed = winproc.run(
-        ["git", "diff", "--raw", "--no-renames", "--full-index", "-z", lane.baseline_commit, "--"],
-        cwd=lane.worktree,
-        capture_output=True,
-        check=False,
-    )
-    if completed.returncode != 0:
-        raise LaneError(completed.stderr.decode("utf-8", errors="replace").strip())
-    records = [item for item in completed.stdout.split(b"\0") if item]
-    if len(records) % 2:
-        raise LaneError("unexpected git raw-diff format")
     unsafe: list[str] = []
-    for index in range(0, len(records), 2):
-        metadata, raw_path = records[index], records[index + 1]
-        fields = metadata.decode("ascii", errors="strict").split(" ")
-        if not fields or not fields[0].startswith(":") or len(fields) < 2:
-            raise LaneError("unexpected git raw-diff metadata")
-        old_mode, new_mode = fields[0][1:], fields[1]
-        if {old_mode, new_mode} & _UNSAFE_GIT_MODES:
-            unsafe.append(raw_path.decode("utf-8", errors="strict").replace("\\", "/"))
+    # The worktree diff catches links where git lacks symlink support; --cached catches a staged link whose
+    # regular worktree file hides the index mode when git does support symlinks (type change).
+    for extra in ((), ("--cached",)):
+        completed = winproc.run(
+            ["git", "diff", *extra, "--raw", "--no-renames", "--full-index", "-z", lane.baseline_commit, "--"],
+            cwd=lane.worktree,
+            capture_output=True,
+            check=False,
+        )
+        if completed.returncode != 0:
+            raise LaneError(completed.stderr.decode("utf-8", errors="replace").strip())
+        records = [item for item in completed.stdout.split(b"\0") if item]
+        if len(records) % 2:
+            raise LaneError("unexpected git raw-diff format")
+        for index in range(0, len(records), 2):
+            metadata, raw_path = records[index], records[index + 1]
+            fields = metadata.decode("ascii", errors="strict").split(" ")
+            if not fields or not fields[0].startswith(":") or len(fields) < 2:
+                raise LaneError("unexpected git raw-diff metadata")
+            old_mode, new_mode = fields[0][1:], fields[1]
+            if {old_mode, new_mode} & _UNSAFE_GIT_MODES:
+                unsafe.append(raw_path.decode("utf-8", errors="strict").replace("\\", "/"))
     return tuple(sorted(set(unsafe)))
 
 
