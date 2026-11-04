@@ -24,6 +24,6 @@ Kullanıcı verisi dosyaları biçim sürümü taşıyor. Yeni bir sürüm yazı
 
 ## Kaynaklar
 
-- [REL-02 kanıtı](../ilerleme/KANIT_LOG.md) §REL-02 (erişim: 2026-10-30).
-- [rel02_gate_proof.txt](../ilerleme/poc/rel02_gate_proof.txt) — adımsız sürüm artırımının reddi (erişim: 2026-10-30).
+- [REL-02 kanıtı](../evidence/KANIT_LOG.md) §REL-02 (erişim: 2026-10-30).
+- [rel02_gate_proof.txt](../evidence/poc/rel02_gate_proof.txt) — adımsız sürüm artırımının reddi (erişim: 2026-10-30).
 - [Mimari](../ARCHITECTURE.md) §8 (erişim: 2026-10-30).

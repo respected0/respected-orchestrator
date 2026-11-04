@@ -187,10 +187,10 @@ def tool_result(tool, stdout):
         return str(data.get("response", "")), usage, None, error
     if tool == "cursor" and data.get("type") == "result":  # verified live 2026-11-04 (cost01_cursor_live.log)
         raw = data.get("usage") if isinstance(data.get("usage"), dict) else {}
-        # shortcut: inputTokens is assumed to include cacheReadTokens (not provable from the output), upgrade once Cursor documents it
-        usage = _usage(raw.get("inputTokens"), raw.get("cacheReadTokens"), raw.get("outputTokens"), None)
-        if usage and usage["cached_input_tokens"] > usage["raw_input_tokens"]:
-            usage = None
+        # inputTokens EXCLUDES cacheReadTokens: a live run reported inputTokens 39 beside cacheReadTokens 18048 (cursor_cache_probe.log)
+        fresh, cached = (raw.get("inputTokens"), raw.get("cacheWriteTokens", 0)), raw.get("cacheReadTokens")
+        known = all(isinstance(v, int) and not isinstance(v, bool) for v in (*fresh, cached))
+        usage = _usage(sum(fresh) + cached, cached, raw.get("outputTokens"), None) if known else None
         return str(data.get("result", "")), usage, None, ("cursor reported an error result" if data.get("is_error") else None)
     if tool == "gemini" and ("response" in data or "error" in data):  # shape taken from the CLI docs; not verified live
         models = ((data.get("stats") or {}).get("models") or {}) if isinstance(data.get("stats"), dict) else {}

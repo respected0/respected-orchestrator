@@ -612,9 +612,9 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 **Test senaryoları:** Gerçek Gemini ve Cursor oturumları, JSON çıktı varyantları, quota/auth, .cmd güvenlik reddi.
 
 **Ölçülebilir kabul kriterleri:**
-- [ ] İki araçtan her biri için en az 3 gerçek canlı koşu veya blocked/reason açık raporu.
-- [ ] unknown→0 dönüşümü 0.
-- [ ] mevcut güvenli cmd kuralına istisna 0.
+- [x] İki araçtan her biri için en az 3 gerçek canlı koşu veya blocked/reason açık raporu. (Cursor: 7 canlı koşu; Gemini: kapsam dışı, gerekçe KANIT_LOG §COST-01)
+- [x] unknown→0 dönüşümü 0.
+- [x] mevcut güvenli cmd kuralına istisna 0.
 - [ ] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### COST-02 — Sürüm kontrollü fiyat kataloğu ve belirsizlik sözleşmesi

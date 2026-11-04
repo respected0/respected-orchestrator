@@ -3,7 +3,7 @@
 - Durum: Tamamlandı (DOC-01)
 - Erişim tarihi: 30 Ekim 2026
 - Yöntem: Yalnızca ürünün kendi deposu, resmî dokümanı veya resmî ürün sayfası "birincil" sayılır. İkincil kaynak ayrıca işaretlenir. Hiçbir kaynakla doğrulanamayan iddia "doğrulanmadı" olarak kaydedilir ve pazarlama/karar gerekçesi olarak kullanılmaz.
-- Kapsam sınırı: Bu belge ürün kararlarının kaynağını tutar; çalışma sözleşmesi veya benchmark sonucu değildir. Ölçüm iddiaları [`ilerleme/KANIT_LOG.md`](ilerleme/KANIT_LOG.md) ve [`ilerleme/poc/eval01_results.json`](ilerleme/poc/eval01_results.json) dosyalarına bağlanır.
+- Kapsam sınırı: Bu belge ürün kararlarının kaynağını tutar; çalışma sözleşmesi veya benchmark sonucu değildir. Ölçüm iddiaları [`evidence/KANIT_LOG.md`](evidence/KANIT_LOG.md) ve [`evidence/poc/eval01_results.json`](evidence/poc/eval01_results.json) dosyalarına bağlanır.
 
 ## Kaynak tablosu
 
@@ -144,5 +144,5 @@
 
 ## Benchmark'a bağlı kararlar
 
-- **B-01:** Değerlendirme koşucusunun tekrarlanabilirliği ölçüldü: 20 fixture × 3 tekrar = 60 koşu, 60/60 sabit SHA ve beklenen hatalı/altın ayrımı. Kanıt: [`ilerleme/poc/eval01_results.json`](ilerleme/poc/eval01_results.json), özet [`ilerleme/KANIT_LOG.md`](ilerleme/KANIT_LOG.md) §EVAL-01. Bu sonuç **ajan başarısı değil**, harness tekrarlanabilirliğidir; karar ADR-002'de bu sınırla kayıtlı.
-- **B-02:** Ajan karşılaştırması ve "daha az hata" iddiası, `EVAL-02` tamamlanana kadar **doğrulanmadı** (U-06). Bu nedenle DOC-01 kapsamında ürün başarısı iddiası üretilmedi.
+- **B-01:** Değerlendirme koşucusunun tekrarlanabilirliği ölçüldü: 20 fixture × 3 tekrar = 60 koşu, 60/60 sabit SHA ve beklenen hatalı/altın ayrımı. Kanıt: [`evidence/poc/eval01_results.json`](evidence/poc/eval01_results.json), özet [`evidence/KANIT_LOG.md`](evidence/KANIT_LOG.md) §EVAL-01. Bu sonuç **ajan başarısı değil**, harness tekrarlanabilirliğidir; karar ADR-002'de bu sınırla kayıtlı.
+- **B-02:** Ajan karşılaştırması ve "daha az hata" iddiası **doğrulanmadı** (U-06). Güncelleme (4 Kasım 2026): `EVAL-02` tamamlandı, ama harness tutarlılığını ölçer, model kalitesi iddiası değildir; bu belgedeki diğer içerik 30 Ekim 2026 durumudur ve yeniden araştırılmadı. Bu nedenle DOC-01 kapsamında ürün başarısı iddiası üretilmedi.

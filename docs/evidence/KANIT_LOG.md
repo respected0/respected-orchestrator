@@ -16,7 +16,7 @@ Plan ve sıra: `docs/ROADMAP_EXECUTION_PLAN.md`
   - `docs/THREAT_MODEL.md` (yeni)
   - `docs/ARCHITECTURE.md` (referans + kapsam notu)
   - `docs/ROADMAP_EXECUTION_PLAN.md` (yeni, 37 görevin durum tablosu)
-  - `docs/ilerleme/KANIT_LOG.md` (bu dosya)
+  - `docs/evidence/KANIT_LOG.md` (bu dosya)
 
 ### Doğrulama
 
@@ -39,7 +39,7 @@ OK
 Komut:
 
 ```
-python docs/ilerleme/poc/sec01_probe.py docs/ilerleme/poc/sec01_results.json
+python docs/evidence/poc/sec01_probe.py docs/evidence/poc/sec01_results.json
 ```
 
 | PoC | Deneme | Sonuç | Kanıt |
@@ -50,7 +50,7 @@ python docs/ilerleme/poc/sec01_probe.py docs/ilerleme/poc/sec01_results.json
 | P-04 | worktree içindeki `.env` okuma | ALLOWED | `API_KEY=sk-fake-not-real` |
 | P-05 | workspace içindeki junction üzerinden dışarı okuma | ALLOWED | `TOPSECRET` okundu |
 
-Makine okunur çıktı: `docs/ilerleme/poc/sec01_results.json`. Sonuçlar `THREAT_MODEL.md` §8 ile aynıdır ve S-01, S-03, S-04 ve junction satırlarındaki "Yok" ifadesini doğrular. Bu bir açık kaydı değil, bilinen sınırın ölçümüdür; kapatma SEC-02/SEC-03/SEC-04.
+Makine okunur çıktı: `docs/evidence/poc/sec01_results.json`. Sonuçlar `THREAT_MODEL.md` §8 ile aynıdır ve S-01, S-03, S-04 ve junction satırlarındaki "Yok" ifadesini doğrular. Bu bir açık kaydı değil, bilinen sınırın ölçümüdür; kapatma SEC-02/SEC-03/SEC-04.
 
 ### Kabul kriterleri
 
@@ -105,16 +105,16 @@ Belgedeki her "korunuyor" iddiası mevcut testlerle eşleştirildi. Testler belg
   - `tests/evals/start_shas.json` (yeni) — 20 fixture için sabit 40 karakterlik başlangıç SHA'ları
   - `tests/evals/runner.py` (yeni) — kurulum, yalıtım, tekrar, metadata, SHA-256 sonuç hash'i, JSON şeması
   - `tests/evals/test_eval_runner.py` (yeni) — 6 sözleşme testi
-  - `docs/ilerleme/poc/eval01_results.json` (yeni) — 3 tekrarlı gerçek koşu raporu
+  - `docs/evidence/poc/eval01_results.json` (yeni) — 3 tekrarlı gerçek koşu raporu
   - `docs/ARCHITECTURE.md` (test tablosu + değerlendirme koşucusu bölümü)
-  - `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` (durum)
+  - `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` (durum)
 
 ### Doğrulama
 
 Komut (depo kökünde):
 
 ```
-python -m tests.evals.runner --repeat 3 --out docs/ilerleme/poc/eval01_results.json
+python -m tests.evals.runner --repeat 3 --out docs/evidence/poc/eval01_results.json
 ```
 
 Gerçek çıktı:
@@ -191,8 +191,8 @@ OK
 - Çıktı / değişen dosyalar:
   - `tests/interfaces/test_migrate.py` (4 yeni test) — eski sürüm→güncel, ikinci çalıştırmada byte eşitliği, hata sonrası orijinal byte'ların korunması ve `.bak` oluşmaması, eksik adımda `MigrationError` + yazma yok, `CURRENT`/`SHIPPED` eşitliği ve her dosya için yayın fixture'ı.
   - `docs/ARCHITECTURE.md` (§8 göç kapısı paragrafı)
-  - `docs/ilerleme/poc/rel02_gate_proof.txt` (kapı kanıtı)
-  - `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` (durum)
+  - `docs/evidence/poc/rel02_gate_proof.txt` (kapı kanıtı)
+  - `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` (durum)
 
 ### Doğrulama
 
@@ -261,8 +261,8 @@ OK
 
 - Durum: Tamamlandı (2026-10-30)
 - Kapsam: 21 kaynaklı rakip/çerçeve araştırması, 4 çerçeve ve 10 rakip profili, doğrulanmamış iddiaların işaretlenmesi, 6 ADR karar kaydı.
-- Çıktı / değişen dosyalar: `docs/COMPETITOR_RESEARCH.md`, `docs/adr/ADR-001…006.md`, `docs/ilerleme/poc/doc01_check.py`, `docs/ilerleme/poc/doc01_check.txt`, `tests/docs/test_decision_records.py`, `docs/ARCHITECTURE.md` (§9 test tablosu).
-- Doğrulama komutu: `python docs/ilerleme/poc/doc01_check.py`; `python -m unittest tests.docs.test_decision_records -v`; `python -m unittest discover -s tests -t .`
+- Çıktı / değişen dosyalar: `docs/COMPETITOR_RESEARCH.md`, `docs/adr/ADR-001…006.md`, `docs/evidence/poc/doc01_check.py`, `docs/evidence/poc/doc01_check.txt`, `tests/docs/test_decision_records.py`, `docs/ARCHITECTURE.md` (§9 test tablosu).
+- Doğrulama komutu: `python docs/evidence/poc/doc01_check.py`; `python -m unittest tests.docs.test_decision_records -v`; `python -m unittest discover -s tests -t .`
 - Gerçek çıktı:
 
 ```
@@ -324,13 +324,13 @@ OK
 - **Durum:** Tamamlandı. Tarih: 30 Ekim 2026.
 - **Kapsam:** Gerçek worker ve alt süreçler için Windows'ta dosya, ağ ve süreç sınırı sağlayan teknolojiyi seçmek; prototipi geçici repoda ölçmek. Üretim başlatıcısına bağlama SEC-03.
 - **Çıktı / değişen dosyalar:**
-  - `docs/ilerleme/poc/sec02_probe.py` (yeni): AppContainer profilini oluşturan, çalışma alanı/Python dizinine ACL veren, üç kez gerçek süreç başlatan ve sonuçları JSON'a yazan prototip.
-  - `docs/ilerleme/poc/sec02_results.json` (yeni): ham ölçüm.
-  - `docs/ilerleme/poc/SEC02_SANDBOX_COMPARISON.md` (yeni): dört seçeneğin karşılaştırması ve sınırlar.
+  - `docs/evidence/poc/sec02_probe.py` (yeni): AppContainer profilini oluşturan, çalışma alanı/Python dizinine ACL veren, üç kez gerçek süreç başlatan ve sonuçları JSON'a yazan prototip.
+  - `docs/evidence/poc/sec02_results.json` (yeni): ham ölçüm.
+  - `docs/evidence/poc/SEC02_SANDBOX_COMPARISON.md` (yeni): dört seçeneğin karşılaştırması ve sınırlar.
   - `docs/ARCHITECTURE.md` §2: SEC-02 doğrulaması ve SEC-03'e kadar geçerli sınır.
-  - `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`, `docs/ilerleme/respected_orchestrator_github_issues.csv`: SEC-02 tamamlandı.
+  - `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`, `docs/evidence/respected_orchestrator_github_issues.csv`: SEC-02 tamamlandı.
 - **Seçim:** Yetenek SID'i olmayan **AppContainer**. Kısıtlı belirteç ayrı dosya güvenlik sınırı olmadığı için reddedildi; Windows Sandbox VM'i başlangıç maliyeti ve dosya paylaşımı nedeniyle ertelendi.
-- **Doğrulama komutu:** `python docs/ilerleme/poc/sec02_probe.py docs/ilerleme/poc/sec02_results.json`
+- **Doğrulama komutu:** `python docs/evidence/poc/sec02_probe.py docs/evidence/poc/sec02_results.json`
 - **Gerçek çıktı:**
 
 ```
@@ -379,14 +379,14 @@ OK
   - `tests/workflows/test_reviewer_reliability.py` — gerçek worker sayacı izinli geçici köke taşındı (sandbox gevşetilmedi).
   - `tests/test_context.py` — okuma tekrarı testi.
   - `docs/ARCHITECTURE.md` §2 — SEC-03 sınırı, kanıt eşlemesi ve kalan sınır.
-  - `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`, `docs/ilerleme/respected_orchestrator_github_issues.csv` — durum.
+  - `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`, `docs/evidence/respected_orchestrator_github_issues.csv` — durum.
 - **Doğrulama komutu (odak):**
 
   ```
   python -m unittest tests.engine.test_worker_policy tests.workflows.test_campaign tests.workflows.test_reviewer_reliability tests.engine.test_token_budget tests.test_context
   ```
 
-  Gerçek çıktı (`docs/ilerleme/poc/sec03_focused.log`):
+  Gerçek çıktı (`docs/evidence/poc/sec03_focused.log`):
 
   ```
   Ran 65 tests in 74.373s
@@ -400,7 +400,7 @@ OK
   python -m unittest discover -s tests -t .
   ```
 
-  Gerçek çıktı (`docs/ilerleme/poc/sec03_full_suite.log`):
+  Gerçek çıktı (`docs/evidence/poc/sec03_full_suite.log`):
 
   ```
   Ran 378 tests in 531.768s
@@ -417,8 +417,8 @@ OK
   - [x] Regresyon yeşil (378 `OK`); `docs/ARCHITECTURE.md` aynı değişiklikte senkron.
 
 - **Kanıt artefaktları (SHA-256):**
-  - `docs/ilerleme/poc/sec03_focused.log` → `1D4C0B1547F0055EA2144D4975352CF06EE7AE8EA75107B7CA602B6C864CC843`
-  - `docs/ilerleme/poc/sec03_full_suite.log` → `3D835D18722BE9E49AF529521FBFA18D8AC058DC62A727D85283EF1281BBF729`
+  - `docs/evidence/poc/sec03_focused.log` → `1D4C0B1547F0055EA2144D4975352CF06EE7AE8EA75107B7CA602B6C864CC843`
+  - `docs/evidence/poc/sec03_full_suite.log` → `3D835D18722BE9E49AF529521FBFA18D8AC058DC62A727D85283EF1281BBF729`
   - `worker_policy.py` → `A912F0FD17C107980EFB030B3DB4ABC7F50AFB1B84D116756FE3C4AF3BDDC01C`
   - `appcontainer.py` → `E6114F9803795FB6C7E6EBB357E356F3702D1F7B2A5C6B8CB610699B79B4B98A`
   - `processes.py` → `A564DD1B05A3131B93F9067C2BB878733D6C9B496AF58E6BF973B6541E558AFA`
@@ -464,7 +464,7 @@ OK
   python -m unittest tests.engine.test_worker_security -v
   ```
 
-  `docs/ilerleme/poc/sec04_worker_source_final.log`:
+  `docs/evidence/poc/sec04_worker_source_final.log`:
 
   ```
   Ran 4 tests in 4.400s
@@ -476,7 +476,7 @@ OK
   python -m unittest tests.engine.test_sandbox -v
   ```
 
-  `docs/ilerleme/poc/sec04_verify_sandbox_final.log`:
+  `docs/evidence/poc/sec04_verify_sandbox_final.log`:
 
   ```
   Ran 6 tests in 4.069s
@@ -488,7 +488,7 @@ OK
   python -m unittest tests.engine.test_security_gate -v
   ```
 
-  `docs/ilerleme/poc/sec04_security_gate_final.log`:
+  `docs/evidence/poc/sec04_security_gate_final.log`:
 
   ```
   Ran 4 tests in 0.000s
@@ -500,7 +500,7 @@ OK
   python -m unittest tests.engine.test_lanes -v
   ```
 
-  `docs/ilerleme/poc/sec04_lanes_regression_final.log`:
+  `docs/evidence/poc/sec04_lanes_regression_final.log`:
 
   ```
   Ran 15 tests in 4.947s
@@ -512,7 +512,7 @@ OK
   python -m unittest tests.packaging.test_frozen_security.FrozenSecurityTest.test_frozen_engine_rejects_a_symlink_mode_patch_staged_without_symlink_privilege -v
   ```
 
-  `docs/ilerleme/poc/sec04_frozen_symlink_fixed.log`:
+  `docs/evidence/poc/sec04_frozen_symlink_fixed.log`:
 
   ```
   Ran 1 test in 15.734s
@@ -524,7 +524,7 @@ OK
   python -m unittest tests.packaging.test_frozen_security -v
   ```
 
-  `docs/ilerleme/poc/sec04_frozen_security_final.log`:
+  `docs/evidence/poc/sec04_frozen_security_final.log`:
 
   ```
   Ran 3 tests in 35.553s
@@ -536,13 +536,13 @@ OK
   python packaging/build_dist.py --output dist
   ```
 
-  `docs/ilerleme/poc/sec04_build_final.log`: build tamamlandı; çıktı `dist\RespectedOrchestrator`.
+  `docs/evidence/poc/sec04_build_final.log`: build tamamlandı; çıktı `dist\RespectedOrchestrator`.
 
   ```
   python -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_security -v
   ```
 
-  `docs/ilerleme/poc/sec04_frozen_all_final.log`:
+  `docs/evidence/poc/sec04_frozen_all_final.log`:
 
   ```
   Ran 7 tests in 54.087s
@@ -554,7 +554,7 @@ OK
   python -m unittest tests.docs.test_decision_records -v
   ```
 
-  `docs/ilerleme/poc/sec04_docs_gate_final.log`:
+  `docs/evidence/poc/sec04_docs_gate_final.log`:
 
   ```
   Ran 1 test in 0.103s
@@ -566,7 +566,7 @@ OK
   python -m unittest discover -s tests -t .
   ```
 
-  `docs/ilerleme/poc/sec04_full_suite.log`:
+  `docs/evidence/poc/sec04_full_suite.log`:
 
   ```
   Ran 389 tests in 469.282s
@@ -586,16 +586,16 @@ OK
   - [x] `docs/ARCHITECTURE.md`, `docs/THREAT_MODEL.md`, yol haritası ve issue CSV durumu aynı değişiklikte senkron edildi.
 
 - **Kanıt artefaktları (SHA-256):**
-  - `docs/ilerleme/poc/sec04_worker_source_final.log` → `A6B4899950AEF6595E83606C7E0A60D1329C608A8D3DE3D362ADFAD3EC61CC98`
-  - `docs/ilerleme/poc/sec04_verify_sandbox_final.log` → `83C391BAB8358656F5D551285B48A553028D733D11E51F6915C87572C115F1E7`
-  - `docs/ilerleme/poc/sec04_security_gate_final.log` → `C102B2516AEDA62A87A8E6BFF9BBF8C0537991A098C831D730677B39C84E857B`
-  - `docs/ilerleme/poc/sec04_lanes_regression_final.log` → `196E0312291FF450D08338299BE7FF16A408D96DC0C7DAD4F85443B3BFBB4417`
-  - `docs/ilerleme/poc/sec04_frozen_symlink_fixed.log` → `2C89936C0590C19BF5A59A44ECA824A5C83CC67F607962D94F86CBBCD1F66EF5`
-  - `docs/ilerleme/poc/sec04_frozen_security_final.log` → `18EAB2F62BB1443BB61631B1C15283B645CFBE11B1DFB01D8BD551754D6C786C`
-  - `docs/ilerleme/poc/sec04_build_final.log` → `9A6ADA2259D0E5DEEFE7CAFF437B0084B7CD277CEE6E8E96DBD7738D3E4158AC`
-  - `docs/ilerleme/poc/sec04_frozen_all_final.log` → `CE5379121AC1DF1A769A41D634A61D8D58AE641A69899E3F9DFC63C3B822FC87`
-  - `docs/ilerleme/poc/sec04_docs_gate_final.log` → `28747187822C788FBA68E9F01CF66A7FFDB03BCD69E66EE1ED4E9E3A3EABEC17`
-  - `docs/ilerleme/poc/sec04_full_suite.log` → `94988541A2177179AA708DA882A2659D0F5BE3BE7B281314BA0C94DF2F0A2968`
+  - `docs/evidence/poc/sec04_worker_source_final.log` → `A6B4899950AEF6595E83606C7E0A60D1329C608A8D3DE3D362ADFAD3EC61CC98`
+  - `docs/evidence/poc/sec04_verify_sandbox_final.log` → `83C391BAB8358656F5D551285B48A553028D733D11E51F6915C87572C115F1E7`
+  - `docs/evidence/poc/sec04_security_gate_final.log` → `C102B2516AEDA62A87A8E6BFF9BBF8C0537991A098C831D730677B39C84E857B`
+  - `docs/evidence/poc/sec04_lanes_regression_final.log` → `196E0312291FF450D08338299BE7FF16A408D96DC0C7DAD4F85443B3BFBB4417`
+  - `docs/evidence/poc/sec04_frozen_symlink_fixed.log` → `2C89936C0590C19BF5A59A44ECA824A5C83CC67F607962D94F86CBBCD1F66EF5`
+  - `docs/evidence/poc/sec04_frozen_security_final.log` → `18EAB2F62BB1443BB61631B1C15283B645CFBE11B1DFB01D8BD551754D6C786C`
+  - `docs/evidence/poc/sec04_build_final.log` → `9A6ADA2259D0E5DEEFE7CAFF437B0084B7CD277CEE6E8E96DBD7738D3E4158AC`
+  - `docs/evidence/poc/sec04_frozen_all_final.log` → `CE5379121AC1DF1A769A41D634A61D8D58AE641A69899E3F9DFC63C3B822FC87`
+  - `docs/evidence/poc/sec04_docs_gate_final.log` → `28747187822C788FBA68E9F01CF66A7FFDB03BCD69E66EE1ED4E9E3A3EABEC17`
+  - `docs/evidence/poc/sec04_full_suite.log` → `94988541A2177179AA708DA882A2659D0F5BE3BE7B281314BA0C94DF2F0A2968`
   - `tests/engine/security_cases.py` → `F96FC4D453DF707D5438EADFF99B57182262D861E15C330FF3DFC6B0AD7A70D9`
   - `tests/engine/test_worker_security.py` → `C8919E71DEA85337BD1DB216BB7FC225A547C2E369E77F015BCDD8010532A61E`
   - `tests/engine/test_security_gate.py` → `24035E715CD5FD04FE8AA2B8C03A31E1FD1A24A5CAAF7425F2AAD5D27C13382A`
@@ -605,8 +605,8 @@ OK
   - `docs/ARCHITECTURE.md` → `B743BCEEF460AC9605F1A7CA64E79D03DD8B860702EC63C9114E3DD2C1811341`
   - `docs/THREAT_MODEL.md` → `83579D281921EE0051E12077B5DB698345A77ED34C0025F85296A26125133ACF`
   - `docs/ROADMAP_EXECUTION_PLAN.md` → `2D92A11554AC252E9A831E4FB54A19B70DCE84FE14FF79A09B42B2C74F4E8F44`
-  - `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` → `E43BAE6D72F003AA9A9096D867A65609E45BEA4ABC73BBEC73C145391B300D57`
-  - `docs/ilerleme/respected_orchestrator_github_issues.csv` → `4029911DDEF5A409D3FD1EDBA23A67867CBF6A3AD7714F837094B7335408AB94`
+  - `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` → `E43BAE6D72F003AA9A9096D867A65609E45BEA4ABC73BBEC73C145391B300D57`
+  - `docs/evidence/respected_orchestrator_github_issues.csv` → `4029911DDEF5A409D3FD1EDBA23A67867CBF6A3AD7714F837094B7335408AB94`
 
 - **Harness sınırı (dürüst not):** Frozen symlink testinde AppContainer worker'ı linked worktree'nin `.git` dizinine erişemez. Bu nedenle saldırı indeks modu harness tarafından `git update-index --cacheinfo 120000` ile hazırlanır; worker yalnızca aynı yolu normal dosyayla maskeler. Frozen exe'nin reddetme yolu gerçek olarak test edilir, ancak indeks yazımı saldırganın kendisi tarafından AppContainer içinde yapılmaz. İlk denemede bu nedenle `fatal: not a git repository: (NULL)` alınmıştı; test harness'i düzeltildi ve doğru saldırı modeli korundu.
 
@@ -630,8 +630,8 @@ OK
     `check_result` içinde rapor doğrulaması.
   - `src/respected_orchestrator/workflows/maf_workflow.py` — reviewer öncesi tester kanıt zorunluluğu ve kanıtın prompt'a bağlanması.
   - `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/THREAT_MODEL.md` — yürütülebilir tester aşaması ve S-19 fail-closed davranışı.
-  - `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`,
-    `docs/ilerleme/respected_orchestrator_github_issues.csv` — QUA-01 durumu `done`.
+  - `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`,
+    `docs/evidence/respected_orchestrator_github_issues.csv` — QUA-01 durumu `done`.
   - `tests/engine/test_runner.py`, `tests/workflows/test_maf_coding.py`, `tests/workflows/test_roles.py` — tester ve reviewer kapıları.
 
 ### Doğrulama
@@ -701,15 +701,15 @@ Ek reviewer kapıları: tester kanıtı yoksa veya oynanmışsa reviewer hiç ç
 
 ### Kanıt artefaktları (SHA-256)
 
-- `docs/ilerleme/poc/qua01_focused_final.log` → `98F5AEF657BBA630FD9E09634E9A1B5447F0667F8DD7918BD70F52472EC74F64`
-- `docs/ilerleme/poc/qua01_docs_gate_final.log` → `128FFCA2D72C9AE111CE47CD0D182F3E93FDA9AB3EEE1523F718482F3214F2A1`
-- `docs/ilerleme/poc/qua01_docs_gate_after_docs.log` → `4E0675BD217A1DCBB9A21DA31534A112E570974ED36F3CB987B03537C7259A2A`
-- `docs/ilerleme/poc/qua01_full_suite_final.log` → `4C9F43373FEDAC86438D67BDCCE422415FCE3D8FB32D149FECE311A2799A8CC1`
-- `docs/ilerleme/poc/qua01_roles.log` → `63A3B0D90BB911B75A1BFF24BDA3A8C513EE2536B259CD0A5F714CDE62590823`
-- `docs/ilerleme/poc/qua01_runner_tester.log` → `BA6B00155D97FEC9782B6135BE23E77955ECA202F9E92D5298C3A7E5C512303D`
-- `docs/ilerleme/poc/qua01_failclosed.log` → `930C0E9ED4D6C152D95D48AAFD6147DE3850BF537F305D71DD6B9D4EDE4A4F23`
-- `docs/ilerleme/poc/qua01_maf.log` → `5C09EDA8A64DB7FF24FAD8FAA22ED82AEFB31C1B6CA100DD609D870B4FFEB210`
-- `docs/ilerleme/poc/qua01_focused.log` → `DE2D6C31EC49DEDF3F31F849A02FA21D8F4B10365B7A5E736D341F97B8D1C791`
+- `docs/evidence/poc/qua01_focused_final.log` → `98F5AEF657BBA630FD9E09634E9A1B5447F0667F8DD7918BD70F52472EC74F64`
+- `docs/evidence/poc/qua01_docs_gate_final.log` → `128FFCA2D72C9AE111CE47CD0D182F3E93FDA9AB3EEE1523F718482F3214F2A1`
+- `docs/evidence/poc/qua01_docs_gate_after_docs.log` → `4E0675BD217A1DCBB9A21DA31534A112E570974ED36F3CB987B03537C7259A2A`
+- `docs/evidence/poc/qua01_full_suite_final.log` → `4C9F43373FEDAC86438D67BDCCE422415FCE3D8FB32D149FECE311A2799A8CC1`
+- `docs/evidence/poc/qua01_roles.log` → `63A3B0D90BB911B75A1BFF24BDA3A8C513EE2536B259CD0A5F714CDE62590823`
+- `docs/evidence/poc/qua01_runner_tester.log` → `BA6B00155D97FEC9782B6135BE23E77955ECA202F9E92D5298C3A7E5C512303D`
+- `docs/evidence/poc/qua01_failclosed.log` → `930C0E9ED4D6C152D95D48AAFD6147DE3850BF537F305D71DD6B9D4EDE4A4F23`
+- `docs/evidence/poc/qua01_maf.log` → `5C09EDA8A64DB7FF24FAD8FAA22ED82AEFB31C1B6CA100DD609D870B4FFEB210`
+- `docs/evidence/poc/qua01_focused.log` → `DE2D6C31EC49DEDF3F31F849A02FA21D8F4B10365B7A5E736D341F97B8D1C791`
 
 Senkron dokümanların son doğrulama öncesi SHA-256 değerleri:
 
@@ -717,8 +717,8 @@ Senkron dokümanların son doğrulama öncesi SHA-256 değerleri:
 - `docs/ARCHITECTURE.md` → `0A58DFD4026DA58DB227B13CE2E85349280C30EE71A799D2D916D083A2E2E874`
 - `docs/ROADMAP.md` → `38BB640D48217FD13800BFD13C0B1FAE8CBA1FF044C6E5F49727E3942D96BE91`
 - `docs/ROADMAP_EXECUTION_PLAN.md` → `7580C0FF4295A00D8FB5181277F2082A0BB6BBFD6D78AD254389328C92CD4B95`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` → `0D08267532BCF0A8AB2FC86BEDF973262D40FC0575FF85D3DFC5BD6F0F6CDCC0`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` → `0338E690723DD65F7B5E9D3B016865A0E93483FA23D79A31F1F752176EA4E801`
+- `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` → `0D08267532BCF0A8AB2FC86BEDF973262D40FC0575FF85D3DFC5BD6F0F6CDCC0`
+- `docs/evidence/respected_orchestrator_github_issues.csv` → `0338E690723DD65F7B5E9D3B016865A0E93483FA23D79A31F1F752176EA4E801`
 
 ### Kalan risk / shortcut
 
@@ -828,10 +828,10 @@ PowerShell'in `Tee-Object` ile ürettiği `NativeCommandError` satırları harne
 
 ### Kanıt artefaktları (SHA-256)
 
-- `docs/ilerleme/poc/qua03_focused_final.log` → `C37537CECB8F69C11256BBF0B4ED1AFF29078B16E296C6C577F92C50B9D657B4`
-- `docs/ilerleme/poc/qua03_docs_gate_final.log` → `B859CBE6A7F40085E3671F63F793BA2D1BCE4D17827C24ED4D63FBBED68E5A29`
-- `docs/ilerleme/poc/qua03_docs_gate_after_log.log` → `4AFCC149CB5D426186DF417C37C69CE5CE3311C5FF04B1CD6173750A80D4CB5A` (son KANIT_LOG düzenlemesinden sonra yeniden çalıştırıldı: 1/1 `OK`, exit 0)
-- `docs/ilerleme/poc/qua03_full_suite_final.log` → `0BC04B86114FCD8381810C847013400231EB50447FF4F2466CD86D26DE14DEF3`
+- `docs/evidence/poc/qua03_focused_final.log` → `C37537CECB8F69C11256BBF0B4ED1AFF29078B16E296C6C577F92C50B9D657B4`
+- `docs/evidence/poc/qua03_docs_gate_final.log` → `B859CBE6A7F40085E3671F63F793BA2D1BCE4D17827C24ED4D63FBBED68E5A29`
+- `docs/evidence/poc/qua03_docs_gate_after_log.log` → `4AFCC149CB5D426186DF417C37C69CE5CE3311C5FF04B1CD6173750A80D4CB5A` (son KANIT_LOG düzenlemesinden sonra yeniden çalıştırıldı: 1/1 `OK`, exit 0)
+- `docs/evidence/poc/qua03_full_suite_final.log` → `0BC04B86114FCD8381810C847013400231EB50447FF4F2466CD86D26DE14DEF3`
 
 Doğrulama öncesi kaynak/test dosyaları:
 
@@ -858,9 +858,9 @@ Doğrulama öncesi kaynak/test dosyaları:
   - `tests/engine/test_review_apply_invariants.py` (yeni): 12 saldırgan ret + 1 meşru check→apply akışı.
   - `docs/ARCHITECTURE.md`: QUA-04 değişmezleri ve test kanıtı.
   - `docs/ROADMAP.md`: bağımsız review/apply maddesi tamamlandı.
-  - `docs/ROADMAP_EXECUTION_PLAN.md` ve `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`: görev durumu ve kabul kutuları güncellendi.
-  - `docs/ilerleme/respected_orchestrator_github_issues.csv`: QUA-04 `done`.
-  - `docs/ilerleme/KANIT_LOG.md` (bu bölüm).
+  - `docs/ROADMAP_EXECUTION_PLAN.md` ve `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`: görev durumu ve kabul kutuları güncellendi.
+  - `docs/evidence/respected_orchestrator_github_issues.csv`: QUA-04 `done`.
+  - `docs/evidence/KANIT_LOG.md` (bu bölüm).
 
 ### 12/12 saldırgan ret + 1/1 meşru akış
 
@@ -921,10 +921,10 @@ hataları yukarıdaki PowerShell `NativeCommandError` gürültüsünü oluşturu
 
 ### Kanıt artefaktları (SHA-256)
 
-- `docs/ilerleme/poc/qua04_invariants.log` → `077CE8702C69FF31E2AB4DE0E36BF4CCD772DAF28E6A4562639436E9A9E0DAB4`
-- `docs/ilerleme/poc/qua04_focused.log` → `275F5459DABD836CA85C103652485B82CFEF6EA7BDB1872F24C118E30C6886EE`
-- `docs/ilerleme/poc/qua04_docs_gate.log` → `55B8C366A4827A3F53EA50372185D3D1B332D779C9E18D22263CCB704F7F1DCC`
-- `docs/ilerleme/poc/qua04_full_suite.log` → `7F94517029101A119C7E216010D71279CC7CBF764892EA125CF8D0066B7E2E8B`
+- `docs/evidence/poc/qua04_invariants.log` → `077CE8702C69FF31E2AB4DE0E36BF4CCD772DAF28E6A4562639436E9A9E0DAB4`
+- `docs/evidence/poc/qua04_focused.log` → `275F5459DABD836CA85C103652485B82CFEF6EA7BDB1872F24C118E30C6886EE`
+- `docs/evidence/poc/qua04_docs_gate.log` → `55B8C366A4827A3F53EA50372185D3D1B332D779C9E18D22263CCB704F7F1DCC`
+- `docs/evidence/poc/qua04_full_suite.log` → `7F94517029101A119C7E216010D71279CC7CBF764892EA125CF8D0066B7E2E8B`
 - `tests/engine/test_review_apply_invariants.py` → `9CF0F2305B40647FBA56349F90BBCE5D0598CF7BB8C82C783765DF84085CB5BC`
 
 Doğrulanan mevcut sözleşme kaynakları:
@@ -939,11 +939,11 @@ Doküman/senkron dosyaları:
 - `docs/ARCHITECTURE.md` → `187F36B64C24242000E746A0458354380AB2B8D389871B76F1312FA0B13CFCB8`
 - `docs/ROADMAP.md` → `BF97FED144784F8FC86E572602FEB27B0C77DAEB740430AD88D735CA12EC5909`
 - `docs/ROADMAP_EXECUTION_PLAN.md` → `8A1333D07BC506598D581BE6FEB751766ABDBDADC28F39748B50F4800C8DA408`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` → `273DC2A086984114C358EACA1769CBECE0505E7238DC3F135EA40E35D0C1F0EE`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` → `CD1ABD5EDE3B9A438AEB072A799F5F13F103A957AB392A98E788274EAC63E967`
+- `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` → `273DC2A086984114C358EACA1769CBECE0505E7238DC3F135EA40E35D0C1F0EE`
+- `docs/evidence/respected_orchestrator_github_issues.csv` → `CD1ABD5EDE3B9A438AEB072A799F5F13F103A957AB392A98E788274EAC63E967`
 
 Bu bölümün son düzenlemesinden sonra doküman kapısı yeniden çalıştırılır; gerçek çıktı
-`docs/ilerleme/poc/qua04_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında tutulur.
+`docs/evidence/poc/qua04_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında tutulur.
 `KANIT_LOG.md` kendi hash listesine dahil edilmez (kendine referans döngüsünü önlemek için).
 
 ### Kalan risk / shortcut
@@ -963,9 +963,9 @@ Bu bölümün son düzenlemesinden sonra doküman kapısı yeniden çalıştır�
   - `tests/workflows/test_planner.py`: 5 kabul senaryosu + tüm çakışan çiftlerin tek tanısı + bozuk tip sınıflarının çökme yerine `invalid` taslak üretmesi.
   - `docs/ARCHITECTURE.md`: §4/§5 DAG alanları, `after` genişlemesi, döngü/çakışma reddi ve sıfır worker sözleşmesi.
   - `docs/COMMANDS.md`, `docs/USAGE.md`: `plan` çıktısında `spec` ve `dag`; doğrulama ve başlatmama davranışı.
-  - `docs/ROADMAP.md`, `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`: SCH-01 durumu ve kabul kutuları.
-  - `docs/ilerleme/respected_orchestrator_github_issues.csv`: SCH-01 `done`.
-  - `docs/ilerleme/KANIT_LOG.md` (bu bölüm).
+  - `docs/ROADMAP.md`, `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`: SCH-01 durumu ve kabul kutuları.
+  - `docs/evidence/respected_orchestrator_github_issues.csv`: SCH-01 `done`.
+  - `docs/evidence/KANIT_LOG.md` (bu bölüm).
 
 ### 5/5 input sınıfı
 
@@ -1033,15 +1033,15 @@ sürecin sonucu 427/427 `OK` ve exit kodu 0'dır.
 - `docs/USAGE.md` → `4AA4B3B6BEF6206187091F6E549DDF5D3B68624FE6680652E41FB7D638937F70`
 - `docs/ROADMAP.md` → `ED025731FBCD8EE4511B98344523BB7ACAF48F63C1EE5C7910B379B1B43EB58B`
 - `docs/ROADMAP_EXECUTION_PLAN.md` → `1C4FD562BA374BA7BB4D0FC78678943CE219724FCE65CEFAA52A19491402F538`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` → `CFE976AB981D6944A775BE78A917D8BD8305A1E5BB3EFE4EF53DEE7D075EE5A6`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` → `33023C72A5D487D33F321FAA67F5172A997FDBC4217BDB3C75B67A4A89680E4B`
-- `docs/ilerleme/poc/sch01_planner_focused.log` → `6C252CB037F59206D98F5648C142A968916A4D15B515FFD4DBA530A839711DE7`
-- `docs/ilerleme/poc/sch01_related_regression.log` → `D05E348DE2168FC0098DD5C160914694811EAAC7C45A23951D8544C88D639762`
-- `docs/ilerleme/poc/sch01_docs_gate.log` → `6E4172ABA50A8A3A4C0FDCC57D44A4186100CE17B23284B719F3249403AB19CF`
-- `docs/ilerleme/poc/sch01_full_suite.log` → `5AB795D15F6391EA10AA5E0671FCE6BAA957C2191D9A306C06182DAF84957E68`
+- `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` → `CFE976AB981D6944A775BE78A917D8BD8305A1E5BB3EFE4EF53DEE7D075EE5A6`
+- `docs/evidence/respected_orchestrator_github_issues.csv` → `33023C72A5D487D33F321FAA67F5172A997FDBC4217BDB3C75B67A4A89680E4B`
+- `docs/evidence/poc/sch01_planner_focused.log` → `6C252CB037F59206D98F5648C142A968916A4D15B515FFD4DBA530A839711DE7`
+- `docs/evidence/poc/sch01_related_regression.log` → `D05E348DE2168FC0098DD5C160914694811EAAC7C45A23951D8544C88D639762`
+- `docs/evidence/poc/sch01_docs_gate.log` → `6E4172ABA50A8A3A4C0FDCC57D44A4186100CE17B23284B719F3249403AB19CF`
+- `docs/evidence/poc/sch01_full_suite.log` → `5AB795D15F6391EA10AA5E0671FCE6BAA957C2191D9A306C06182DAF84957E68`
 
 Bu bölümün son düzenlemesinden sonra doküman kapısı yeniden çalıştırılır; gerçek çıktı
-`docs/ilerleme/poc/sch01_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında tutulur.
+`docs/evidence/poc/sch01_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında tutulur.
 `KANIT_LOG.md` kendi hash listesine dahil edilmez (kendine referans döngüsünü önlemek için).
 
 ### Kalan risk / shortcut
@@ -1063,9 +1063,9 @@ Bu bölümün son düzenlemesinden sonra doküman kapısı yeniden çalıştır�
   - `tests/test_main.py`: `campaign-cancel` CLI dispatch testi.
   - `docs/ARCHITECTURE.md`: scheduler sözleşmesi, state geçişleri ve iptal davranışı.
   - `docs/COMMANDS.md`, `docs/USAGE.md`: `campaign-run` seçenekleri ve `campaign-cancel` kullanımı.
-  - `docs/ROADMAP.md`, `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`: SCH-02 durumu ve kabul kutuları.
-  - `docs/ilerleme/respected_orchestrator_github_issues.csv`: SCH-02 `done`.
-  - `docs/ilerleme/KANIT_LOG.md` (bu bölüm).
+  - `docs/ROADMAP.md`, `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`: SCH-02 durumu ve kabul kutuları.
+  - `docs/evidence/respected_orchestrator_github_issues.csv`: SCH-02 `done`.
+  - `docs/evidence/KANIT_LOG.md` (bu bölüm).
 
 ### 6/6 state geçişi
 
@@ -1149,16 +1149,16 @@ beklenen stderr çıktısıdır; sürecin sonucu 437/437 `OK` ve exit kodu 0'dı
 - `docs/USAGE.md` → `5498611E02C900F8C6830E93AC0F4FC803CE39245F11D24B7593533FE03AB694`
 - `docs/ROADMAP.md` → `74EE6ABA9E342D121DDFC04B5752F927F88DC55E804002966498004A7D9A762F`
 - `docs/ROADMAP_EXECUTION_PLAN.md` → `3470BA1D7BF1CAD3C5D9ED3BCB7720D7ACE44F43C056567576B1BCDB664636A0`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` → `E4897582D2A5639A0C6F3994B5FFE6E4BD42A28D7C1C6FE73585EF56D23862F5`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` → `C964AE653F85262CFB9DAFFB1BECB11C6D4DD9A64992838814BAF99ECC35B062`
-- `docs/ilerleme/poc/sch02_campaign_baseline.log` → `88A1E206019F67CC51B1442CAA68B4D42FCFA6D95F7B92088D19E10C2988BBCD`
-- `docs/ilerleme/poc/sch02_scheduler_focused.log` → `07967650F7B599E2C953851F005F3CF4584EB61E551A5F76B07A4B4989D5FABA`
-- `docs/ilerleme/poc/sch02_related_regression.log` → `68877F60DAF51C49CA3D2A4029D9246938688F9DE653D85B430C204BB8235293`
-- `docs/ilerleme/poc/sch02_docs_gate.log` → `16B88813FDA7141CD3CE60CC1E17D2E1F9F296A1DCCC83107CC02815CEE1E02A`
-- `docs/ilerleme/poc/sch02_full_suite.log` → `06158FB03ED365C2FB28B16390E0978A86D6D00ABEF9FF5278C842BB7E4DACCC`
+- `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` → `E4897582D2A5639A0C6F3994B5FFE6E4BD42A28D7C1C6FE73585EF56D23862F5`
+- `docs/evidence/respected_orchestrator_github_issues.csv` → `C964AE653F85262CFB9DAFFB1BECB11C6D4DD9A64992838814BAF99ECC35B062`
+- `docs/evidence/poc/sch02_campaign_baseline.log` → `88A1E206019F67CC51B1442CAA68B4D42FCFA6D95F7B92088D19E10C2988BBCD`
+- `docs/evidence/poc/sch02_scheduler_focused.log` → `07967650F7B599E2C953851F005F3CF4584EB61E551A5F76B07A4B4989D5FABA`
+- `docs/evidence/poc/sch02_related_regression.log` → `68877F60DAF51C49CA3D2A4029D9246938688F9DE653D85B430C204BB8235293`
+- `docs/evidence/poc/sch02_docs_gate.log` → `16B88813FDA7141CD3CE60CC1E17D2E1F9F296A1DCCC83107CC02815CEE1E02A`
+- `docs/evidence/poc/sch02_full_suite.log` → `06158FB03ED365C2FB28B16390E0978A86D6D00ABEF9FF5278C842BB7E4DACCC`
 
 Bu bölümün son düzenlemesinden sonra doküman kapısı yeniden çalıştırılır; gerçek çıktı
-`docs/ilerleme/poc/sch02_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında tutulur.
+`docs/evidence/poc/sch02_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında tutulur.
 `KANIT_LOG.md` kendi hash listesine dahil edilmez (kendine referans döngüsünü önlemek için).
 
 ### Kalan risk / shortcut
@@ -1180,9 +1180,9 @@ Bu bölümün son düzenlemesinden sonra doküman kapısı yeniden çalıştır�
   - `tests/test_main.py`: `integrate` CLI dispatch testi.
   - `docs/ARCHITECTURE.md`: geçici integration worktree, sıralı apply/check, fail-closed davranış ve gerçek repoyu değiştirmeme sözleşmesi.
   - `docs/COMMANDS.md`, `docs/USAGE.md`: `integrate` komutu ve kullanıcı akışı.
-  - `docs/ROADMAP.md`, `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`: SCH-03 durumu ve kabul kutuları.
-  - `docs/ilerleme/respected_orchestrator_github_issues.csv`: SCH-03 `done`.
-  - `docs/ilerleme/KANIT_LOG.md` (bu bölüm).
+  - `docs/ROADMAP.md`, `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`: SCH-03 durumu ve kabul kutuları.
+  - `docs/evidence/respected_orchestrator_github_issues.csv`: SCH-03 `done`.
+  - `docs/evidence/KANIT_LOG.md` (bu bölüm).
 
 ### 5/5 entegrasyon senaryosu
 
@@ -1245,13 +1245,13 @@ bulunur; `Ran 104 tests` ve `OK` satırları ile exit kodu `0` gerçek sonucu do
 - `docs/USAGE.md` → `4A54153905D08CC6609AA150FB26A60E26440E5976B2A082AA36AF076AC9D67A`
 - `docs/ROADMAP.md` → `F3CCC568A21F027B893EB5D0AEB4DF43F197617F5C49F748B59CB8F363A980C5`
 - `docs/ROADMAP_EXECUTION_PLAN.md` → `41F6FB732728C45B87AB6833FD1070729DCC266BBC55F9B408E91C0CCE4137FB`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` → `42D8C006072B2CF19F037DB391B47135E748DD61A914517F7609AEF31A7AC544`
-- `docs/ilerleme/poc/sch03_integration_focused.log` → `386FFFEAA7A213932341E490A52946CA2B20098DAFB6431F59D88CD0AC7DEBF0`
-- `docs/ilerleme/poc/sch03_related_regression.log` → `C71FA770C89AB7616B6619A87C5A5A2AC9FA6762E8F4832452DDAC95ABC64D26`
-- `docs/ilerleme/poc/sch03_full_suite.log` → `9F285834B5CE0F8207321A2731DC7D434563D801149EEEAEC82551506B1D137F`
+- `docs/evidence/respected_orchestrator_github_issues.csv` → `42D8C006072B2CF19F037DB391B47135E748DD61A914517F7609AEF31A7AC544`
+- `docs/evidence/poc/sch03_integration_focused.log` → `386FFFEAA7A213932341E490A52946CA2B20098DAFB6431F59D88CD0AC7DEBF0`
+- `docs/evidence/poc/sch03_related_regression.log` → `C71FA770C89AB7616B6619A87C5A5A2AC9FA6762E8F4832452DDAC95ABC64D26`
+- `docs/evidence/poc/sch03_full_suite.log` → `9F285834B5CE0F8207321A2731DC7D434563D801149EEEAEC82551506B1D137F`
 
 Bu bölümün son düzenlemesinden sonra doküman kapısı yeniden çalıştırılır; gerçek çıktı
-`docs/ilerleme/poc/sch03_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında tutulur.
+`docs/evidence/poc/sch03_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında tutulur.
 `KANIT_LOG.md` kendi hash listesine dahil edilmez (kendine referans döngüsünü önlemek için).
 
 ### Kalan risk / shortcut
@@ -1273,9 +1273,9 @@ Bu bölümün son düzenlemesinden sonra doküman kapısı yeniden çalıştır�
   - `tests/workflows/test_coordinator.py`: 5 zorunlu senaryo.
   - `tests/test_main.py`, `tests/workflows/test_roles.py`: CLI dispatch ve rol sınırı regresyonları.
   - `docs/ARCHITECTURE.md`, `docs/COMMANDS.md`, `docs/USAGE.md`: coordinator sözleşmesi ve `coordinate` kullanımı.
-  - `docs/ROADMAP.md`, `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`: SCH-04 durumu ve kabul kutuları.
-  - `docs/ilerleme/respected_orchestrator_github_issues.csv`: SCH-04 `done`.
-  - `docs/ilerleme/KANIT_LOG.md` (bu bölüm).
+  - `docs/ROADMAP.md`, `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`: SCH-04 durumu ve kabul kutuları.
+  - `docs/evidence/respected_orchestrator_github_issues.csv`: SCH-04 `done`.
+  - `docs/evidence/KANIT_LOG.md` (bu bölüm).
 
 ### 5/5 coordinator senaryosu
 
@@ -1339,14 +1339,14 @@ Tam keşifte görülen `unittest: error: argument command: invalid choice: 'upda
 - `docs/USAGE.md` → `0D62136CF680005A91898E9648055C5CBE0A1B8CD26E40DB0B37379F5336003E`
 - `docs/ROADMAP.md` → `513C10C849B5E01859A063365ADFB8D55F3CA1B980BE3FE6F62D23117EB5CAE4`
 - `docs/ROADMAP_EXECUTION_PLAN.md` → `83FD4BA7BDF866E3F107F21C99FC0F95E64A2D8B3D7A9E159D831582338268B5`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` → `796EB0008367AE21DB0560F0D061D58B7E290B1DC4F8FD4A7D0D04D554163453`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` → `FC37BE78574550D422A8A394F2495F7E74BCF17B79F8CA5183C493F80A0F123B`
-- `docs/ilerleme/poc/sch04_coordinator_focused.log` → `790D70DCBBFD071D3598C92006C338011368E1F7757BE089513524890EC20142`
-- `docs/ilerleme/poc/sch04_related_regression.log` → `8917982DB6B1E0C7ABD9E49CB02A954025B1E5E5DB1E84C972E91B365F4DE4BC`
-- `docs/ilerleme/poc/sch04_full_suite.log` → `1EEA3F0AEC1A4DED3617477E1BE2EF371EF6B7507878698635D90BEAB274D9B7`
+- `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` → `796EB0008367AE21DB0560F0D061D58B7E290B1DC4F8FD4A7D0D04D554163453`
+- `docs/evidence/respected_orchestrator_github_issues.csv` → `FC37BE78574550D422A8A394F2495F7E74BCF17B79F8CA5183C493F80A0F123B`
+- `docs/evidence/poc/sch04_coordinator_focused.log` → `790D70DCBBFD071D3598C92006C338011368E1F7757BE089513524890EC20142`
+- `docs/evidence/poc/sch04_related_regression.log` → `8917982DB6B1E0C7ABD9E49CB02A954025B1E5E5DB1E84C972E91B365F4DE4BC`
+- `docs/evidence/poc/sch04_full_suite.log` → `1EEA3F0AEC1A4DED3617477E1BE2EF371EF6B7507878698635D90BEAB274D9B7`
 
 Bu bölümün son düzenlemesinden sonra doküman kapısı yeniden çalıştırılır; gerçek çıktı
-`docs/ilerleme/poc/sch04_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında tutulur.
+`docs/evidence/poc/sch04_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında tutulur.
 `KANIT_LOG.md` kendi hash listesine dahil edilmez (kendine referans döngüsünü önlemek için).
 
 ### Kalan risk / shortcut
@@ -1366,9 +1366,9 @@ Bu bölümün son düzenlemesinden sonra doküman kapısı yeniden çalıştır�
   - `tests/workflows/test_checkpoint.py`: 11 test; SIGTERM, bozuk geçici dosya, yarım state, v1 göçü, HEAD drift, atomik değiştirme kesintisi, sır/prompt reddi, üç görev türü, yeni şema/tamper/bozuk JSON/eksik dosya ve path escape.
   - `src/respected_orchestrator/workflows/checkpoint.py`: Git HEAD okuması `engine/winproc.run` üzerinden yapılır; ilk tam suite'in yakaladığı görünür pencere regresyonu böylece kapandı.
   - `docs/ARCHITECTURE.md`: checkpoint sözleşmesi, atomiklik, fail-closed durumlar, gizli veri yasağı ve v1 göçü.
-  - `docs/ROADMAP.md`, `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`: görev durumu ve kabul kutuları.
-  - `docs/ilerleme/respected_orchestrator_github_issues.csv`: RES-01 `done`.
-  - `docs/ilerleme/KANIT_LOG.md` (bu bölüm).
+  - `docs/ROADMAP.md`, `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`: görev durumu ve kabul kutuları.
+  - `docs/evidence/respected_orchestrator_github_issues.csv`: RES-01 `done`.
+  - `docs/evidence/KANIT_LOG.md` (bu bölüm).
 
 ### Senaryo matrisi
 
@@ -1432,15 +1432,15 @@ Tam keşifte görülen `unittest: error: argument command: invalid choice: 'upda
 - `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
 - `docs/ROADMAP.md` -> `4773B6AC7349AA203B8676BEB7C0842C87C104472468505242B1D4EC8833A94E`
 - `docs/ROADMAP_EXECUTION_PLAN.md` -> `F759DBF55ED98527325E1854EC60D33CF239E9AE98109FF88FC2B13FA14CEE57`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
-- `docs/ilerleme/poc/res01_checkpoint_focused_after_fix.log` -> `FDFE02EBE9C5554524AD02DE608772BCF25100437B6BD608D60F79BF01EDED31`
-- `docs/ilerleme/poc/res01_related_regression.log` -> `63B04555A96BC7513C0787C8DD9B61EC820F5EABDF6512954FB98471269B29C9`
-- `docs/ilerleme/poc/res01_full_suite.log` -> `BA115B1DBBCEEF5E6B44F7B5C5C259B9CFB16B2CF93391F9D8C41F6A687789BD`
+- `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/evidence/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
+- `docs/evidence/poc/res01_checkpoint_focused_after_fix.log` -> `FDFE02EBE9C5554524AD02DE608772BCF25100437B6BD608D60F79BF01EDED31`
+- `docs/evidence/poc/res01_related_regression.log` -> `63B04555A96BC7513C0787C8DD9B61EC820F5EABDF6512954FB98471269B29C9`
+- `docs/evidence/poc/res01_full_suite.log` -> `BA115B1DBBCEEF5E6B44F7B5C5C259B9CFB16B2CF93391F9D8C41F6A687789BD`
 <!-- RES01_HASHES_END -->
 
 Bu bölümün son düzenlemesinden sonra doküman kapısı yeniden çalıştırılır; gerçek çıktı
-`docs/ilerleme/poc/res01_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında tutulur.
+`docs/evidence/poc/res01_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında tutulur.
 `KANIT_LOG.md` kendi hash listesine dahil edilmez (kendine referans döngüsünü önlemek için).
 
 ### Kalan risk / shortcut
@@ -1467,8 +1467,8 @@ Bu bölümün son düzenlemesinden sonra doküman kapısı yeniden çalıştır�
   - `src/respected_orchestrator/__main__.py`: `project-approve ID` komutu.
   - `tests/workflows/test_project_resume.py`: 13 senaryo.
   - `docs/ARCHITECTURE.md`, `docs/COMMANDS.md`, `docs/USAGE.md`, `docs/ROADMAP.md`,
-    `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`,
-    `docs/ilerleme/respected_orchestrator_github_issues.csv`: RES-02 sözleşmesi ve durum senkronu.
+    `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`,
+    `docs/evidence/respected_orchestrator_github_issues.csv`: RES-02 sözleşmesi ve durum senkronu.
 
 ### Resume güvenlik sözleşmesi
 
@@ -1563,16 +1563,16 @@ akışıdır; gerçek sonuç `Ran ...`, `OK` ve exit `0` satırlarıdır. Tam su
 - `docs/USAGE.md` -> `4EA459BEF0F8A50B96AC1899EB69B7E63C1DD1B58DDA714B9134B04970BE8F39`
 - `docs/ROADMAP.md` -> `4773B6AC7349AA203B8676BEB7C0842C87C104472468505242B1D4EC8833A94E`
 - `docs/ROADMAP_EXECUTION_PLAN.md` -> `F759DBF55ED98527325E1854EC60D33CF239E9AE98109FF88FC2B13FA14CEE57`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
-- `docs/ilerleme/poc/res02_invariants.log` -> `A042271F883C4E7CC69BCB00C6C164CDA0C376EA94491FB38AA240794940CE47`
-- `docs/ilerleme/poc/res02_focused.log` -> `7835A6B358E8ED9A2F02DAC45FEB05579A676D1FE0D1747CA232D315EE20B727`
-- `docs/ilerleme/poc/res02_related.log` -> `F7CDE08DD75D9FBB99AE9B35FAB0CDBC37777F1900CB4270C293684AE080A831`
-- `docs/ilerleme/poc/res02_full_suite.log` -> `F3CFD9362DB317C9864531D81CE431919CA5361F0C6986D372F0B2E887F4A866`
+- `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/evidence/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
+- `docs/evidence/poc/res02_invariants.log` -> `A042271F883C4E7CC69BCB00C6C164CDA0C376EA94491FB38AA240794940CE47`
+- `docs/evidence/poc/res02_focused.log` -> `7835A6B358E8ED9A2F02DAC45FEB05579A676D1FE0D1747CA232D315EE20B727`
+- `docs/evidence/poc/res02_related.log` -> `F7CDE08DD75D9FBB99AE9B35FAB0CDBC37777F1900CB4270C293684AE080A831`
+- `docs/evidence/poc/res02_full_suite.log` -> `F3CFD9362DB317C9864531D81CE431919CA5361F0C6986D372F0B2E887F4A866`
 <!-- RES02_HASHES_END -->
 
 Bu bölümün son düzenlemesinden sonra doküman kapısı yeniden çalıştırılır; gerçek çıktı
-`docs/ilerleme/poc/res02_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında
+`docs/evidence/poc/res02_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında
 tutulur. `KANIT_LOG.md` kendi hash listesine dahil edilmez (kendine referans döngüsünü önlemek için).
 
 ### Kalan risk / shortcut
@@ -1594,8 +1594,8 @@ tutulur. `KANIT_LOG.md` kendi hash listesine dahil edilmez (kendine referans dö
 - Çıktı / değişen dosyalar: `tests/workflows/test_project_resume.py`,
   `tests/interfaces/test_memory_integration.py`, `tests/interfaces/test_installation.py`, `docs/ARCHITECTURE.md`,
   `docs/ROADMAP.md`, `docs/ROADMAP_EXECUTION_PLAN.md`,
-  `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`,
-  `docs/ilerleme/respected_orchestrator_github_issues.csv`.
+  `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`,
+  `docs/evidence/respected_orchestrator_github_issues.csv`.
 - Doğrulama komutu:
 
 ```text
@@ -1672,15 +1672,15 @@ gerçek sonuç `Ran`, `OK` ve exit `0` satırlarıdır.
 - `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
 - `docs/ROADMAP.md` -> `4773B6AC7349AA203B8676BEB7C0842C87C104472468505242B1D4EC8833A94E`
 - `docs/ROADMAP_EXECUTION_PLAN.md` -> `F759DBF55ED98527325E1854EC60D33CF239E9AE98109FF88FC2B13FA14CEE57`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
-- `docs/ilerleme/poc/res03_focused.log` -> `EDBFCA902AFEEBF47E558EC597311293EF7375A9EBE44F679704014F7D1DCBFD`
-- `docs/ilerleme/poc/res03_packaging.log` -> `612F405ED5229D45EC3015F6A8020A53A503E45D4D3EF4B577EF48ADA6CCFBEE`
-- `docs/ilerleme/poc/res03_full_suite.log` -> `18D3800BB82200BDE9D60E5BBD51F2B0F29726ADFA328F2ED99C42A40797DD10`
+- `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/evidence/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
+- `docs/evidence/poc/res03_focused.log` -> `EDBFCA902AFEEBF47E558EC597311293EF7375A9EBE44F679704014F7D1DCBFD`
+- `docs/evidence/poc/res03_packaging.log` -> `612F405ED5229D45EC3015F6A8020A53A503E45D4D3EF4B577EF48ADA6CCFBEE`
+- `docs/evidence/poc/res03_full_suite.log` -> `18D3800BB82200BDE9D60E5BBD51F2B0F29726ADFA328F2ED99C42A40797DD10`
 <!-- RES03_HASHES_END -->
 
 Bu bölümün son düzenlemesinden sonra doküman kapısı yeniden çalıştırılır; gerçek çıktı
-`docs/ilerleme/poc/res03_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında
+`docs/evidence/poc/res03_docs_gate_after_log.log` içinde, SHA-256 değeri aynı adlı `.sha256` sidecar dosyasında
 tutulur. `KANIT_LOG.md` kendi hash listesine dahil edilmez (kendine referans döngüsünü önlemek için).
 
 ### Kalan risk / shortcut
@@ -1705,14 +1705,14 @@ tutulur. `KANIT_LOG.md` kendi hash listesine dahil edilmez (kendine referans dö
   `src/respected_orchestrator/interfaces/integrations.py`, `tests/engine/test_opencode_acp.py`,
   `tests/engine/test_opencode_auth.py`, `docs/ARCHITECTURE.md`, `docs/COMMANDS.md`, `docs/USAGE.md`,
   `docs/ROADMAP.md`, `docs/ROADMAP_EXECUTION_PLAN.md`,
-  `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`, `docs/ilerleme/poc/adp01_*`.
+  `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`, `docs/evidence/poc/adp01_*`.
 - Doğrulama komutu:
 
 ```text
 $env:PYTHONPATH='src'
 py -m unittest tests.engine.test_opencode_acp tests.engine.test_runner tests.engine.test_opencode_auth
 $env:RESPECTED_OPENCODE_NETWORK='allow'
-py docs/ilerleme/poc/adp01_real_e2e.py
+py docs/evidence/poc/adp01_real_e2e.py
 py -m unittest discover -s tests -t .
 py packaging/build_dist.py
 py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_security
@@ -1767,14 +1767,14 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
 Timeout bütçesi: ilk 20 sn'lik bütçe model erken yanıt verdiği için `completed` döndü; sahte başarı sayılmadı.
 3/5/8 sn denemelerinin üçü de `timed_out` verdi ve `AUTH_REQUIRED` görülmedi. Bu nedenle harness bütçesi 8 sn'ye
 çekildi; kimlik köprüsü tamamlanıyor fakat model yanıtından önce kesiliyor. Ayrıntı:
-`docs/ilerleme/poc/adp01_timeout_decision.md`. ACP kimlik köprüsünde değişiklik gerekmedi.
+`docs/evidence/poc/adp01_timeout_decision.md`. ACP kimlik köprüsünde değişiklik gerekmedi.
 
 ### Test sonuçları
 
-- Odaklı: `Ran 63 tests ... OK` (`docs/ilerleme/poc/adp01_fenced_focused.log`).
-- Tam regresyon: `Ran 603 tests ... OK` (`docs/ilerleme/poc/adp01_full_suite.log`).
+- Odaklı: `Ran 63 tests ... OK` (`docs/evidence/poc/adp01_fenced_focused.log`).
+- Tam regresyon: `Ran 603 tests ... OK` (`docs/evidence/poc/adp01_full_suite.log`).
 - Paketleme: `py packaging/build_dist.py` başarılı (`adp01_packaging.log`); frozen build/security
-  `Ran 7 tests ... OK` (`docs/ilerleme/poc/adp01_packaging_tests.log`).
+  `Ran 7 tests ... OK` (`docs/evidence/poc/adp01_packaging_tests.log`).
 - Ortam: `opencode v2.2.3`, model `amd/DeepSeek-V4.1-Flash`, Windows.
 
 ### Kanıt artefaktları (SHA-256)
@@ -1784,27 +1784,27 @@ Timeout bütçesi: ilk 20 sn'lik bütçe model erken yanıt verdiği için `comp
 - `src/respected_orchestrator/engine/opencode_auth.py` -> `7DB2AE187168363A853C9E52B70D95A07B612D21C16268C8269ED6DD5FA0E9B9`
 - `src/respected_orchestrator/engine/runner.py` -> `48200B47CB1732F0EB1BCEDF06D416AAB448E7B6EB5D46F16423BA7E662F7BAD`
 - `tests/engine/test_opencode_acp.py` -> `ED1D72BB2EE8A78752C2E268D3C68FEF028CB9684AAD1F509369C569D471CBFA`
-- `docs/ilerleme/poc/adp01_fenced_focused.log` -> `36051B9C2332D1E0A671E4100433AF1CF74BC6F1C11D8FA63C9C55DD064C14B5`
-- `docs/ilerleme/poc/adp01_full_suite.log` -> `3523ECEBB966623FE6B617367A3011B5EBC6948FC3A960721783E06BDFFF431C`
-- `docs/ilerleme/poc/adp01_packaging.log` -> `26EC259AA977D423F97B86C28734887896F29B5EBD8DF5BC8DCDEE58BE720F17`
-- `docs/ilerleme/poc/adp01_packaging_tests.log` -> `980BB980AF09C9BD3D17E92C48424774D49956C0A82C2035C071FBF9E93AA4C8`
-- `docs/ilerleme/poc/adp01_timeout_decision.md` -> `14F27087CE7DD71255F9AF85599B4FDD419D0B27314FE6EBCD71D444870D5A80`
-- `docs/ilerleme/poc/adp01_real_e2e.py` -> `44BEBE12C1198D12F5748447FEA14E9E53A1C2B2DA0B424990CC3ADFE926E49A`
-- `docs/ilerleme/poc/adp01_real_e2e_run.log` -> `77D4173588309AA9D109B7AA314FFE0166DA68D9A70666ADD56B5046C187A7BD`
-- `docs/ilerleme/poc/adp01_real_read.log` -> `3CFDCE5ED41D238991410F8DC81A1CBF69666C7BDDA0A19F21B175335F7CA113`
-- `docs/ilerleme/poc/adp01_real_write.log` -> `3A1A389847B01800A76795928137E418AB3DED8894BBE4D1F9E301B8482C2367`
-- `docs/ilerleme/poc/adp01_real_invalid_model.log` -> `553F314EBC8A9811717229C02C7911D01676851602A9E8009278422575EF72D0`
-- `docs/ilerleme/poc/adp01_real_timeout.log` -> `001E610C3A2C1C7A4E618DDFD800E6A52FC379104E3B7BE6A2DEC7B92394F267`
-- `docs/ilerleme/poc/adp01_real_acceptance_failure.log` -> `16C6526483DD1CE13F63604B8C43A7FE47D82B1535247BEB872581A1CA601A2D`
-- `docs/ilerleme/poc/adp01_real_auth_missing.log` -> `86909347E3A2BC5D76EC802A1D663E2593C613CCE504CA727AFEC8109879D548`
-- `docs/ilerleme/poc/adp01_real_mcp.log` -> `C4311EA426FE6C7487340B7011C7D2EAA796D4F0A8D656211877A756DF8BF76E`
-- `docs/ilerleme/poc/adp01_real_summary.log` -> `0CF25F7A8B4EFCE77C3AFA246E42EC2D203F4237C24A888A750D3E56504B0483`
+- `docs/evidence/poc/adp01_fenced_focused.log` -> `36051B9C2332D1E0A671E4100433AF1CF74BC6F1C11D8FA63C9C55DD064C14B5`
+- `docs/evidence/poc/adp01_full_suite.log` -> `3523ECEBB966623FE6B617367A3011B5EBC6948FC3A960721783E06BDFFF431C`
+- `docs/evidence/poc/adp01_packaging.log` -> `26EC259AA977D423F97B86C28734887896F29B5EBD8DF5BC8DCDEE58BE720F17`
+- `docs/evidence/poc/adp01_packaging_tests.log` -> `980BB980AF09C9BD3D17E92C48424774D49956C0A82C2035C071FBF9E93AA4C8`
+- `docs/evidence/poc/adp01_timeout_decision.md` -> `14F27087CE7DD71255F9AF85599B4FDD419D0B27314FE6EBCD71D444870D5A80`
+- `docs/evidence/poc/adp01_real_e2e.py` -> `44BEBE12C1198D12F5748447FEA14E9E53A1C2B2DA0B424990CC3ADFE926E49A`
+- `docs/evidence/poc/adp01_real_e2e_run.log` -> `77D4173588309AA9D109B7AA314FFE0166DA68D9A70666ADD56B5046C187A7BD`
+- `docs/evidence/poc/adp01_real_read.log` -> `3CFDCE5ED41D238991410F8DC81A1CBF69666C7BDDA0A19F21B175335F7CA113`
+- `docs/evidence/poc/adp01_real_write.log` -> `3A1A389847B01800A76795928137E418AB3DED8894BBE4D1F9E301B8482C2367`
+- `docs/evidence/poc/adp01_real_invalid_model.log` -> `553F314EBC8A9811717229C02C7911D01676851602A9E8009278422575EF72D0`
+- `docs/evidence/poc/adp01_real_timeout.log` -> `001E610C3A2C1C7A4E618DDFD800E6A52FC379104E3B7BE6A2DEC7B92394F267`
+- `docs/evidence/poc/adp01_real_acceptance_failure.log` -> `16C6526483DD1CE13F63604B8C43A7FE47D82B1535247BEB872581A1CA601A2D`
+- `docs/evidence/poc/adp01_real_auth_missing.log` -> `86909347E3A2BC5D76EC802A1D663E2593C613CCE504CA727AFEC8109879D548`
+- `docs/evidence/poc/adp01_real_mcp.log` -> `C4311EA426FE6C7487340B7011C7D2EAA796D4F0A8D656211877A756DF8BF76E`
+- `docs/evidence/poc/adp01_real_summary.log` -> `0CF25F7A8B4EFCE77C3AFA246E42EC2D203F4237C24A888A750D3E56504B0483`
 - `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
 - `docs/COMMANDS.md` -> `6F0CCDA08E1B7C7C36A915A58AF4A6C232E4A09669D1D791DD7C85F06A097FBA`
 - `docs/USAGE.md` -> `4EA459BEF0F8A50B96AC1899EB69B7E63C1DD1B58DDA714B9134B04970BE8F39`
 - `docs/ROADMAP.md` -> `4773B6AC7349AA203B8676BEB7C0842C87C104472468505242B1D4EC8833A94E`
 - `docs/ROADMAP_EXECUTION_PLAN.md` -> `F759DBF55ED98527325E1854EC60D33CF239E9AE98109FF88FC2B13FA14CEE57`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
 <!-- ADP01_HASHES_END -->
 
 `KANIT_LOG.md` kendi hash listesine dahil edilmez.
@@ -1830,8 +1830,8 @@ Timeout bütçesi: ilk 20 sn'lik bütçe model erken yanıt verdiği için `comp
 - Çıktı / değişen dosyalar: `src/respected_orchestrator/engine/provider_policy.py`,
   `tests/engine/test_provider_policy.py`, `docs/adr/ADR-007-provider-key-network-threat-model.md`,
   `docs/ARCHITECTURE.md`, `docs/ROADMAP_EXECUTION_PLAN.md`,
-  `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`,
-  `docs/ilerleme/respected_orchestrator_github_issues.csv`, `docs/ilerleme/poc/adp02_*`.
+  `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`,
+  `docs/evidence/respected_orchestrator_github_issues.csv`, `docs/evidence/poc/adp02_*`.
 - Doğrulama komutu:
 
 ```text
@@ -1870,10 +1870,10 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
 
 ### Test sonuçları
 
-- Odaklı: `Ran 7 tests ... OK` (`docs/ilerleme/poc/adp02_focused.log`; politika 6/6 + ADR kapısı).
-- Tam regresyon: `Ran 506 tests ... OK` (`docs/ilerleme/poc/adp02_full_suite.log`).
+- Odaklı: `Ran 7 tests ... OK` (`docs/evidence/poc/adp02_focused.log`; politika 6/6 + ADR kapısı).
+- Tam regresyon: `Ran 506 tests ... OK` (`docs/evidence/poc/adp02_full_suite.log`).
 - Paketleme: `py packaging/build_dist.py` başarılı; `Ran 7 tests ... OK`
-  (`docs/ilerleme/poc/adp02_packaging.log`).
+  (`docs/evidence/poc/adp02_packaging.log`).
 - Canlı sağlayıcı çağrısı bu görevde yapılmadı; ADP-03 adaptörü `require_access` çağırmadan istek başlatamaz.
 
 ### Kanıt artefaktları (SHA-256)
@@ -1884,12 +1884,12 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
 - `docs/adr/ADR-007-provider-key-network-threat-model.md` -> `41735F348DA4F25089F0524A9A6946CA9453D83179297B483A37D9964D2F724C`
 - `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
 - `docs/ROADMAP_EXECUTION_PLAN.md` -> `F759DBF55ED98527325E1854EC60D33CF239E9AE98109FF88FC2B13FA14CEE57`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
-- `docs/ilerleme/poc/doc01_check.py` -> `9D765DB66BA2C49D9157FEEDF81C364D79B3B3D67957E4A5C0F2E6C998EEDC9F`
-- `docs/ilerleme/poc/adp02_focused.log` -> `252A7CCE280B94CE4C8CF9C7E3CA7C4C6EF16FEA271D5CEBDF1368D8A5F48A8B`
-- `docs/ilerleme/poc/adp02_full_suite.log` -> `BEE08E716D408688F91A4FA52241657E5A7197377DBAB52F36909FEFDD6FA079`
-- `docs/ilerleme/poc/adp02_packaging.log` -> `71256C6B5EB217111E373BECEE08A800C04462B56F1ACAD0ABE4800E802DB423`
+- `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/evidence/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
+- `docs/evidence/poc/doc01_check.py` -> `9D765DB66BA2C49D9157FEEDF81C364D79B3B3D67957E4A5C0F2E6C998EEDC9F`
+- `docs/evidence/poc/adp02_focused.log` -> `252A7CCE280B94CE4C8CF9C7E3CA7C4C6EF16FEA271D5CEBDF1368D8A5F48A8B`
+- `docs/evidence/poc/adp02_full_suite.log` -> `BEE08E716D408688F91A4FA52241657E5A7197377DBAB52F36909FEFDD6FA079`
+- `docs/evidence/poc/adp02_packaging.log` -> `71256C6B5EB217111E373BECEE08A800C04462B56F1ACAD0ABE4800E802DB423`
 <!-- ADP02_HASHES_END -->
 
 `KANIT_LOG.md` kendi hash listesine dahil edilmez.
@@ -1900,7 +1900,7 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
   test edilecektir.
 - Allowlist tam alan adı eşleşmesidir; alt alan adı veya joker desteği bilinçli olarak yoktur.
 - Sağlayıcıya giden görev metni ve dosya içeriği sağlayıcı tarafından görülür; opt-in bunu kabul etmek demektir.
-- `docs/ilerleme/poc/doc01_check.py` ADR erişim tarihini artık herhangi bir ISO tarihi olarak doğrular; araştırma
+- `docs/evidence/poc/doc01_check.py` ADR erişim tarihini artık herhangi bir ISO tarihi olarak doğrular; araştırma
   kaynak tablosunun ortak erişim tarihi (`2026-10-30`) değişmedi.
 
 ---
@@ -1911,8 +1911,8 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
 - Kapsam: Model fiyatını sürüm ve zaman damgasına bağlı, deterministik ve belirsizliği açıkça gösteren bir katalog
   sözleşmesi. Canlı fiyat çağrısı zorunlu değildir; hiçbir eksik veri sıfır maliyet sayılmaz.
 - Çıktı / değişen dosyalar: `src/respected_orchestrator/engine/pricing.py`, `tests/engine/test_pricing.py`,
-  `docs/ARCHITECTURE.md`, `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`,
-  `docs/ilerleme/respected_orchestrator_github_issues.csv`, `docs/ilerleme/poc/cost02_*`.
+  `docs/ARCHITECTURE.md`, `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`,
+  `docs/evidence/respected_orchestrator_github_issues.csv`, `docs/evidence/poc/cost02_*`.
 - Doğrulama komutu:
 
 ```text
@@ -1946,10 +1946,10 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
 
 ### Test sonuçları
 
-- Odaklı: `Ran 6 tests ... OK` (`docs/ilerleme/poc/cost02_focused.log`).
-- Tam regresyon: `Ran 512 tests ... OK` (`docs/ilerleme/poc/cost02_full_suite.log`).
+- Odaklı: `Ran 6 tests ... OK` (`docs/evidence/poc/cost02_focused.log`).
+- Tam regresyon: `Ran 512 tests ... OK` (`docs/evidence/poc/cost02_full_suite.log`).
 - Paketleme: `py packaging/build_dist.py` başarılı; `Ran 7 tests ... OK`
-  (`docs/ilerleme/poc/cost02_packaging.log`).
+  (`docs/evidence/poc/cost02_packaging.log`).
 
 ### Kanıt artefaktları (SHA-256)
 
@@ -1957,11 +1957,11 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
 - `src/respected_orchestrator/engine/pricing.py` -> `E552300D521F83DEEDCAEE68BD7FDEED61BCB4BFF9D9EE444E91D2C2177ACF42`
 - `tests/engine/test_pricing.py` -> `E44B09E8F87DCDAA269F310B9CBAFE3C8B76B1EB410F28B7E28774E53CB3788F`
 - `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
-- `docs/ilerleme/poc/cost02_focused.log` -> `865297ED1702FE8621131A866B14CD6C839126F2BD3D8E9B7CDFED34DA82AEDA`
-- `docs/ilerleme/poc/cost02_full_suite.log` -> `806EC65EB48EFE808E6B5BD7207FDADBC3364ECB49B4B1B9E97C409DF77C971B`
-- `docs/ilerleme/poc/cost02_packaging.log` -> `9A2C4220BC6340F5DD05DBBB76BCD1D301B670D5C2F45B8665E6208ECF56696A`
+- `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/evidence/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
+- `docs/evidence/poc/cost02_focused.log` -> `865297ED1702FE8621131A866B14CD6C839126F2BD3D8E9B7CDFED34DA82AEDA`
+- `docs/evidence/poc/cost02_full_suite.log` -> `806EC65EB48EFE808E6B5BD7207FDADBC3364ECB49B4B1B9E97C409DF77C971B`
+- `docs/evidence/poc/cost02_packaging.log` -> `9A2C4220BC6340F5DD05DBBB76BCD1D301B670D5C2F45B8665E6208ECF56696A`
 <!-- COST02_HASHES_END -->
 
 `KANIT_LOG.md` kendi hash listesine dahil edilmez.
@@ -1984,9 +1984,9 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
   Adaptör henüz CLI'ye bağlanmadı; sözleşme ve test edilebilir istemci hazırdır.
 - Çıktı / değişen dosyalar: `src/respected_orchestrator/engine/provider.py`,
   `src/respected_orchestrator/engine/secret_vault.py`, `tests/engine/test_provider.py`,
-  `docs/ilerleme/poc/adp03_real_smoke.py`, `docs/ARCHITECTURE.md`, `docs/ROADMAP_EXECUTION_PLAN.md`,
-  `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`,
-  `docs/ilerleme/respected_orchestrator_github_issues.csv`, `docs/ilerleme/poc/adp03_*`.
+  `docs/evidence/poc/adp03_real_smoke.py`, `docs/ARCHITECTURE.md`, `docs/ROADMAP_EXECUTION_PLAN.md`,
+  `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`,
+  `docs/evidence/respected_orchestrator_github_issues.csv`, `docs/evidence/poc/adp03_*`.
 - Doğrulama komutu:
 
 ```text
@@ -1994,7 +1994,7 @@ $env:PYTHONPATH='src'
 py -m unittest tests.engine.test_provider
 $env:RESPECTED_PROVIDER_NETWORK='allow'
 $env:RESPECTED_PROVIDER_CODE_GATE='1'
-py docs/ilerleme/poc/adp03_real_smoke.py
+py docs/evidence/poc/adp03_real_smoke.py
 py -m unittest discover -s tests -t .
 py packaging/build_dist.py
 py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_security
@@ -2035,11 +2035,11 @@ kasa round-trip'i test edildi.
 
 ### Test sonuçları
 
-- Odaklı: `Ran 11 tests ... OK` (`docs/ilerleme/poc/adp03_focused.log`).
-- Tam regresyon: `Ran 523 tests ... OK` (`docs/ilerleme/poc/adp03_full_suite.log`).
+- Odaklı: `Ran 11 tests ... OK` (`docs/evidence/poc/adp03_focused.log`).
+- Tam regresyon: `Ran 523 tests ... OK` (`docs/evidence/poc/adp03_full_suite.log`).
 - Paketleme: `py packaging/build_dist.py` başarılı; `Ran 7 tests ... OK`
-  (`docs/ilerleme/poc/adp03_packaging.log`).
-- Gerçek smoke: `docs/ilerleme/poc/adp03_real_smoke.log`.
+  (`docs/evidence/poc/adp03_packaging.log`).
+- Gerçek smoke: `docs/evidence/poc/adp03_real_smoke.log`.
 
 ### Kanıt artefaktları (SHA-256)
 
@@ -2047,15 +2047,15 @@ kasa round-trip'i test edildi.
 - `src/respected_orchestrator/engine/provider.py` -> `959492EBE99A73A4C3863153FC2A60398DF2D12E0FEFFF7FF3C70A3836E81601`
 - `src/respected_orchestrator/engine/secret_vault.py` -> `806E7A177FBACCECC236DFFC203BE81FF7C5B14989F2587252FD65FDCD598BB6`
 - `tests/engine/test_provider.py` -> `40AA45CD1EA79DA951E566EDA58164A3E7E5D723FE003E237D298D5EEF61ED83`
-- `docs/ilerleme/poc/adp03_real_smoke.py` -> `A739714CEF74D5D81CD235046329409ED197A3C3100D645909979F5AA1D2583A`
-- `docs/ilerleme/poc/adp03_focused.log` -> `258E13E4EB477D88B0C1CBE7E8DB0090101D1AE3848FA4519DC2C5675A2EF7F7`
-- `docs/ilerleme/poc/adp03_real_smoke.log` -> `824079B8246AE99866B768904A226654BF06E72247576B353FE940EC8165E80A`
-- `docs/ilerleme/poc/adp03_full_suite.log` -> `A78BC5DEF3D2BBA509B57BB1A0545E7FE879BCF85CA3F98EEFACC121E9BF2772`
-- `docs/ilerleme/poc/adp03_packaging.log` -> `50731967B9DC86B46BB0D5A80175C80B8C05AF69C89FA1029E0F91DA55B6992B`
+- `docs/evidence/poc/adp03_real_smoke.py` -> `A739714CEF74D5D81CD235046329409ED197A3C3100D645909979F5AA1D2583A`
+- `docs/evidence/poc/adp03_focused.log` -> `258E13E4EB477D88B0C1CBE7E8DB0090101D1AE3848FA4519DC2C5675A2EF7F7`
+- `docs/evidence/poc/adp03_real_smoke.log` -> `824079B8246AE99866B768904A226654BF06E72247576B353FE940EC8165E80A`
+- `docs/evidence/poc/adp03_full_suite.log` -> `A78BC5DEF3D2BBA509B57BB1A0545E7FE879BCF85CA3F98EEFACC121E9BF2772`
+- `docs/evidence/poc/adp03_packaging.log` -> `50731967B9DC86B46BB0D5A80175C80B8C05AF69C89FA1029E0F91DA55B6992B`
 - `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
 - `docs/ROADMAP_EXECUTION_PLAN.md` -> `F759DBF55ED98527325E1854EC60D33CF239E9AE98109FF88FC2B13FA14CEE57`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
+- `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/evidence/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
 <!-- ADP03_HASHES_END -->
 
 `KANIT_LOG.md` kendi hash listesine dahil edilmez.
@@ -2079,8 +2079,8 @@ kasa round-trip'i test edildi.
   Brain ve Hub'dan bağımsızdır; yalnızca standart kütüphane kullanır.
 - Çıktı / değişen dosyalar: `src/respected_orchestrator/engine/capability_manifest.py`,
   `tests/engine/test_capability_manifest.py`, `docs/ARCHITECTURE.md`, `docs/ROADMAP_EXECUTION_PLAN.md`,
-  `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`,
-  `docs/ilerleme/respected_orchestrator_github_issues.csv`, `docs/ilerleme/poc/ext01_*`.
+  `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`,
+  `docs/evidence/respected_orchestrator_github_issues.csv`, `docs/evidence/poc/ext01_*`.
 - Doğrulama komutu:
 
 ```text
@@ -2119,23 +2119,23 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
 
 ### Test sonuçları
 
-- Odaklı: `Ran 5 tests ... OK` (`docs/ilerleme/poc/ext01_focused.log`).
-- Tam regresyon: `Ran 528 tests ... OK` (`docs/ilerleme/poc/ext01_full_suite.log`).
+- Odaklı: `Ran 5 tests ... OK` (`docs/evidence/poc/ext01_focused.log`).
+- Tam regresyon: `Ran 528 tests ... OK` (`docs/evidence/poc/ext01_full_suite.log`).
 - Paketleme: `py packaging/build_dist.py` başarılı; `Ran 7 tests ... OK`
-  (`docs/ilerleme/poc/ext01_packaging.log`).
+  (`docs/evidence/poc/ext01_packaging.log`).
 
 ### Kanıt artefaktları (SHA-256)
 
 <!-- EXT01_HASHES_START -->
 - `src/respected_orchestrator/engine/capability_manifest.py` -> `362F41C6519A9152845CFF6F81FBC223691DC57ECD5323517A49ADE54B5CACEA`
 - `tests/engine/test_capability_manifest.py` -> `1622D43E787CEAECB20E3C2CDA33996F66B86D1295BA008C71D16C8F6B3CB106`
-- `docs/ilerleme/poc/ext01_focused.log` -> `399507809DD42F7E79A71B1C035827D2BFAED05406C89EED7B033189EDB2E818`
-- `docs/ilerleme/poc/ext01_full_suite.log` -> `55A3C307FB02C3147DD37E4CE1FA934E8E467E3FE11EAE2E00D74CA42FF2EB30`
-- `docs/ilerleme/poc/ext01_packaging.log` -> `A5B09FD7C0BBA0525214A75015AC584A217CECFCFC7B05449D9A5E404913DECD`
+- `docs/evidence/poc/ext01_focused.log` -> `399507809DD42F7E79A71B1C035827D2BFAED05406C89EED7B033189EDB2E818`
+- `docs/evidence/poc/ext01_full_suite.log` -> `55A3C307FB02C3147DD37E4CE1FA934E8E467E3FE11EAE2E00D74CA42FF2EB30`
+- `docs/evidence/poc/ext01_packaging.log` -> `A5B09FD7C0BBA0525214A75015AC584A217CECFCFC7B05449D9A5E404913DECD`
 - `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
 - `docs/ROADMAP_EXECUTION_PLAN.md` -> `F759DBF55ED98527325E1854EC60D33CF239E9AE98109FF88FC2B13FA14CEE57`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
+- `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/evidence/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
 <!-- EXT01_HASHES_END -->
 
 `KANIT_LOG.md` kendi hash listesine dahil edilmez.
@@ -2157,16 +2157,16 @@ py -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_sec
   Doğrudan kol bir değişiklik uygulamaz; orkestre kol doğrulanmış altın yamayı uygular. Bu koşu harness
   tutarlılığını ölçer; model kalitesi iddiası değildir.
 - Çıktı / değişen dosyalar: `tests/evals/compare.py`, `tests/evals/test_compare.py`,
-  `docs/ilerleme/poc/eval02_real.py`, `docs/ilerleme/poc/eval02_results.json`, `docs/ilerleme/poc/eval02_real.log`,
-  `docs/ilerleme/poc/eval02_eval03_focused.log`, `docs/ARCHITECTURE.md`,
-  `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`,
-  `docs/ilerleme/respected_orchestrator_github_issues.csv`.
+  `docs/evidence/poc/eval02_real.py`, `docs/evidence/poc/eval02_results.json`, `docs/evidence/poc/eval02_real.log`,
+  `docs/evidence/poc/eval02_eval03_focused.log`, `docs/ARCHITECTURE.md`,
+  `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`,
+  `docs/evidence/respected_orchestrator_github_issues.csv`.
 - Doğrulama komutu:
 
 ```text
 $env:PYTHONPATH='src'
 py -m unittest tests.evals.test_compare tests.evals.test_report
-py docs/ilerleme/poc/eval02_real.py
+py docs/evidence/poc/eval02_real.py
 ```
 
 ### Gerçek koşu
@@ -2178,8 +2178,8 @@ py docs/ilerleme/poc/eval02_real.py
 
 ### Test sonuçları
 
-- Odaklı: `Ran 9 tests ... OK` (`docs/ilerleme/poc/eval02_eval03_focused.log`).
-- Gerçek koşu: `docs/ilerleme/poc/eval02_real.log`, rapor `docs/ilerleme/poc/eval02_results.json`.
+- Odaklı: `Ran 9 tests ... OK` (`docs/evidence/poc/eval02_eval03_focused.log`).
+- Gerçek koşu: `docs/evidence/poc/eval02_real.log`, rapor `docs/evidence/poc/eval02_results.json`.
 
 ### Kalan risk / shortcut
 
@@ -2193,13 +2193,13 @@ py docs/ilerleme/poc/eval02_real.py
 <!-- EVAL02_HASHES_START -->
 - `tests/evals/compare.py` -> `931FA1F82662628E147A85B78332F9C4CAE1F856AEA69BC285E6D3D6E9F90972`
 - `tests/evals/test_compare.py` -> `83552BCADD9306FE5A311F4F157C2C7DF6F2940F10A93AF4FE09A0026DD08920`
-- `docs/ilerleme/poc/eval02_real.py` -> `52D1B5FD9DE5666F00662D43F9B2E9EED9AD8B7D673CE56D4CA0E784BCFBC840`
-- `docs/ilerleme/poc/eval02_results.json` -> `02EC598D4562B8B1553F08267DC0F927F94E0A0D6827B2E4BAA7C288454C7B22`
-- `docs/ilerleme/poc/eval02_real.log` -> `F020F5E057820EB8ED167EEB9A3E7025EA51177747E88A5F7F38A0B26CEFE559`
-- `docs/ilerleme/poc/eval02_eval03_focused.log` -> `95E354833E2418305AFA98C394A00FD9242369851E798DC0000F5FFFD8A68B6F`
+- `docs/evidence/poc/eval02_real.py` -> `52D1B5FD9DE5666F00662D43F9B2E9EED9AD8B7D673CE56D4CA0E784BCFBC840`
+- `docs/evidence/poc/eval02_results.json` -> `02EC598D4562B8B1553F08267DC0F927F94E0A0D6827B2E4BAA7C288454C7B22`
+- `docs/evidence/poc/eval02_real.log` -> `F020F5E057820EB8ED167EEB9A3E7025EA51177747E88A5F7F38A0B26CEFE559`
+- `docs/evidence/poc/eval02_eval03_focused.log` -> `95E354833E2418305AFA98C394A00FD9242369851E798DC0000F5FFFD8A68B6F`
 - `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
+- `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/evidence/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
 <!-- EVAL02_HASHES_END -->
 
 `KANIT_LOG.md` kendi hash listesine dahil edilmez.
@@ -2212,16 +2212,16 @@ py docs/ilerleme/poc/eval02_real.py
 - Kapsam: JSON/Markdown rapor, dört KPI (kabul başarısı, worker ihlali, maliyet, süre) ve iki koşu arası regresyon
   kapısı. Eksik veri sahte sıfır üretmez; farklı fixture/repeat/timeout raporları engellenir.
 - Çıktı / değişen dosyalar: `tests/evals/report.py`, `tests/evals/test_report.py`,
-  `docs/ilerleme/poc/eval03_report.json`, `docs/ilerleme/poc/eval03_report.md`,
-  `docs/ilerleme/poc/eval02_eval03_focused.log`, `docs/ARCHITECTURE.md`,
-  `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md`,
-  `docs/ilerleme/respected_orchestrator_github_issues.csv`.
+  `docs/evidence/poc/eval03_report.json`, `docs/evidence/poc/eval03_report.md`,
+  `docs/evidence/poc/eval02_eval03_focused.log`, `docs/ARCHITECTURE.md`,
+  `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`,
+  `docs/evidence/respected_orchestrator_github_issues.csv`.
 - Doğrulama komutu:
 
 ```text
 $env:PYTHONPATH='src'
 py -m unittest tests.evals.test_compare tests.evals.test_report
-py docs/ilerleme/poc/eval02_real.py
+py docs/evidence/poc/eval02_real.py
 ```
 
 ### Rapor ve kapı
@@ -2234,7 +2234,7 @@ py docs/ilerleme/poc/eval02_real.py
 
 ### Test sonuçları
 
-- Odaklı: `Ran 9 tests ... OK` (`docs/ilerleme/poc/eval02_eval03_focused.log`).
+- Odaklı: `Ran 9 tests ... OK` (`docs/evidence/poc/eval02_eval03_focused.log`).
 
 ### Kalan risk / shortcut
 
@@ -2248,12 +2248,12 @@ py docs/ilerleme/poc/eval02_real.py
 <!-- EVAL03_HASHES_START -->
 - `tests/evals/report.py` -> `1FB26693D95C1CD59ED1F6A63CF0F22AA69DD80675EDD3D8C6FD1F4500CC8FE9`
 - `tests/evals/test_report.py` -> `44AC155A1EF14B7D62F9F4821DB474DC635F5D8EFF23408B134BF082C70407C3`
-- `docs/ilerleme/poc/eval03_report.json` -> `8664A080FC9E4E2D96040C8A694DD19B1450F41A3C2FF37D262F5D3EBE9EFC47`
-- `docs/ilerleme/poc/eval03_report.md` -> `F06E5F2092B22A45C65EF1CB379188C0F2E7B6267802657FDCC01E561D1F1306`
-- `docs/ilerleme/poc/eval02_eval03_focused.log` -> `95E354833E2418305AFA98C394A00FD9242369851E798DC0000F5FFFD8A68B6F`
+- `docs/evidence/poc/eval03_report.json` -> `8664A080FC9E4E2D96040C8A694DD19B1450F41A3C2FF37D262F5D3EBE9EFC47`
+- `docs/evidence/poc/eval03_report.md` -> `F06E5F2092B22A45C65EF1CB379188C0F2E7B6267802657FDCC01E561D1F1306`
+- `docs/evidence/poc/eval02_eval03_focused.log` -> `95E354833E2418305AFA98C394A00FD9242369851E798DC0000F5FFFD8A68B6F`
 - `docs/ARCHITECTURE.md` -> `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
-- `docs/ilerleme/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
-- `docs/ilerleme/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
+- `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` -> `325DDA701A9275182831710A37C85E8E47A721037A54EF706D58C18CEC7524CF`
+- `docs/evidence/respected_orchestrator_github_issues.csv` -> `DA22AAA57DA1985B4EAD8C5A0D0A78C2BB361932E42CADF035F88618BF073560`
 <!-- EVAL03_HASHES_END -->
 
 `KANIT_LOG.md` kendi hash listesine dahil edilmez.
@@ -2276,7 +2276,7 @@ py docs/ilerleme/poc/eval02_real.py
 
 - `src/respected_orchestrator/interfaces/evidence_view.py` -> `A30C024E1722A6D385A56096023CCD4BB4005DB3FBAA771C2A52F60DFB28538C`
 - `tests/interfaces/test_evidence_view.py` -> `E8113016330CD935B84E3613B494A8B829FECB33B4CB7CCD7540F78998BB00F8`
-- `docs/ilerleme/poc/ux01_focused.log` -> `C04969C576A34C9B1FB5D7920FAAEA49DDC248063B5DEFB33FC91576F387323E`
+- `docs/evidence/poc/ux01_focused.log` -> `C04969C576A34C9B1FB5D7920FAAEA49DDC248063B5DEFB33FC91576F387323E`
 
 ---
 
@@ -2295,7 +2295,7 @@ py docs/ilerleme/poc/eval02_real.py
 - `src/respected_orchestrator/interfaces/rpp.py` -> `342D273F3E6793FDD3A8EA31CFE7817C86D9CD02A0737326A5AC4FCDD84AA891`
 - `src/respected_orchestrator/__main__.py` -> `4455B23D9A934A86EDED7548A1957AC8630C3D76D84F1AE4CE90A33F6322371A`
 - `tests/interfaces/test_evidence_api.py` -> `EE1996D0DF39831C05F88A5DDB4DBD21724B2092563457C5D6DB441211CDCEAE`
-- `docs/ilerleme/poc/ux02_focused.log` -> `934D70DE616EEB83DD03F349DB811D15DE4B81747536547AB0D45E9D7E4579E2`
+- `docs/evidence/poc/ux02_focused.log` -> `934D70DE616EEB83DD03F349DB811D15DE4B81747536547AB0D45E9D7E4579E2`
 
 ---
 
@@ -2307,8 +2307,8 @@ py docs/ilerleme/poc/eval02_real.py
   replay, ekran drift'i, iptal, eski sonuç ve review sonrası değişen HEAD/çalışma ağacı reddedilir. `approve_maf_task`
   onay dosyasını yalnızca güncel proje durumu request ve result ile eşleşiyorsa yazar; yeni yetki yolu açılmadı.
 - Doğrulama: `tests.interfaces.test_human_approval_contract` — 8/8 senaryo (`Ran 8 tests ... OK`);
-  HEAD değişimi ve bayat proje parmak izi ayrıca reddedildi (`docs/ilerleme/poc/ux03_focused_final.log`).
-  Geniş odaklı paket: `Ran 107 tests ... OK` (`docs/ilerleme/poc/remaining_tasks_focused_final.log`).
+  HEAD değişimi ve bayat proje parmak izi ayrıca reddedildi (`docs/evidence/poc/ux03_focused_final.log`).
+  Geniş odaklı paket: `Ran 107 tests ... OK` (`docs/evidence/poc/remaining_tasks_focused_final.log`).
 - Kalan risk: Hub Decision Center ekranı ayrı depoda; buradaki kanıt terminal `maf-approve` yolunun sözleşmesidir.
   Git deposu olmayan projede HEAD bağı kurulamaz.
 
@@ -2316,8 +2316,8 @@ py docs/ilerleme/poc/eval02_real.py
 
 - `src/respected_orchestrator/engine/runner.py` -> `48200B47CB1732F0EB1BCEDF06D416AAB448E7B6EB5D46F16423BA7E662F7BAD`
 - `tests/interfaces/test_human_approval_contract.py` -> `79D5DD43857436FDE01397AA51580126F2AE2035C3256C662A6B8470346AB7F8`
-- `docs/ilerleme/poc/ux03_focused_final.log` -> `BBA853145F4F00B7F8FDF23B0FF946295B531521E166B74884DBA7091665E269`
-- `docs/ilerleme/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
+- `docs/evidence/poc/ux03_focused_final.log` -> `BBA853145F4F00B7F8FDF23B0FF946295B531521E166B74884DBA7091665E269`
+- `docs/evidence/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
 
 
 ## COST-01 — Gemini/Cursor kullanımını gerçek CLI ile ölç
@@ -2327,7 +2327,7 @@ py docs/ilerleme/poc/eval02_real.py
   `opencode` -> `C:\Users\Furkan\AppData\Roaming\npm\opencode(.cmd)`.
 - Karar: Kullanım/token verisi uydurulmadı; bilinmeyen değer `0` yazılmadı. Gemini/Cursor CLI'ları kurulup
   gerçek kullanım çıktısı alınana kadar görev engelli kalır; OpenCode tarafı ADP-01/COST-03 ile ölçülebilir.
-- Doğrulama: `docs/ilerleme/poc/cost01_cli_probe.log`.
+- Doğrulama: `docs/evidence/poc/cost01_cli_probe.log`.
 - Kalan risk: Sağlayıcı başına maliyet ve token sayısı bilinmiyor; raporlarda `unknown` olarak kalmalı.
 
 - Güncelleme 2026-11-04: Gemini desteği kapsam dışı (kullanıcı kararı). Cursor CLI 2026.10.22-27dcf5f kuruldu ve
@@ -2340,12 +2340,19 @@ py docs/ilerleme/poc/eval02_real.py
 - Durum: Tamamlandı (ölçüm + adaptör): `clis.cursor_entry` şimin yanındaki `versions\<sürüm>
 ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.command_for` `--trust --output-format json` verir; `tool_result("cursor")` `usage`'ı ayrıştırır, `cacheReadTokens` yoksa `unknown` (0 değil). Testler: `test_cursor_shim_resolves_to_its_own_node_entry...`, `test_usage_comes_from_each_tools_envelope...` — `tests.workflows.test_roles` + `tests.engine.test_runner` 73 test OK.
 - Kalan risk: (a) `inputTokens`'ın önbelleği içerdiği varsayımı doğrulanmadı; (b) sandbox ağı kapalı ve Cursor oturumu kullanıcı profilinde olduğundan gerçek bir Cursor işçisi koşusu henüz yok (OpenCode'daki ADP-01/ADP-02 benzeri ayrı iş); (c) Free planda yalnızca `auto` ve Grok 4.7/4.6 çalışır.
-- Doğrulama: `docs/ilerleme/poc/cost01_cursor_live.log`.
+- Doğrulama: `docs/evidence/poc/cost01_cursor_live.log`.
+- Güncelleme 2026-11-04 (kalan risk a kapandı): aynı uzun istem `--model auto` ile 4 kez koşuldu
+  (`poc/cursor_cache_probe.log`). 3. koşuda `inputTokens` 39 iken `cacheReadTokens` 18048 geldi; girdi önbelleği içerseydi
+  önbellek okuması girdiyi aşamazdı. Sonuç: `inputTokens` önbellek okumasını **içermez**. Önceki varsayım (içerir) yanlıştı:
+  ham girdiyi eksik sayıyor ve böyle bir koşuyu `unknown` yapıyordu. `runner.tool_result("cursor")` artık ham girdiyi
+  `inputTokens + cacheWriteTokens + cacheReadTokens` alır, ağırlıklı toplam `inputTokens + 0.03·cacheRead + output`dır;
+  `cacheReadTokens` yoksa hâlâ `unknown` (0 değil). Testler: `tests.workflows.test_roles` (canlı kaydedilen iki vaka), 75 test OK
+  (`test_roles` + `test_runner`). Gemini kapsam dışı olduğundan canlı doğrulanmadı.
 
 ### Kanıt artefaktları (SHA-256)
 
-- `docs/ilerleme/poc/cost01_cursor_live.log` -> `768A1099A62E77A6EE5C74FEFC683EE142BD4F95F8BC5083FD268368C5068DF3`
-- `docs/ilerleme/poc/cost01_cli_probe.log` -> `BB8E5C20F27CD086EFE31802BDCE4AB1D677781408F618D379E3526AE73AA935`
+- `docs/evidence/poc/cost01_cursor_live.log` -> `768A1099A62E77A6EE5C74FEFC683EE142BD4F95F8BC5083FD268368C5068DF3`
+- `docs/evidence/poc/cost01_cli_probe.log` -> `BB8E5C20F27CD086EFE31802BDCE4AB1D677781408F618D379E3526AE73AA935`
 
 ---
 
@@ -2357,14 +2364,14 @@ ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.c
   engelli profil sessizce kullanılmaz; write rolüne salt-okunur araç verilmez; kayıp modelde yalnızca açık
   fallback; eşit kayıtta pahalı aday kaybeder; açık kullanıcı ataması ezilmez.
 - Doğrulama: `tests.workflows.test_auto_assign_v2` + `test_roles` + `test_track_record` — 31 test OK
-  (`docs/ilerleme/poc/cost03_focused_final.log`).
+  (`docs/evidence/poc/cost03_focused_final.log`).
 - Kalan risk: Geçmiş yalnızca runs/ok/tokens/seconds taşır; model kalitesi ve görev zorluğu ayrı ölçülmez.
 
 ### Kanıt artefaktları (SHA-256)
 
 - `tests/workflows/test_auto_assign_v2.py` -> `5B6BA3449746A69B29E1CCEB7C3F3CC67D23939E947A8F44891CBED3D28E4C38`
 - `src/respected_orchestrator/workflows/roles.py` -> `4AD4F1718251ED4937E2EDA18DA0894902B61878867E517C13EDA4F4B84BC5C9`
-- `docs/ilerleme/poc/cost03_focused_final.log` -> `8190CBF12E8378C9ED084FA6C9A5F5745435BFD625C747E12E129BB30EF15652`
+- `docs/evidence/poc/cost03_focused_final.log` -> `8190CBF12E8378C9ED084FA6C9A5F5745435BFD625C747E12E129BB30EF15652`
 
 
 ## GH-01 — GitHub Issue salt okunur içe aktar
@@ -2377,7 +2384,7 @@ ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.c
   `github-import-issue` aynı sözleşmeyi kullanır.
 - Doğrulama: `tests.interfaces.test_github_connector` + `test_github_rpp`; geniş odaklı paket 107/107 OK.
   Canlı read-only kontrol: `gh 2.102.0`, hesap `respected0`, `gh issue view 1 --repo cli/cli` gerçek JSON;
-  hiçbir push/PR/yorum çalıştırılmadı (`docs/ilerleme/poc/gh_live_readonly.log`).
+  hiçbir push/PR/yorum çalıştırılmadı (`docs/evidence/poc/gh_live_readonly.log`).
 - Kalan risk: Issue gövdesi prompt enjeksiyonu taşıyabilir; otomatik worker başlatma bilinçli olarak yoktur.
 
 ### Kanıt artefaktları (SHA-256)
@@ -2387,8 +2394,8 @@ ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.c
 - `src/respected_orchestrator/__main__.py` -> `4455B23D9A934A86EDED7548A1957AC8630C3D76D84F1AE4CE90A33F6322371A`
 - `tests/interfaces/test_github_connector.py` -> `1193A3A0FC5980BB949322E212954E5FAF1480132123455C621266A41AD3D91F`
 - `tests/interfaces/test_github_rpp.py` -> `51AC743BFB3216DA90C2DCAA3EFC9DE28BBE2183E091523E166618064846134C`
-- `docs/ilerleme/poc/gh_live_readonly.log` -> `113EF393948797893C1832C280BEC17BFAC142A70F099F90F75AFFE05987603C`
-- `docs/ilerleme/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
+- `docs/evidence/poc/gh_live_readonly.log` -> `113EF393948797893C1832C280BEC17BFAC142A70F099F90F75AFFE05987603C`
+- `docs/evidence/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
 
 
 ## GH-02 — Doğrulanmış patch'ten taslak PR aç
@@ -2409,7 +2416,7 @@ ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.c
 - `src/respected_orchestrator/interfaces/rpp.py` -> `342D273F3E6793FDD3A8EA31CFE7817C86D9CD02A0737326A5AC4FCDD84AA891`
 - `src/respected_orchestrator/__main__.py` -> `4455B23D9A934A86EDED7548A1957AC8630C3D76D84F1AE4CE90A33F6322371A`
 - `tests/interfaces/test_github_rpp.py` -> `51AC743BFB3216DA90C2DCAA3EFC9DE28BBE2183E091523E166618064846134C`
-- `docs/ilerleme/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
+- `docs/evidence/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
 
 
 ## GH-03 — CI/review geri bildirimini sınırlı düzeltmeye bağla
@@ -2428,7 +2435,7 @@ ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.c
 - `src/respected_orchestrator/interfaces/github_connector.py` -> `35C1ED0DE2F050CF4F484DA2649B7026AF4E7D644FCB081C190DFB286B1CB330`
 - `src/respected_orchestrator/interfaces/rpp.py` -> `342D273F3E6793FDD3A8EA31CFE7817C86D9CD02A0737326A5AC4FCDD84AA891`
 - `tests/interfaces/test_github_rpp.py` -> `51AC743BFB3216DA90C2DCAA3EFC9DE28BBE2183E091523E166618064846134C`
-- `docs/ilerleme/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
+- `docs/evidence/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
 
 
 ## EXT-02 — Serena/context MCP için read-only deneme adaptörleri
@@ -2443,13 +2450,13 @@ ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.c
 - Doğrulama: `tests.interfaces.test_mcp_client` + `test_readonly_probe` + `test_capability_manifest`;
   `ext02_mcp_focused.log` 14/14 OK, geniş paket 107/107 OK. Sağlayıcı probe: `serena`, `serena-mcp-server`,
   `uvx` MISSING; `npx`/`codex` var. Gerçek sunucu yokken sahte başarı yazılmadı
-  (`docs/ilerleme/poc/ext02_provider_probe.log`).
+  (`docs/evidence/poc/ext02_provider_probe.log`).
 - Güncelleme 2026-11-04: Serena bağımlılığı kaldırıldı (`mcp.serena` izin listesinden çıktı; yalnızca `mcp.context`).
   `query_via_stdio` yeni `build_args` ile sunucunun kendi parametre adını kullanır. Canlı doğrulama bu makinedeki
   context-mode MCP sunucusuyla: `initialize` + 11 araç listelendi; boş bilgi tabanında `ctx_search` `isError`
   döndü ve probe fail-closed `PROVIDER_FAILED` verdi; test-içi `ctx_index` ile tohumlanınca salt-okunur `ctx_search`
   başarılı, `untrusted=True`. `CONTEXT_MODE_SERVER=<start.mjs>` ile açılan test: 15/15 OK
-  (`docs/ilerleme/poc/ext02_context_mode_live.log`).
+  (`docs/evidence/poc/ext02_context_mode_live.log`).
 - Kalan risk: yok bilinen; canlı test yalnızca `CONTEXT_MODE_SERVER` verilince koşar (testler HOME'u bilerek izole eder).
 
 ### Kanıt artefaktları (SHA-256)
@@ -2457,10 +2464,10 @@ ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.c
 - `src/respected_orchestrator/interfaces/readonly_probe.py` -> `E2E289C788C423B22957EC774B752BDB5F38E595BC58C7EDF7BA40DBF0F0C0D1`
 - `src/respected_orchestrator/interfaces/mcp_client.py` -> `E7C6B21011EBF6B3CF100CD3A4029398F19539663B156969C37345882E7FA846`
 - `tests/interfaces/test_mcp_client.py` -> `3231BC8D6E04300EC9BC4F6DF5AA9376590B46894E4F970C645BA3DC9C62107E`
-- `docs/ilerleme/poc/ext02_context_mode_live.log` -> `658ADEC4DCEAAC3D50DCFF0A703FF85DE52EEA92BEA686BFB67107AEE2C98251`
-- `docs/ilerleme/poc/ext02_mcp_focused.log` -> `DFBCC912CEC7948C0099890D47719E250C6BA477F635A4502FACD3FD0C03C616`
-- `docs/ilerleme/poc/ext02_provider_probe.log` -> `3AD8FCA85E2168C9DE83C154502D0B6D8D0D02BE0393F88BAD8F8D417923DF57`
-- `docs/ilerleme/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
+- `docs/evidence/poc/ext02_context_mode_live.log` -> `658ADEC4DCEAAC3D50DCFF0A703FF85DE52EEA92BEA686BFB67107AEE2C98251`
+- `docs/evidence/poc/ext02_mcp_focused.log` -> `DFBCC912CEC7948C0099890D47719E250C6BA477F635A4502FACD3FD0C03C616`
+- `docs/evidence/poc/ext02_provider_probe.log` -> `3AD8FCA85E2168C9DE83C154502D0B6D8D0D02BE0393F88BAD8F8D417923DF57`
+- `docs/evidence/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
 
 
 ## REL-01 — Authenticode imzalı Windows kurucu hattı
@@ -2485,11 +2492,11 @@ ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.c
 - `src/respected_orchestrator/release_signature.py` -> `0E2E8D23D5A20FD749C07392701E01229EA2D51F1EFD9163500928041F350B8D`
 - `packaging/build_installer.py` -> `4E973860CABD9DEB876B40C302D03AE1D7DAE19555CDA65D1BB771F6EE0A30DF`
 - `tests/packaging/test_release_signature.py` -> `DE980B94230C7C85FBBFFB905019656DE4F884EDB643907896B73509A38E525D`
-- `docs/ilerleme/poc/rel01_real_build.log` -> `FFD1545EC1F75137D97ED0E6386F3A670867A9D85EC6FE3596C5007D20B50D44`
-- `docs/ilerleme/poc/rel01_real_verify.log` -> `AFDCC14366B5A93787242E92640A59918D2145281160E86E41B64B63313379A3`
-- `docs/ilerleme/poc/rel01_real_tamper.log` -> `89C27A6C01B71FC764D9A5A119260A7A486F86C39B9BB871BC62AAE91863A951`
-- `docs/ilerleme/poc/rel01_real_wrong_signer.log` -> `22A106DD4EEC79F96F8D2323BA010DD9B7B273B9D3647D1EF016FF51AB934785`
-- `docs/ilerleme/poc/rel01_signature_tests.log` -> `BDE96833580F5476E44D42613369CB652F0B31401B450885997AF52458910920`
+- `docs/evidence/poc/rel01_real_build.log` -> `FFD1545EC1F75137D97ED0E6386F3A670867A9D85EC6FE3596C5007D20B50D44`
+- `docs/evidence/poc/rel01_real_verify.log` -> `AFDCC14366B5A93787242E92640A59918D2145281160E86E41B64B63313379A3`
+- `docs/evidence/poc/rel01_real_tamper.log` -> `89C27A6C01B71FC764D9A5A119260A7A486F86C39B9BB871BC62AAE91863A951`
+- `docs/evidence/poc/rel01_real_wrong_signer.log` -> `22A106DD4EEC79F96F8D2323BA010DD9B7B273B9D3647D1EF016FF51AB934785`
+- `docs/evidence/poc/rel01_signature_tests.log` -> `BDE96833580F5476E44D42613369CB652F0B31401B450885997AF52458910920`
 
 
 ## REL-03 — İlk göreve giden kurulum rehberi ve health
@@ -2500,7 +2507,7 @@ ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.c
   çalışır; kaldırma veriyi purge edilmedikçe korur.
 - Doğrulama: `test_health_wizard + test_rpp + startup_cost` — 28 test OK (`rel03_focused.log`).
   Gerçek CLI: `py -m respected_orchestrator health` → `status=healthy`, `hub_required=false`,
-  `worker_cli` içinde `opencode`, salt-okunur `sample_task` (`docs/ilerleme/poc/rel03_real_health.log`).
+  `worker_cli` içinde `opencode`, salt-okunur `sample_task` (`docs/evidence/poc/rel03_real_health.log`).
   Geniş odaklı paket 107/107 OK.
 - Kalan risk: Rehber metinseldir; otomatik onarım/onboarding yapmaz. Sağlıklı kurulumda `steps` boş kalır.
 
@@ -2509,9 +2516,9 @@ ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.c
 - `src/respected_orchestrator/interfaces/health_wizard.py` -> `4D90FF2CF21C374EAB19A329B95E827C2D5A62C84CA3795E991A65EE5BB30A7C`
 - `src/respected_orchestrator/interfaces/rpp.py` -> `342D273F3E6793FDD3A8EA31CFE7817C86D9CD02A0737326A5AC4FCDD84AA891`
 - `tests/interfaces/test_health_wizard.py` -> `9700E059804B784D0E72CF3EFC4A5CF542236410D2CF68D4A919B1C557918CCF`
-- `docs/ilerleme/poc/rel03_real_health.log` -> `190404542E536DF12BFE83BEF73DB7F3AD70A76AC7B85D406356763D2761E6EE`
-- `docs/ilerleme/poc/rel03_focused.log` -> `D10019731E4C005A5037A3BCA2D96B4019840CB56DCBE430BF124DAAC3DB3C9F`
-- `docs/ilerleme/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
+- `docs/evidence/poc/rel03_real_health.log` -> `190404542E536DF12BFE83BEF73DB7F3AD70A76AC7B85D406356763D2761E6EE`
+- `docs/evidence/poc/rel03_focused.log` -> `D10019731E4C005A5037A3BCA2D96B4019840CB56DCBE430BF124DAAC3DB3C9F`
+- `docs/evidence/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
 
 
 ## REL-04 — macOS/Linux güvenlik eşdeğerliği ve platform kapısı
@@ -2535,11 +2542,11 @@ ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.c
 - `src/respected_orchestrator/release_platform.py` -> `B50167A8CB86A1A40DA4A0F8E02235CCE6F6E9A468C091E344293FF918B3FDF8`
 - `tests/packaging/test_release_platform.py` -> `42E7918C294A38FF1CFC385929C91B74D3C2F041A41F5C51113E2D9DFA7ADDAF`
 - `docs/ADR-REL04-platform-parity.md` -> `56A29A646A53E22B7D1F5CEEC746046C08E9C4EDC007F18870565E36440F4034`
-- `docs/ilerleme/poc/rel04_fixture_matrix.py` -> `1FC935A2DAFC8926F04B13FA62A2EDE4920DF0331EB015D8DF46909E260BE7AB`
-- `docs/ilerleme/poc/rel04_fixture_windows.log` -> `AFC206685AF559EF857ADA4DD52D033620B97CFC96942FA36D48EAB1E006C523`
-- `docs/ilerleme/poc/rel04_fixture_linux.log` -> `D3EC4B86A62A3E0B1AFC74491B55298A7BDD9D6DB42D4A7C7856D0D3A821A1B2`
-- `docs/ilerleme/poc/rel04_fixture_macos.log` -> `FAE2C5A300B4D42206B0BBB5B6D71ADC16F3F5F39820EC89EFB2E94D66FD1622`
-- `docs/ilerleme/poc/rel04_mcp_spawn_focused.log` -> `F049E82C91CA5BB084847EE4DDB3A81AFBE660DD267161406B6104C69E2FBB0C`
+- `docs/evidence/poc/rel04_fixture_matrix.py` -> `1FC935A2DAFC8926F04B13FA62A2EDE4920DF0331EB015D8DF46909E260BE7AB`
+- `docs/evidence/poc/rel04_fixture_windows.log` -> `AFC206685AF559EF857ADA4DD52D033620B97CFC96942FA36D48EAB1E006C523`
+- `docs/evidence/poc/rel04_fixture_linux.log` -> `D3EC4B86A62A3E0B1AFC74491B55298A7BDD9D6DB42D4A7C7856D0D3A821A1B2`
+- `docs/evidence/poc/rel04_fixture_macos.log` -> `FAE2C5A300B4D42206B0BBB5B6D71ADC16F3F5F39820EC89EFB2E94D66FD1622`
+- `docs/evidence/poc/rel04_mcp_spawn_focused.log` -> `F049E82C91CA5BB084847EE4DDB3A81AFBE660DD267161406B6104C69E2FBB0C`
 
 
 ### Kapanış hash düzeltmesi (ADP-01 sonrası son doğrulama)
@@ -2574,9 +2581,64 @@ Yukarıdaki kronolojik kayıtlarda aynı dosya birden çok kez farklı hash ile 
 - Kapsam: `runner.get_cli_command` ve çalışan politikası, yeni `resources/node-shim/appcontainer-pipes.js`, testler, ARCHITECTURE/THREAT_MODEL (ağ anahtarı, izole HOME ve `engine/cursor_auth.py` önceki oturumdan).
 - Kök neden (kanıt: `poc/cursor01_pipe_rootcause.log`): AppContainer jetonu adlandırılmış boruyu yalnız `\\.\pipe\LOCAL\` altında oluşturabilir (`CreateNamedPipeW` diğer adlarda `ERROR_ACCESS_DENIED`). Node/libuv `child_process` borularını `\\?\pipe\uv\*` adıyla kurar, `ACCESS_DENIED`'ı ad çakışması sayıp sonsuza dek yeniden dener; `uv_spawn` hiç dönmez. `stdio:'inherit'/'ignore'` çalışır, `'pipe'` (execFile, spawn, spawnSync) asılır; job object ve handle devralma etkisizdir (job'sız aynı sonuç). Önceki oturumun "git asılıyor" belirtisi bu nedenin sonucuydu; `.running` EPERM notu yeni koşuda engel olmadı.
 - Düzeltme (en küçük): Cursor komutuna `--require <resources/node-shim/appcontainer-pipes.js>` eklendi (`runner.NODE_PIPE_SHIM`); yalnız bu dizin Cursor çalışanına salt-okunur verilir. Shim: `child_process` borularını `LOCAL\` altında kurar, `spawnSync/execSync` çıktısını `RESPECTED_WORKER_TMP` içindeki geçici dosyalardan alır, IPC (`fork`) kanalını `EACCES` ile reddeder, JS `fs.realpath` yerine `native` olanı kullanır (JS sürümü `C:\` üzerinde lstat EPERM verir; yalnız boru shim'iyle yapılan ilk canlı koşuda Cursor'un yazma aracı "kanonik yol doğrulaması" ile reddedildi → `test_failed`; realpath yaması sonrası düzeldi).
-- Çıktı / değişen dosyalar: `src/respected_orchestrator/engine/runner.py`, `src/respected_orchestrator/resources/node-shim/appcontainer-pipes.js` (yeni), `tests/engine/test_worker_policy.py` (+1 gerçek AppContainer testi), `tests/engine/test_runner.py`, `docs/ARCHITECTURE.md`, `docs/THREAT_MODEL.md`, `docs/ilerleme/poc/cursor01_{pipe_rootcause,fixed_write}.log`, `cursor01_write_only.py`.
-- Doğrulama komutu: `python docs\ilerleme\poc\cursor01_write_only.py <çıktı.log>` (canlı, Cursor Free); `python -m unittest tests.engine.test_worker_policy tests.engine.test_runner`; `python -m unittest discover -s tests -t .`.
+- Çıktı / değişen dosyalar: `src/respected_orchestrator/engine/runner.py`, `src/respected_orchestrator/resources/node-shim/appcontainer-pipes.js` (yeni), `tests/engine/test_worker_policy.py` (+1 gerçek AppContainer testi), `tests/engine/test_runner.py`, `docs/ARCHITECTURE.md`, `docs/THREAT_MODEL.md`, `docs/evidence/poc/cursor01_{pipe_rootcause,fixed_write}.log`, `cursor01_write_only.py`.
+- Doğrulama komutu: `python docs\evidence\poc\cursor01_write_only.py <çıktı.log>` (canlı, Cursor Free); `python -m unittest tests.engine.test_worker_policy tests.engine.test_runner`; `python -m unittest discover -s tests -t .`.
 - Gerçek çıktı: canlı koşu `status=completed`, `changed_files=[owned.txt]`, kabul komutu returncode 0, `check` → `verified`, süre 44,5 sn, izole HOME silindi, token sızıntı taraması (`scan_for_secrets`) hata vermedi. Yeni test (`test_node_worker_can_start_piped_children_and_resolve_paths`) AppContainer içinde Cursor'un node'uyla `spawnSync`, `execFileSync(input)`, `spawn(stdin→stdout)` ve `realpathSync` çağırır; shim yoksa asılır (zaman aşımı).
 - Yasak erişim yeniden doğrulaması (shim sonrası, 2026-11-04): (a) `deny` senaryosu (`RESPECTED_CURSOR_NETWORK` yok) artık zaman aşımı yerine hızlıca fail-closed: `status=failed`, `reason=worker_failed`, `provider_status=AUTH_REQUIRED`, stderr "Authentication required"; auth.json kopyalanmadı, ağ açılmadı, izole HOME silindi (`poc/cursor01_deny.log`; eski kayıt `timed_out` idi). (b) `poc/cursor01_deny_probe.py` Cursor'un node'u + shim ile AppContainer içinde (ağ kapalı politika) çalışır: dışarıdaki dosyayı okuma/yazma/üzerine yazma, `.engine-key` okuma, veri kökü listeleme, kullanıcının `%APPDATA%\Cursoruth.json` okuması hepsi `EPERM`; shim'in başlattığı alt süreç dışarıdaki dosyayı okuyamadı (`status=1`); dışa TCP bağlantısı `EACCES`; kendi çalışma alanına yazma OK (`poc/cursor01_deny_probe.log`). Sızıntı yok, gevşetme gerekmedi. Not: probe'daki `PROBE_*` ad seçimi, `scrub_environment` "KEY/AUTH" adlı değişkenleri sildiği için ilk koşuda iki satırı `ERR_INVALID_ARG_TYPE` yaptı; adlar düzeltilip yeniden koşuldu.
 - Kabul kriteri karşılandı mı (kanıtla): EVET — `poc/cursor01_fixed_write.log` (`status: completed`, `check.status: verified`). Güvenlik sınırları gevşemedi: ağ yalnız `RESPECTED_CURSOR_NETWORK=allow`, `.cmd/.bat` reddi, kimlik yalıtımı ve ACL kapsamı aynı.
 - Kalan risk / shortcut: (1) Yasak erişim kanıtı aşağıdaki "Yasak erişim yeniden doğrulaması" maddesindedir. (2) `fork`/IPC kullanan bir Cursor özelliği artık `EACCES` alır; hangi özelliklerin buna ihtiyaç duyduğu doğrulanmadı. (3) Cursor'un shell aracı koşuda "reddedildi" dedi; nedeni (onay modeli mi, shim mi) doğrulanmadı. (4) `shortcut: shim yalnız Cursor için yüklenir; node tabanlı yeni işçi eklenirse aynı --require gerekir.` (5) sha256 ön ekleri: `cursor01_fixed_write.log` 7aeb758a3ac278aa, `cursor01_pipe_rootcause.log` 15db4e0da701fc86, `cursor01_write_only.py` 2eb1e4a4572a2800, `appcontainer-pipes.js` 362f75197c7f89a9, `runner.py` 8ae846a6a18f065b, `test_worker_policy.py` 6f12ddf68e6f74de, `test_runner.py` 465f97b4416c7518, `ARCHITECTURE.md` 6b19978729f41945, `THREAT_MODEL.md` af39df1b152e74c0, `cursor01_deny.log` dc8b9c8453a1de2e, `cursor01_deny_probe.log` d3d6889e8bd3603c, `cursor01_deny_probe.py` 2099df89ef6e6177; `cursor01_write_only.py` artık 2. argüman (`write|deny`) alır: b6274725dc1384a0 (yukarıdaki 2eb1e4a4572a2800 değerinin yerine).
+
+## Kapanış hash düzeltmesi 2 (2026-11-04: Cursor token, ilerleme -> evidence taşıma)
+
+- `docs/ilerleme/` klasörü `docs/evidence/` olarak yeniden adlandırıldı; tüm yol atıfları güncellendi. Aşağıdaki hash'ler bu işlemden sonraki güncel dosya içerikleridir ve önceki bloklardaki aynı dosyaların hash'lerinin yerine geçer.
+
+- `docs/ARCHITECTURE.md` → `5331A606A0EAC82187ED4E145C073A02C67D3D42F2724A5875F0D19AC33CE2FB`
+- `docs/COMPETITOR_RESEARCH.md` → `1B70D72AFC367A59A56D929D4FCEAA83E73FF155E574842F6338EBA06D05FDC9`
+- `docs/ROADMAP.md` → `E8A6E802F22AEB28C5B3555585905DB55FC493ACEADF7CB42AEBDA850A46063F`
+- `docs/ROADMAP_EXECUTION_PLAN.md` → `375CE86DE8D2AF9209EA75D6800101B127CE358734D17283D8107162EC7D41DC`
+- `docs/THREAT_MODEL.md` → `1761116632181F1F54DC020A9758E8765A253104AA790887945B0747001F365F`
+- `docs/adr/ADR-001-controlled-execution.md` → `BDD4C79D63D4702C0CA923B5895DCFFBFD996F541C0B7D4C5CF6429285BD8352`
+- `docs/adr/ADR-002-reproducible-evaluation.md` → `2C12DB32594A4D249FDF3E9B16EBADFBDC9ED1DBC55F19C47D3089B17B94A9E0`
+- `docs/adr/ADR-003-migration-gate.md` → `A3A562ADF3F16273CEB8C569EA64C95C8FC392F4225C3C097C7AE383F7BAAE13`
+- `docs/adr/ADR-004-human-approval-boundary.md` → `3FBBF26E552C3055754D7694D4FEA2323AB3FEBBEB578BC84844A37B6CD75CC0`
+- `docs/adr/ADR-005-failure-taxonomy.md` → `7973FF5AAE0306AE8E1BF50540BCCEF0E14E9CC4EA3C9FE905A9EB4D3256B218`
+- `docs/adr/ADR-007-provider-key-network-threat-model.md` → `6099FA2EB8C7439A843C1A722EEBFB1F9F14CF1EC254F1F0A58A20F0D5D925AF`
+- `src/respected_orchestrator/engine/runner.py` → `48AD809631C6713063C3266D8ECA1BC821DBEAF261332E60F5D0BC49283C3EBB`
+- `tests/docs/test_decision_records.py` → `417CABB93D57ACE8C8E5195CF44AC2C5F7FD302DE84B3A2FA3FF7EE138E04110`
+- `tests/engine/test_worker_policy.py` → `3A18451497A89AD68F890F5F6F3013BFEE0893F47652A288563E6469E57F4F43`
+- `tests/evals/runner.py` → `6A151EC5784990FF5AE58FF973E0264FC9EE4893C17139A13CE82E3D7DD580A7`
+- `tests/workflows/test_roles.py` → `078358CEE57819AD8C92950BB329B1C57C96E3757B4CC5F87CCF3C62C8AA069F`
+- `docs/evidence/poc/cursor_cache_probe.log` → `3BFEB51FB7B7B7959B2D1E3718AFC518F2FA90DECAD3B891F1B27D73B1D901CF`
+
+## Kapanış hash düzeltmesi 3 (2026-11-04: belge denetimi)
+
+- `docs/ADR-REL04-platform-parity.md` -> `docs/adr/ADR-008-platform-parity.md` taşındı ve numaralandı; atıflar (`ARCHITECTURE.md`, `health_wizard.py`, `release_platform.py`) güncellendi. ADR-001/ADR-007 durum satırları, ROADMAP üç madde, USAGE/FOOTPRINT/COMMANDS (Cursor, OpenCode, Gemini kapsam dışı, `artifact`), uygulama planı (CUR-01) düzeltildi. Aşağıdaki hash'ler önceki blokların yerine geçer.
+
+- `docs/COMMANDS.md` → `42CCAE6C061B141A47E3C98DC4F4E2C8F0EEB01F597A21246F0829DCC2E2F8A5`
+- `docs/USAGE.md` → `FBF728AD4C98E3A1D113088683DF663AB4EBAB4AA81114FD6E0E4521261CA395`
+- `docs/FOOTPRINT.md` → `19C3FCB5F740E8AE902DB598B04481D3489F75140A3D7B9B6F08E74BCE42802A`
+- `docs/ROADMAP.md` → `A626EC66400159D352756B7223AE73642C12649FACBD13FC28C720A7E65EFC53`
+- `docs/ROADMAP_EXECUTION_PLAN.md` → `E812588B7511F6A322C033176EA1BADE9573EAF3C211C74FEE7FBC6F442EE7C1`
+- `docs/THREAT_MODEL.md` → `E653B88C39C91BACD1CB4860CEC1C8BA06190B4CC18A8B9F993BE1DA4509CB99`
+- `docs/ARCHITECTURE.md` → `4245FAA91AC880D5C5C178E9B257FCCB6D0EBA6BB9426BEACC19DB1A6477888E`
+- `docs/adr/ADR-001-controlled-execution.md` → `F215301CB2C0A8C6EA0A0C1E9A06D5540B9F945D81A3AAC85C1D7E38110E760D`
+- `docs/adr/ADR-007-provider-key-network-threat-model.md` → `2F5F1C3F979AE4BFC72CB2280FCBF7F0866A14D039FD157ED14C9B0C5C311BCF`
+- `docs/adr/ADR-008-platform-parity.md` → `F535A3E3B92E1EE13D6F76A1AC30AA288095892177CAA5F632E78980DDE5F80F`
+- `src/respected_orchestrator/interfaces/health_wizard.py` → `A41E973CE020011ECC52B21825D00941778A6325AAC196477367445820EF98F7`
+- `src/respected_orchestrator/release_platform.py` → `030F38D26738FB8937BFB53C4A3C2F0C7792058FF51A2F95B3F91F95F81B4BA6`
+
+## Kapanış hash düzeltmesi 4 (2026-11-04: tüm .md denetimi)
+
+- THREAT_MODEL (B2, B3, S-01/02/04/20, §7, §8 tarihsel not, §10, §11), ARCHITECTURE §3/§4, FOOTPRINT sınır paragrafı, README, PRIVACY (AppContainer, GitHub ve Cursor/OpenCode ağ satırları), ADR-002/007, COMPETITOR_RESEARCH B-02, SKILL.md (`--data-root` kaldırıldı), UPDATE_NOTES güncellendi. Aynı dosyaların önceki bloklardaki hash'lerinin yerine geçer.
+- Bilerek değiştirilmeyenler: `docs/PRODUCT_CONTRACT.md` (üç depoda aynı kopya olmak zorunda; §7 Orchestrator RPP listesi `evidence.view` ve `github.*` işlemlerini içermiyor, Hub/Brain kopyalarıyla birlikte güncellenmeli).
+
+- `docs/THREAT_MODEL.md` → `2BDECEB7AB822D5AE58519F693F77849EBC4E784BE3B244808BA50A9A397875F`
+- `docs/ARCHITECTURE.md` → `78FF8367B0490E9BCF894F70ED403FF4D6F1BCE85B40BD683E14CE456ADAAF75`
+- `docs/FOOTPRINT.md` → `19C3FCB5F740E8AE902DB598B04481D3489F75140A3D7B9B6F08E74BCE42802A`
+- `docs/COMPETITOR_RESEARCH.md` → `4328D090BF0027E56109D53D7650DE0C68E0E9B2CA81E407FF5CD8596E12190B`
+- `docs/adr/ADR-002-reproducible-evaluation.md` → `9F46835D260440967B5AA26D549256EF1277A6F671018B99C244CBEBEC2D7BEC`
+- `docs/adr/ADR-007-provider-key-network-threat-model.md` → `D529C02BD525131C63E67BBF0831B2E3289A1493282BB21AA1C60BD1072CBE1A`
+- `README.md` → `96B2FB48D55083D7D8BB52F6B6DF9A8455A9E4A1912A5A859F6AF2E591C29192`
+- `PRIVACY.md` → `BD68E38E522F9CB5EE10BD8A1B2D782EF7668E5701484B98C7E3BD377588BAF9`
+- `packaging/windows/UPDATE_NOTES.md` → `91BF9503BC86442A0B62AB68C4F026FDE467CA37ADBA11BDBA08A2E942C40AA4`
+- `src/respected_orchestrator/resources/skills/kod-orkestrasyon/SKILL.md` → `D4A4DC3406266436077BEC0C56C3462E66E9949DA0884CEA0FEA53BD7A4DC573`

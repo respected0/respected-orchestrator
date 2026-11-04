@@ -211,7 +211,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repeat", type=int, default=3)
     parser.add_argument("--timeout", type=float, default=20.0)
-    parser.add_argument("--out", type=Path, default=Path("docs/ilerleme/poc/eval01_results.json"))
+    parser.add_argument("--out", type=Path, default=Path("docs/evidence/poc/eval01_results.json"))
     args = parser.parse_args(argv)
     if args.repeat < 1:
         parser.error("--repeat must be at least 1")

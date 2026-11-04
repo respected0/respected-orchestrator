@@ -1,0 +1,619 @@
+{
+  "schema": "respected.eval.v1",
+  "metadata": {
+    "python": "3.13.15",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "machine": "AMD64",
+    "git": "git version 2.55.0.windows.5",
+    "timestamp_utc": "2026-10-30T01:05:28.662988+00:00"
+  },
+  "repeat": 1,
+  "tasks": [
+    {
+      "task_id": "RSP-001",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "a361a96f3f25de1617e956b667b9fdf2b0f21e4e",
+          "expected_start_sha": "a361a96f3f25de1617e956b667b9fdf2b0f21e4e",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nERROR: test_empty (test_solution.TestFirst.test_empty)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-001-hq2f87h_\\test_solution.py\", line 6, in test_empty\n    self.assertIsNone(first([]))\n                      ~~~~~^^^^\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-001-hq2f87h_\\solution.py\", line 2, in first\n    return items[0]\n           ~~~~~^^^\nIndexError: list index out of range\n\n----------------------------------------------------------------------\nRan 2 tests in 0.001s\n\nFAILED (errors=1)\n",
+            "duration_seconds": 0.1159,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1105,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "f2ced452aeb2b6c0abbc9ed62344750578a45150c0ec4bb8a75f1823cb65415d"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-002",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "987495e918157038253320f21a6d22e673857833",
+          "expected_start_sha": "987495e918157038253320f21a6d22e673857833",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_inclusive (test_solution.TestSumTo.test_inclusive)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-002-24eyx2eq\\test_solution.py\", line 8, in test_inclusive\n    self.assertEqual(sum_to(5), 15)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^\nAssertionError: 10 != 15\n\n----------------------------------------------------------------------\nRan 2 tests in 0.001s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.1133,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1143,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "acd9b2362a4c41a855f2306253e295bf78f241293d9fb69cff58a6e5c5ae8572"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-003",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "a213fcde79b8fe68bb454c0848fc5204b5d96fe6",
+          "expected_start_sha": "a213fcde79b8fe68bb454c0848fc5204b5d96fe6",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_collapses (test_solution.TestNormalize.test_collapses)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-003-geqg_te9\\test_solution.py\", line 6, in test_collapses\n    self.assertEqual(normalize(\"  a   b  \"), \"a b\")\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'a   b' != 'a b'\n- a   b\n?  --\n+ a b\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.1151,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1123,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "f26cd64c3d650194076ce16795f13d2ece920e1ed3310bf9b998bd6103857b04"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-004",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "a1cd9219bdad63112bbfaa20d9a4b5f5c8fbd7ac",
+          "expected_start_sha": "a1cd9219bdad63112bbfaa20d9a4b5f5c8fbd7ac",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nERROR: test_zero (test_solution.TestDivide.test_zero)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-004-fenaflkb\\test_solution.py\", line 8, in test_zero\n    self.assertIsNone(safe_divide(1, 0))\n                      ~~~~~~~~~~~^^^^^^\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-004-fenaflkb\\solution.py\", line 2, in safe_divide\n    return a / b\n           ~~^~~\nZeroDivisionError: division by zero\n\n----------------------------------------------------------------------\nRan 2 tests in 0.001s\n\nFAILED (errors=1)\n",
+            "duration_seconds": 0.1123,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1096,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "4cd152ae13fb91a78aa18f3eda7548996c92a4700f20f1b037d0ce93328d4220"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-005",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "8c5f3481bd2ae326d8f33d59c8dfcd4d3829e5ee",
+          "expected_start_sha": "8c5f3481bd2ae326d8f33d59c8dfcd4d3829e5ee",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_no_leak (test_solution.TestAppend.test_no_leak)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-005-zv67l8ib\\test_solution.py\", line 7, in test_no_leak\n    self.assertEqual(append_item(2), [2])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: [1, 2] != [2]\n\nFirst differing element 0:\n1\n2\n\nFirst list contains 1 additional elements.\nFirst extra element 1:\n2\n\n- [1, 2]\n+ [2]\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.1131,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1121,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "f8d6c0311fa8fe43214a13a27043de720a2676e8f22b6bb371421105e780fe2a"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-006",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "ad6f7c15dc626403bff4ea4dbd8d2891858f5d09",
+          "expected_start_sha": "ad6f7c15dc626403bff4ea4dbd8d2891858f5d09",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_negative (test_solution.TestParse.test_negative)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-006-ll2x6f83\\test_solution.py\", line 8, in test_negative\n    self.assertEqual(parse_nonnegative(\"-3\"), 0)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: -3 != 0\n\n----------------------------------------------------------------------\nRan 2 tests in 0.001s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.1108,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n",
+            "duration_seconds": 0.111,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "29eadb277e24e6d4ce7ba2e0a6c354794ebfb7e5b178c9a619558264249c8f31"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-007",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "32592c8eed73804fba8112d566179d0363fc6230",
+          "expected_start_sha": "32592c8eed73804fba8112d566179d0363fc6230",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nERROR: test_missing (test_solution.TestDefault.test_missing)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-007-ropsd6gd\\test_solution.py\", line 8, in test_missing\n    self.assertEqual(get_or_default({}, \"a\", 42), 42)\n                     ~~~~~~~~~~~~~~^^^^^^^^^^^^^\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-007-ropsd6gd\\solution.py\", line 2, in get_or_default\n    return data[key]\n           ~~~~^^^^^\nKeyError: 'a'\n\n----------------------------------------------------------------------\nRan 2 tests in 0.001s\n\nFAILED (errors=1)\n",
+            "duration_seconds": 0.1116,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1102,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "ad3d3c9e146b4d70aa31ca8af3c65746ead44ed9bc4494c6e524f2f20db64212"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-008",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "1c454d9b08212bebcbf5eb6a8ea3c9889e90da16",
+          "expected_start_sha": "1c454d9b08212bebcbf5eb6a8ea3c9889e90da16",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_age (test_solution.TestSort.test_age)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-008-0gtq6okb\\test_solution.py\", line 7, in test_age\n    self.assertEqual([p[\"age\"] for p in sort_people(people)], [20, 30])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: [30, 20] != [20, 30]\n\nFirst differing element 0:\n30\n20\n\n- [30, 20]\n+ [20, 30]\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.1127,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1093,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "78aebba035ea352442bcb4280825d5bb3c44eadbae91bb607109cd94f107e18a"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-009",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "7cb0153f2cd38348605f597e414b4fabd23c4049",
+          "expected_start_sha": "7cb0153f2cd38348605f597e414b4fabd23c4049",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_negative (test_solution.TestPage.test_negative)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-009-va7vvudj\\test_solution.py\", line 6, in test_negative\n    self.assertEqual(page_items([1, 2, 3], -2, 2), [1, 2])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: [] != [1, 2]\n\nSecond list contains 2 additional elements.\nFirst extra element 0:\n1\n\n- []\n+ [1, 2]\n\n----------------------------------------------------------------------\nRan 2 tests in 0.001s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.1115,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1125,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "700d74637667b0427449dfd2073450f80cb5061cc35b88ce92ff5bc934257843"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-010",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "9496f53cdad11fee8d1e1b7cf24def9fbf71a119",
+          "expected_start_sha": "9496f53cdad11fee8d1e1b7cf24def9fbf71a119",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_precision (test_solution.TestPercent.test_precision)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-010-cw34rc7k\\test_solution.py\", line 6, in test_precision\n    self.assertEqual(percent(1, 3), 33.33)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 33.0 != 33.33\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.1107,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1184,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "0e8ebd9f063bf5f2a319d4077f588ad083c4d63bb52e707e1313b94b152be2ad"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-011",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "0745a2025fe6430be2f368171bbcc88a0c672ce0",
+          "expected_start_sha": "0745a2025fe6430be2f368171bbcc88a0c672ce0",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_punctuation (test_solution.TestSlug.test_punctuation)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-011-9qp7op5r\\test_solution.py\", line 6, in test_punctuation\n    self.assertEqual(slugify(\"Hello, World!\"), \"hello-world\")\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'hello,-world!' != 'hello-world'\n- hello,-world!\n?      -      -\n+ hello-world\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.1125,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+            "duration_seconds": 0.113,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "26bdc09b4e69e318d785b91e17d506bef4aad9bddcd9853eac3c7fa071310f77"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-012",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "9e55eb685796ab49b25bf6c43d868a808c9faf7b",
+          "expected_start_sha": "9e55eb685796ab49b25bf6c43d868a808c9faf7b",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_count (test_solution.TestAttempts.test_count)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-012-fobfhcj9\\test_solution.py\", line 6, in test_count\n    self.assertEqual(attempt_numbers(3), [0, 1, 2])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: [0, 1] != [0, 1, 2]\n\nSecond list contains 1 additional elements.\nFirst extra element 2:\n2\n\n- [0, 1]\n+ [0, 1, 2]\n?      +++\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.1194,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1304,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "8408eab11d0c1b2e19d62523a60a89db5d52372b033b70a2610999389eb0b1cb"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-013",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "2b9114b072938a7f1c62475fa5ba503c4613d917",
+          "expected_start_sha": "2b9114b072938a7f1c62475fa5ba503c4613d917",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nERROR: test_missing (test_solution.TestNested.test_missing)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-013-axzwzajd\\test_solution.py\", line 8, in test_missing\n    self.assertIsNone(nested_get({\"a\": {}}, [\"a\", \"b\"]))\n                      ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-013-axzwzajd\\solution.py\", line 2, in nested_get\n    return data[keys[0]][keys[1]]\n           ~~~~~~~~~~~~~^^^^^^^^^\nKeyError: 'b'\n\n----------------------------------------------------------------------\nRan 2 tests in 0.001s\n\nFAILED (errors=1)\n",
+            "duration_seconds": 0.1162,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1136,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "184aba4e0669b49dee36e515b5e3962824fdd59de3cf82cfdfbe49ae9cd8078e"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-014",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "ef33a7f0541a20e24f1604c088851df999b9923b",
+          "expected_start_sha": "ef33a7f0541a20e24f1604c088851df999b9923b",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_low (test_solution.TestClamp.test_low)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-014-k69bw6hx\\test_solution.py\", line 6, in test_low\n    self.assertEqual(clamp(-1, 0, 10), 0)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\nAssertionError: -1 != 0\n\n----------------------------------------------------------------------\nRan 2 tests in 0.001s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.1159,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1103,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "d874405b7f04d307f2fae9ef172b20ac50eec3ae5bfcce16de9c8e5f2a1ecdba"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-015",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "d0101a78bcf96aca126415cdc7278207da6548db",
+          "expected_start_sha": "d0101a78bcf96aca126415cdc7278207da6548db",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_order (test_solution.TestUnique.test_order)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-015-ncf94x5s\\test_solution.py\", line 6, in test_order\n    self.assertEqual(unique([\"b\", \"a\", \"b\"]), [\"b\", \"a\"])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: ['a', 'b'] != ['b', 'a']\n\nFirst differing element 0:\n'a'\n'b'\n\n- ['a', 'b']\n+ ['b', 'a']\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.1098,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1122,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "784629696a77a5c73bbe2bb01b13c8eac01dbcbbb48dd2cb191e73ab49913779"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-016",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "7348e271471b00d923f880ec598b929c1f9e9e7d",
+          "expected_start_sha": "7348e271471b00d923f880ec598b929c1f9e9e7d",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_sizes (test_solution.TestChunk.test_sizes)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-016-_yuzop81\\test_solution.py\", line 6, in test_sizes\n    self.assertEqual(chunk([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: [[1, 2], [4, 5]] != [[1, 2], [3, 4], [5]]\n\nFirst differing element 1:\n[4, 5]\n[3, 4]\n\nSecond list contains 1 additional elements.\nFirst extra element 2:\n[5]\n\n- [[1, 2], [4, 5]]\n+ [[1, 2], [3, 4], [5]]\n?           +++ +  +\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.1184,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1153,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "18338cecc62035e4cab512151ef21b31fc1f2ca9fca7c2e636f48505dc320f48"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-017",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "fa926a1e2835975d493307189c661123ac7ec382",
+          "expected_start_sha": "fa926a1e2835975d493307189c661123ac7ec382",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_even (test_solution.TestMedian.test_even)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-017-lf8lfbc7\\test_solution.py\", line 8, in test_even\n    self.assertEqual(median([1, 3]), 2)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\nAssertionError: 3 != 2\n\n----------------------------------------------------------------------\nRan 2 tests in 0.002s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.1182,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1196,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "823bb4f66e84e3c899303b2e282f1700e65ffa95d37f154104adb82722d18002"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-018",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "6c4179639d44a16b7668e20288569ba066201dad",
+          "expected_start_sha": "6c4179639d44a16b7668e20288569ba066201dad",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_quoted_comma (test_solution.TestCsv.test_quoted_comma)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-018-a9sem4yv\\test_solution.py\", line 6, in test_quoted_comma\n    self.assertEqual(parse_csv_line('a,\"b,c\",d'), [\"a\", \"b,c\", \"d\"])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: ['a', '\"b', 'c\"', 'd'] != ['a', 'b,c', 'd']\n\nFirst differing element 1:\n'\"b'\n'b,c'\n\nFirst list contains 1 additional elements.\nFirst extra element 3:\n'd'\n\n- ['a', '\"b', 'c\"', 'd']\n?        -   ------\n\n+ ['a', 'b,c', 'd']\n?         ++\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.114,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+            "duration_seconds": 0.118,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "cf8aa69e990e3c0b197266b5233021acbcc9215ba6e0ecfb0b43059a65215f37"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-019",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "4a633cc41c6ac3884869fc7b75e403ce1e195337",
+          "expected_start_sha": "4a633cc41c6ac3884869fc7b75e403ce1e195337",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_long (test_solution.TestTruncate.test_long)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-019-7o_dwm0k\\test_solution.py\", line 8, in test_long\n    self.assertEqual(truncate(\"abcdef\", 5), \"ab...\")\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'abcde' != 'ab...'\n- abcde\n+ ab...\n\n\n----------------------------------------------------------------------\nRan 2 tests in 0.001s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.1136,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1225,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "84bfeef27878376a8dbd4fd151f37dd74269b6bcd520d8a0a74139cc35660b24"
+        }
+      ]
+    },
+    {
+      "task_id": "RSP-020",
+      "status": "passed",
+      "runs": [
+        {
+          "run": 1,
+          "start_sha": "d256f609d37b24dce730bd2af72a344b2af8aba9",
+          "expected_start_sha": "d256f609d37b24dce730bd2af72a344b2af8aba9",
+          "start_sha_matches": true,
+          "baseline": {
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "======================================================================\nFAIL: test_no_mutation (test_solution.TestMerge.test_no_mutation)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"C:\\Users\\Furkan\\AppData\\Local\\Temp\\orch-eval-rsp-020-ut255_uf\\test_solution.py\", line 8, in test_no_mutation\n    self.assertEqual(left, {\"a\": 1})\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^\nAssertionError: {'a': 1, 'b': 2} != {'a': 1}\n- {'a': 1, 'b': 2}\n+ {'a': 1}\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+            "duration_seconds": 0.119,
+            "timeout": false
+          },
+          "golden": {
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+            "duration_seconds": 0.1188,
+            "timeout": false
+          },
+          "baseline_status": "expected_failure",
+          "golden_status": "expected_pass",
+          "cost": "bilinmiyor",
+          "result_hash": "6b94b38a0534e6e6058a8250bed75e540adc00de603d4bd594cdf3e879b5cdb2"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "rejected": 0
+  }
+}

@@ -25,4 +25,4 @@ Bir ajanın kendi ürettiği sonucu yine kendisinin onaylayabilmesi, doğrulama 
 
 - [Ürün sözleşmesi](../PRODUCT_CONTRACT.md) (erişim: 2026-10-30).
 - [Mimari](../ARCHITECTURE.md) §2 (erişim: 2026-10-30).
-- [KANIT_LOG](../ilerleme/KANIT_LOG.md) §SEC-01, "bilinen sınırlar" (erişim: 2026-10-30).
+- [KANIT_LOG](../evidence/KANIT_LOG.md) §SEC-01, "bilinen sınırlar" (erişim: 2026-10-30).

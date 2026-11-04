@@ -2,7 +2,7 @@
 
 ## Durum
 
-Kabul edildi; kısmi uygulama. İşletim sistemi düzeyinde sandbox `SEC-02` ve `SEC-03` kapsamında henüz yok.
+Kabul edildi ve uygulandı (Windows). İşletim sistemi düzeyinde sandbox `SEC-02`/`SEC-03`/`SEC-04` ile geldi (AppContainer, fail-closed başlatıcı, negatif izolasyon testleri); macOS/Linux'ta yoktur (bkz. ADR-008).
 
 ## Bağlam
 
@@ -25,4 +25,4 @@ Ajanlar izole Git worktree'lerinde çalışıyor ve sonuç yaması kapsam (`owne
 
 - [Tehdit modeli](../THREAT_MODEL.md), özellikle §8 PoC ve S-01…S-25 senaryoları (erişim: 2026-10-30).
 - [Mimari](../ARCHITECTURE.md) §2 ve §10 (erişim: 2026-10-30).
-- [KANIT_LOG](../ilerleme/KANIT_LOG.md) §SEC-01 (erişim: 2026-10-30).
+- [KANIT_LOG](../evidence/KANIT_LOG.md) §SEC-01 (erişim: 2026-10-30).

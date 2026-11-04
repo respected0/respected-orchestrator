@@ -320,8 +320,8 @@ class RealSandboxTests(unittest.TestCase):
     def test_node_worker_can_start_piped_children_and_resolve_paths(self):
         # Without the shim libuv's pipes (named \\?\pipe\uv\*) are denied in the AppContainer and uv_spawn spins forever.
         node = runner.get_cli_command("cursor")
-        if node is None:
-            self.skipTest("Cursor CLI (its bundled node.exe) is not installed")
+        if node is None or str(runner.NODE_PIPE_SHIM) not in node:
+            self.skipTest("Cursor CLI (its bundled node.exe behind the .cmd shim) is not installed")
         python = sys.executable.replace("\\", "/")
         code = (
             "const cp=require('child_process'),fs=require('fs');"

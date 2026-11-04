@@ -1,0 +1,6 @@
+
+[1] {"type":"result","subtype":"success","is_error":false,"duration_ms":6863,"duration_api_ms":6863,"result":"OK","session_id":"d2c6a8c7-2ac9-4ebb-a99a-05049bce9d52","request_id":"ba1b5dda-f509-45a3-9af7-78ffa42ec350","usage":{"inputTokens":13350,"outputTokens":82,"cacheReadTokens":3968,"cacheWriteTokens":0}}
+[2] {"type":"result","subtype":"success","is_error":false,"duration_ms":5917,"duration_api_ms":5917,"result":"OK","session_id":"3c85a8c9-accb-40d4-939d-af33ba92c427","request_id":"d9656a6c-068a-41c1-95bc-80f9387a62ce","usage":{"inputTokens":14119,"outputTokens":92,"cacheReadTokens":3968,"cacheWriteTokens":0}}
+[3] {"type":"result","subtype":"success","is_error":false,"duration_ms":7021,"duration_api_ms":7021,"result":"OK","session_id":"90f86e51-832f-42f8-8c70-c2f344623aa4","request_id":"750ab8a5-924f-4281-8081-8ef7c57361f9","usage":{"inputTokens":39,"outputTokens":41,"cacheReadTokens":18048,"cacheWriteTokens":0}}
+[4] {"type":"result","subtype":"success","is_error":false,"duration_ms":5780,"duration_api_ms":5780,"result":"OK","session_id":"dd9c3414-4c3c-4290-b3f7-e044c45393ac","request_id":"f231c202-023b-4241-9b07-a5616024fc54","usage":{"inputTokens":14119,"outputTokens":102,"cacheReadTokens":3968,"cacheWriteTokens":0}}
+DONE

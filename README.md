@@ -16,7 +16,7 @@ Kodlama ajanlarını yalıtılmış Git çalışma ağaçlarında çalıştıran
 ![Python gerekmez](https://img.shields.io/badge/Python-gerekmez-3776AB?style=flat-square&logo=python&logoColor=white)
 ![Git](https://img.shields.io/badge/Git-gerekli-F05032?style=flat-square&logo=git&logoColor=white)
 
-**Codex** · **Claude** · **Gemini** · **Antigravity** · **Cursor** · **kendi komutunuz**
+**Codex** · **Claude** · **Antigravity** · **Cursor** · **OpenCode** · **kendi komutunuz**
 
 [Nasıl çalışır](#nasıl-çalışır) · [Özellikler](#özellikler) · [Kurulum](#kurulum) · [Komutlar](#komutlar) · [Geliştirme](#geliştirme)
 
@@ -47,8 +47,8 @@ Brain, not kasası, Hub ya da sürekli çalışan bir servis gerektirmez; Brain 
 
 | | |
 |---|---|
-| **Yalıtım** | Her görev projenizin ayrı bir Git çalışma ağacında çalışır; gerçek ağaca dokunmaz |
-| **Kendi ajanınız** | Codex, Claude, Gemini, Antigravity, Cursor ya da kendi komutunuz |
+| **Yalıtım** | Her görev projenizin ayrı bir Git çalışma ağacında ve bir Windows AppContainer içinde çalışır; gerçek ağaca dokunmaz, ağ varsayılan kapalıdır |
+| **Kendi ajanınız** | Codex, Claude, Antigravity, Cursor, OpenCode ya da kendi komutunuz |
 | **Denetim** | Kapsam, doğrulama komutları, imzalı kanıt, yamanın güncelliği |
 | **Onay sizde** | Hiçbir sonuç kendiliğinden uygulanmaz; bekleyen, başarısız, bayat ya da kurcalanmış sonuç `check`'ten geçmez |
 | **Kampanyalar ve projeler** | Çok adımlı işler için MAF iş akışı, kampanyalar, projeler, planlayıcı, rol atama |
@@ -83,8 +83,9 @@ Tam liste ve istek biçimleri: [docs/COMMANDS.md](docs/COMMANDS.md).
 |---|---|
 | **Kurulum ve bakım** | `setup`, `repair`, `uninstall [--purge]`, `config [get\|set]`, `health`, `status` |
 | **Bağlantılar** | `memory connect [--write] \| disconnect \| status` (Brain hafızası), `integrations [set İSTEMCİ=on\|off]` (AI araçlarına MCP kaydı), `mcp`, `rpp` |
-| **Görevler** | `create` → `start` → `inspect` → `check` → `apply`; ayrıca `list`, `retry`, `cancel`, `maf`, `maf-approve`, `roles`, `plan` |
-| **Projeler ve kampanyalar** | `project-start\|status\|resume\|cancel`, `campaign-start\|status\|list` |
+| **Görevler** | `create` → `start` → `inspect` → `check` → `apply`; ayrıca `list`, `retry`, `cancel`, `artifact`, `evidence`, `maf`, `maf-approve`, `roles`, `plan`, `coordinate`, `integrate` |
+| **Projeler ve kampanyalar** | `project-start\|status\|resume\|approve\|cancel`, `campaign-start\|status\|cancel\|list` |
+| **GitHub** | `github-import-issue`, `github-pr-plan`, `github-pr-create`, `github-ci-plan` |
 
 ## Geliştirme
 

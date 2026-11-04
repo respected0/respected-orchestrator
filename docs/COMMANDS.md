@@ -54,6 +54,7 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 | `start RUN_ID` | | Ayrık bir denetleyici başlatır; Hub ya da terminal kapansa da sürer. Aynı veri kökünde aynı anda tek görev çalışır; sonradan başlatılan görev kendi süresi içinde sıraya girer. |
 | `list` | | Görevler, en yenisi önce. |
 | `inspect RUN_ID` | | Durum, aşamalar, değişiklikler, kullanım. |
+| `artifact RUN_ID` | stdin: `{"name": "..."}` | Görevin kanıt paketindeki adı verilen çıktıyı (örneğin yama) okur; yalnızca okur. |
 | `check RUN_ID` | | Sonucu yeniden doğrular: imzalı kanıt, kapsam, doğrulama, yamanın projeye uyması, projenin güncelliği. |
 | `apply RUN_ID` | | `check`'ten geçen yamayı projeye uygular (`git apply`); commit atmaz. Çalışan süreçlerin içinden reddedilir. |
 | `retry RUN_ID` | | Başarısız, zaman aşımına uğramış ya da iptal edilmiş görevi yeni bir çalışma olarak yeniden dener (toplam en fazla üç deneme). |

@@ -133,13 +133,18 @@ class CommandTests(unittest.TestCase):
         self.assertIsNotNone(tool_result("claude", json.dumps({"type": "result", "is_error": True, "result": "x"}))[3])
         self.assertEqual(tool_result("claude", "plain text"), ("plain text", None, None, None))
         self.assertIsNone(tool_result("claude", json.dumps({"type": "result", "result": "x"}))[1])
-        # shape recorded live from the Cursor CLI (docs/ilerleme/poc/cost01_cursor_live.log)
+        # shape recorded live from the Cursor CLI (docs/evidence/poc/cost01_cursor_live.log)
         cursor = json.dumps({"type": "result", "is_error": False, "result": "OK", "usage": {
             "inputTokens": 10558, "outputTokens": 94, "cacheReadTokens": 3968, "cacheWriteTokens": 0}})
         text, usage, model, error = tool_result("cursor", cursor)
         self.assertEqual((text, model, error), ("OK", None, None))
+        # inputTokens excludes the cache read, so the raw input is their sum
         self.assertEqual((usage["raw_input_tokens"], usage["cached_input_tokens"], usage["estimated_weighted_tokens"]),
-                         (10558, 3968, 6590 + round(3968 * 0.03) + 94))
+                         (10558 + 3968, 3968, 10558 + round(3968 * 0.03) + 94))
+        # recorded live: a nearly fully cached turn (inputTokens 39 < cacheReadTokens 18048) is valid, not unknown
+        cached = json.dumps({"type": "result", "result": "OK", "usage": {
+            "inputTokens": 39, "outputTokens": 41, "cacheReadTokens": 18048, "cacheWriteTokens": 0}})
+        self.assertEqual(tool_result("cursor", cached)[1]["estimated_weighted_tokens"], 39 + round(18048 * 0.03) + 41)
         missing = json.dumps({"type": "result", "result": "OK", "usage": {"inputTokens": 5, "outputTokens": 1}})
         self.assertIsNone(tool_result("cursor", missing)[1])  # cacheReadTokens absent: unknown, never zero
         self.assertIsNotNone(tool_result("cursor", json.dumps({"type": "result", "is_error": True, "result": "x"}))[3])

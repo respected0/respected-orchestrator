@@ -2,7 +2,7 @@
 
 ## Durum
 
-Kabul edildi (ADP-02). Uygulama kapısı `engine/provider_policy.py`; canlı sağlayıcı adaptörü ADP-03'tür.
+Kabul edildi (ADP-02). Uygulama kapısı `engine/provider_policy.py`; sağlayıcı adaptörü ADP-03 ile geldi (henüz CLI'ye bağlı değil).
 
 ## Bağlam
 
@@ -43,12 +43,12 @@ fallback, yönlendirme (redirect) ve proxy üzerinden beklenmeyen alan adına ç
 ## Sonuçlar
 
 - ADP-03 adaptörü `require_access` çağırmadan istek başlatamaz; kapı test edilir.
-- Anahtarın DPAPI kasası ADP-03 ile birlikte gelecek; bu ADR depo biçimini ve sınırları sabitler.
+- Anahtarın DPAPI kasası ADP-03 ile geldi (`engine/secret_vault.py`); bu ADR depo biçimini ve sınırları sabitler.
 - Proxy istemcisi allowlist dışına çıkamaz; kurumsal proxy kullanılıyorsa proxy host'u da allowlist'e eklenir.
 - Sağlayıcıya giden görev metni ve dosya içeriği yine sağlayıcıya görünür; opt-in bunu kabul etmek demektir.
 
 ## Kaynaklar
 
-- [ADP-02 kanıtı](../ilerleme/KANIT_LOG.md) §ADP-02 (erişim: 2026-11-03).
+- [ADP-02 kanıtı](../evidence/KANIT_LOG.md) §ADP-02 (erişim: 2026-11-03).
 - [Mimari](../ARCHITECTURE.md) §2 (erişim: 2026-11-03).
 - [Tehdit modeli](../THREAT_MODEL.md) (erişim: 2026-11-03).

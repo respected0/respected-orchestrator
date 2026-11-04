@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "docs" / "ilerleme" / "poc" / "doc01_check.py"
+SCRIPT = ROOT / "docs" / "evidence" / "poc" / "doc01_check.py"
 
 
 class DecisionRecordsTest(unittest.TestCase):

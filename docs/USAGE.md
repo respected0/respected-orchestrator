@@ -7,8 +7,8 @@ Kurulumdan kaldırmaya kadar kişinin yapacağı her şey. Komutların tam liste
 
 - Windows 10/11 (beta yalnızca Windows'u destekler).
 - **Git**: her görev projenin yalıtılmış bir Git çalışma ağacında çalışır; proje bir Git deposu olmalıdır.
-- Görevleri yapacak en az bir AI aracının komut satırı, **oturumu açık** olarak: Codex, Claude Code, Gemini CLI,
-  Antigravity, Cursor ya da OpenCode. Kota ve hesap o aracındır.
+- Görevleri yapacak en az bir AI aracının komut satırı, **oturumu açık** olarak: Codex, Claude Code,
+  Antigravity, Cursor ya da OpenCode (Gemini CLI kapsam dışıdır, desteklenmez). Kota ve hesap o aracındır.
 - Python gerekmez. Brain ve Hub isteğe bağlıdır.
 
 ## 2. Kurulum
@@ -169,6 +169,13 @@ OpenCode çalışanı gerçek ACP oturumu kullanır ve sonucu güvenli biçimde 
 fenced JSON bloğu kabul edilir; fence dışındaki açıklama metni sorun değildir, ancak serbest metinden JSON çıkarılmaz.
 Birden fazla fence, yarım fence, bozuk JSON ve geçersiz `status` başarısız sayılır. OpenCode ağ erişimi varsayılan
 kapalıdır; `RESPECTED_OPENCODE_NETWORK=allow` yalnızca gerektiğinde verilir.
+
+Cursor çalışanı Cursor'un kendi `node.exe` ve `index.js` girişiyle (`--trust --output-format json`) kum havuzu içinde
+çalışır; `.cmd` kabuğu hiç çalıştırılmaz. Cursor'da oturumunuz açık olmalıdır. Ağ erişimi varsayılan kapalıdır ve
+Cursor ağsız çalışamayacağından `RESPECTED_CURSOR_NETWORK=allow` verilmedikçe görev hızlıca `AUTH_REQUIRED` ile başarısız
+olur; ağ açıkken yalnızca `auth.json` dosyanız o görev için yalıtılmış bir geçici kullanıcı klasörüne kopyalanır ve görev
+sonunda silinir.
+Ücretsiz (Free) planda yalnızca `auto` ve Grok 4.7/4.6 modelleri kullanılabilir.
 
 AI aracı şu araçları görür: `orchestrator_status`, `orchestrator_plan`, `orchestrator_task_start`,
 `orchestrator_project_start`, `orchestrator_list`, `orchestrator_progress`, `orchestrator_evidence`,

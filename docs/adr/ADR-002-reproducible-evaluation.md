@@ -2,7 +2,7 @@
 
 ## Durum
 
-Kabul edildi ve uygulandı (EVAL-01). Ajan başarısı karşılaştırması henüz yok.
+Kabul edildi ve uygulandı (EVAL-01). Ajan başarısı karşılaştırması henüz yok (`EVAL-02` tamamlandı, ama yalnızca harness tutarlılığını ölçer; model kalitesi iddiası değildir).
 
 ## Bağlam
 
@@ -25,6 +25,6 @@ Benchmark sonucu; makine, ortam ve rastgelelik değişince yanıltıcı olabilir
 
 ## Kaynaklar
 
-- [EVAL-01 kanıtı](../ilerleme/KANIT_LOG.md) §EVAL-01 (erişim: 2026-10-30).
-- [eval01_results.json](../ilerleme/poc/eval01_results.json) — 60 koşu özeti (erişim: 2026-10-30).
+- [EVAL-01 kanıtı](../evidence/KANIT_LOG.md) §EVAL-01 (erişim: 2026-10-30).
+- [eval01_results.json](../evidence/poc/eval01_results.json) — 60 koşu özeti (erişim: 2026-10-30).
 - [Rakip araştırması](../COMPETITOR_RESEARCH.md) §Benchmark'a bağlı kararlar (erişim: 2026-10-30).

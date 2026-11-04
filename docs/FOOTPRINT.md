@@ -24,7 +24,7 @@ Orchestrator **AI araçlarına hook, kural metni ya da beceri yazmaz**. Tek bağ
 Kurucu sayfaları ve varsayılanları:
 
 - **Kurulum yolu:** "Respected Hub ile devam et" (önerilen) ya da "Yalnızca Orchestrator".
-- **Varsayılan çalışan:** Codex, Claude, Gemini, Antigravity, Cursor gibi hangi AI aracının görev yapacağı; ilki seçili gelir.
+- **Varsayılan çalışan:** Codex, Claude, Antigravity, Cursor, OpenCode gibi hangi AI aracının görev yapacağı; ilki seçili gelir.
   Araç bilgisayarınızda kurulu olmalıdır; kurucu aracı **kurmaz**.
 - **Brain hafızası:** "Brain hafızasını oku" ve "Gelen kutusuna not yazabilsin"; ikisi de **varsayılan kapalı**. Brain kurulu
   olmalıdır.
@@ -56,9 +56,10 @@ kendi başlatır (stdio); arka planda sürekli çalışan bir şey yoktur.
 | Codex | `~\.codex\config.toml` | `[mcp_servers.respected-orchestrator]` tablosu |
 | Cursor | `~\.cursor\mcp.json` | `mcpServers.respected-orchestrator` |
 | Gemini CLI | `~\.gemini\settings.json` | `mcpServers.respected-orchestrator` |
+| OpenCode | `~\.config\opencode\opencode.json` | `mcp.servers.respected-orchestrator` (`type: local`) |
 | Windsurf | `~\.codeium\windsurf\mcp_config.json` | `mcpServers.respected-orchestrator` |
 
-**Şart:** aracın ayar klasörü bilgisayarınızda var olmalı (`~\.claude`, `~\.codex`, `~\.cursor`, `~\.gemini`,
+**Şart:** aracın ayar klasörü bilgisayarınızda var olmalı (`~\.claude`, `~\.codex`, `~\.cursor`, `~\.gemini`, `~\.config\opencode`,
 `~\.codeium\windsurf`, `%APPDATA%\Claude`). Kurulu olmayan bir aracı bağlamaya çalışırsanız Orchestrator **reddeder**
 ("Client not detected on this computer") ve klasörünü **oluşturmaz**. Birden çok aracı birlikte isterseniz, biri
 reddedilirse hiçbiri yazılmaz.
@@ -97,7 +98,7 @@ Bir görevi başlattığınızda (Hub, komut ya da AI aracı üzerinden):
 | Görev durumu, günlükler | `data\` altında her çalışma için `process.json`, `stdout.log`, `stderr.log`, `events.jsonl`, `lane.json`, `baseline.json` | Hub ve komutlar buradan okur |
 | Kanıt ve imza | `data\.engine-key` (ilk görevde), kanıt dosyaları | Kanıt bu anahtarla imzalanır; anahtar kullanıcıya özel ACL ile korunur |
 | Çok görevli iş (kampanya) | `data\campaigns\<kimlik>\` | Her hat kendi veri köküne sahiptir |
-| Kum havuzu | Veri klasörüne **reddetme ACL'i** | İlk kullanımda bir PowerShell ACL kurulumu (yaklaşık 1 sn); doğrulama komutları kısıtlı belirteçle çalışır |
+| Kum havuzu | Veri klasörüne **reddetme ACL'i**; her çalıştırmada geçici bir AppContainer profili | İlk kullanımda bir PowerShell ACL kurulumu (yaklaşık 1 sn); çalışan AppContainer içinde, doğrulama komutları kısıtlı belirteçle çalışır; profil kapanışta silinir |
 
 Aynı veri kökünde aynı anda **tek bir görev** çalışır; sonradan başlatılan görev kendi süresi içinde sıraya girer.
 
@@ -109,15 +110,16 @@ yamadan çalışır. Bu yüzden görev geçmişi çoğalsa da deponuzda `orchest
 öldürülürse** (bilgisayar kapanır, süreç sonlandırılır) bir dal ve klasör kalabilir; `git worktree prune` ve
 `git branch -D orchestrator/<görev>` temizler.
 
-Çalışan AI aracı (Codex, Claude, Gemini, Antigravity, Cursor) **kendi** komut satırıyla çalıştırılır; o aracın kendi oturum
+Çalışan AI aracı (Codex, Claude, Antigravity, Cursor, OpenCode) **kendi** komut satırıyla çalıştırılır; o aracın kendi oturum
 geçmişi ve günlükleri **kendi klasörlerine** (`~\.codex`, `~\.claude` vb.) yazılır. Bunlar Orchestrator'ın değil, aracın
 dosyalarıdır.
 
-**Bilinen sınır:** kapsam denetimi çalışma ağacındaki değişikliklere (yama) bakar. Çalışan, bilgisayarınızda sıradan bir
-süreçtir; ağacın dışına yazarsa (`../dosya`) bu yamada görünmez ve yakalanmaz. Orchestrator işletim sistemi düzeyinde bir
-kafes kurmaz; koruma çalışan aracın kendi kum havuzundan gelir. Codex'in kum havuzu, kullanıcı profilinizdeki programları
-(örneğin `AppData\Local\Programs` altındaki bir Python) kendi içinden çalıştıramayabilir; böyle bir doğrulama komutunu çalışan
-kendi kendini denerken çalıştıramayıp görevi başarısız bildirebilir. Doğrulamayı motor ayrıca, kendi kısıtlı belirteciyle yapar.
+**Sınır:** çalışan AI aracı bir Windows **AppContainer** içinde başlatılır: varsayılan olarak yalnızca görevin çalışma ağacı
+yazılabilir, ağ kapalıdır ve kullanıcı profiliniz ile motor anahtarı okunamaz. Kum havuzu kurulamazsa çalışan hiç başlamaz
+(`sandbox_unavailable`); sessiz geri dönüş yoktur. Bu yalnızca Windows'ta geçerlidir. Ayrıca kapsam denetimi çalışmadan sonra
+yamaya bakar. Codex'in kendi kum havuzu, kullanıcı profilinizdeki programları (örneğin `AppData\Local\Programs` altındaki
+bir Python) çalıştıramayabilir; böyle bir doğrulama komutunu çalışan kendi kendini denerken çalıştıramayıp görevi başarısız
+bildirebilir. Doğrulamayı motor ayrıca, kendi kısıtlı belirteciyle yapar. Ayrıntı: [ARCHITECTURE.md](ARCHITECTURE.md) (Worker sınırı).
 
 ## 6. Güncelleme ve onarım
 

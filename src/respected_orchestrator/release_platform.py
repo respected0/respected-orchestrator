@@ -11,7 +11,7 @@ def decide(platform, fixtures):
     """Return a release decision; an unknown or red fixture is always a no-go."""
     if platform not in GA_PLATFORMS:
         return {"platform": platform, "release": "no-go", "ga": False,
-                "reason": "platform parity not proven; ADR-REL04 keeps POSIX out of GA"}
+                "reason": "platform parity not proven; ADR-008 keeps POSIX out of GA"}
     if not isinstance(fixtures, dict) or set(fixtures) != set(REQUIRED_FIXTURES):
         return {"platform": platform, "release": "no-go", "ga": False,
                 "reason": "the security fixture matrix is incomplete", "fixtures": REQUIRED_FIXTURES}

@@ -34,4 +34,4 @@ def guide(checks, data_root=None, hub_installed=False):
 def platform_hint():
     if sys.platform == "win32":
         return "Windows: kurulum yönetici izni istemez."
-    return "Bu platform için yayın kararı ADR-REL04'e bağlıdır; desteklenmeyen güvenlik vaadi verilmez."
+    return "Bu platform için yayın kararı ADR-008'e bağlıdır; desteklenmeyen güvenlik vaadi verilmez."

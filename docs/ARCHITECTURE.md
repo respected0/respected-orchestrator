@@ -34,14 +34,15 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   (`internetClient` yeteneği verilmez). `.cmd`/`.bat` şimleri reddedilir (Cursor için şimin yanındaki
   `versions\<sürüm>\node.exe` + `index.js` doğrudan girişi kullanılır; `--trust --output-format json` ile çağrılır,
   `usage` `inputTokens/outputTokens/cacheReadTokens` alanlarından okunur, `cacheReadTokens` yoksa kullanım `unknown`
-  kalır; `inputTokens`'ın önbelleği içerdiği varsayımı doğrulanmamıştır; Cursor işçisi ağ ve oturum açma gerektirir,
-  varsayılan ağ kapalı olduğundan sandbox'ta canlı çalıştırma ayrı iştir), sır adları ortamdan çıkarılır ve `TEMP`/`TMP`
+  kalır; `inputTokens` önbellek okumasını içermez (canlı kanıt: `inputTokens` 39, `cacheReadTokens` 18048), ham girdi ikisinin
+  toplamıdır; Cursor işçisi ağ ve oturum açma gerektirir, ağ yalnız açık anahtarla açılır ve işçi AppContainer içinde
+  çalışır, CUR-01), sır adları ortamdan çıkarılır ve `TEMP`/`TMP`
   worker alanına yönlendirilir. Codex incelemesinde proje `cwd`'si salt-okunur, inceleme çalışma kökü yazılabilirdir.
   Motor, supervisor ve kampanya final master'ı güvenilen süreçler olarak sandbox dışında kalır.
 - AppContainer profili her çalıştırmada oluşturulup kapatılır; izinler yalnızca worktree ve araç dizinine verilir ve kapanışta
   geri alınır. `sys.prefix` altındaki Python dosyaları için makine genelinde `ALL APPLICATION PACKAGES` salt-okunur
   paylaşımı kullanılır; bu grant kullanıcı profilini veya motor veri kökünü kapsamaz.
-- Kanıt: `tests/engine/test_worker_policy.py` (18 test) politika doğrulamasını, worker ve MAF inceleme yollarının
+- Kanıt: `tests/engine/test_worker_policy.py` (21 test) politika doğrulamasını, worker ve MAF inceleme yollarının
   fail-closed başlatmasını, dış okuma/yazma reddini, `.engine-key` erişimsizliğini, varsayılan ağ reddini, alt süreç
   mirasını, timeout sonrası çocuk süreç temizliğini ve sentinel sır sızmamasını ölçer. `tests/workflows/test_campaign.py`
   kampanya şeridinin worktree dışına okuyup yazamadığını ve alt şeridin worker'ı doğrudan değil `engine maf` üzerinden
@@ -173,19 +174,19 @@ taşımaması için komutlar `sandbox_exec` ile **kısıtlı bir belirteçle** (
   `maf-approval.json` sahteleyemez, ACL'yi ya da ret girdisini değiştiremez, sahiplik alamaz. Kum havuzu olmadan aynı
   denemelerin hepsi başarılı olur.
 - Sınırlar: yalnızca motorun sırları ve kanıtı korunur; kod kişinin diğer dosyalarını okuyabilir ve ağa çıkabilir. Çalışan
-  araçların (claude/codex/agy) kendisi bu belirteçle çalışmaz; kendi izin modları vardır. Yükseltilmiş yönetici olarak
+  araçlar bu kısıtlı belirteçle değil, bölüm 2'deki AppContainer ile çalışır; ayrıca kendi izin modları vardır. Yükseltilmiş yönetici olarak
   çalışan bir motor bu modelin dışındadır. Veri kökü başına ilk kullanımda bir PowerShell ACL kurulumu (yaklaşık bir
   saniye) yapılır.
 - Tehdit modeli, varlık/yetki matrisi ve 25 saldırı senaryosu [THREAT_MODEL.md](THREAT_MODEL.md) dosyasındadır. Özet:
-  bu kum havuzu yalnızca motorun çalıştırdığı doğrulama kodunu korur; worker için işletim sistemi düzeyinde dosya/ağ
-  sınırı yoktur. Windows normal kullanıcı desteklenir; yükseltilmiş yönetici desteklenmez ve başlangıçta reddedilir.
+  bu kısıtlı belirteç yalnızca motorun çalıştırdığı doğrulama kodunu korur (sırlar ve kanıt; ağ ve diğer dosyalar açıktır);
+  worker için işletim sistemi düzeyinde dosya/ağ sınırı bölüm 2'deki AppContainer'dır. Windows normal kullanıcı desteklenir; yükseltilmiş yönetici desteklenmez ve başlangıçta reddedilir.
 
 ## 4. Rol atama
 
 Her uyumlu model, sağlayıcı ya da araç her role atanabilir; kod hiçbir zaman "X modeli yalnızca Y rolünü yapar"
 demez. Kavramlar ayrıdır: **rol** (iş akışındaki görev, `^[a-z][a-z0-9_]{0,39}$`, açık küme: `implementer`, `reviewer`,
 `deep_reviewer`, `planner`, `debugger`, `tester`, `coordinator`, `master`…), **profil** (motor için opak bir model
-yapılandırması), **araç** (`codex`, `claude`, `gemini`, `agy`, `cursor`, `custom`) ve **atama** (`{tool, profile}` + kaynağı).
+yapılandırması), **araç** (`codex`, `claude`, `agy`, `cursor`, `opencode`, `custom`; Gemini kapsam dışıdır) ve **atama** (`{tool, profile}` + kaynağı).
 
 Her rol için öncelik:
 
@@ -375,7 +376,7 @@ eklenmezse `tests/interfaces/test_migrate.py` kırılır ve CI birleştirmez.
 | `tests/workflows/` | MAF iş akışı, kampanyalar, rol atama |
 | `tests/interfaces/` | RPP, kurulum ve hafıza bağlantısı, MCP sunucusu ve izinleri, Brain hafızası, AI aracı kayıtları |
 | `tests/evals/` | değerlendirme fixture'ları, sabit SHA'lı koşucu, tekrar ve JSON rapor sözleşmesi |
-| `tests/docs/` | DOC-01 kaynak/profil/ADR yapısal doğrulaması; `docs/ilerleme/poc/doc01_check.py` |
+| `tests/docs/` | DOC-01 kaynak/profil/ADR yapısal doğrulaması; `docs/evidence/poc/doc01_check.py` |
 | `tests/packaging/` | derlenmiş exe, PATH'te Python yokken: RPP, MCP, ayrık denetleyiciyle gerçek bir yazma görevi, kum havuzlu doğrulama |
 | `tests/test_main.py` | komut satırı, ortak komutlar, hata biçimi |
 
@@ -395,10 +396,10 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
 
 - Beta yalnızca Windows'u destekler; macOS/Linux kod yolları var ama doğrulanmadı. POSIX'te anahtar için işletim sistemi
   kum havuzu sınırı yoktur.
-- Claude, Gemini ve Cursor çalışanları kendi onay modellerini korur. Sağlayıcının `turn.completed` olayı modeli
+- Claude ve Cursor çalışanları (Gemini kapsam dışıdır, canlı doğrulanmadı) kendi onay modellerini korur. Sağlayıcının `turn.completed` olayı modeli
   bildirmediği için incelemelerde `model: null` görünür.
-- Kapsam denetimi çalışmadan sonra, yamaya bakarak yapılır; çalışanın kendisi kişinin izinleriyle çalışır ve çalışma ağacının
-  dışına yazması yakalanmaz (bölüm 2).
+- Kapsam denetimi çalışmadan sonra, yamaya bakarak yapılır; çalışan ayrıca AppContainer içinde çalışır (bölüm 2, SEC-03), bu
+  yüzden çalışma ağacının dışına yazamaz. Windows dışında worker başlatılmaz.
 - Codex'in kum havuzu kullanıcı profilindeki programları (örneğin `AppData\Local\Programs` altındaki Python) çalıştıramayabilir:
   çalışan böyle bir doğrulama komutunu kendi kendini denerken çalıştıramayıp görevi başarısız bildirebilir. Motorun kendi
   doğrulaması ayrıca kısıtlı belirteçle yapılır.
@@ -431,4 +432,4 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   sertifikasıyla gerçek kurucu üzerinde doğrulandı; tampered ve yanlış imzalayan reddedildi. Üretim sertifikası
   yoktur. `health` yanıtındaki `wizard` salt-okunur ilk-görev rehberi verir. Platform kapısı yalnızca Windows'u GA
   sayar; gerçek fixture matrisi Windows 10/10 pass, Linux 7 blocked (no-go), macOS koşulmadı (no-go) sonucunu
-  verir (`docs/ADR-REL04-platform-parity.md`).
+  verir (`docs/adr/ADR-008-platform-parity.md`).

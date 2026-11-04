@@ -18,7 +18,7 @@ import time
 
 REPO = Path(__file__).resolve().parents[3]
 SRC = REPO / "src"
-POC = REPO / "docs" / "ilerleme" / "poc"
+POC = REPO / "docs" / "evidence" / "poc"
 OPENCODE = Path(os.environ.get("APPDATA", "")) / "npm" / "node_modules" / "@opencode" / "cli" / "bin" / "opencode.exe"
 MODEL = "amd/DeepSeek-V4.1-Flash"
 BASE_ENV = dict(os.environ, PYTHONPATH=str(SRC), RESPECTED_OPENCODE_NETWORK="allow")

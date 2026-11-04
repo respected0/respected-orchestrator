@@ -18,7 +18,7 @@ Kısıtlı belirteç, kullanıcının kendi dosyalarına erişimini kaldırmaz; 
 Komut:
 
 ```
-python docs/ilerleme/poc/sec02_probe.py docs/ilerleme/poc/sec02_results.json
+python docs/evidence/poc/sec02_probe.py docs/evidence/poc/sec02_results.json
 ```
 
 Üç bağımsız çalıştırmada, yetenek SID'i olmayan AppContainer içinde:
@@ -42,4 +42,4 @@ Codex'in 0 çıkışı yalnızca başlatma uyumunu gösterir; oturum açma, ger�
 - AppContainer, izin verilen dizin içindeki her çalıştırılabilir dosyayı ayırt etmez; çalıştırılabilir beyaz liste SEC-03'te gelecek.
 - Windows Sandbox VM'i, her görev için dosya paylaşımı ve başlangıç maliyeti nedeniyle ilk sürüm için uygun değil.
 
-Makine okunur sonuç: `docs/ilerleme/poc/sec02_results.json`.
+Makine okunur sonuç: `docs/evidence/poc/sec02_results.json`.

@@ -21,7 +21,7 @@ Orchestrator MCP bağlı değilse kullanıcıdan Hub'da ya da `respected-orchest
 
 Planla, tek JSON ile devret, kapan; bekleme ve polling yapma:
 
-`respected-orchestrator.exe --data-root DATA campaign-start < spec.json` (kaynaktan çalışırken: `python -m respected_orchestrator ...`)
+`respected-orchestrator.exe campaign-start < spec.json` (kaynaktan çalışırken: `python -m respected_orchestrator ...`; veri klasörünü değiştirmek için `RESPECTED_DATA_DIR`)
 
 Spec: `goal`, `workstreams` (1..8; her biri `name`, `after`, `request` = create isteği;
 `worker=codex`, `worker_profile=deepseek`, `workflow.reviewer_profile=glm`,
