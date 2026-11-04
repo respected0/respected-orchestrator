@@ -43,7 +43,7 @@ class SecurityRegistryGateTest(unittest.TestCase):
             "python -m unittest tests.engine.test_sandbox -v",
             "python -m unittest tests.engine.test_security_gate -v",
             "python -m unittest tests.packaging.test_frozen_security -v",
-            "python -m unittest discover -s tests -t .",
+            "python tests/tools/run_ci.py",
         )
         for command in required:
             with self.subTest(command=command):
