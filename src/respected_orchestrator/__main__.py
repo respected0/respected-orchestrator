@@ -26,6 +26,8 @@ def _selfcheck():
     for name in names:
         importlib.import_module(name)
     import agent_framework  # the MAF runtime the workflows need at run time
+    if sys.platform == "win32":
+        import win32crypt  # the provider key vault (DPAPI) must be inside the packaged build
     return dict(status="ok", version=__version__, modules=len(names))
 
 
@@ -134,6 +136,9 @@ def main(argv=None):
     if argv[:1] == ["_sandbox-exec"]:  # restricted-token launcher of the packaged build: touches no data root
         from .engine import sandbox_exec
         return sandbox_exec.main(argv[1:])
+    if argv[:1] == ["_openrouter"]:  # read-only provider worker: touches no data root beyond the key vault
+        from .engine import openrouter_worker
+        return openrouter_worker.main(argv[1:])
     if argv[:1] == ["--version"]:
         print(f"respected-orchestrator {__version__}")
         return 0
@@ -145,7 +150,7 @@ def main(argv=None):
     from .workflows import roles
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=default_data_root(), help=argparse.SUPPRESS)
-    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", *SHARED, "_selfcheck"])
+    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", "provider-key", "provider-models", *SHARED, "_selfcheck"])
     parser.add_argument("args", nargs=argparse.REMAINDER)
     try:
         args = parser.parse_args(argv)
@@ -158,6 +163,24 @@ def main(argv=None):
         elif args.command in ("rpp", "mcp") and args.args[:1] in (["--help"], ["-h"]):
             print({"rpp": "usage: respected-orchestrator rpp  (one RPP 1 request on stdin, one response on stdout)",
                    "mcp": "usage: respected-orchestrator mcp [--allow-auto-apply] [--allow-privileged]  (stdio MCP server)"}[args.command])
+            return 0
+        elif args.command == "provider-key":  # set (key on stdin, never echoed) | status | clear
+            from .engine.openrouter_worker import vault
+            store = vault()
+            if args.args == ["set"]:
+                store.store(sys.stdin.buffer.read().decode("utf-8-sig"))
+            elif args.args == ["clear"]:
+                store.path.unlink(missing_ok=True)
+            elif args.args != ["status"]:
+                raise UsageError("Kullanım: provider-key set (anahtar stdin'den) | status | clear")
+            payload = dict(provider="openrouter", stored=store.path.exists())
+            print(json.dumps(payload))
+            return 0
+        elif args.command == "provider-models":  # public catalog through the egress gate; --free keeps zero-price models
+            if args.args not in ([], ["--free"]):
+                raise UsageError("Kullanım: provider-models [--free]")
+            from .engine.provider import ProviderClient
+            print(json.dumps(ProviderClient().models(free_only=bool(args.args)), ensure_ascii=False))
             return 0
         elif args.command in SHARED:
             if args.args[:1] in (["--help"], ["-h"]):

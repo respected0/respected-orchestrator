@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 import sys
 
-SUPPORTED_AGENTS = ("claude", "antigravity", "agy", "codex", "cursor", "opencode", "custom")
+SUPPORTED_AGENTS = ("claude", "antigravity", "agy", "codex", "cursor", "opencode", "openrouter", "custom")
 EXECUTABLE = {"antigravity": "agy", "agy": "agy", "cursor": "cursor-agent"}
 LOCAL_CODEX = Path(__file__).resolve().parents[3] / ".runtime" / "codex-0.162.0-alpha.20" / "bin" / "codex.exe"
 
@@ -62,9 +62,13 @@ def find(names):
 
 def resolve(agents):
     """(agents whose CLI resolves, path of git or None): the same answers as runner.get_cli_command, in one pass."""
-    names = {agent: EXECUTABLE.get(agent, agent) for agent in agents}
+    names = {agent: EXECUTABLE.get(agent, agent) for agent in agents if agent != "openrouter"}
     found = find([*names.values(), "git"])
     usable = []
+    if "openrouter" in agents:  # the engine's own bridge: usable once a provider key is stored (no program on PATH)
+        from .openrouter_worker import vault
+        if vault().path.exists():
+            usable.append("openrouter")
     for agent, name in names.items():
         if agent == "codex" and sys.platform == "win32" and LOCAL_CODEX.is_file():
             usable.append(agent)

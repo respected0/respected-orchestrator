@@ -19,6 +19,7 @@ from ..interfaces import memory
 from ..hints import hint
 from ..workflows import roles
 from ..context import EngineContext, engine_command, path_within_root, safe_path, validate_project
+from . import openrouter_worker
 from .clis import EXECUTABLE, LOCAL_CODEX, SUPPORTED_AGENTS, cursor_entry, worker_executable
 from .processes import ProcessStopped, execute
 from .worker_policy import SandboxStartError, WorkerPolicyError, default_policy, extra_readonly_roots
@@ -55,6 +56,9 @@ NODE_PIPE_SHIM = Path(__file__).resolve().parents[1] / "resources" / "node-shim"
 
 
 def get_cli_command(agent: str) -> list[str] | None:
+    if agent == "openrouter":  # the engine's own read-only bridge; usable once a provider key is stored
+        from .openrouter_worker import vault
+        return engine_command("_openrouter") if vault().path.exists() else None
     if agent == "codex" and sys.platform == "win32" and LOCAL_CODEX.is_file():
         return [str(safe_path(LOCAL_CODEX))]
     executable = EXECUTABLE.get(agent, agent)
@@ -95,6 +99,10 @@ def command_for(worker, prompt, custom=(), profile=None, write=False):
                     "cursor": ["--trust", "--output-format", "json"]}.get(worker, [])
         return [*command, *([_MODEL_FLAG[worker], profile] if profile else []),
                 *(_EDIT_FLAGS.get(worker, []) if write else []), *envelope, "-p", prompt]
+    if worker == "openrouter":
+        if not (profile or "").strip():
+            raise lanes.WorkerUnavailableError("openrouter needs a model name as its profile")
+        return [*command, profile.strip(), prompt]
     if worker == "codex":
         profile = (profile or os.environ.get("RESPECTED_CODEX_PROFILE", "")).strip()
         # Explicit OS sandbox and no approval prompts: fail closed rather than inherit a
@@ -185,6 +193,11 @@ def tool_result(tool, stdout):
         usage = _usage(raw.get("input_tokens"), raw.get("cache_read_tokens", 0), raw.get("output_tokens"), raw.get("thinking_tokens"))
         error = None if str(data.get("status", "")).casefold() == "success" else f"agy status {data.get('status')}"
         return str(data.get("response", "")), usage, None, error
+    if tool == "openrouter" and data.get("type") == "openrouter":
+        raw = data.get("usage") if isinstance(data.get("usage"), dict) else {}
+        cached = (raw.get("prompt_tokens_details") or {}).get("cached_tokens", 0)
+        usage = _usage(raw.get("prompt_tokens"), cached, raw.get("completion_tokens"), None)
+        return str(data.get("content") or ""), usage, data.get("model"), None
     if tool == "cursor" and data.get("type") == "result":  # verified live 2026-11-04 (cost01_cursor_live.log)
         raw = data.get("usage") if isinstance(data.get("usage"), dict) else {}
         # inputTokens EXCLUDES cacheReadTokens: a live run reported inputTokens 39 beside cacheReadTokens 18048 (cursor_cache_probe.log)
@@ -514,6 +527,8 @@ def create_task(ctx: EngineContext, request: dict, *, settings: dict | None = No
         raise ValueError("Select the Git project root")
     task = request.get("task")
     worker, kind = request.get("worker", "codex"), request.get("kind", "write")
+    if worker == "openrouter" and not request.get("worker_profile"):
+        raise ValueError("openrouter needs a model name as worker_profile")
     master = request.get('master', 'user')
     if master not in (*SUPPORTED_AGENTS, 'user'):
         raise ValueError('Unsupported master label')
@@ -780,8 +795,10 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
         brief_text = text + checklist
         brief.write_text(brief_text, encoding="utf8")
         _write_status(ctx, directory, "running", pid=os.getpid(), phase="worker", **details)
-        command = command_for(request["worker"], brief_text, request["command"],
-                              request.get("worker_profile"), write=request["kind"] == "write")
+        # OpenRouter has no CLI: the engine calls the provider itself (no model-controlled code runs, so no sandbox)
+        in_process = request["worker"] == "openrouter"
+        command = [] if in_process else command_for(request["worker"], brief_text, request["command"],
+                                                    request.get("worker_profile"), write=request["kind"] == "write")
         def live_output(name, line):
             with safe_path(directory / f'{name}.log').open('a', encoding='utf8') as handle:
                 handle.write(lanes._redact(line))
@@ -809,53 +826,56 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
         worker_tmp = safe_path(directory / "worker-tmp")
         worker_tmp.mkdir(exist_ok=True)
         worker_env = worker_environment(request["worker"], worker_tmp)
-        try:
-            policy = default_policy(ctx, lane.worktree, command, temp_root=worker_tmp,
-                                    network_mode=worker_network_mode(request["worker"]),
-                                    readonly_roots=(*extra_readonly_roots(), *([NODE_PIPE_SHIM.parent] if request["worker"] == "cursor" else [])),
-                                    ttl=request["timeout_seconds"])
-        except WorkerPolicyError as error:
-            return _write_status(ctx, directory, "failed", reason="sandbox_unavailable", detail=str(error)[:300], **details)
-        try:
-            if request["worker"] == "cursor" and policy.network_mode == "allow":
-                try:
-                    cursor_auth.sync_credentials(worker_tmp)
-                except cursor_auth.CursorAuthError:
-                    return _write_status(ctx, directory, "failed", reason="worker_failed", provider_status="AUTH_REQUIRED",
-                                         detail="Cursor credentials are unavailable for the isolated worker", **details)
-            if is_opencode:
-                try:
-                    # The worker HOME is isolated, so provider credentials must be copied into it
-                    # before ACP starts.  They travel through a pipe and stay out of logs/argv.
-                    opencode_auth.sync_credentials([command[0]], worker_env, deadline=deadline)
-                except opencode_auth.OpenCodeAuthError as error:
-                    # Exception text is deliberately not persisted: an export/import error
-                    # could carry provider data, and only the stable class is evidence here.
-                    (directory / "auth-error.log").write_text(
-                        "OpenCode credential bridge failed", encoding="utf8")
-                    return _write_status(ctx, directory, "failed", reason="worker_failed",
-                                         provider_status="AUTH_REQUIRED",
-                                         detail="OpenCode credentials are unavailable for the isolated worker",
-                                         **details)
-            completed = execute(command, lane.worktree, deadline - time.monotonic(), cancel_path=cancel,
-                                on_ready=ready if is_opencode else None, on_output=output,
-                                on_output_closed=output_closed if is_opencode else None,
-                                complete_when=_is_turn_completed if codex_json else None,
-                                verify_complete=stream_verified_complete if codex_json else None,
-                                env=worker_env, scrub_env=True, policy=policy,
-                                interactive=is_opencode)
-        except opencode_acp.AcpError as error:
-            (directory / "acp-error.log").write_text(lanes._redact(str(error)), encoding="utf8")
-            if error.kind in {"cancelled", "timed_out"}:
-                raise ProcessStopped(error.kind, "", str(error)) from error
-            return _write_status(ctx, directory, "failed", reason="worker_failed",
-                                 provider_status=error.provider_status, detail=str(error)[:300], **details)
-        finally:
-            if is_opencode or request["worker"] == "cursor":
-                try:
-                    opencode_auth.clear_worker_home(worker_tmp)
-                except opencode_auth.OpenCodeAuthError:
-                    pass
+        if in_process:
+            completed = openrouter_worker.run_in_lane(lane.worktree, request, deadline, cancel)
+        else:
+            try:
+                policy = default_policy(ctx, lane.worktree, command, temp_root=worker_tmp,
+                                        network_mode=worker_network_mode(request["worker"]),
+                                        readonly_roots=(*extra_readonly_roots(), *([NODE_PIPE_SHIM.parent] if request["worker"] == "cursor" else [])),
+                                        ttl=request["timeout_seconds"])
+            except WorkerPolicyError as error:
+                return _write_status(ctx, directory, "failed", reason="sandbox_unavailable", detail=str(error)[:300], **details)
+            try:
+                if request["worker"] == "cursor" and policy.network_mode == "allow":
+                    try:
+                        cursor_auth.sync_credentials(worker_tmp)
+                    except cursor_auth.CursorAuthError:
+                        return _write_status(ctx, directory, "failed", reason="worker_failed", provider_status="AUTH_REQUIRED",
+                                             detail="Cursor credentials are unavailable for the isolated worker", **details)
+                if is_opencode:
+                    try:
+                        # The worker HOME is isolated, so provider credentials must be copied into it
+                        # before ACP starts.  They travel through a pipe and stay out of logs/argv.
+                        opencode_auth.sync_credentials([command[0]], worker_env, deadline=deadline)
+                    except opencode_auth.OpenCodeAuthError as error:
+                        # Exception text is deliberately not persisted: an export/import error
+                        # could carry provider data, and only the stable class is evidence here.
+                        (directory / "auth-error.log").write_text(
+                            "OpenCode credential bridge failed", encoding="utf8")
+                        return _write_status(ctx, directory, "failed", reason="worker_failed",
+                                             provider_status="AUTH_REQUIRED",
+                                             detail="OpenCode credentials are unavailable for the isolated worker",
+                                             **details)
+                completed = execute(command, lane.worktree, deadline - time.monotonic(), cancel_path=cancel,
+                                    on_ready=ready if is_opencode else None, on_output=output,
+                                    on_output_closed=output_closed if is_opencode else None,
+                                    complete_when=_is_turn_completed if codex_json else None,
+                                    verify_complete=stream_verified_complete if codex_json else None,
+                                    env=worker_env, scrub_env=True, policy=policy,
+                                    interactive=is_opencode)
+            except opencode_acp.AcpError as error:
+                (directory / "acp-error.log").write_text(lanes._redact(str(error)), encoding="utf8")
+                if error.kind in {"cancelled", "timed_out"}:
+                    raise ProcessStopped(error.kind, "", str(error)) from error
+                return _write_status(ctx, directory, "failed", reason="worker_failed",
+                                     provider_status=error.provider_status, detail=str(error)[:300], **details)
+            finally:
+                if is_opencode or request["worker"] == "cursor":
+                    try:
+                        opencode_auth.clear_worker_home(worker_tmp)
+                    except opencode_auth.OpenCodeAuthError:
+                        pass
         (directory / "stdout.log").write_text(lanes._redact(completed.stdout), encoding="utf8")
         (directory / "stderr.log").write_text(lanes._redact(completed.stderr), encoding="utf8")
         if is_opencode:

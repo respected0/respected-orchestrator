@@ -9,6 +9,10 @@ Kurulumdan kaldırmaya kadar kişinin yapacağı her şey. Komutların tam liste
 - **Git**: her görev projenin yalıtılmış bir Git çalışma ağacında çalışır; proje bir Git deposu olmalıdır.
 - Görevleri yapacak en az bir AI aracının komut satırı, **oturumu açık** olarak: Codex, Claude Code,
   Antigravity, Cursor ya da OpenCode. Kota ve hesap o aracındır.
+- İsteğe bağlı: **OpenRouter** (okuma ve yazma görevleri; API anahtarı gerekir, profil olarak model adı verilir; model tam dosya içerikleri döndürür, motor yolları kapsamla denetleyip yazar). Anahtarı bir kez `provider-key set` ile girin
+  (anahtar stdin'den okunur, komut satırına yazılmaz), ağ erişimini
+  `RESPECTED_PROVIDER_NETWORK=allow` ve `RESPECTED_PROVIDER_CODE_GATE=1` ile açın, rolün aracını `openrouter`, profilini model adı
+  (`provider-models --free` ücretsiz modelleri listeler; 429 gelirse çalışan en çok iki kez bekleyip yeniden dener) yapın.
 - Python gerekmez. Brain ve Hub isteğe bağlıdır.
 
 ## 2. Kurulum
@@ -112,7 +116,9 @@ yapıp rol atamalarını da üretir; `command`, `auto_apply`, `allow_apply` veya
 başlatamaz ve apply edemez. Açık atama kullanılamıyorsa sessizce başka profile geçmez; `ROLE_UNAVAILABLE` döner. `campaign-start` birden çok paralel
 hattı sınırlı eşzamanlılıkla (`max_parallel`, varsayılan `min(4, hat sayısı)`) yürütür; aynı proje kökünde ownership
 çakışan hatları sıraya alır ve sonunda bir son inceleme yaptırır. `campaign-cancel ID` bekleyen/çalışan hatları iptal eder
-ve son master'ı başlatmaz. Biçimler: [COMMANDS.md](COMMANDS.md#projeler-ve-kampanyalar).
+ve son master'ı başlatmaz. Durumu `campaign-status ID` / `project-status ID`, listeyi `campaign-list`, projeyi durdurmayı
+`project-cancel ID` verir. Bir görevin kanıt paketindeki çıktıyı (örneğin yamayı) `artifact RUN_ID` okur. Hub'ın konuştuğu protokol
+`rpp` komutudur; elle kullanılmaz. `campaign-run` ve `project-run` denetleyicilerin giriş noktalarıdır. Biçimler: [COMMANDS.md](COMMANDS.md#projeler-ve-kampanyalar).
 
 İki ayrı doğrulanmış sonucu birlikte denemek için `integrate` kullanın. Komut gerçek projede değil, geçici bir detached
 worktree'de sıralı `git apply` ve tek birleşik doğrulama çalıştırır. Başarıda yalnızca karar kanıtı ve `combined.patch`

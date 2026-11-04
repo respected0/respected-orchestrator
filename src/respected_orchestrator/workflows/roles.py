@@ -168,7 +168,7 @@ def _same(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
 
 
 WRITE_ROLES = {"implementer", "debugger"}
-WRITE_TOOLS = {"codex", "claude", "agy", "antigravity"}  # tools command_for can let edit files headlessly
+WRITE_TOOLS = {"codex", "claude", "agy", "antigravity", "openrouter"}  # tools that can change files (openrouter: the engine applies its checked whole-file answer)
 
 
 def _smoothed(row: Mapping[str, Any] | None) -> float:

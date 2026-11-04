@@ -122,12 +122,20 @@ class ProviderClient:
         self._results[key] = result
         return result
 
-    def models(self, *, timeout=DEFAULT_TIMEOUT):
-        """Read the public model catalog through the same egress gate (no key required)."""
+    @staticmethod
+    def _is_free(item):
+        pricing = item.get("pricing")
+        try:
+            return isinstance(pricing, dict) and bool(pricing) and all(float(value) == 0 for value in pricing.values())
+        except (TypeError, ValueError):
+            return False
+
+    def models(self, *, timeout=DEFAULT_TIMEOUT, free_only=False):
+        """Read the public model catalog through the same egress gate (no key required); free_only keeps models whose every price is 0."""
         self._gate(MODELS_URL)
         status, raw = self._transport("GET", MODELS_URL, None, {"Accept": "application/json"}, timeout)
         self._check(status)
         try:
-            return sorted(str(item["id"]) for item in json.loads(raw)["data"])
+            return sorted(str(item["id"]) for item in json.loads(raw)["data"] if not free_only or self._is_free(item))
         except (ValueError, KeyError, TypeError) as error:
             raise ProviderError("invalid_response", status=status) from error
