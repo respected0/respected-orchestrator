@@ -176,5 +176,61 @@ class IntegrationsTest(unittest.TestCase):
         self.assertTrue(reply["ok"], reply)
 
 
+class LegacyGeminiClientTest(unittest.TestCase):
+    """beta.1 could register the MCP server with the Gemini CLI. beta.2 dropped that client, but an update must still be
+    able to take the old entry back (integrations set gemini=off, uninstall), and must never offer to enable it."""
+
+    def setUp(self):
+        root = Path(tempfile.mkdtemp())
+        self.home = root / "home"
+        (self.home / ".gemini").mkdir(parents=True)
+        self.gemini = self.home / ".gemini/settings.json"
+        self.foreign = {"theme": "dark", "mcpServers": {"other": {"command": "x"}}}
+        self.gemini.write_text(json.dumps(self.foreign), encoding="utf-8")
+        patch = mock.patch.dict(os.environ, {"USERPROFILE": str(self.home), "HOME": str(self.home), "APPDATA": str(self.home / "AppData")})
+        patch.start()
+        self.addCleanup(patch.stop)
+        self.ctx = EngineContext(root / "data")
+        self._register_like_beta1()
+
+    def _register_like_beta1(self):
+        real = sil._clients
+        with mock.patch.object(sil, "_clients", lambda: {**real(), "gemini": sil._legacy()["gemini"]}):
+            desired = {"gemini": True}
+            planned = sil.plan(self.ctx, {"desired": desired, "launcher": LAUNCH})
+            sil.apply(self.ctx, "op-beta1-gemini", {"desired": desired, "launcher": LAUNCH, "plan_digest": planned["plan_digest"]})
+        self.assertIn("respected-orchestrator", self.gemini.read_text("utf-8"))
+        self.assertIn("gemini", sil._owned(self.ctx))
+
+    def test_the_old_entry_is_listed_and_can_be_switched_off_leaving_foreign_content(self):
+        rows = {r["client"]: r for r in sil.plan(self.ctx, {"desired": {}})["clients"]}
+        self.assertEqual(rows["gemini"]["state"], "owned")
+        planned = sil.plan(self.ctx, {"desired": {"gemini": False}})
+        sil.apply(self.ctx, "op-off-gemini", {"desired": {"gemini": False}, "plan_digest": planned["plan_digest"]})
+        self.assertEqual(json.loads(self.gemini.read_text("utf-8")), self.foreign)
+        self.assertNotIn("gemini", sil._owned(self.ctx))
+        self.assertNotIn("gemini", {r["client"] for r in sil.plan(self.ctx, {"desired": {}})["clients"]})
+
+    def test_gemini_cannot_be_turned_on_and_is_unknown_without_an_old_record(self):
+        with self.assertRaises(sil.OperationError):
+            sil.plan(self.ctx, {"desired": {"gemini": True}, "launcher": LAUNCH})
+        sil.apply(self.ctx, "op-off-gemini", {"desired": {"gemini": False}, "plan_digest": sil.plan(self.ctx, {"desired": {"gemini": False}})["plan_digest"]})
+        with self.assertRaises(sil.OperationError):
+            sil.plan(self.ctx, {"desired": {"gemini": False}})
+
+    def test_uninstall_takes_the_old_entry_back_without_conflicts(self):
+        from respected_orchestrator.interfaces import installation
+        result = installation.uninstall(self.ctx)
+        self.assertEqual(result["conflicts"], [])
+        self.assertEqual(json.loads(self.gemini.read_text("utf-8")), self.foreign)
+
+    def test_an_edited_old_entry_is_still_taken_back(self):
+        doc = json.loads(self.gemini.read_text("utf-8"))
+        doc["mcpServers"]["respected-orchestrator"]["args"] = ["edited"]
+        self.gemini.write_text(json.dumps(doc), encoding="utf-8")
+        planned = sil.plan(self.ctx, {"desired": {"gemini": False}})
+        self.assertEqual(planned["clients"][[r["client"] for r in planned["clients"]].index("gemini")]["action"], "remove")
+
+
 if __name__ == "__main__":
     unittest.main()

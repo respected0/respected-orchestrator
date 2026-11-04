@@ -18,7 +18,7 @@ class MigrateTest(unittest.TestCase):
 
     def test_unversioned_beta_files_count_as_version_one_and_stay_untouched(self):
         (self.data / "settings.json").write_text('{"default_worker": "codex"}', encoding="utf-8")
-        self.assertEqual(migrate_data(self.data), [])
+        self.assertEqual(migrate_data(self.data, current={"settings.json": 1}, steps={}), [])
         self.assertEqual(json.loads((self.data / "settings.json").read_text()), {"default_worker": "codex"})
 
     def test_old_format_moves_and_the_original_is_kept(self):
@@ -104,6 +104,57 @@ class MigrateTest(unittest.TestCase):
     def test_the_first_release_data_is_kept_as_a_fixture(self):
         for name in SHIPPED:
             self.assertTrue(list(RELEASES.glob(f"*/{name}")), f"{name}: add the file of the first release to tests/fixtures/releases")
+
+
+class GeminiRemovalStepTest(unittest.TestCase):
+    """beta.2 removed the Gemini CLI: only settings that named it change, and they move to agy (Antigravity)."""
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.data = Path(temporary.name)
+
+    def migrate(self, document):
+        (self.data / "settings.json").write_text(json.dumps(document), encoding="utf-8")
+        migrate_data(self.data)
+        return json.loads((self.data / "settings.json").read_text("utf-8"))
+
+    def test_gemini_defaults_move_to_agy_and_their_model_is_cleared(self):
+        result = self.migrate({"default_worker": "gemini", "default_worker_profile": "gemini-2.5-pro",
+                               "default_reviewer_tool": "gemini", "default_reviewer_profile": "gemini-2.5-flash"})
+        self.assertEqual((result["default_worker"], result["default_worker_profile"]), ("agy", ""))
+        self.assertEqual((result["default_reviewer_tool"], result["default_reviewer_profile"]), ("agy", ""))
+        self.assertEqual(result["schema_version"], CURRENT["settings.json"])
+
+    def test_nothing_that_is_not_gemini_changes(self):
+        document = {"default_worker": "antigravity", "default_worker_profile": "pro", "default_reviewer_tool": "agy",
+                    "default_reviewer_profile": "flash", "default_roles": '{"reviewer": {"tool": "agy", "profile": "x"}}',
+                    "auto_pool": '[{"tool": "codex", "profile": "g"}, {"tool": "antigravity", "profile": "p"}]'}
+        result = self.migrate(document)
+        self.assertEqual({key: value for key, value in result.items() if key != "schema_version"}, document)
+
+    def test_role_assignments_and_pool_entries_that_name_gemini_move_including_fallbacks(self):
+        result = self.migrate({
+            "default_roles": json.dumps({"reviewer": {"tool": "gemini", "profile": "g1", "fallbacks": [
+                {"tool": "gemini", "profile": "g2"}, {"tool": "agy", "profile": "keep"}]}, "planner": "just-a-profile"}),
+            "auto_pool": json.dumps([{"tool": "gemini", "profile": "g3"}, {"tool": "codex", "profile": "c"}])})
+        roles = json.loads(result["default_roles"])
+        self.assertEqual(roles["reviewer"], {"tool": "agy", "profile": "", "fallbacks": [
+            {"tool": "agy", "profile": ""}, {"tool": "agy", "profile": "keep"}]})
+        self.assertEqual(roles["planner"], "just-a-profile")
+        self.assertEqual(json.loads(result["auto_pool"]), [{"tool": "agy", "profile": ""}, {"tool": "codex", "profile": "c"}])
+
+    def test_unreadable_role_text_is_left_for_the_person_to_fix(self):
+        result = self.migrate({"default_roles": "{not json", "default_worker": "gemini"})
+        self.assertEqual(result["default_roles"], "{not json")
+        self.assertEqual(result["default_worker"], "agy")
+
+    def test_the_beta1_fixture_with_gemini_settings_moves_and_the_original_is_kept(self):
+        document = json.loads((RELEASES / "0.1.0-beta.1" / "settings.json").read_text("utf-8"))
+        document.update(default_worker="gemini", default_reviewer_tool="gemini")
+        result = self.migrate(document)
+        self.assertEqual((result["default_worker"], result["default_reviewer_tool"]), ("agy", "agy"))
+        self.assertEqual(json.loads((self.data / "settings.json.v1.bak").read_text("utf-8"))["default_worker"], "gemini")
 
 
 if __name__ == "__main__":

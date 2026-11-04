@@ -15,7 +15,7 @@ import tempfile
 
 from .. import __version__
 from ..context import atomic_write_json, safe_path
-from . import RPP
+from . import RPP, migrate
 
 PRODUCT_ID = "respected-orchestrator"
 
@@ -172,6 +172,7 @@ def _normalize(settings):
         if key in settings:
             normalized[key] = settings[key]
     normalized.pop("memory_token", None)  # write-only: lives in the token file, never in settings.json
+    normalized["schema_version"] = migrate.CURRENT["settings.json"]  # a saved file is always in the current format
     return normalized
 
 

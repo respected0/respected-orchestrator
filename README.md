@@ -16,7 +16,7 @@ Kodlama ajanlarını yalıtılmış Git çalışma ağaçlarında çalıştıran
 ![Python gerekmez](https://img.shields.io/badge/Python-gerekmez-3776AB?style=flat-square&logo=python&logoColor=white)
 ![Git](https://img.shields.io/badge/Git-gerekli-F05032?style=flat-square&logo=git&logoColor=white)
 
-**Codex** · **Claude** · **Antigravity** · **Cursor** · **OpenCode** · **kendi komutunuz**
+**Codex** · **Claude** · **Antigravity** · **Cursor** · **OpenCode** · **OpenRouter** · **kendi komutunuz**
 
 [Nasıl çalışır](#nasıl-çalışır) · [Özellikler](#özellikler) · [Kurulum](#kurulum) · [Komutlar](#komutlar) · [Geliştirme](#geliştirme)
 
@@ -48,10 +48,11 @@ Brain, not kasası, Hub ya da sürekli çalışan bir servis gerektirmez; Brain 
 | | |
 |---|---|
 | **Yalıtım** | Her görev projenizin ayrı bir Git çalışma ağacında ve bir Windows AppContainer içinde çalışır; gerçek ağaca dokunmaz, ağ varsayılan kapalıdır |
-| **Kendi ajanınız** | Codex, Claude, Antigravity, Cursor, OpenCode ya da kendi komutunuz |
+| **Kendi ajanınız** | Codex, Claude, Antigravity, Cursor, OpenCode, OpenRouter (API; anahtar Windows DPAPI kasasında, ağ yalnızca sizin açmanızla) ya da kendi komutunuz |
 | **Denetim** | Kapsam, doğrulama komutları, imzalı kanıt, yamanın güncelliği |
 | **Onay sizde** | Hiçbir sonuç kendiliğinden uygulanmaz; bekleyen, başarısız, bayat ya da kurcalanmış sonuç `check`'ten geçmez |
-| **Kampanyalar ve projeler** | Çok adımlı işler için MAF iş akışı, kampanyalar, projeler, planlayıcı, rol atama |
+| **Kampanyalar ve projeler** | Çok adımlı işler için MAF iş akışı, bağımlılık (DAG) tabanlı scheduler ve paralel hatlar, planlayıcı, `coordinator` ve `tester` rolleri, iki sonucu güvenle birleştirme (`integrate`), çökme sonrası kontrollü devam (`project-resume`) |
+| **Her model her role** | Rol ataması açık seçim, Hub varsayılanı ve ölçülmüş geçmişe dayalı otomatik öneri sırasıyla çözülür; açık seçim sessizce değiştirilmez |
 | **AI araçlarına MCP** | Orchestrator, AI araçlarına MCP sunucusu olarak kaydedilebilir |
 | **Brain hafızası (isteğe bağlı)** | Brain kuruluysa ve izin verirseniz hafızadan okur, kalıcı kararları Brain'e not olarak bırakır |
 
@@ -65,6 +66,8 @@ görevleri yapacak bir AI aracının komut satırı (oturumu açık) olmalıdır
 
 Kurucuyu yeniden çalıştırmak onarır/günceller, ayarları değiştirir ya da kaldırır. Adım adım: [Kullanım rehberi](docs/USAGE.md).
 
+**Güncelleme:** eski sürümden güncellerken ayarlarınız ve önceki görev kayıtlarınız korunur; biçimi değişen ayarlar otomatik taşınır ve eskisi `.bak` olarak saklanır. beta.2 ile Gemini CLI desteği kalktı (Google'ın aracı Antigravity oldu): `gemini` olarak ayarlanmış varsayılanlar `agy`'ye çevrilir, eski Gemini MCP kaydı `integrations set gemini=off` ya da kaldırma ile temizlenir.
+
 **Kurulumdan sonra bir adım:** kullandığınız AI aracını yeniden başlatın ve aracın ilgili yerinden (eklentiler, MCP) Orchestrator'a izin verin. Yoksa araç Orchestrator'ı görmez.
 
 | Ne | Nerede |
@@ -72,7 +75,7 @@ Kurucuyu yeniden çalıştırmak onarır/günceller, ayarları değiştirir ya d
 | Program | `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app\respected-orchestrator.exe` (kurucunun) |
 | Ayarlar, görev çalışmaları, kanıtlar | `%LOCALAPPDATA%\Respected\RespectedOrchestrator\data` |
 
-Beta yalnızca Windows'u destekler.
+Beta yalnızca Windows'u destekler. Kurucu henüz Authenticode ile imzalı değildir; Windows SmartScreen uyarı gösterebilir.
 
 ## Komutlar
 
@@ -82,7 +85,7 @@ Tam liste ve istek biçimleri: [docs/COMMANDS.md](docs/COMMANDS.md).
 | Alan | Komutlar |
 |---|---|
 | **Kurulum ve bakım** | `setup`, `repair`, `uninstall [--purge]`, `config [get\|set]`, `health`, `status` |
-| **Bağlantılar** | `memory connect [--write] \| disconnect \| status` (Brain hafızası), `integrations [set İSTEMCİ=on\|off]` (AI araçlarına MCP kaydı), `mcp`, `rpp` |
+| **Bağlantılar** | `memory connect [--write] \| disconnect \| status` (Brain hafızası), `integrations [set İSTEMCİ=on\|off]` (AI araçlarına MCP kaydı), `provider-key`, `provider-models` (OpenRouter), `mcp`, `rpp` |
 | **Görevler** | `create` → `start` → `inspect` → `check` → `apply`; ayrıca `list`, `retry`, `cancel`, `artifact`, `evidence`, `maf`, `maf-approve`, `roles`, `plan`, `coordinate`, `integrate` |
 | **Projeler ve kampanyalar** | `project-start\|status\|resume\|approve\|cancel`, `campaign-start\|status\|cancel\|list` |
 | **GitHub** | `github-import-issue`, `github-pr-plan`, `github-pr-create`, `github-ci-plan` |
@@ -105,9 +108,9 @@ $env:RESPECTED_DATA_DIR = "$env:TEMP\orch-dev"; python -m respected_orchestrator
 
 | Yol | İçerik |
 |---|---|
-| `src/respected_orchestrator/engine/` | Çalışma ağaçları, çalıştırıcı, Codex katmanı, doğrulama kum havuzu, süreç denetimi, belirteç bütçesi |
-| `src/respected_orchestrator/workflows/` | MAF iş akışı, kampanyalar, projeler, planlayıcı, rol atama |
-| `src/respected_orchestrator/interfaces/` | RPP, kurulum, MCP sunucusu, Brain hafızası, AI aracı kayıtları |
+| `src/respected_orchestrator/engine/` | Çalışma ağaçları, çalıştırıcı, araç katmanları (Codex, OpenCode, OpenRouter…), AppContainer kum havuzu, süreç denetimi, belirteç bütçesi, anahtar kasası |
+| `src/respected_orchestrator/workflows/` | MAF iş akışı, kampanyalar, projeler, planlayıcı, coordinator, checkpoint, rol atama |
+| `src/respected_orchestrator/interfaces/` | RPP, kurulum ve veri geçişi, MCP sunucusu ve istemcisi, GitHub, Brain hafızası, AI aracı kayıtları |
 | `packaging/windows/orchestrator_setup.iss` | Kurucu |
 
 </details>
@@ -119,6 +122,8 @@ $env:RESPECTED_DATA_DIR = "$env:TEMP\orch-dev"; python -m respected_orchestrator
 | [USAGE.md](docs/USAGE.md) | Kullanım rehberi |
 | [COMMANDS.md](docs/COMMANDS.md) | Komutlar ve istek biçimleri |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Bağlayıcı kurallar ve güvenlik sınırları |
+| [adr/](docs/adr) | Mimari karar kayıtları (ADR-001…016): neden böyle yapıldı |
+| [THREAT_MODEL.md](docs/THREAT_MODEL.md) | Tehdit modeli ve yetki matrisi |
 | [PRODUCT_CONTRACT.md](docs/PRODUCT_CONTRACT.md) | Üç ürünün ortak sözleşmesi |
 | [ROADMAP.md](docs/ROADMAP.md) | Yol haritası |
 | [PRIVACY.md](PRIVACY.md) | Hangi veri nerede durur, neresi dışarı çıkar |

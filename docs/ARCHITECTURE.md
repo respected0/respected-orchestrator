@@ -369,6 +369,13 @@ ikinci çalıştırma byte düzeyinde hiçbir şey değiştirmez. Adım eksikse 
 `MigrationError` ile durur; dosya ve yedek yazılmaz, veri kaybı olmaz. `CURRENT` yükseltilip `STEPS` veya fixture
 eklenmezse `tests/interfaces/test_migrate.py` kırılır ve CI birleştirmez.
 
+`settings.json` biçim 2 (beta.2): Gemini CLI kaldırıldığı için `default_worker`/`default_reviewer_tool` değeri `gemini` olan
+ayarlar `agy` (Antigravity) olur ve eşlik eden model adı (`*_profile`) boşaltılır; `default_roles` ve `auto_pool` içindeki
+`tool: "gemini"` atamaları (`fallbacks` dahil) aynı şekilde `agy` olur. `agy`, `antigravity` ve başka hiçbir araç, profil ya da
+okunamayan metin değiştirilmez. Kaydedilen her ayar dosyası güncel sürüm numarasını taşır. beta.1'in `~/.gemini/settings.json`
+içine yazdığı MCP girdisi için sahiplik kaydı varsa `gemini` istemcisi yalnızca geri alınabilir: `integrations set gemini=off` ve
+`uninstall` girdiyi kaldırır, açma reddedilir; kayıt yoksa `gemini` bilinmeyen istemcidir.
+
 ## 9. Testler
 
 | Klasör | Kapsam |

@@ -37,6 +37,17 @@ def _clients():
     return table
 
 
+def _legacy():
+    """Clients an older build could register but this one no longer supports. They can only be taken back, and only
+    while Respected's own ownership record for them exists (beta.1 wrote one for Gemini)."""
+    home = _home()
+    return {"gemini": ("json", home / ".gemini/settings.json", home / ".gemini")}
+
+
+def _lookup(client):
+    return {**_clients(), **_legacy()}[client]
+
+
 def _fail(code, message, hint=""):
     return OperationError(code, message, hint)
 
@@ -180,21 +191,25 @@ def _owned(ctx):
 
 
 # ---- plan -----------------------------------------------------------------------------------------------------------------
-def _desired(raw, clients):
+def _desired(raw, clients, legacy=()):
     if not isinstance(raw, dict) or any(not isinstance(v, bool) for v in raw.values()):
         raise _fail("BAD_REQUEST", "desired must map client ids to booleans.", "Use {\"claude-code\": true}.")
-    unknown = sorted(set(raw) - set(clients))
+    unknown = sorted(set(raw) - set(clients) - set(legacy))
     if unknown:
         raise _fail("BAD_REQUEST", f"Unknown client(s): {', '.join(unknown)}.", "Use: " + ", ".join(clients) + ".")
+    revived = sorted(name for name in legacy if raw.get(name))
+    if revived:
+        raise _fail("BAD_REQUEST", f"{', '.join(revived)} is no longer supported; it can only be turned off.", "Use false to remove the old entry.")
     return raw
 
 
 def plan(ctx, payload):
     clients = _clients()
-    desired = _desired(payload.get("desired", {}), clients)
-    launcher = payload.get("launcher")
     owned, rows = _owned(ctx), []
-    for client, (kind, path, marker) in clients.items():
+    legacy = {name: value for name, value in _legacy().items() if name in owned}
+    desired = _desired(payload.get("desired", {}), clients, legacy)
+    launcher = payload.get("launcher")
+    for client, (kind, path, marker) in {**clients, **legacy}.items():
         try:
             text, current = _read(kind, path)
         except Exception:
@@ -235,7 +250,7 @@ def plan(ctx, payload):
 
 # ---- apply / rollback ---------------------------------------------------------------------------------------------------
 def _set_entry(client, entry):
-    kind, path, _ = _clients()[client]
+    kind, path, _ = _lookup(client)
     text, _current = _read(kind, path)
     new = _write(kind, path, text, entry)
     if kind == "toml":
@@ -245,7 +260,7 @@ def _set_entry(client, entry):
 
 
 def _verify(client, entry):
-    kind, path, _ = _clients()[client]
+    kind, path, _ = _lookup(client)
     _text, current = _read(kind, path)
     expected = None if entry is None else (_canon(entry) if kind in ("json", "opencode-json") else _toml_block(entry).strip())
     if current != expected:
@@ -272,7 +287,7 @@ def apply(ctx, operation_id, payload):
         for row in planned["clients"]:
             if row["action"] not in ("create", "update", "remove"):
                 continue
-            client, kind = row["client"], _clients()[row["client"]][0]
+            client, kind = row["client"], _lookup(row["client"])[0]
             _text, before = _read(kind, Path(row["config"]))
             new_entry = row.get("entry") if row["action"] != "remove" else None
             _path, prior_text = _set_entry(client, new_entry)
@@ -293,7 +308,7 @@ def apply(ctx, operation_id, payload):
     except Exception:
         for client, before in reversed(done):  # undo what this call wrote; foreign content was never touched
             try:
-                _set_entry(client, _parse(_clients()[client][0], before))
+                _set_entry(client, _parse(_lookup(client)[0], before))
             except Exception:
                 pass
         raise
@@ -310,14 +325,14 @@ def rollback(ctx, operation_id):
         raise _fail("ROLLBACK_UNAVAILABLE", "No integrations receipt for that operation_id.", "Check the operation_id.")
     if receipt.get("status") == "rolled_back":
         return receipt
-    owned, clients = _owned(ctx), _clients()
+    owned = _owned(ctx)
     for change in receipt["changes"]:  # check everything first: roll back all or none
-        kind, config, _ = clients[change["client"]]
+        kind, config, _ = _lookup(change["client"])
         if _read(kind, config)[1] != change["after"]:
             raise _fail("ROLLBACK_UNAVAILABLE", f"{change['client']}: the entry changed since this operation; leaving it alone.",
                         "Edit or remove it by hand.")
     for change in reversed(receipt["changes"]):
-        client, kind = change["client"], clients[change["client"]][0]
+        client, kind = change["client"], _lookup(change["client"])[0]
         before = change["before"]
         _set_entry(client, _parse(kind, before))
         if before:
