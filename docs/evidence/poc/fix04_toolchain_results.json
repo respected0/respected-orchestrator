@@ -1,0 +1,30 @@
+{
+  "venv_outside_prefix": {
+    "returncode": 106,
+    "tail": "failed to locate pyvenv.cfg: Eri?im engellendi."
+  },
+  "venv_with_venv_readonly": {
+    "returncode": 0,
+    "tail": "venv C:\\Users\\Furkan\\AppData\\Local\\Temp\\fix04t-2z9ttd1n\\venv"
+  },
+  "node_npm_cli_test": {
+    "returncode": 1,
+    "tail": ")\r\n    at resolveMainPath (node:internal/modules/run_main:35:21)\r\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:146:20)\r\n    at node:internal/main/run_main_module:33:47 {\r\n  errno: -4048,\r\n  code: 'EPERM',\r\n  syscall: 'lstat',\r\n  path: 'C:\\\\'\r\n}\r\n\r\nNode.js v24.19.0"
+  },
+  "git_status": {
+    "returncode": 0,
+    "tail": "?? package.json"
+  },
+  "git_config_origin": {
+    "returncode": 0,
+    "tail": "file:C:/Program Files/Git/etc/gitconfig\tinit.defaultbranch=main\nfile:.git/config\tcore.repositoryformatversion=0\nfile:.git/config\tcore.filemode=false\nfile:.git/config\tcore.bare=false\nfile:.git/config\tcore.logallrefupdates=true\nfile:.git/config\tcore.symlinks=false\nfile:.git/config\tcore.ignorecase=true"
+  },
+  "policy_built_from_git_exe": {
+    "returncode": null,
+    "tail": "SandboxStartError: ACL grant failed for C:\\Program Files\\Git\\mingw64\\bin: C:\\Program Files\\Git\\mingw64\\bin: Eri�im engellendi."
+  },
+  "policy_built_from_node_exe": {
+    "returncode": null,
+    "tail": "SandboxStartError: ACL grant failed for C:\\Program Files\\nodejs: C:\\Program Files\\nodejs: Eri�im engellendi."
+  }
+}

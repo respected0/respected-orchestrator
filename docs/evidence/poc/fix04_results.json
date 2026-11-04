@@ -1,0 +1,137 @@
+{
+  "python": "C:\\Users\\Furkan\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+  "cases": {
+    "python_print": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "ok"
+      },
+      "appcontainer": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "ok"
+      }
+    },
+    "python_unittest": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK"
+      },
+      "appcontainer": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "----------------------------------------------------------------------\r\nRan 1 test in 0.000s\r\n\r\nOK"
+      }
+    },
+    "git_status": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": false,
+        "tail": ""
+      },
+      "appcontainer": {
+        "returncode": 0,
+        "marker_seen": false,
+        "tail": ""
+      }
+    },
+    "git_rev_parse": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": false,
+        "tail": "1a0e45f78a1dfeaef51c6695c9e4872a678a404d"
+      },
+      "appcontainer": {
+        "returncode": 0,
+        "marker_seen": false,
+        "tail": "1a0e45f78a1dfeaef51c6695c9e4872a678a404d"
+      }
+    },
+    "node_version": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": false,
+        "tail": "v24.19.0"
+      },
+      "appcontainer": {
+        "returncode": 0,
+        "marker_seen": false,
+        "tail": "v24.19.0"
+      }
+    },
+    "npm_test": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": false,
+        "tail": "> p@1.0.0 test\n> node -e \"process.exit(0)\""
+      },
+      "appcontainer": {
+        "returncode": null,
+        "marker_seen": false,
+        "tail": "WorkerPolicyError: Shell shims are not executable workers"
+      }
+    },
+    "cmd_echo": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "ok"
+      },
+      "appcontainer": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "ok"
+      }
+    },
+    "net_ip": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "CONNECTED"
+      },
+      "appcontainer": {
+        "returncode": 1,
+        "marker_seen": true,
+        "tail": "on\r\n    sock.connect(sa)\r\n    ~~~~~~~~~~~~^^^^\r\nPermissionError: [WinError 10013] Eri�im izinlerince izin verilmeyen bir �ekilde bir yuvaya eri�ilmeye �al���ld�"
+      }
+    },
+    "net_dns": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "RESOLVED 172.66.147.243"
+      },
+      "appcontainer": {
+        "returncode": 1,
+        "marker_seen": true,
+        "tail": ",socket.gethostbyname('example.com'))\r\n                                   ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^\r\nsocket.gaierror: [Errno 11001] getaddrinfo failed"
+      }
+    },
+    "net_loopback": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "CONNECTED"
+      },
+      "appcontainer": {
+        "returncode": 1,
+        "marker_seen": true,
+        "tail": "rkan\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\socket.py\", line 853, in create_connection\r\n    sock.connect(sa)\r\n    ~~~~~~~~~~~~^^^^\r\nTimeoutError: timed out"
+      }
+    },
+    "net_child_process": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "CONNECTED"
+      },
+      "appcontainer": {
+        "returncode": 0,
+        "marker_seen": false,
+        "tail": "BLOCKED"
+      }
+    }
+  }
+}

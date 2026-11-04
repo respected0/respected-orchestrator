@@ -2,7 +2,7 @@
 
 ## Durum
 
-Kabul edildi ve uygulandı (EVAL-01). Ajan başarısı karşılaştırması henüz yok (`EVAL-02` tamamlandı, ama yalnızca harness tutarlılığını ölçer; model kalitesi iddiası değildir).
+Kabul edildi ve uygulandı (EVAL-01). Ajan başarısı karşılaştırması henüz yok (`EVAL-02` tamamlandı, ama yalnızca harness tutarlılığını ölçer; model kalitesi iddiası değildir). Gerçek ajanlı karşılaştırmanın kuralları ADR-019'dadır (FIX-02, henüz uygulanmadı).
 
 ## Bağlam
 

@@ -36,7 +36,9 @@ Brain hafıza erişimi varsayılan olarak **kapalıdır**; Orchestrator › Ayar
 - Çalışan araç Windows'ta bir AppContainer içinde başlatılır: varsayılan olarak yalnızca görevin çalışma kopyasına yazabilir,
   ağa çıkamaz ve kullanıcı profilinizi okuyamaz. Kum havuzu kurulamazsa çalışan hiç başlamaz. Bu sınır yalnızca Windows'ta
   vardır; çalışma kopyasının **içindeki** dosyaları (örneğin `.env`) çalışan okuyabilir. Ağı kendiniz açtığınız Cursor/OpenCode
-  çalışanında bu sınır ağ için geçerli değildir.
+  çalışanında bu sınır ağ için geçerli değildir. Motorun kendisinin çalıştırdığı kabul ve doğrulama komutları ise bu
+  AppContainer'da değil, daha zayıf bir kısıtlı belirteçle çalışır ve ağa çıkabilir; bu bilinen açıktır
+  (`docs/THREAT_MODEL.md` S-24) ve kapatılması planlıdır, henüz yapılmadı.
 - Bu metin hukuki danışmanlık ya da sözleşme metni değildir; neyin nereye gittiğini anlatır.
 
 ## Silme

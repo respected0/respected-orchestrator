@@ -2563,6 +2563,64 @@ Yukarıdaki kronolojik kayıtlarda aynı dosya birden çok kez farklı hash ile 
 - `tests/workflows/test_campaign.py` → `4224292F0DC67974F55DD3508A6F1636C7BCAE78358153594A00487EADDAFF5D`
 - `tests/workflows/test_reviewer_reliability.py` → `33D85C370FD724B60BD0A457D6AE0597C039E9B42E5F071D2034480424360D48`
 - `docs/ARCHITECTURE.md` → `A3C76C2B92FDC3B765B3FE65D510637E8CB9CD34C728092723B6C2165659841B`
+## FIX-01 / FIX-04 / FIX-02 / FIX-03 — beta.2 öncesi ölçümler (ön çalışma, 5 Kasım 2026)
+
+- Durum: **Görevler açık.** Bu girdi yalnızca ölçüm ve karar kaydıdır; hiçbir FIX tamamlanmadı, hiçbir güvenlik açığı
+  kapatılmadı. Tamamlanma girdileri FIX-01..FIX-04 için ayrıca yazılacaktır.
+- Kapsam: beta.2 öncesi dört düzeltmenin dayandığı varsayımların gerçek ortamda ölçülmesi. Kararlar ADR-017..020.
+- Ortam: yerel Windows 11 (10.0.26300), yükseltilmemiş oturum, Python 3.13.15, git 2.55.0; hosted: GitHub Actions
+  `windows-latest` (Windows Server 2025, 10.0.26100), runner git 2.56.0. Hosted ölçümler public depoda geçici
+  `probe/fix01-elevation` ve `probe/fix01-followup` dallarında yapıldı; dallar ölçümden sonra silindi, `main` değişmedi,
+  Actions public depoda ücretsizdir.
+- Doğrulama komutları:
+
+```text
+python docs/evidence/poc/fix01_deelevate_probe.py info
+python docs/evidence/poc/fix01_deelevate_probe.py run -- python -m unittest tests.engine.test_worker_security tests.engine.test_worker_policy.RealSandboxTests
+python docs/evidence/poc/fix04_verify_appcontainer_probe.py docs/evidence/poc/fix04_results.json
+python docs/evidence/poc/fix04_toolchain_probe.py docs/evidence/poc/fix04_toolchain_results.json
+```
+
+### Bulgular (gerçek çıktı özeti)
+
+- Hosted runner belirteci yükseltilmiş: `token_elevation=1`, integrity High, Administrators etkin
+  (`fix01_hosted_probe.log`). Administrators'ı deny-only yapıp integrity'yi Medium'a düşüren kısıtlı çocuk
+  belirteçte `token_elevation` **hâlâ 1**; motor `unsupported_elevated` verir, 13 testte 12 ERROR. Bu yol çalışmaz.
+- Runner'ın oluşturduğu geçici standart yerel kullanıcı altında `token_elevation=0`, `_is_elevated()=False`;
+  AppContainer matrisi (`test_worker_security` + `RealSandboxTests`) 13 test: 12 geçti, 1 skip (Cursor CLI yok), 0 hata.
+  Yetki yalnızca çalışma alanı + Python dizinine verilince 16 sn; tüm `hostedtoolcache` ağacına verilince ~10 dk
+  (`fix01_hosted_followup.log`).
+- Verify, AppContainer'da ağ kapalı: dış IP, DNS, loopback ve alt süreç çıkışı engellendi; Python, unittest, node,
+  cmd çalıştı (`fix04_results.json`). `npm.cmd` shim politikasıyla reddedildi; `node npm-cli.js test` sürücü kökü
+  `lstat` EPERM ile çalışmadı; sys.prefix dışındaki venv yalnızca kökü salt-okunur verilince çalıştı;
+  `default_policy` `Program Files` altındaki `command[0]` dizini için ACL denemesi yapıp `SandboxStartError` verdi
+  (`fix04_toolchain_results.json`).
+- Hosted'da AppContainer içindeki `git` `rc=128`: `could not open '/dev/null'` (yerelde çalışıyor; sebep git sürümü mü
+  görüntü mü ayrıştırılmadı).
+- Claude Code CLI 2.1.318 `--output-format json` makine okunur; güvenilir sayılar `modelUsage` altında, üst düzey
+  `usage` sıfırdı; `total_cost_usd` liste fiyatı tahmini; çağrının kotadan mı ücretli krediden mi düştüğü anlaşılamadı.
+  Tek çağrı, kullanıcı onaylıydı.
+
+### Kalan risk / ölçülmeyenler
+
+- Hosted ölçüm tek runner görüntüsünde yapıldı; görüntü değişirse sonuç değişebilir.
+- AppContainer'da Python/node/cmd dışındaki araç zincirleri ölçülmedi.
+- `git` farkının nedeni ayrıştırılmadı.
+- Hub tarafı (FIX-03C), gerçek PR (FIX-03A), webhook/yoklama (FIX-03B) ve gerçek ajan benchmark'ı (FIX-02) için
+  hiçbir koşu yapılmadı.
+
+### Kanıt artefaktları (SHA-256)
+
+- `docs/evidence/poc/fix01_deelevate_probe.py` -> `83993761BE250171E680BE8ACC5F61549FE45F778676C6785EBD828CEC918478`
+- `docs/evidence/poc/fix01_hosted_probe.log` -> `1916DEBE198FF5D046EB5B88429610B6E5E74B102E9B6146C2C833A4DCEFD826`
+- `docs/evidence/poc/fix01_hosted_followup.log` -> `24E2B7BDA11DE0DD364CA95032218216A0AE6B8735CBBE04F3EFB7AEE29F1605`
+- `docs/evidence/poc/fix04_verify_appcontainer_probe.py` -> `99B028401C1568C9C7F53A59C4457ABA64FC43E0FA1F9A95DC0905AB614265A4`
+- `docs/evidence/poc/fix04_results.json` -> `CA62AEF215B479F81219D58B5D28CE45EA34E1AEA80DC262E674ED6423B010F0`
+- `docs/evidence/poc/fix04_toolchain_probe.py` -> `9D9B52421ABCA84E67868B874458E4952BAB06F7D20829CD102AE341096D8072`
+- `docs/evidence/poc/fix04_toolchain_results.json` -> `C40F0BD3D1F6797D4E9F8ABDF2C4BB75BE5A3596C1B399FC276BD3E694C0AA5E`
+
+---
+
 ## Şablon (sonraki görevler)
 
 ```
@@ -2644,3 +2702,21 @@ Yukarıdaki kronolojik kayıtlarda aynı dosya birden çok kez farklı hash ile 
 - `PRIVACY.md` → `BD68E38E522F9CB5EE10BD8A1B2D782EF7668E5701484B98C7E3BD377588BAF9`
 - `packaging/windows/UPDATE_NOTES.md` → `91BF9503BC86442A0B62AB68C4F026FDE467CA37ADBA11BDBA08A2E942C40AA4`
 - `src/respected_orchestrator/resources/skills/kod-orkestrasyon/SKILL.md` → `D4A4DC3406266436077BEC0C56C3462E66E9949DA0884CEA0FEA53BD7A4DC573`
+
+
+## Kapanış hash düzeltmesi 5 (2026-11-05: beta.2 öncesi ölçümler ve kararlar)
+
+- ROADMAP (Beta.2 Öncesi Kalan Kritik Düzeltmeler bölümü), THREAT_MODEL (S-24 satırı, §11 CI sınırı), ARCHITECTURE (CI sınırı, verify planı, EVAL/GH/UX sınırları), README (ADR aralığı), PRIVACY (verify'ın ağ sınırı), ADR-002/014 (işaretçi), yeni ADR-017..020. Önceki girdilerdeki bu dosyalara ait hash'ler bu tarihten sonra geçersizdir; güncel değerler aşağıdadır.
+- Bilerek değiştirilmeyenler: `docs/PRODUCT_CONTRACT.md` (üç depoda aynı kopya), kaynak kod, testler, `ci.yml`.
+
+- `docs/ROADMAP.md` -> `88158D8E8216E5723A7606BED97B09D836284F6CEDB9F48EE783DCA9CE7DE212`
+- `docs/THREAT_MODEL.md` -> `FCDFB0955E485216DF1FABFC99F0F2BBEAC22D9C6F07D7FF6ADCA456305E70DB`
+- `docs/ARCHITECTURE.md` -> `445C53949114A40900E080EE4626748B86C99798FD9D6BBD8E75F1690A353A5A`
+- `README.md` -> `25205863AD5D6D9F0796AC73AC6304F4306D86076134CA33C19C0BBA29F44C92`
+- `PRIVACY.md` -> `ADB773AD7DC648228ECDEADC8C5037EB425ED164EC872638F76702FDC6BDA08B`
+- `docs/adr/ADR-002-reproducible-evaluation.md` -> `7B46F68F606695260C9650D9EEF767E5E2045FF5C65BBF9A59A9CF5915A31010`
+- `docs/adr/ADR-014-github-boundary.md` -> `3A20192C70E27035A971110FF2C9E7FE287FB14E01267454F2A688FF2EE1178D`
+- `docs/adr/ADR-017-ci-security-run.md` -> `3AF6001D51C9B24FB84AA5B4EEACDBF4BFA9F5A0A131B6A7D7F3B01253D18A5E`
+- `docs/adr/ADR-018-verify-network-isolation.md` -> `9F0AC15F551CDA7A8AD0852A10983F8C074FDF228DF311892A7909FBBD3B59C6`
+- `docs/adr/ADR-019-real-agent-benchmark.md` -> `4B05B480A17316F3546A74F973375F6D1518BC79D918BE2687A8DE4FFCF75F49`
+- `docs/adr/ADR-020-ci-feedback-ingestion.md` -> `E351E1B1D644AB04A98E1860D81862C5B4DBC82E6B1F67B9BCE1CF2BCB1B3C38`

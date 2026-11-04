@@ -122,7 +122,7 @@ $env:RESPECTED_DATA_DIR = "$env:TEMP\orch-dev"; python -m respected_orchestrator
 | [USAGE.md](docs/USAGE.md) | Kullanım rehberi |
 | [COMMANDS.md](docs/COMMANDS.md) | Komutlar ve istek biçimleri |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Bağlayıcı kurallar ve güvenlik sınırları |
-| [adr/](docs/adr) | Mimari karar kayıtları (ADR-001…016): neden böyle yapıldı |
+| [adr/](docs/adr) | Mimari karar kayıtları (ADR-001…020): neden böyle yapıldı |
 | [THREAT_MODEL.md](docs/THREAT_MODEL.md) | Tehdit modeli ve yetki matrisi |
 | [PRODUCT_CONTRACT.md](docs/PRODUCT_CONTRACT.md) | Üç ürünün ortak sözleşmesi |
 | [ROADMAP.md](docs/ROADMAP.md) | Yol haritası |

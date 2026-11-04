@@ -21,6 +21,7 @@ Issue metni dışarıdan gelir ve güvenilmezdir; PR ve CI düzeltmeleri geri al
 - Orchestrator hiçbir koşulda GitHub'da birleştirme yapmaz.
 - Issue içeriği tek başına worker başlatamaz; etiketler izin listesi dışındaysa atılır.
 - Kimlik bilgisi yönetimi bu kararın dışındadır (ADR-007).
+- Gerçek uzak PR ve canlı CI bağlantısı henüz kanıtlanmadı; CI geri bildirimi yoklama ile alınacak, webhook dinleyicisi eklenmeyecek (ADR-020, FIX-03A/B).
 
 ## Kaynaklar
 

@@ -1,0 +1,48 @@
+# FIX-01 hosted probe: GitHub Actions run 41922976884 (windows-latest, Windows Server 2025 10.0.26100), 5 Kasim 2026
+# probe/fix01-elevation dali (gecici, silindi). Public repo: Actions ucretsiz.
+# Calisan runner tokeni (onceki run 41919266810): token_elevation=1, type=default, integrity=High(S-1-16-12288), Administrators enabled.
+# Kisitli belirtec ile de-elevate (Admins deny-only + Medium): token_elevation HALA 1 -> engine _is_elevated()=True -> 12 ERROR (unsupported_elevated).
+# Asagida: gecici standart yerel kullanici ile ayni matris.
+=== info
+exit 0
+{
+  "token_elevation": 0,
+  "token_elevation_type": "default",
+  "integrity": "S-1-16-8192",
+  "administrators_attributes": null,
+  "administrators_enabled": false
+}
+=== elev
+exit 0
+elevated False
+=== matrix
+exit 0
+test_every_registered_negative_is_denied_and_every_allowed_case_passes (tests.engine.test_worker_security.WorkerSecurityMatrixTest.test_every_registered_negative_is_denied_and_every_allowed_case_passe
+test_recursive_mcp_has_no_tools_and_rejects_tools_call (tests.engine.test_worker_security.WorkerSecurityMatrixTest.test_recursive_mcp_has_no_tools_and_rejects_tools_call) ... ok
+test_symlink_mode_patch_is_rejected_before_export_or_apply (tests.engine.test_worker_security.WorkerSecurityMatrixTest.test_symlink_mode_patch_is_rejected_before_export_or_apply) ... ok
+test_unsandboxed_control_proves_the_attacks_are_real (tests.engine.test_worker_security.WorkerSecurityMatrixTest.test_unsandboxed_control_proves_the_attacks_are_real) ... ok
+test_allowed_write_and_read_still_work (tests.engine.test_worker_policy.RealSandboxTests.test_allowed_write_and_read_still_work) ... ok
+test_child_process_inherits_the_boundary (tests.engine.test_worker_policy.RealSandboxTests.test_child_process_inherits_the_boundary) ... ok
+test_engine_key_and_data_root_are_not_reachable_from_worker (tests.engine.test_worker_policy.RealSandboxTests.test_engine_key_and_data_root_are_not_reachable_from_worker) ... ok
+test_network_is_denied_by_default (tests.engine.test_worker_policy.RealSandboxTests.test_network_is_denied_by_default) ... ok
+test_node_worker_can_start_piped_children_and_resolve_paths (tests.engine.test_worker_policy.RealSandboxTests.test_node_worker_can_start_piped_children_and_resolve_paths) ... skipped 'Cursor CLI (its 
+test_outside_read_is_denied (tests.engine.test_worker_policy.RealSandboxTests.test_outside_read_is_denied) ... ok
+test_outside_write_is_denied (tests.engine.test_worker_policy.RealSandboxTests.test_outside_write_is_denied) ... ok
+test_sentinel_secret_never_appears_in_output (tests.engine.test_worker_policy.RealSandboxTests.test_sentinel_secret_never_appears_in_output) ... ok
+test_timeout_leaves_no_child_process (tests.engine.test_worker_policy.RealSandboxTests.test_timeout_leaves_no_child_process) ... ok
+----------------------------------------------------------------------
+Ran 13 tests in 14.158s
+OK (skipped=1)
+=== verify
+exit 0
+python_print       control rc=0 marker=True | appcontainer rc=0 marker=True
+python_unittest    control rc=0 marker=True | appcontainer rc=0 marker=True
+git_status         control rc=0 marker=False | appcontainer rc=128 marker=False
+git_rev_parse      control rc=0 marker=False | appcontainer rc=128 marker=False
+node_version       control rc=0 marker=False | appcontainer rc=0 marker=False
+npm_test           control rc=0 marker=False | appcontainer rc=None marker=False
+cmd_echo           control rc=0 marker=True | appcontainer rc=0 marker=True
+net_ip             control rc=0 marker=True | appcontainer rc=1 marker=True
+net_dns            control rc=0 marker=True | appcontainer rc=1 marker=True
+net_loopback       control rc=0 marker=True | appcontainer rc=1 marker=True
+net_child_process  control rc=0 marker=True | appcontainer rc=0 marker=False

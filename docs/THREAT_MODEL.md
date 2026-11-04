@@ -94,7 +94,7 @@ ilgili dosyada; **Kısmi** = bazı koşullarda korur; **Yok** = bugün motor eng
 | S-21 | MCP istemcisi `custom` worker, `apply_root` veya `engine_source` ister | MCP istemcisi | B1 MCP izin listesi | Varsayılan red | **Engellenir (test)** | `tests/interfaces/test_mcp_server.py` |
 | S-22 | MCP istemcisi yanlış/eski `patch_sha256` ile `apply` çağırır | MCP istemcisi | B5 + B6 | Red | **Engellenir (test)** | `tests/interfaces/test_mcp_server.py` |
 | S-23 | Worker, worktree dışına işaret eden symlink içeren yama üretir | Worker | B3/B5 yama güvenliği | Red | **Engellenir (test)**; `120000`/`160000` indeks modu güvensiz sayılır, kapsam ve export reddeder, apply çakışma döner | `test_worker_security.py::test_symlink_mode_patch_is_rejected_before_export_or_apply`; `test_frozen_security.py::test_frozen_engine_rejects_a_symlink_mode_patch_staged_without_symlink_privilege`; `engine/lanes.py` |
-| S-24 | Kabul kodu ağ üzerinden dışarı veri sızdırır | Kabul kodu | B4 ağ | Varsayılan kapalı | **Yok**; kısıtlı belirteç ağı kapatmaz | `sandbox.py` limit notu; SEC-03 |
+| S-24 | Kabul kodu ağ üzerinden dışarı veri sızdırır | Kabul kodu | B4 ağ | Varsayılan kapalı | **Yok**; kısıtlı belirteç ağı kapatmaz. Karar: verify AppContainer'da ağ kapalı çalışacak (ADR-018, ölçüldü); **uygulama FIX-04, henüz yapılmadı** | `sandbox.py` limit notu; SEC-03; `docs/evidence/poc/fix04_results.json` (ölçüm, düzeltme değil) |
 | S-25 | Hub/MCP üzerinden insan onayı sahte bir düğmeyle verilir | Hub/MCP | B5/B6 | Yalnızca gerçek TTY oturumu | **Engellenir (test)** | `test_maf_coding.py`; MCP araç listesinde `maf-approve` yok |
 ## 6. Windows kullanıcı ve yönetici kararı
 
@@ -180,4 +180,10 @@ Kanıt, test adı + çalışma tarihiyle birlikte sunulur; test adı belge cüml
 - `sandbox.py`, `runner.py` (`apply`, `approve_maf_task`), `processes.py` veya MCP izin listesi değişirse bu belge
   aynı değişiklikte güncellenir.
 - SEC-02/SEC-03 tamamlandığında B2 satırı ve S-01..S-04 yeniden sınıflandırıldı (4 Kasım 2026); S-24 (kabul kodunun ağı)
-  ve S-03 (worktree içindeki `.env`) hâlâ "Yok"tur ve öyle kalmalıdır.
+  ve S-03 (worktree içindeki `.env`) hâlâ "Yok"tur ve öyle kalmalıdır. S-24 için çözüm yolu 5 Kasım 2026'da
+  ölçülerek seçildi (ADR-018: verify'ı ağ kapalı AppContainer'da koşturmak); S-24 yalnızca FIX-04 testleri geçtiğinde
+  yeniden sınıflandırılır, karar tek başına satırı değiştirmez.
+- **CI sınırı (5 Kasım 2026 denetimi):** GitHub'ın hosted Windows runner'ı yükseltilmiş çalıştığı için AppContainer
+  vakaları orada `ORCH_ALLOW_ELEVATED_SKIP=1` ile atlanır (S-19 reddi yüzünden); yani yukarıdaki "ayrı zorunlu CI
+  adımları" bugün hosted'da AppContainer sınırını ölçmez, kanıt yükseltilmemiş yerel koşudan gelir. Çözüm yolu
+  ölçülerek seçildi (ADR-017: iş içinde geçici standart yerel kullanıcı); uygulama FIX-01, henüz yapılmadı.

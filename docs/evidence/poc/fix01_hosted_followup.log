@@ -1,0 +1,192 @@
+# FIX-01/FIX-04 hosted takip probe: GitHub Actions run 41925644132 (windows-latest, Server 2025), 5 Kasim 2026
+# probe/fix01-followup dali (gecici, silindi). Dar yetki: yalniz calisma alani + Python kurulum dizini.
+# Gecici standart yerel kullanici altinda; git 2.56.0.windows.4 (runner), yerelde git 2.55.0.
+grants done in 15.9971319s
+=== matrix
+exit 0 after 49.9362586s
+test_outside_write_is_denied (tests.engine.test_worker_policy.RealSandboxTests.test_outside_write_is_denied) ... ok
+test_sentinel_secret_never_appears_in_output (tests.engine.test_worker_policy.RealSandboxTests.test_sentinel_secret_never_appears_in_output) ... ok
+test_timeout_leaves_no_child_process (tests.engine.test_worker_policy.RealSandboxTests.test_timeout_leaves_no_child_process) ... ok
+----------------------------------------------------------------------
+Ran 13 tests in 12.300s
+OK (skipped=1)
+=== verify
+exit 0 after 69.3943845s
+Exception in thread Thread-1 (<lambda>):
+=== toolchain
+exit 0 after 75.0861667s
+=== verify.json
+{
+  "python": "C:\\hostedtoolcache\\windows\\Python\\3.13.17\\x64\\python.exe",
+  "cases": {
+    "python_print": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "ok"
+      },
+      "appcontainer": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "ok\r\nFailed to find real location of C:\\hostedtoolcache\\windows\\Python\\3.13.17\\x64\\python.exe"
+      }
+    },
+    "python_unittest": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK"
+      },
+      "appcontainer": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "n of C:\\hostedtoolcache\\windows\\Python\\3.13.17\\x64\\python.exe\n----------------------------------------------------------------------\r\nRan 1 test in 0.000s\r\n\r\nOK"
+      }
+    },
+    "git_status": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": false,
+        "tail": "?? __pycache__/"
+      },
+      "appcontainer": {
+        "returncode": 128,
+        "marker_seen": false,
+        "tail": "fatal: could not open '/dev/null' for reading and writing: Permission denied"
+      }
+    },
+    "git_rev_parse": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": false,
+        "tail": "8ed90c4377f621a439159e8a0e8da43d88e56fd2"
+      },
+      "appcontainer": {
+        "returncode": 128,
+        "marker_seen": false,
+        "tail": "fatal: could not open '/dev/null' for reading and writing: Permission denied"
+      }
+    },
+    "node_version": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": false,
+        "tail": "v22.23.4"
+      },
+      "appcontainer": {
+        "returncode": 0,
+        "marker_seen": false,
+        "tail": "v22.23.4"
+      }
+    },
+    "npm_test": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": false,
+        "tail": "> p@1.0.0 test\n> node -e \"process.exit(0)\""
+      },
+      "appcontainer": {
+        "returncode": null,
+        "marker_seen": false,
+        "tail": "WorkerPolicyError: Shell shims are not executable workers"
+      }
+    },
+    "cmd_echo": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "ok"
+      },
+      "appcontainer": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "ok"
+      }
+    },
+    "net_ip": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "CONNECTED"
+      },
+      "appcontainer": {
+        "returncode": 1,
+        "marker_seen": true,
+        "tail": "   sock.connect(sa)\r\n    ~~~~~~~~~~~~^^^^\r\nPermissionError: [WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions"
+      }
+    },
+    "net_dns": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "RESOLVED 172.66.147.243"
+      },
+      "appcontainer": {
+        "returncode": 1,
+        "marker_seen": true,
+        "tail": ",socket.gethostbyname('example.com'))\r\n                                   ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^\r\nsocket.gaierror: [Errno 11001] getaddrinfo failed"
+      }
+    },
+    "net_loopback": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "CONNECTED"
+      },
+      "appcontainer": {
+        "returncode": 1,
+        "marker_seen": true,
+        "tail": ":\\hostedtoolcache\\windows\\Python\\3.13.17\\x64\\Lib\\socket.py\", line 853, in create_connection\r\n    sock.connect(sa)\r\n    ~~~~~~~~~~~~^^^^\r\nTimeoutError: timed out"
+      }
+    },
+    "net_child_process": {
+      "control": {
+        "returncode": 0,
+        "marker_seen": true,
+        "tail": "CONNECTED"
+      },
+      "appcontainer": {
+        "returncode": 0,
+        "marker_seen": false,
+        "tail": "BLOCKED\r\nFailed to find real location of C:\\hostedtoolcache\\windows\\Python\\3.13.17\\x64\\python.exe"
+      }
+    }
+  }
+}
+=== toolchain.json
+{
+  "venv_outside_prefix": {
+    "returncode": 106,
+    "tail": "failed to locate pyvenv.cfg: Access is denied."
+  },
+  "venv_with_venv_readonly": {
+    "returncode": 0,
+    "tail": "venv C:\\Windows\\Temp\\fix04t-h98oybvx\\venv\r\nFailed to find real location of C:\\hostedtoolcache\\windows\\Python\\3.13.17\\x64\\python.exe"
+  },
+  "node_npm_cli_test": {
+    "returncode": 1,
+    "tail": "s/cjs/loader:1216:25)\r\n    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)\r\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\r\n    at node:internal/main/run_main_module:36:49 {\r\n  code: 'MODULE_NOT_FOUND',\r\n  requireStack: []\r\n}\r\n\r\nNode.js v22.23.4"
+  },
+  "git_status": {
+    "returncode": 128,
+    "tail": "fatal: could not open '/dev/null' for reading and writing: Permission denied"
+  },
+  "git_config_origin": {
+    "returncode": 128,
+    "tail": "fatal: could not open '/dev/null' for reading and writing: Permission denied"
+  },
+  "policy_built_from_git_exe": {
+    "returncode": null,
+    "tail": "SandboxStartError: ACL grant failed for C:\\Program Files\\Git\\bin: C:\\Program Files\\Git\\bin: Access is denied."
+  },
+  "policy_built_from_node_exe": {
+    "returncode": null,
+    "tail": "SandboxStartError: ACL grant failed for C:\\Program Files\\nodejs: C:\\Program Files\\nodejs: Access is denied."
+  }
+}
+=== matrix summary
+test_node_worker_can_start_piped_children_and_resolve_paths 
+(tests.engine.test_worker_policy.RealSandboxTests.test_node_worker_can_start_piped_children_and_resolve_paths) ... 
+^[[7mskipped ^[[0m^[[7m^[[0m'Cursor ^[[0m^[[7m^[[0mCLI ^[[0m^[[7m^[[0m(its ^[[0m^[[7m^[[0mbundled ^[[0m^[[7m^[[0mnode.exe ^[[0m^[[7m^[[0mbehind ^[[0m^[[7m^[[0mthe ^[[0m^[[7m^[[0m.cmd ^[[0m^[[7m^[[0mshim) ^[[0m^[[7m^[[0mis ^[[0m^[[7m^[[0mnot ^[[0m^[[7m^[[0minstalled'^[[0m
+^[[7mRan ^[[0m13 tests in 12.300s
+^[[7mOK^[[0m (skipped=1)

@@ -58,7 +58,10 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   ayrıcalığı olmayan worker'ın `git update-index` ile `120000` hazırlayıp normal dosyayla maskelemesi de reddedilir.
 - **CI güvenlik sınırları:** `.github/workflows/ci.yml` worker AppContainer matrisini, verify/acceptance sandbox
   matrisini, güvenlik kayıt kapısını ve frozen exe matrisini ayrı zorunlu adımlar olarak çalıştırır; tam keşif adımı
-  korunur. `continue-on-error` yoktur; bu adımlardan biri düştüğünde iş düşer.
+  korunur. `continue-on-error` yoktur; bu adımlardan biri düştüğünde iş düşer. **Sınır:** hosted Windows runner
+  yükseltilmiş olduğundan worker ve frozen matrislerindeki AppContainer vakaları orada `ORCH_ALLOW_ELEVATED_SKIP=1`
+  ile atlanır; `test_security_gate.py` yalnızca `ci.yml` metnini denetler. Gerçek koşu yükseltilmemiş makinede
+  yereldir. Kapatma yolu ölçüldü ve seçildi (ADR-017), uygulama FIX-01'dir; henüz yapılmadı.
 - **Kalan sınır:** AppContainer Windows'a özgüdür; Windows dışında worker başlatılmaz (REL-04 platform kararı). Yükseltilmiş
   veya doğrulanamayan oturumda motor fail-closed davranır ve worker başlatmaz (`unsupported_elevated`). İzin verilen araç dizinindeki çalıştırılabilirler ayrıca
   allowlist'e eklenmelidir; varsayılan politika yalnızca seçilen yorumlayıcıyı ve `sys.prefix`'i açar.
@@ -148,7 +151,8 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
 <!-- EVAL-03_ARCH -->- **KPI ve regresyon kapısı (EVAL-03):** `tests/evals/report.py` her raporda kabul başarısı, worker
   ihlali, maliyet ve süre KPI'larını üretir. Eksik veri sıfıra çevrilmez; `missing_kpi` hatası verir. İki koşu
   arasında başarı düşerse veya worker ihlali artarsa regresyon kapısı kapanır; farklı fixture/repeat/timeout
-  raporları karşılaştırılamaz sayılır.
+  raporları karşılaştırılamaz sayılır. Bu sentetik harness model başarısını ölçmez; gerçek ajanlı karşılaştırma
+  henüz yoktur ve ayrı bir şema/rapor olarak planlanmıştır (ADR-019, FIX-02).
 <!-- EVAL-02_ARCH -->- **Karşılaştırma koşucusu (EVAL-02):** `tests/evals/compare.py` aynı fixture, commit, makine ve zaman
   aşımıyla doğrudan ve orkestre kolları çalıştırır. Doğrudan kol değişiklik uygulamaz; orkestre kol doğrulanmış
   altın fixture yamasını uygular. Başarı oranı ile güvenlik ihlali ayrı metriklerdir; maliyet ölçülmediyse
@@ -174,6 +178,8 @@ taşımaması için komutlar `sandbox_exec` ile **kısıtlı bir belirteçle** (
   bağlantı noktası, sabit bağ), ayarları ve kanıtı okuyamaz, veri kökünde hiçbir şey oluşturamaz/değiştiremez/silemez,
   `maf-approval.json` sahteleyemez, ACL'yi ya da ret girdisini değiştiremez, sahiplik alamaz. Kum havuzu olmadan aynı
   denemelerin hepsi başarılı olur.
+- Planlanan değişiklik (henüz uygulanmadı): verify'ın AppContainer'da ağ kapalı koşturulması (ADR-018, FIX-04). Bu
+  bölüm bugünkü davranışı anlatır; aşağıdaki "ağa çıkabilir" sınırı FIX-04 testleri geçene kadar geçerlidir.
 - Sınırlar: yalnızca motorun sırları ve kanıtı korunur; kod kişinin diğer dosyalarını okuyabilir ve ağa çıkabilir. Çalışan
   araçlar bu kısıtlı belirteçle değil, bölüm 2'deki AppContainer ile çalışır; ayrıca kendi izin modları vardır. Yükseltilmiş yönetici olarak
   çalışan bir motor bu modelin dışındadır. Veri kökü başına ilk kullanımda bir PowerShell ACL kurulumu (yaklaşık bir
@@ -420,7 +426,7 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
 - **Kanıt görünümü (UX-01/UX-02):** `interfaces/evidence_view.view` imzalı `request/status/result` kayıtlarını
   yalnızca okur; patch SHA'sı ve proje parmak izi değişmişse `stale`, imza geçersizse hata üretir. Görünüm
   redakte edilir, ortam secret'ları çağrı anında maskelenir ve maliyet bilinmiyorsa `unknown` kalır. RPP
-  `evidence.view` ile CLI `evidence <run_id>` aynı JSON'u döndürür; hiçbir yazma yapılmaz.
+  `evidence.view` ile CLI `evidence <run_id>` aynı JSON'u döndürür; hiçbir yazma yapılmaz. Hub bu API'yi henüz çağırmaz, `inspect` kullanır (FIX-03C).
 - **İnsan onayı (UX-03):** Decision Center yeni onay yetkisi açmaz. `maf-approve` yalnızca etkileşimli TTY'de,
   patch SHA'sına, proje parmak izine ve onay anındaki git HEAD'ine bağlı olarak çalışır; MCP/agent onayı, replay,
   ekran drift'i, eski sonuç ve review sonrası değişen HEAD reddedilir.
@@ -429,6 +435,8 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   düzeltmesi round/SHA/reviewer/onay sınırlarına tabidir. Merge komutu üretilmez. Adaptör RPP
   `github.issue_import|pr_plan|pr_create|ci_plan` ve CLI `github-import-issue|pr-plan|pr-create|ci-plan`
   yüzeyine bağlıdır; `pr_create` açık `operation_id`, `confirm: true` ve operatör `project_root` ister.
+  Bugünkü sınırlar: gerçek uzak PR hiç denenmedi (FIX-03A); CI geri bildirimi çağıran tarafından verilir, canlı kaynağa
+  bağlı değildir (planlanan yol: `gh api` yoklaması, webhook dinleyicisi yok; ADR-020, FIX-03B).
 - **Salt-okunur MCP denemesi (EXT-02):** `interfaces/mcp_client.StdioMcpClient` gerçek alt süreçle JSON-RPC
   `initialize`, `tools/list` ve `tools/call` yapar; süreç gizli pencerede başlar, zaman aşımı/bayt sınırı ve
   protokol hataları fail-closed'dır. `readonly_probe` yalnızca manifestte `read` izinli `mcp.context`
