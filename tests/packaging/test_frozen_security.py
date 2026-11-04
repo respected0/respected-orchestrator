@@ -11,6 +11,7 @@ import tempfile
 import time
 import unittest
 
+from respected_orchestrator.engine import appcontainer
 from tests.engine.security_cases import ALLOWED_CASES, PROBE, PROBE_NEGATIVE_CASES
 
 
@@ -121,7 +122,13 @@ class FrozenSecurityTest(unittest.TestCase):
         self.json_call("start", run_id)
         return run_id, self.wait(run_id)
 
+    def skip_if_elevated(self):
+        # Elevated sessions are refused by design; only an explicit opt-in may skip (hosted CI runners are elevated).
+        if os.environ.get("ORCH_ALLOW_ELEVATED_SKIP") == "1" and appcontainer._is_elevated():
+            self.skipTest("elevated session; the worker boundary is refused")
+
     def test_frozen_worker_denies_every_registered_attack_and_allows_normal_work(self):
+        self.skip_if_elevated()
         repo = self.repo()
         key = self.data / ".engine-key"
         run_id = self.create(repo, [
@@ -153,6 +160,7 @@ class FrozenSecurityTest(unittest.TestCase):
         self.assertEqual((evidence / "result.json").read_text(encoding="utf-8"), '{"status": "ok"}')
 
     def test_frozen_engine_rejects_a_symlink_mode_patch_staged_without_symlink_privilege(self):
+        self.skip_if_elevated()
         repo = self.repo("symlink-project")
         marker = ".sec04-staged.ready"
         target = "../../outside/private.txt"

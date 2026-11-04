@@ -44,6 +44,8 @@ jobs:
       - name: Security regression registry gate
         run: python -m unittest tests.engine.test_security_gate -v
       - name: Frozen executable security matrix
+        env:
+          ORCH_ALLOW_ELEVATED_SKIP: "1"  # elevated hosted runner: sandbox cases skip, the rest run
         run: python -m unittest tests.packaging.test_frozen_security -v
       - name: Unit, integration, adversarial and packaged-build tests
         # tests/packaging runs the built exe with no Python on PATH and is required here (CI is set)
