@@ -33,8 +33,12 @@ jobs:
       - name: Build the packaged engine
         run: python packaging/build_dist.py --output dist
       - name: Worker isolation security matrix (AppContainer)
-        # the runner is elevated and the boundary refuses that; run from a UAC-filtered token (fails if still elevated)
-        run: python tests/tools/deelevate.py -- python -m unittest tests.engine.test_worker_security -v
+        # Hosted runners are elevated and the boundary refuses that (a UAC-filtered token cannot start processes there),
+        # so the AppContainer probes SKIP here; the symlink and MCP tests in the module still run. Run the full matrix on a
+        # non-elevated machine: python -m unittest tests.engine.test_worker_security -v
+        env:
+          ORCH_ALLOW_ELEVATED_SKIP: "1"
+        run: python -m unittest tests.engine.test_worker_security -v
       - name: Verify and acceptance sandbox matrix (restricted token)
         run: python -m unittest tests.engine.test_sandbox -v
       - name: Security regression registry gate
