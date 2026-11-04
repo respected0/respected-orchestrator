@@ -6,6 +6,7 @@ GitHub's Windows runners are elevated and the worker boundary refuses elevated s
 matrix has to run from the filtered token. The tests fail (not skip) when the child is still elevated.
 """
 import ctypes
+import msvcrt
 import os
 import subprocess
 import tempfile
@@ -29,20 +30,20 @@ def main(command):
     token = wintypes.HANDLE()
     if not sx.advapi.CreateRestrictedToken(base, LUA_TOKEN, 0, None, 0, None, 0, None, ctypes.byref(token)):
         sx._fail("CreateRestrictedToken")
+    # The filtered token is medium integrity: cmd.exe/user32 cannot initialise under it on the runner (0xC0000142),
+    # so start the command directly and give it a file as stdout, replayed afterwards (pipes are not reliably inherited).
+    out = tempfile.NamedTemporaryFile(prefix="deelevate-", suffix=".log", delete=False)
+    handle = msvcrt.get_osfhandle(out.fileno())
+    os.set_handle_inheritable(handle, True)
     startup = sx.STARTUPINFOW()
     startup.cb = ctypes.sizeof(startup)
     startup.dwFlags = sx.STARTF_USESTDHANDLES
-    sx.kernel.GetStdHandle.restype = wintypes.HANDLE
-    startup.hStdInput, startup.hStdOutput, startup.hStdError = (sx.kernel.GetStdHandle(n) for n in (sx.STD_IN, sx.STD_OUT, sx.STD_ERR))
+    startup.hStdInput, startup.hStdOutput, startup.hStdError = None, handle, handle
     info = sx.PROCESS_INFORMATION()
     sx.advapi.CreateProcessAsUserW.argtypes = [wintypes.HANDLE, wintypes.LPCWSTR, wintypes.LPWSTR, ctypes.c_void_p, ctypes.c_void_p,
                                                wintypes.BOOL, wintypes.DWORD, ctypes.c_void_p, wintypes.LPCWSTR,
                                                ctypes.POINTER(sx.STARTUPINFOW), ctypes.POINTER(sx.PROCESS_INFORMATION)]
-    # Runner pipes are not reliably inherited, so the child writes to a file that is replayed afterwards.
-    out = tempfile.NamedTemporaryFile(prefix="deelevate-", suffix=".log", delete=False)
-    out.close()
-    os.chmod(out.name, 0o666)
-    line = ctypes.create_unicode_buffer(f'cmd /c "{subprocess.list2cmdline(command)} > "{out.name}" 2>&1"')
+    line = ctypes.create_unicode_buffer(subprocess.list2cmdline(command))
     sys.stdout.flush()
     if not sx.advapi.CreateProcessAsUserW(token, None, line, None, None, True, sx.CREATE_NO_WINDOW | sx.CREATE_UNICODE_ENVIRONMENT,
                                           None, None, ctypes.byref(startup), ctypes.byref(info)):
@@ -51,6 +52,7 @@ def main(command):
     sx.kernel.WaitForSingleObject(info.hProcess, 0xFFFFFFFF)
     code = wintypes.DWORD()
     sx.kernel.GetExitCodeProcess(info.hProcess, ctypes.byref(code))
+    out.close()
     print(open(out.name, encoding="utf-8", errors="replace").read(), end="")
     print(f"deelevate: child exit code {code.value:#x}")
     return code.value
