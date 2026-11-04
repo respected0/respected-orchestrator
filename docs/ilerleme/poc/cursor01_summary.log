@@ -1,0 +1,184 @@
+{
+  "root": "C:\\Users\\Furkan\\AppData\\Local\\Temp\\respected-cur01-12d4t0pr",
+  "scenarios": {
+    "deny": {
+      "name": "deny",
+      "run_id": "run-20261104010223-2f6c7d44350e",
+      "started": {
+        "run_id": "run-20261104010223-2f6c7d44350e",
+        "status": "queued",
+        "pid": 25784
+      },
+      "status": {
+        "request": {
+          "run_id": "run-20261104010223-2f6c7d44350e",
+          "task": "Use your file edit tool to replace the entire content of owned.txt with exactly the text changed followed by one newline. Do not modify any other file. Reply with exactly this JSON object and no prose: {\"status\":\"success\",\"summary\":\"CUR01_WRITE_OK\"}",
+          "project_root": "C:\\Users\\Furkan\\AppData\\Local\\Temp\\respected-cur01-12d4t0pr\\project",
+          "master": "user",
+          "worker": "cursor",
+          "kind": "write",
+          "ownership": [
+            "owned.txt"
+          ],
+          "forbidden": [
+            "outside.txt"
+          ],
+          "acceptance": [
+            [
+              "C:\\Users\\Furkan\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+              "-c",
+              "from pathlib import Path; assert Path('owned.txt').read_text(encoding='utf8') == 'changed\\n'"
+            ]
+          ],
+          "command": [],
+          "include_untracked": [],
+          "context_paths": [],
+          "timeout_seconds": 300,
+          "created_at": "2026-11-04T01:02:23.480243+00:00",
+          "project_fingerprint": "eb5a26ff6e1fd5598e5d30e36a7e999d4e7179b2c963d327750b32c605a5570a",
+          "retry_of": null,
+          "retry_depth": 0,
+          "worker_profile": "auto",
+          "workflow": {
+            "max_fix_rounds": 2,
+            "deep_review": "never",
+            "reviewer_profile": null,
+            "deep_review_profile": null,
+            "reviewer_tool": null,
+            "deep_review_tool": null,
+            "require_independent_review": false,
+            "risk_changed_files": 5,
+            "timeout_seconds": null,
+            "review_timeout_seconds": null,
+            "review_retries": 1,
+            "max_weighted_tokens": null,
+            "unknown_step_tokens": 50000,
+            "human_approval": false,
+            "escalate_profile": null,
+            "escalate_from_round": 2
+          },
+          "role_assignments": {
+            "implementer": {
+              "tool": "cursor",
+              "profile": "auto",
+              "source": "explicit"
+            }
+          },
+          "role_notes": [],
+          "correction_of": null,
+          "correction_round": 0,
+          "inherited_patch_run_id": null,
+          "inherited_patch_sha256": null,
+          "fix_evidence": null,
+          "apply_root": null,
+          "memory_policy": {
+            "use": false,
+            "source": "off"
+          }
+        },
+        "run_id": "run-20261104010223-2f6c7d44350e",
+        "status": "timed_out",
+        "updated_at": "2026-11-04T01:07:26.246150+00:00",
+        "workspace": "C:\\Users\\Furkan\\AppData\\Local\\Temp\\respected-cur01-12d4t0pr\\data-deny\\workspaces\\run-20261104010223-2f6c7d44350e",
+        "worker_incomplete": "no_turn_completed",
+        "logs": {
+          "stopped.log": "\r\n",
+          "supervisor.log": "{\"run_id\": \"run-20261104010223-2f6c7d44350e\", \"status\": \"timed_out\", \"updated_at\": \"2026-11-04T01:07:26.246150+00:00\", \"workspace\": \"C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\respected-cur01-12d4t0pr\\\\data-deny\\\\workspaces\\\\run-20261104010223-2f6c7d44350e\", \"worker_incomplete\": \"no_turn_completed\"}\r\n"
+        },
+        "patch_preview": ""
+      },
+      "check": null,
+      "credential_home_removed": true
+    },
+    "write": {
+      "name": "write",
+      "run_id": "run-20261104010728-88edc374485d",
+      "started": {
+        "run_id": "run-20261104010728-88edc374485d",
+        "status": "queued",
+        "pid": 28632
+      },
+      "status": {
+        "request": {
+          "run_id": "run-20261104010728-88edc374485d",
+          "task": "Use your file edit tool to replace the entire content of owned.txt with exactly the text changed followed by one newline. Do not modify any other file. Reply with exactly this JSON object and no prose: {\"status\":\"success\",\"summary\":\"CUR01_WRITE_OK\"}",
+          "project_root": "C:\\Users\\Furkan\\AppData\\Local\\Temp\\respected-cur01-12d4t0pr\\project",
+          "master": "user",
+          "worker": "cursor",
+          "kind": "write",
+          "ownership": [
+            "owned.txt"
+          ],
+          "forbidden": [
+            "outside.txt"
+          ],
+          "acceptance": [
+            [
+              "C:\\Users\\Furkan\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+              "-c",
+              "from pathlib import Path; assert Path('owned.txt').read_text(encoding='utf8') == 'changed\\n'"
+            ]
+          ],
+          "command": [],
+          "include_untracked": [],
+          "context_paths": [],
+          "timeout_seconds": 300,
+          "created_at": "2026-11-04T01:07:28.527469+00:00",
+          "project_fingerprint": "eb5a26ff6e1fd5598e5d30e36a7e999d4e7179b2c963d327750b32c605a5570a",
+          "retry_of": null,
+          "retry_depth": 0,
+          "worker_profile": "auto",
+          "workflow": {
+            "max_fix_rounds": 2,
+            "deep_review": "never",
+            "reviewer_profile": null,
+            "deep_review_profile": null,
+            "reviewer_tool": null,
+            "deep_review_tool": null,
+            "require_independent_review": false,
+            "risk_changed_files": 5,
+            "timeout_seconds": null,
+            "review_timeout_seconds": null,
+            "review_retries": 1,
+            "max_weighted_tokens": null,
+            "unknown_step_tokens": 50000,
+            "human_approval": false,
+            "escalate_profile": null,
+            "escalate_from_round": 2
+          },
+          "role_assignments": {
+            "implementer": {
+              "tool": "cursor",
+              "profile": "auto",
+              "source": "explicit"
+            }
+          },
+          "role_notes": [],
+          "correction_of": null,
+          "correction_round": 0,
+          "inherited_patch_run_id": null,
+          "inherited_patch_sha256": null,
+          "fix_evidence": null,
+          "apply_root": null,
+          "memory_policy": {
+            "use": false,
+            "source": "off"
+          }
+        },
+        "run_id": "run-20261104010728-88edc374485d",
+        "status": "timed_out",
+        "updated_at": "2026-11-04T01:12:32.481665+00:00",
+        "workspace": "C:\\Users\\Furkan\\AppData\\Local\\Temp\\respected-cur01-12d4t0pr\\data-write\\workspaces\\run-20261104010728-88edc374485d",
+        "worker_incomplete": "no_turn_completed",
+        "logs": {
+          "stopped.log": "\r\n",
+          "supervisor.log": "{\"run_id\": \"run-20261104010728-88edc374485d\", \"status\": \"timed_out\", \"updated_at\": \"2026-11-04T01:12:32.481665+00:00\", \"workspace\": \"C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\respected-cur01-12d4t0pr\\\\data-write\\\\workspaces\\\\run-20261104010728-88edc374485d\", \"worker_incomplete\": \"no_turn_completed\"}\r\n"
+        },
+        "patch_preview": ""
+      },
+      "check": null,
+      "credential_home_removed": true
+    }
+  },
+  "secret_scan": "passed: no Cursor auth.json token value in CLI output or run data"
+}

@@ -1,0 +1,30 @@
+CUR-01 kök neden deneyleri (2026-11-04, AppContainer içinde, Cursor'un node.exe v24.22.1)
+
+1) Asılma yeri
+   node -e "spawn(git, ['--version'], {stdio:'inherit'})"                  -> çalışır (0.1 sn)
+   node -e "spawn(git, ['--version'], {stdio:'ignore'})"                   -> çalışır
+   node -e "spawnSync(git, ..., {stdio:'ignore'})"                         -> çalışır
+   node -e "execFile(git, ['--version'], cb)"                              -> ASILIR
+   node -e "spawn(git, ['--version'], {stdio:['ignore','pipe','pipe']})"   -> ASILIR
+   node -e "spawnSync(git, ['--version'])"                                 -> ASILIR
+   olmayan exe + stdio:'pipe'                                              -> ASILIR (CreateProcess'e hiç gelmez)
+   Job object olmadan da aynı sonuç (job nedeni değil). Python alt süreci/anonim boruları etkilenmez.
+   spawn() çağrısının kendisi dönmüyor: "spawned pid" satırı hiç yazılmadı.
+
+2) Neden: adlandırılmış boru izni
+   CreateNamedPipeW, AppContainer jetonuyla:
+     \\.\pipe\x1            -> ERROR_ACCESS_DENIED (5)
+     \\?\pipe\uv\x2         -> ERROR_ACCESS_DENIED (5)   (libuv'un alt süreç borusu adı biçimi)
+     \\.\pipe\uv\x4         -> ERROR_ACCESS_DENIED (5)
+     \\.\pipe\LOCAL\x3      -> BAŞARILI
+   libuv uv_spawn, boru çiftini \\?\pipe\uv\... adıyla kurar ve ACCESS_DENIED'ı "ad çakışması" sayıp yeni adla sonsuza
+   dek yeniden dener -> süreç asılır. Bu yüzden "git" bile (node içinden boruyla başlatılınca) takılır.
+
+3) Düzeltme doğrulaması (resources/node-shim/appcontainer-pipes.js, --require ile yüklenir)
+   execFile / spawn(stdout, stdin) / spawnSync / execFileSync / execSync -> çalışır, stdin->stdout turu doğru
+   fork (IPC kanalı)                                                    -> asılmak yerine hemen EACCES atar
+   JS fs.realpathSync 'C:\' üzerinde lstat EPERM verir (Cursor'un yazma aracı "kanonik yol doğrulaması" ile reddedildi);
+   .native çalışır -> shim realpath'ı native'e çevirir.
+   Gerçek Cursor işçisi (cursor01_fixed_write.log): status=completed, owned.txt değişti, kabul komutu 0,
+   token sızıntı taraması geçti, izole HOME silindi. Shim'siz önceki koşu: asılma; yalnız boru shim'i ile: çalışıyor
+   ama yazma aracı reddedildi (test_failed); boru + realpath shim'i ile: completed.

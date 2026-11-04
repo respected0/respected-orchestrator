@@ -317,6 +317,26 @@ class RealSandboxTests(unittest.TestCase):
         self.assertIn("DENIED", result.stdout)
         self.assertNotIn("LEAKED", result.stdout)
 
+    def test_node_worker_can_start_piped_children_and_resolve_paths(self):
+        # Without the shim libuv's pipes (named \\?\pipe\uv\*) are denied in the AppContainer and uv_spawn spins forever.
+        node = runner.get_cli_command("cursor")
+        if node is None:
+            self.skipTest("Cursor CLI (its bundled node.exe) is not installed")
+        python = sys.executable.replace("\\", "/")
+        code = (
+            "const cp=require('child_process'),fs=require('fs');"
+            f"const a=cp.spawnSync({python!r},['-c','print(1+1)'],{{encoding:'utf8'}}).stdout.trim();"
+            f"const b=cp.execFileSync({python!r},['-c','import sys;print(sys.stdin.read().upper())'],{{input:'hi',encoding:'utf8'}}).trim();"
+            f"const c=cp.spawn({python!r},['-c','import sys;print(sys.stdin.read()[::-1])']);let o='';"
+            "c.stdout.on('data',d=>o+=d);c.on('close',x=>console.log(a,b,o.trim(),x,fs.realpathSync(process.cwd())));c.stdin.end('abc');"
+        )
+        command = [*node[:-1], "-e", code]   # node + its flags + the shim; the Cursor entry script is dropped
+        policy = default_policy(None, self.workspace, command, temp_root=self.tmp, ttl=30,
+                                readonly_roots=[runner.NODE_PIPE_SHIM.parent])
+        result = execute(command, self.workspace, 25, policy=policy)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.split(), ["2", "HI", "cba", "0", str(self.workspace)])
+
     def test_timeout_leaves_no_child_process(self):
         parent_pid = self.workspace / "parent.pid"
         child_pid = self.workspace / "child.pid"

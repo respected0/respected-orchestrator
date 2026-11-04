@@ -31,7 +31,11 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   allowlist dışındaysa ya da AppContainer açılamazsa **hiçbir worker başlamaz**; görev `failed` / `sandbox_unavailable`
   olur. Sessiz, sandbox'sız geri dönüş yoktur.
 - Varsayılan olarak yalnızca worker'ın kendi worktree'si yazılabilir; Python/araç dizini salt-okunur; ağ kapalıdır
-  (`internetClient` yeteneği verilmez). `.cmd`/`.bat` şimleri reddedilir, sır adları ortamdan çıkarılır ve `TEMP`/`TMP`
+  (`internetClient` yeteneği verilmez). `.cmd`/`.bat` şimleri reddedilir (Cursor için şimin yanındaki
+  `versions\<sürüm>\node.exe` + `index.js` doğrudan girişi kullanılır; `--trust --output-format json` ile çağrılır,
+  `usage` `inputTokens/outputTokens/cacheReadTokens` alanlarından okunur, `cacheReadTokens` yoksa kullanım `unknown`
+  kalır; `inputTokens`'ın önbelleği içerdiği varsayımı doğrulanmamıştır; Cursor işçisi ağ ve oturum açma gerektirir,
+  varsayılan ağ kapalı olduğundan sandbox'ta canlı çalıştırma ayrı iştir), sır adları ortamdan çıkarılır ve `TEMP`/`TMP`
   worker alanına yönlendirilir. Codex incelemesinde proje `cwd`'si salt-okunur, inceleme çalışma kökü yazılabilirdir.
   Motor, supervisor ve kampanya final master'ı güvenilen süreçler olarak sandbox dışında kalır.
 - AppContainer profili her çalıştırmada oluşturulup kapatılır; izinler yalnızca worktree ve araç dizinine verilir ve kapanışta
@@ -103,6 +107,22 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   kullanıcı deposundan `auth export --standalone` ile alınıp yalnızca çalışanın izole HOME'una
   `auth import --standalone` ile aktarılır; sır kanıt, log ve görev metnine yazılmaz. OpenCode ağ erişimi varsayılan
   kapalıdır; yalnızca `RESPECTED_OPENCODE_NETWORK=allow` ile açılır.
+- **Cursor çalışanı (CUR-01, kum havuzunda çalışır; canlı kanıt `poc/cursor01_fixed_write.log`):** Cursor oturumu `%APPDATA%\Cursor\auth.json` içindedir
+  (`accessToken`/`refreshToken`); başka hiçbir kullanıcı dosyası gerekmez (canlı ölçüldü). Ağ yalnızca operatör anahtarı
+  `RESPECTED_CURSOR_NETWORK=allow` ile açılır (OpenCode anahtarı Cursor'u açmaz, model denetimli değildir). Çalışanın
+  `HOME/USERPROFILE/APPDATA/LOCALAPPDATA` değerleri scratch köküne yönlenir; `engine/cursor_auth.py` yalnızca
+  `auth.json` dosyasını (doğrulanmış, ≤64 KB) o izole HOME'a kopyalar, hata metni sır taşımaz, kopya `finally` ile
+  silinir. Node'un `realpath` yürüyüşü `C:\` üzerinde EPERM verdiği için komuta `--preserve-symlinks(-main)` eklenir.
+  **Alt süreç asılmasının kök nedeni:** AppContainer adlandırılmış boruyu yalnız `\\.\pipe\LOCAL\` altında
+  oluşturabilir; libuv'un `child_process` boruları `\\?\pipe\uv\*` adındadır, `ACCESS_DENIED` alır ve bunu "ad çakışması"
+  sayıp sonsuza dek yeniden dener (`uv_spawn` hiç dönmez; `stdio:'inherit'/'ignore'` çalışır, `'pipe'` asılır).
+  Job object, devralınan handle veya ACL değildir (`poc/cursor01_pipe_rootcause.log`). Çözüm: Cursor komutu
+  `--require resources/node-shim/appcontainer-pipes.js` ile başlar (`runner.NODE_PIPE_SHIM`; dizini yalnız Cursor
+  çalışanına salt-okunur verilir). Shim `child_process` borularını `LOCAL\` altında kurar, `spawnSync/execSync`
+  çıktısını worker scratch'indeki geçici dosyalardan alır, IPC kanalını (`fork`) asılmak yerine `EACCES` ile reddeder ve
+  JS `fs.realpath` yerine `native` olanı kullanır (JS sürümü `C:\` üzerinde `lstat` EPERM verir; Cursor'un yazma aracı
+  bu yüzden reddediliyordu). Sınırlar gevşemedi: ağ yine operatör anahtarıyla, `.cmd/.bat` reddi, kimlik yalıtımı ve ACL
+  kapsamı aynıdır. Shim yalnız Cursor için yüklenir; başka Node tabanlı işçi eklenirse aynı sorun için aynı dosya gerekir.
 - **Sağlayıcı ağ kapısı (ADR-007):** Kendi API sağlayıcı adaptörleri (ADP-03) ağ varsayılan kapalıyken çalışmaz.
   `engine/provider_policy.py` soket açmadan önce `RESPECTED_PROVIDER_NETWORK=allow` ve
   `RESPECTED_PROVIDER_CODE_GATE=1` ister; yalnızca `https` ve açık allowlist'teki tam alan adına izin verir. Her
@@ -402,9 +422,10 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   yüzeyine bağlıdır; `pr_create` açık `operation_id`, `confirm: true` ve operatör `project_root` ister.
 - **Salt-okunur MCP denemesi (EXT-02):** `interfaces/mcp_client.StdioMcpClient` gerçek alt süreçle JSON-RPC
   `initialize`, `tools/list` ve `tools/call` yapar; süreç gizli pencerede başlar, zaman aşımı/bayt sınırı ve
-  protokol hataları fail-closed'dır. `readonly_probe` yalnızca manifestte `read` izinli `mcp.serena`/`mcp.context`
-  araçlarını çalıştırır; yol kaçışı, sağlayıcı yokluğu ve secret sızıntısı fail-closed'dır. Tool çıktısı
-  güvenilmeyen veridir. Bu makinede Serena/context sunucusu yoktur; sahte başarı üretilmez.
+  protokol hataları fail-closed'dır. `readonly_probe` yalnızca manifestte `read` izinli `mcp.context`
+  aracını çalıştırır (`build_args` ile sunucunun kendi parametre adı verilir); yol kaçışı, sağlayıcı yokluğu ve secret
+  sızıntısı fail-closed'dır. Tool çıktısı güvenilmeyen veridir. Belirli bir MCP sunucusuna bağımlılık yoktur; canlı
+  doğrulama context-mode `ctx_search` ile yapıldı (`CONTEXT_MODE_SERVER=<start.mjs>` ile açılan test).
 - **Yayın kapıları (REL-01/REL-03/REL-04):** Authenticode doğrulaması fail-closed'dır; sertifika yoksa artefakt
   imzasız kalır ve `--require-signed` başarısız olur. `signtool sign /fd SHA256` hattı self-signed test
   sertifikasıyla gerçek kurucu üzerinde doğrulandı; tampered ve yanlış imzalayan reddedildi. Üretim sertifikası

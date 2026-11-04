@@ -600,7 +600,7 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 ### Epic: Telemetri ve model yönlendirme
 
 #### COST-01 — Gemini/Cursor kullanımını gerçek CLI ile doğrula
-**Durum:** Engelli (2026-11-03) — Gemini/Cursor CLI yok; kanıt: `KANIT_LOG.md` §COST-01
+**Durum:** Tamamlandı (2026-11-04; Cursor canlı ölçüldü, Gemini kapsam dışı) — kanıt: `KANIT_LOG.md` §COST-01
 
 
 **Etiketler:** `priority:P1`, `gate:G2`, `epic:telemetri-ve-model-y-nlendirme`, `size:M`  
@@ -797,7 +797,7 @@ Kaynaklar: [ROADMAP](https://github.com/respected0/respected-orchestrator/blob/m
 - [x] İlgili regresyon ve paket testleri başarılı; güvenlik/ürün sözleşmesi bozulmamış; uygulanan kod değişikliğiyle `docs/ARCHITECTURE.md` senkron.
 
 #### EXT-02 — Serena/context MCP için read-only deneme adaptörleri
-**Durum:** Tamamlandı (2026-11-03; gerçek stdio istemcisi — Serena/context sunucusu bu makinede yok) — kanıt: `KANIT_LOG.md` §EXT-02
+**Durum:** Tamamlandı (2026-11-03; gerçek stdio istemcisi; 2026-11-04 context-mode `ctx_search` ile canlı doğrulandı, Serena gerekmez) — kanıt: `KANIT_LOG.md` §EXT-02
 
 
 **Etiketler:** `priority:P2`, `gate:G4`, `epic:skills-ve-mcp-izinleri`, `size:M`  

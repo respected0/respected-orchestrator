@@ -2330,8 +2330,21 @@ py docs/ilerleme/poc/eval02_real.py
 - Doğrulama: `docs/ilerleme/poc/cost01_cli_probe.log`.
 - Kalan risk: Sağlayıcı başına maliyet ve token sayısı bilinmiyor; raporlarda `unknown` olarak kalmalı.
 
+- Güncelleme 2026-11-04: Gemini desteği kapsam dışı (kullanıcı kararı). Cursor CLI 2026.10.22-27dcf5f kuruldu ve
+  Free planla gerçek ölçüm alındı: `auto` ×2 ve `grok-4.7-medium` ×1 başarılı; her birinde JSON
+  `usage{inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens}` geldi. `gpt-5-mini`, `gemini-3-flash`,
+  `grok-4.7-low`, `cursor-grok-4.6-high` Free planda `ActionRequiredError` ile reddedildi (kullanım `unknown`, 0 yazılmadı).
+- Bulgular: (1) `agent.cmd`/`cursor-agent.cmd` powershell zincirine gider, orchestrator `.cmd`'yi reddeder; resmî
+  doğrudan yol `versions\<sürüm>\node.exe index.js`. (2) Çalışan `runner` cursor için `--output-format json`/`--trust`
+  vermiyor ve `usage` ayrıştırmıyor. (3) `inputTokens`'ın önbelleği içerip içermediği çıktıdan kanıtlanamıyor.
+- Durum: Tamamlandı (ölçüm + adaptör): `clis.cursor_entry` şimin yanındaki `versions\<sürüm>
+ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.command_for` `--trust --output-format json` verir; `tool_result("cursor")` `usage`'ı ayrıştırır, `cacheReadTokens` yoksa `unknown` (0 değil). Testler: `test_cursor_shim_resolves_to_its_own_node_entry...`, `test_usage_comes_from_each_tools_envelope...` — `tests.workflows.test_roles` + `tests.engine.test_runner` 73 test OK.
+- Kalan risk: (a) `inputTokens`'ın önbelleği içerdiği varsayımı doğrulanmadı; (b) sandbox ağı kapalı ve Cursor oturumu kullanıcı profilinde olduğundan gerçek bir Cursor işçisi koşusu henüz yok (OpenCode'daki ADP-01/ADP-02 benzeri ayrı iş); (c) Free planda yalnızca `auto` ve Grok 4.7/4.6 çalışır.
+- Doğrulama: `docs/ilerleme/poc/cost01_cursor_live.log`.
+
 ### Kanıt artefaktları (SHA-256)
 
+- `docs/ilerleme/poc/cost01_cursor_live.log` -> `768A1099A62E77A6EE5C74FEFC683EE142BD4F95F8BC5083FD268368C5068DF3`
 - `docs/ilerleme/poc/cost01_cli_probe.log` -> `BB8E5C20F27CD086EFE31802BDCE4AB1D677781408F618D379E3526AE73AA935`
 
 ---
@@ -2431,14 +2444,20 @@ py docs/ilerleme/poc/eval02_real.py
   `ext02_mcp_focused.log` 14/14 OK, geniş paket 107/107 OK. Sağlayıcı probe: `serena`, `serena-mcp-server`,
   `uvx` MISSING; `npx`/`codex` var. Gerçek sunucu yokken sahte başarı yazılmadı
   (`docs/ilerleme/poc/ext02_provider_probe.log`).
-- Kalan risk: Serena/context gerçek sunucusu kurulu değil; protokol gerçek bir stdio alt süreciyle kanıtlandı,
-  ancak canlı Serena sorgusu koşulmadı. Sunucu kurulunca komut manifestoya verilerek aynı yol kullanılır.
+- Güncelleme 2026-11-04: Serena bağımlılığı kaldırıldı (`mcp.serena` izin listesinden çıktı; yalnızca `mcp.context`).
+  `query_via_stdio` yeni `build_args` ile sunucunun kendi parametre adını kullanır. Canlı doğrulama bu makinedeki
+  context-mode MCP sunucusuyla: `initialize` + 11 araç listelendi; boş bilgi tabanında `ctx_search` `isError`
+  döndü ve probe fail-closed `PROVIDER_FAILED` verdi; test-içi `ctx_index` ile tohumlanınca salt-okunur `ctx_search`
+  başarılı, `untrusted=True`. `CONTEXT_MODE_SERVER=<start.mjs>` ile açılan test: 15/15 OK
+  (`docs/ilerleme/poc/ext02_context_mode_live.log`).
+- Kalan risk: yok bilinen; canlı test yalnızca `CONTEXT_MODE_SERVER` verilince koşar (testler HOME'u bilerek izole eder).
 
 ### Kanıt artefaktları (SHA-256)
 
-- `src/respected_orchestrator/interfaces/readonly_probe.py` -> `FFD2B79601EB752BE41134FCC094581AADD8B4E0FE9C08504116F735D73EADE3`
+- `src/respected_orchestrator/interfaces/readonly_probe.py` -> `E2E289C788C423B22957EC774B752BDB5F38E595BC58C7EDF7BA40DBF0F0C0D1`
 - `src/respected_orchestrator/interfaces/mcp_client.py` -> `E7C6B21011EBF6B3CF100CD3A4029398F19539663B156969C37345882E7FA846`
-- `tests/interfaces/test_mcp_client.py` -> `6BEFC113B964731C167C31793F6FDE8477BEFD1AC38BB5E525B361187DD78B02`
+- `tests/interfaces/test_mcp_client.py` -> `3231BC8D6E04300EC9BC4F6DF5AA9376590B46894E4F970C645BA3DC9C62107E`
+- `docs/ilerleme/poc/ext02_context_mode_live.log` -> `658ADEC4DCEAAC3D50DCFF0A703FF85DE52EEA92BEA686BFB67107AEE2C98251`
 - `docs/ilerleme/poc/ext02_mcp_focused.log` -> `DFBCC912CEC7948C0099890D47719E250C6BA477F635A4502FACD3FD0C03C616`
 - `docs/ilerleme/poc/ext02_provider_probe.log` -> `3AD8FCA85E2168C9DE83C154502D0B6D8D0D02BE0393F88BAD8F8D417923DF57`
 - `docs/ilerleme/poc/remaining_tasks_focused_final.log` -> `D9A1349F708E2273860CE596233453273251B6638B2F5834CEFA7935D6F2389F`
@@ -2529,12 +2548,12 @@ Yukarıdaki kronolojik kayıtlarda aynı dosya birden çok kez farklı hash ile 
 
 - `src/respected_orchestrator/engine/appcontainer.py` → `30B8084D552518CC727DA4C8685C84EA0E0A749947159A2A30D287F9D069C568`
 - `src/respected_orchestrator/engine/processes.py` → `FC674E411841B6629CD8F8D711B5E0C40336B46BCCE369AC153778D0714BC011`
-- `src/respected_orchestrator/engine/runner.py` → `48200B47CB1732F0EB1BCEDF06D416AAB448E7B6EB5D46F16423BA7E662F7BAD`
+- `src/respected_orchestrator/engine/runner.py` → `C3B522CDA97ABAD7552A9E28E28A71FF9376FC4DBB03806E4D6CB3A1C8F216A0`
 - `src/respected_orchestrator/workflows/maf_workflow.py` → `5F240A0077F409EAECD6EC54EC2B59EFE5C3556919BC11363EE9FE2BC65F6340`
 - `tests/engine/test_worker_policy.py` → `E527F77513D934D995F97854C9E39A4CA54A90761CDDE0FDCCE2F0BEF7D07378`
 - `tests/workflows/test_campaign.py` → `4224292F0DC67974F55DD3508A6F1636C7BCAE78358153594A00487EADDAFF5D`
 - `tests/workflows/test_reviewer_reliability.py` → `33D85C370FD724B60BD0A457D6AE0597C039E9B42E5F071D2034480424360D48`
-- `docs/ARCHITECTURE.md` → `81B03B0A99298E4BDF14DDC2738C8F29E58589EC4163AE1F0F95C1A48D3A67DF`
+- `docs/ARCHITECTURE.md` → `A3C76C2B92FDC3B765B3FE65D510637E8CB9CD34C728092723B6C2165659841B`
 ## Şablon (sonraki görevler)
 
 ```
@@ -2548,3 +2567,16 @@ Yukarıdaki kronolojik kayıtlarda aynı dosya birden çok kez farklı hash ile 
 - Kabul kriteri karşılandı mı (kanıtla):
 - Kalan risk / shortcut:
 ```
+
+## CUR-01 — Cursor çalışanı AppContainer kum havuzunda
+
+- Durum: TAMAM (2026-11-04). Gerçek Cursor işçisi (`--model auto`, Free plan) AppContainer içinde bir yazma görevini tamamladı; kök neden kanıtlandı ve giderildi.
+- Kapsam: `runner.get_cli_command` ve çalışan politikası, yeni `resources/node-shim/appcontainer-pipes.js`, testler, ARCHITECTURE/THREAT_MODEL (ağ anahtarı, izole HOME ve `engine/cursor_auth.py` önceki oturumdan).
+- Kök neden (kanıt: `poc/cursor01_pipe_rootcause.log`): AppContainer jetonu adlandırılmış boruyu yalnız `\\.\pipe\LOCAL\` altında oluşturabilir (`CreateNamedPipeW` diğer adlarda `ERROR_ACCESS_DENIED`). Node/libuv `child_process` borularını `\\?\pipe\uv\*` adıyla kurar, `ACCESS_DENIED`'ı ad çakışması sayıp sonsuza dek yeniden dener; `uv_spawn` hiç dönmez. `stdio:'inherit'/'ignore'` çalışır, `'pipe'` (execFile, spawn, spawnSync) asılır; job object ve handle devralma etkisizdir (job'sız aynı sonuç). Önceki oturumun "git asılıyor" belirtisi bu nedenin sonucuydu; `.running` EPERM notu yeni koşuda engel olmadı.
+- Düzeltme (en küçük): Cursor komutuna `--require <resources/node-shim/appcontainer-pipes.js>` eklendi (`runner.NODE_PIPE_SHIM`); yalnız bu dizin Cursor çalışanına salt-okunur verilir. Shim: `child_process` borularını `LOCAL\` altında kurar, `spawnSync/execSync` çıktısını `RESPECTED_WORKER_TMP` içindeki geçici dosyalardan alır, IPC (`fork`) kanalını `EACCES` ile reddeder, JS `fs.realpath` yerine `native` olanı kullanır (JS sürümü `C:\` üzerinde lstat EPERM verir; yalnız boru shim'iyle yapılan ilk canlı koşuda Cursor'un yazma aracı "kanonik yol doğrulaması" ile reddedildi → `test_failed`; realpath yaması sonrası düzeldi).
+- Çıktı / değişen dosyalar: `src/respected_orchestrator/engine/runner.py`, `src/respected_orchestrator/resources/node-shim/appcontainer-pipes.js` (yeni), `tests/engine/test_worker_policy.py` (+1 gerçek AppContainer testi), `tests/engine/test_runner.py`, `docs/ARCHITECTURE.md`, `docs/THREAT_MODEL.md`, `docs/ilerleme/poc/cursor01_{pipe_rootcause,fixed_write}.log`, `cursor01_write_only.py`.
+- Doğrulama komutu: `python docs\ilerleme\poc\cursor01_write_only.py <çıktı.log>` (canlı, Cursor Free); `python -m unittest tests.engine.test_worker_policy tests.engine.test_runner`; `python -m unittest discover -s tests -t .`.
+- Gerçek çıktı: canlı koşu `status=completed`, `changed_files=[owned.txt]`, kabul komutu returncode 0, `check` → `verified`, süre 44,5 sn, izole HOME silindi, token sızıntı taraması (`scan_for_secrets`) hata vermedi. Yeni test (`test_node_worker_can_start_piped_children_and_resolve_paths`) AppContainer içinde Cursor'un node'uyla `spawnSync`, `execFileSync(input)`, `spawn(stdin→stdout)` ve `realpathSync` çağırır; shim yoksa asılır (zaman aşımı).
+- Yasak erişim yeniden doğrulaması (shim sonrası, 2026-11-04): (a) `deny` senaryosu (`RESPECTED_CURSOR_NETWORK` yok) artık zaman aşımı yerine hızlıca fail-closed: `status=failed`, `reason=worker_failed`, `provider_status=AUTH_REQUIRED`, stderr "Authentication required"; auth.json kopyalanmadı, ağ açılmadı, izole HOME silindi (`poc/cursor01_deny.log`; eski kayıt `timed_out` idi). (b) `poc/cursor01_deny_probe.py` Cursor'un node'u + shim ile AppContainer içinde (ağ kapalı politika) çalışır: dışarıdaki dosyayı okuma/yazma/üzerine yazma, `.engine-key` okuma, veri kökü listeleme, kullanıcının `%APPDATA%\Cursoruth.json` okuması hepsi `EPERM`; shim'in başlattığı alt süreç dışarıdaki dosyayı okuyamadı (`status=1`); dışa TCP bağlantısı `EACCES`; kendi çalışma alanına yazma OK (`poc/cursor01_deny_probe.log`). Sızıntı yok, gevşetme gerekmedi. Not: probe'daki `PROBE_*` ad seçimi, `scrub_environment` "KEY/AUTH" adlı değişkenleri sildiği için ilk koşuda iki satırı `ERR_INVALID_ARG_TYPE` yaptı; adlar düzeltilip yeniden koşuldu.
+- Kabul kriteri karşılandı mı (kanıtla): EVET — `poc/cursor01_fixed_write.log` (`status: completed`, `check.status: verified`). Güvenlik sınırları gevşemedi: ağ yalnız `RESPECTED_CURSOR_NETWORK=allow`, `.cmd/.bat` reddi, kimlik yalıtımı ve ACL kapsamı aynı.
+- Kalan risk / shortcut: (1) Yasak erişim kanıtı aşağıdaki "Yasak erişim yeniden doğrulaması" maddesindedir. (2) `fork`/IPC kullanan bir Cursor özelliği artık `EACCES` alır; hangi özelliklerin buna ihtiyaç duyduğu doğrulanmadı. (3) Cursor'un shell aracı koşuda "reddedildi" dedi; nedeni (onay modeli mi, shim mi) doğrulanmadı. (4) `shortcut: shim yalnız Cursor için yüklenir; node tabanlı yeni işçi eklenirse aynı --require gerekir.` (5) sha256 ön ekleri: `cursor01_fixed_write.log` 7aeb758a3ac278aa, `cursor01_pipe_rootcause.log` 15db4e0da701fc86, `cursor01_write_only.py` 2eb1e4a4572a2800, `appcontainer-pipes.js` 362f75197c7f89a9, `runner.py` 8ae846a6a18f065b, `test_worker_policy.py` 6f12ddf68e6f74de, `test_runner.py` 465f97b4416c7518, `ARCHITECTURE.md` 6b19978729f41945, `THREAT_MODEL.md` af39df1b152e74c0, `cursor01_deny.log` dc8b9c8453a1de2e, `cursor01_deny_probe.log` d3d6889e8bd3603c, `cursor01_deny_probe.py` 2099df89ef6e6177; `cursor01_write_only.py` artık 2. argüman (`write|deny`) alır: b6274725dc1384a0 (yukarıdaki 2eb1e4a4572a2800 değerinin yerine).

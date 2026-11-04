@@ -439,6 +439,25 @@ class EngineTests(unittest.TestCase):
                                    'approval_policy="never"', "--json", prompt])
         self.assertEqual(runner.command_for("codex", "p", profile="glm")[-4:-1], ["-p", "glm", "--json"])
 
+    def test_cursor_shim_resolves_to_its_own_node_entry_and_never_to_the_cmd(self):
+        from respected_orchestrator.engine.clis import worker_executable
+        root = self.root / "cursor-agent"
+        (root / "versions" / "old").mkdir(parents=True)
+        shim = root / "cursor-agent.cmd"
+        shim.write_text("@echo off\n", encoding="utf8")
+        self.assertIsNone(worker_executable("cursor", str(shim)))  # no installed version: unavailable, never the shim
+        new = root / "versions" / "2026.10.22-x"
+        new.mkdir()
+        (new / "node.exe").touch()
+        (new / "index.js").touch()
+        self.assertEqual(worker_executable("cursor", str(shim)), str(new / "node.exe"))
+        with mock.patch.object(runner.shutil, "which", return_value=str(shim)):
+            command = runner.command_for("cursor", "do it", profile="auto")
+        self.assertEqual(command, [str(new / "node.exe"), "--preserve-symlinks", "--preserve-symlinks-main",
+                                   "--require", str(runner.NODE_PIPE_SHIM), str(new / "index.js"), "--model", "auto",
+                                   "--trust", "--output-format", "json", "-p", "do it"])
+        self.assertIsNone(worker_executable("gemini", str(shim)))  # other workers keep the hard refusal
+
     def test_opencode_npm_shim_resolves_to_native_sibling_and_missing_native_is_unavailable(self):
         from respected_orchestrator.engine.clis import worker_executable
         root = self.root / "npm-bin"
@@ -475,6 +494,24 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(runner.worker_network_mode("codex"), "deny")
             runner.os.environ["RESPECTED_OPENCODE_NETWORK"] = "yes"
             self.assertEqual(runner.worker_network_mode("opencode"), "deny")
+
+    def test_cursor_network_requires_its_own_operator_opt_in(self):
+        with mock.patch.dict(runner.os.environ, {"RESPECTED_OPENCODE_NETWORK": "allow"}, clear=True):
+            self.assertEqual(runner.worker_network_mode("cursor"), "deny")  # the OpenCode switch does not open Cursor
+            runner.os.environ["RESPECTED_CURSOR_NETWORK"] = "allow"
+            self.assertEqual(runner.worker_network_mode("cursor"), "allow")
+            runner.os.environ["RESPECTED_CURSOR_NETWORK"] = "1"
+            self.assertEqual(runner.worker_network_mode("cursor"), "deny")
+
+    def test_cursor_profile_is_redirected_into_granted_worker_tmp(self):
+        temp_root = self.root / "worker-tmp"
+        with mock.patch.dict(runner.os.environ, {"APPDATA": "C:/Users/example/AppData/Roaming"}, clear=True):
+            environment = runner.worker_environment("cursor", temp_root)
+        home = temp_root / "home"
+        self.assertEqual(environment["HOME"], str(home))
+        self.assertEqual(environment["USERPROFILE"], str(home))
+        self.assertEqual(environment["APPDATA"], str(home / "AppData" / "Roaming"))
+        self.assertEqual(environment["LOCALAPPDATA"], str(home / "AppData" / "Local"))
 
     def test_opencode_state_is_isolated_inside_granted_worker_tmp(self):
         temp_root = self.root / "worker-tmp"

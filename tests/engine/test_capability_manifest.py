@@ -6,12 +6,12 @@ from respected_orchestrator.engine import capability_manifest as cm
 
 def make_manifest(**overrides):
     manifest = {
-        "name": "serena-readonly",
+        "name": "context-readonly",
         "version": "1.2.0",
-        "provenance": "mcp-registry:serena@sha256:abc",
+        "provenance": "mcp-registry:context@sha256:abc",
         "trust": "trusted",
         "description": "Read-only symbol search.",
-        "tools": {"mcp.serena": ["read"]},
+        "tools": {"mcp.context": ["read"]},
         "read": ["repo"],
         "write": [],
         "net": "none",
@@ -56,12 +56,12 @@ class CapabilityManifestTests(unittest.TestCase):
         manifest = make_manifest(description=hostile)
         approved = cm.authorize(
             manifest,
-            ["mcp.serena"],
-            approved_tools=["mcp.serena"],
+            ["mcp.context"],
+            approved_tools=["mcp.context"],
             expected_digest=manifest["sha256"],
             expected_provenance=manifest["provenance"],
         )
-        self.assertEqual(approved[1], ("mcp.serena",))
+        self.assertEqual(approved[1], ("mcp.context",))
         with self.assertRaises(cm.CapabilityError) as caught:
             cm.authorize(manifest, ["repo.patch"], approved_tools=["repo.patch"])
         self.assertEqual(caught.exception.code, "CAPABILITY_NOT_DECLARED")

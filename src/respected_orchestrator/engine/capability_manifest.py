@@ -13,7 +13,7 @@ import json
 REQUIRED = ("name", "version", "provenance", "trust", "tools", "read", "write", "net", "data_scope")
 OPTIONAL = ("description", "sha256")
 TOOL_OPS = frozenset({"read", "write", "net", "exec"})
-ALLOWED_TOOLS = frozenset({"repo.search", "repo.patch", "test.run", "mcp.serena", "mcp.context"})
+ALLOWED_TOOLS = frozenset({"repo.search", "repo.patch", "test.run", "mcp.context"})
 READ_SCOPES = frozenset({"repo", "docs", "evidence"})
 WRITE_SCOPES = frozenset({"workspace"})
 NET_SCOPES = frozenset({"none", "loopback", "allowlist"})

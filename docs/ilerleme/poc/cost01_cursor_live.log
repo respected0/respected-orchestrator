@@ -1,0 +1,22 @@
+COST-01 gerçek Cursor CLI ölçümü — 2026-11-04, Cursor Free planı, hesap girişli
+CLI: agent 2026.10.22-27dcf5f (C:\Users\Furkan\AppData\Local\cursor-agent\versions\2026.10.22-27dcf5f)
+Çağrı: node.exe index.js --trust -p --output-format json --model <id> "Reply with exactly: OK"  (boş geçici klasör)
+Not: cursor-agent.cmd/agent.cmd -> powershell -> cursor-agent.ps1 zinciri; orchestrator .cmd'yi reddeder.
+
+[1] model=auto            seconds~47 (duration_ms=38032)
+{"type":"result","subtype":"success","is_error":false,"duration_ms":38032,"duration_api_ms":38032,"result":"OK","usage":{"inputTokens":10558,"outputTokens":94,"cacheReadTokens":3968,"cacheWriteTokens":0}}
+
+[2] model=auto            seconds=11 (duration_ms=4594)
+{"type":"result","subtype":"success","is_error":false,"duration_ms":4594,"duration_api_ms":4594,"result":"OK","usage":{"inputTokens":14014,"outputTokens":50,"cacheReadTokens":512,"cacheWriteTokens":0}}
+
+[3] model=grok-4.7-medium seconds=17 (duration_ms=9900)
+{"type":"result","subtype":"success","is_error":false,"duration_ms":9900,"duration_api_ms":9900,"result":"OK","usage":{"inputTokens":9263,"outputTokens":354,"cacheReadTokens":6016,"cacheWriteTokens":0}}
+
+Engelli / kota (kullanım verisi yok -> unknown, 0 değil):
+[4] model=gpt-5-mini            ActionRequiredError: Model unavailable on Free
+[5] model=gemini-3-flash        ActionRequiredError: Model unavailable on Free
+[6] model=grok-4.7-low          ActionRequiredError: Model unavailable on Free
+[7] model=cursor-grok-4.6-high  ActionRequiredError: Model unavailable on Free
+Free plan: "Grok 4.7, Grok 4.6, and Auto with fixed settings".
+
+Gözlem: inputTokens'ın cacheReadTokens'ı içerip içermediği çıktıdan kanıtlanamıyor (3 koşuda cacheRead < input).

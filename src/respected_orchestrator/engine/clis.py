@@ -9,6 +9,18 @@ EXECUTABLE = {"antigravity": "agy", "agy": "agy", "cursor": "cursor-agent"}
 LOCAL_CODEX = Path(__file__).resolve().parents[3] / ".runtime" / "codex-0.162.0-alpha.20" / "bin" / "codex.exe"
 
 
+def cursor_entry(found):
+    """(node.exe, index.js) of the newest installed Cursor CLI beside its `.cmd` shim, or None. The shim chains through
+    powershell.exe and is never spawned; this is the CLI's own direct entry point (COST-01)."""
+    try:
+        versions = sorted((d for d in (Path(found).parent / "versions").iterdir()
+                           if (d / "node.exe").is_file() and (d / "index.js").is_file()),
+                          key=lambda d: d.stat().st_mtime, reverse=True)
+    except OSError:
+        return None
+    return (versions[0] / "node.exe", versions[0] / "index.js") if versions else None
+
+
 def worker_executable(agent, found):
     """The path the engine may spawn, or None. `.cmd`/`.bat` shims are refused because cmd.exe would re-parse the
     prompt (audit P0 #2). OpenCode's npm shim is the one exception: it resolves to the native sibling executable that
@@ -16,6 +28,9 @@ def worker_executable(agent, found):
     if not found:
         return None
     candidate = Path(found)
+    if agent == "cursor" and candidate.suffix.lower() in {".cmd", ".bat"}:
+        entry = cursor_entry(found)
+        return str(entry[0]) if entry else None
     if agent == "opencode" and candidate.suffix.lower() in {".cmd", ".bat"}:
         candidate = candidate.parent / "node_modules" / "@opencode" / "cli" / "bin" / "opencode.exe"
     elif candidate.suffix.lower() in {".cmd", ".bat"}:

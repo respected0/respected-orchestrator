@@ -12,14 +12,14 @@ import sys
 import time
 from uuid import uuid4
 
-from . import failures, lanes, opencode_acp, opencode_auth, sandbox
+from . import cursor_auth, failures, lanes, opencode_acp, opencode_auth, sandbox
 from . import budget, track_record, winproc
 from .evidence import key_path, load_signed, save_signed
 from ..interfaces import memory
 from ..hints import hint
 from ..workflows import roles
 from ..context import EngineContext, engine_command, path_within_root, safe_path, validate_project
-from .clis import EXECUTABLE, LOCAL_CODEX, SUPPORTED_AGENTS, worker_executable
+from .clis import EXECUTABLE, LOCAL_CODEX, SUPPORTED_AGENTS, cursor_entry, worker_executable
 from .processes import ProcessStopped, execute
 from .worker_policy import SandboxStartError, WorkerPolicyError, default_policy, extra_readonly_roots
 from .codex import _is_turn_completed, stream_verified_complete
@@ -48,6 +48,12 @@ MAX_ARTIFACT_BYTES = 10 * 1024 * 1024
 MAX_TASK_CHARS = 20000 if sys.platform == "win32" else 60000
 
 
+# Root cause of the Cursor sandbox hang (COST-01/CUR-01): an AppContainer may create named pipes only under
+# \\.\pipe\LOCAL\, but libuv's child_process pipes are \\?\pipe\uv\* and it retries forever on ACCESS_DENIED.
+# Node workers preload this file, which creates their child pipes under LOCAL\ instead.
+NODE_PIPE_SHIM = Path(__file__).resolve().parents[1] / "resources" / "node-shim" / "appcontainer-pipes.js"
+
+
 def get_cli_command(agent: str) -> list[str] | None:
     if agent == "codex" and sys.platform == "win32" and LOCAL_CODEX.is_file():
         return [str(safe_path(LOCAL_CODEX))]
@@ -56,6 +62,11 @@ def get_cli_command(agent: str) -> list[str] | None:
     # cmd.exe would re-parse the prompt of a .cmd/.bat shim (truncation, command injection): such workers are unavailable (audit P0 #2).
     # OpenCode's npm shim resolves to its native sibling instead (clis.worker_executable).
     resolved = worker_executable(agent, found)
+    if resolved and agent == "cursor" and Path(found).suffix.lower() in {".cmd", ".bat"}:
+        # The AppContainer cannot lstat the drive root, which Node's realpath walk of the entry path does first.
+        # The shim keeps Node's child_process from hanging in the AppContainer (see NODE_PIPE_SHIM).
+        return [resolved, "--preserve-symlinks", "--preserve-symlinks-main", "--require", str(NODE_PIPE_SHIM),
+                str(cursor_entry(found)[1])]
     return [resolved] if resolved else None
 
 
@@ -79,7 +90,9 @@ def command_for(worker, prompt, custom=(), profile=None, write=False):
         raise lanes.WorkerUnavailableError(f"Worker CLI '{worker}' unavailable")
     if worker in _MODEL_FLAG:
         envelope = {"claude": ["--output-format", "json"], "gemini": ["-o", "json"],
-                    "agy": ["--output-format", "json"], "antigravity": ["--output-format", "json"]}.get(worker, [])
+                    "agy": ["--output-format", "json"], "antigravity": ["--output-format", "json"],
+                    # headless Cursor refuses an untrusted workspace; the engine's isolated worktree is the trusted one
+                    "cursor": ["--trust", "--output-format", "json"]}.get(worker, [])
         return [*command, *([_MODEL_FLAG[worker], profile] if profile else []),
                 *(_EDIT_FLAGS.get(worker, []) if write else []), *envelope, "-p", prompt]
     if worker == "codex":
@@ -96,14 +109,16 @@ def command_for(worker, prompt, custom=(), profile=None, write=False):
 
 
 def worker_network_mode(worker):
-    """OpenCode reaches its model provider, so it has one explicit operator opt-in.
+    """OpenCode and Cursor reach their model providers, so each has one explicit operator opt-in
+    (``RESPECTED_OPENCODE_NETWORK=allow`` / ``RESPECTED_CURSOR_NETWORK=allow``).
 
-    Every other worker, and OpenCode without ``RESPECTED_OPENCODE_NETWORK=allow``,
+    Every other worker, and these two without their switch,
     keeps the AppContainer's default network denial. The switch is deliberately
     environment-scoped rather than model-controlled: a task prompt cannot grant
     itself network access. ADP-02 owns the provider/egress threat model.
     """
-    if worker == "opencode" and os.environ.get("RESPECTED_OPENCODE_NETWORK", "").strip().casefold() == "allow":
+    switch = {"opencode": "RESPECTED_OPENCODE_NETWORK", "cursor": "RESPECTED_CURSOR_NETWORK"}.get(worker)
+    if switch and os.environ.get(switch, "").strip().casefold() == "allow":
         return "allow"
     return "deny"
 
@@ -115,6 +130,11 @@ def worker_environment(worker, temp_root):
     read and must never receive. The isolated directories also keep provider state and caches per run.
     """
     environment = dict(os.environ)
+    if worker == "cursor":
+        # Cursor's session lives in the profile (APPDATA\Cursor\auth.json, ~/.cursor): redirect both into the scratch root.
+        home = Path(temp_root) / "home"
+        environment.update({"HOME": str(home), "USERPROFILE": str(home),
+                            "APPDATA": str(home / "AppData" / "Roaming"), "LOCALAPPDATA": str(home / "AppData" / "Local")})
     if worker == "opencode":
         home = Path(temp_root) / "home"
         environment.update({
@@ -165,6 +185,13 @@ def tool_result(tool, stdout):
         usage = _usage(raw.get("input_tokens"), raw.get("cache_read_tokens", 0), raw.get("output_tokens"), raw.get("thinking_tokens"))
         error = None if str(data.get("status", "")).casefold() == "success" else f"agy status {data.get('status')}"
         return str(data.get("response", "")), usage, None, error
+    if tool == "cursor" and data.get("type") == "result":  # verified live 2026-11-04 (cost01_cursor_live.log)
+        raw = data.get("usage") if isinstance(data.get("usage"), dict) else {}
+        # shortcut: inputTokens is assumed to include cacheReadTokens (not provable from the output), upgrade once Cursor documents it
+        usage = _usage(raw.get("inputTokens"), raw.get("cacheReadTokens"), raw.get("outputTokens"), None)
+        if usage and usage["cached_input_tokens"] > usage["raw_input_tokens"]:
+            usage = None
+        return str(data.get("result", "")), usage, None, ("cursor reported an error result" if data.get("is_error") else None)
     if tool == "gemini" and ("response" in data or "error" in data):  # shape taken from the CLI docs; not verified live
         models = ((data.get("stats") or {}).get("models") or {}) if isinstance(data.get("stats"), dict) else {}
         tokens = [m.get("tokens") for m in models.values() if isinstance(m, dict) and isinstance(m.get("tokens"), dict)]
@@ -791,10 +818,17 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
         try:
             policy = default_policy(ctx, lane.worktree, command, temp_root=worker_tmp,
                                     network_mode=worker_network_mode(request["worker"]),
-                                    readonly_roots=extra_readonly_roots(), ttl=request["timeout_seconds"])
+                                    readonly_roots=(*extra_readonly_roots(), *([NODE_PIPE_SHIM.parent] if request["worker"] == "cursor" else [])),
+                                    ttl=request["timeout_seconds"])
         except WorkerPolicyError as error:
             return _write_status(ctx, directory, "failed", reason="sandbox_unavailable", detail=str(error)[:300], **details)
         try:
+            if request["worker"] == "cursor" and policy.network_mode == "allow":
+                try:
+                    cursor_auth.sync_credentials(worker_tmp)
+                except cursor_auth.CursorAuthError:
+                    return _write_status(ctx, directory, "failed", reason="worker_failed", provider_status="AUTH_REQUIRED",
+                                         detail="Cursor credentials are unavailable for the isolated worker", **details)
             if is_opencode:
                 try:
                     # The worker HOME is isolated, so provider credentials must be copied into it
@@ -823,7 +857,7 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
             return _write_status(ctx, directory, "failed", reason="worker_failed",
                                  provider_status=error.provider_status, detail=str(error)[:300], **details)
         finally:
-            if is_opencode:
+            if is_opencode or request["worker"] == "cursor":
                 try:
                     opencode_auth.clear_worker_home(worker_tmp)
                 except opencode_auth.OpenCodeAuthError:

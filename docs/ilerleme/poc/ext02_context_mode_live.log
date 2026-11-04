@@ -1,0 +1,20 @@
+test_initialize_list_and_call_round_trip (tests.interfaces.test_mcp_client.McpClientTests.test_initialize_list_and_call_round_trip) ... ok
+test_live_context_mode_search_when_installed (tests.interfaces.test_mcp_client.McpClientTests.test_live_context_mode_search_when_installed) ... ok
+test_stdio_probe_is_redacted_untrusted_and_never_executes_text (tests.interfaces.test_mcp_client.McpClientTests.test_stdio_probe_is_redacted_untrusted_and_never_executes_text) ... ok
+test_timeout_malformed_and_oversized_output_fail_closed (tests.interfaces.test_mcp_client.McpClientTests.test_timeout_malformed_and_oversized_output_fail_closed) ... ok
+test_tool_error_and_missing_server_fail_closed (tests.interfaces.test_mcp_client.McpClientTests.test_tool_error_and_missing_server_fail_closed) ... ok
+test_prompt_injection_is_kept_as_inert_text (tests.interfaces.test_readonly_probe.ReadOnlyProbeTests.test_prompt_injection_is_kept_as_inert_text) ... ok
+test_provider_missing_and_unapproved_tools_fail_closed (tests.interfaces.test_readonly_probe.ReadOnlyProbeTests.test_provider_missing_and_unapproved_tools_fail_closed) ... ok
+test_secret_leak_is_redacted (tests.interfaces.test_readonly_probe.ReadOnlyProbeTests.test_secret_leak_is_redacted) ... ok
+test_symbol_search_is_read_only_and_untrusted (tests.interfaces.test_readonly_probe.ReadOnlyProbeTests.test_symbol_search_is_read_only_and_untrusted) ... ok
+test_wrong_path_is_rejected (tests.interfaces.test_readonly_probe.ReadOnlyProbeTests.test_wrong_path_is_rejected) ... ok
+test_changed_hash_denied (tests.engine.test_capability_manifest.CapabilityManifestTests.test_changed_hash_denied) ... ok
+test_excess_permission_denied (tests.engine.test_capability_manifest.CapabilityManifestTests.test_excess_permission_denied) ... ok
+test_malicious_description_never_grants_capability (tests.engine.test_capability_manifest.CapabilityManifestTests.test_malicious_description_never_grants_capability) ... ok
+test_missing_manifest_denied (tests.engine.test_capability_manifest.CapabilityManifestTests.test_missing_manifest_denied) ... ok
+test_untrusted_skill_denied (tests.engine.test_capability_manifest.CapabilityManifestTests.test_untrusted_skill_denied) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 8.074s
+
+OK

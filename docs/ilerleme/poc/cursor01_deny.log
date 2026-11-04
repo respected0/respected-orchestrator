@@ -1,0 +1,100 @@
+{
+  "root": "C:\\Users\\Furkan\\AppData\\Local\\Temp\\respected-cur01-lf_dy64i",
+  "scenarios": {
+    "deny": {
+      "name": "deny",
+      "run_id": "run-20261104080934-787b40e88812",
+      "started": {
+        "run_id": "run-20261104080934-787b40e88812",
+        "status": "queued",
+        "pid": 19564
+      },
+      "status": {
+        "request": {
+          "run_id": "run-20261104080934-787b40e88812",
+          "task": "Use your file edit tool to replace the entire content of owned.txt with exactly the text changed followed by one newline. Do not modify any other file. Reply with exactly this JSON object and no prose: {\"status\":\"success\",\"summary\":\"CUR01_WRITE_OK\"}",
+          "project_root": "C:\\Users\\Furkan\\AppData\\Local\\Temp\\respected-cur01-lf_dy64i\\project",
+          "master": "user",
+          "worker": "cursor",
+          "kind": "write",
+          "ownership": [
+            "owned.txt"
+          ],
+          "forbidden": [
+            "outside.txt"
+          ],
+          "acceptance": [
+            [
+              "C:\\Users\\Furkan\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+              "-c",
+              "from pathlib import Path; assert Path('owned.txt').read_text(encoding='utf8') == 'changed\\n'"
+            ]
+          ],
+          "command": [],
+          "include_untracked": [],
+          "context_paths": [],
+          "timeout_seconds": 300,
+          "created_at": "2026-11-04T08:09:34.626612+00:00",
+          "project_fingerprint": "d6519a91d126713f6aaf0e0b7db9e647634e3b62b287398d52366288a4f1e676",
+          "retry_of": null,
+          "retry_depth": 0,
+          "worker_profile": "auto",
+          "workflow": {
+            "max_fix_rounds": 2,
+            "deep_review": "never",
+            "reviewer_profile": null,
+            "deep_review_profile": null,
+            "reviewer_tool": null,
+            "deep_review_tool": null,
+            "require_independent_review": false,
+            "risk_changed_files": 5,
+            "timeout_seconds": null,
+            "review_timeout_seconds": null,
+            "review_retries": 1,
+            "max_weighted_tokens": null,
+            "unknown_step_tokens": 50000,
+            "human_approval": false,
+            "escalate_profile": null,
+            "escalate_from_round": 2
+          },
+          "role_assignments": {
+            "implementer": {
+              "tool": "cursor",
+              "profile": "auto",
+              "source": "explicit"
+            }
+          },
+          "role_notes": [],
+          "correction_of": null,
+          "correction_round": 0,
+          "inherited_patch_run_id": null,
+          "inherited_patch_sha256": null,
+          "fix_evidence": null,
+          "apply_root": null,
+          "memory_policy": {
+            "use": false,
+            "source": "off"
+          }
+        },
+        "run_id": "run-20261104080934-787b40e88812",
+        "status": "failed",
+        "updated_at": "2026-11-04T08:09:40.602393+00:00",
+        "reason": "worker_failed",
+        "exit_code": 1,
+        "provider_status": "AUTH_REQUIRED",
+        "workspace": "C:\\Users\\Furkan\\AppData\\Local\\Temp\\respected-cur01-lf_dy64i\\data-deny\\workspaces\\run-20261104080934-787b40e88812",
+        "failure_class": "auth",
+        "retryable": false,
+        "retry_policy": "manual",
+        "logs": {
+          "stderr.log": "Error: Authentication required. Please run 'agent login' first, or set CURSOR_API_KEY environment variable.\r\n",
+          "stdout.log": "",
+          "supervisor.log": "{\"run_id\": \"run-20261104080934-787b40e88812\", \"status\": \"failed\", \"updated_at\": \"2026-11-04T08:09:40.602393+00:00\", \"reason\": \"worker_failed\", \"exit_code\": 1, \"provider_status\": \"AUTH_REQUIRED\", \"workspace\": \"C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\respected-cur01-lf_dy64i\\\\data-deny\\\\workspaces\\\\run-20261104080934-787b40e88812\", \"failure_class\": \"auth\", \"retryable\": false, \"retry_policy\": \"manual\"}\r\n"
+        },
+        "patch_preview": ""
+      },
+      "check": null,
+      "credential_home_removed": true
+    }
+  }
+}

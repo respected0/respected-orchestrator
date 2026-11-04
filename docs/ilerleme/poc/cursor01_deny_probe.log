@@ -1,0 +1,15 @@
+{
+ "returncode": 0,
+ "result": {
+  "read_outside_file": "DENIED EPERM",
+  "write_outside_file": "DENIED EPERM",
+  "overwrite_outside_file": "DENIED EPERM",
+  "read_engine_key": "DENIED EPERM",
+  "list_engine_data_root": "DENIED EPERM",
+  "read_user_cursor_auth": "DENIED EPERM",
+  "child_reads_outside_file": "DENIED status=1",
+  "own_workspace_write": "OK",
+  "network": "DENIED EACCES"
+ },
+ "stderr": ""
+}

@@ -37,6 +37,7 @@ kaydedilir.
 |---|---|---|
 | B1 | İnsan/kullanıcı → CLI, Hub, MCP | CLI ve MCP girdileri şema ve izin denetiminden geçer; MCP ayrıcalıklı anahtarları varsayılan reddeder |
 | B2 | Motor → worker CLI süreci | **İşletim sistemi düzeyinde dosya/ağ sınırı yok.** Codex kendi `workspace-write` kum havuzunu ister; Claude/Gemini/Cursor kendi izin modellerini korur; `custom` keyfi komuttur |
+| B2a | Cursor çalışanı → ağ/kimlik bilgisi | Ağ yalnızca operatör anahtarı `RESPECTED_CURSOR_NETWORK=allow` ile açılır (modelden kontrol edilemez); yalnızca `auth.json` izole HOME'a kopyalanır, kanıta/log'a yazılmaz, çalışma sonunda silinir. Açık risk: açık ağda çalışan süreç kopyalanan token'ı kullanabilir/sızdırabilir (OpenCode ile aynı sınıf). Cursor AppContainer içinde çalışır (boru shim'i, ARCHITECTURE.md, CUR-01); shim yalnız alt süreç borularının adını `LOCAL\` altına alır, izin sınırını genişletmez |
 | B3 | Worker çıktısı → kapsam ve yama doğrulaması | Çalışma ağacındaki değişiklikler sonradan denetlenir; ağaç dışına yazım görülmez |
 | B4 | Worker'ın yazdığı kabul/verify kodu → motor yürütmesi | Windows'ta kısıtlı belirteç; veri kökünün kanıt/onay/gizli alanları kapalı |
 | B5 | Motor → gerçek proje ağacı (`apply`) | Yalnızca doğrulanmış, taze, imzalı ve gerekliyse insan onaylı yama; `git apply --check` sonrası yazım |

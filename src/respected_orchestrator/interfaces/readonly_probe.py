@@ -1,10 +1,10 @@
-"""EXT-02: read-only Serena/context probing behind the EXT-01 capability manifest."""
+"""EXT-02: read-only MCP context probing behind the EXT-01 capability manifest."""
 import re
 from pathlib import PurePosixPath
 
 from ..engine.capability_manifest import CapabilityError, authorize
 
-_READ_ONLY = frozenset({"mcp.serena", "mcp.context"})
+_READ_ONLY = frozenset({"mcp.context"})
 MAX_TEXT = 20_000
 _SECRET = re.compile(r"(?i)((?:api[_-]?key|token|password|secret)\s*[:=]\s*)\S+")
 
@@ -44,7 +44,7 @@ def query_repo(manifest, tool, *, approved_tools, query, provider, expected_dige
             "truncated": len(text) > MAX_TEXT}
 
 
-def query_via_stdio(manifest, tool, *, approved_tools, query, command, args=(), mcp_tool=None,
+def query_via_stdio(manifest, tool, *, approved_tools, query, command, args=(), mcp_tool=None, build_args=None,
                     expected_digest=None, expected_provenance=None, timeout=20.0, max_bytes=1_000_000):
     """Run the approved probe through a real MCP stdio server; its result stays inert, redacted data."""
     from .mcp_client import McpError, StdioMcpClient
@@ -53,7 +53,7 @@ def query_via_stdio(manifest, tool, *, approved_tools, query, command, args=(), 
         try:
             with StdioMcpClient(command, args, timeout=timeout, max_bytes=max_bytes) as client:
                 client.initialize()
-                result = client.call_tool(mcp_tool or tool, {"query": text})
+                result = client.call_tool(mcp_tool or tool, (build_args or (lambda value: {"query": value}))(text))
         except McpError as error:
             raise CapabilityError("PROVIDER_FAILED", str(error)) from None
         if result.get("isError"):
