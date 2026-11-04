@@ -7,7 +7,7 @@ from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-RESEARCH = ROOT / "docs" / "COMPETITOR_RESEARCH.md"
+RESEARCH = ROOT / "docs" / "archive" / "COMPETITOR_RESEARCH.md"
 ADR_DIR = ROOT / "docs" / "adr"
 ACCESS = "2026-10-30"
 ACCESS_RE = re.compile(r"\(erişim: \d{4}-\d{2}-\d{2}\)")

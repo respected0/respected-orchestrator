@@ -4,6 +4,8 @@ Bu dosya tamamlanan her görevin kanıtını tutar. Kural: **kanıt yoksa görev
 Her giriş şu dört parçayı içerir: kapsam, değişen dosyalar, doğrulama komutu ve gerçek çıktı, kalan risk.
 Plan ve sıra: `docs/ROADMAP_EXECUTION_PLAN.md`
 
+> **Not (4 Kasım 2026):** `evidence/poc/` altındaki koşu günlükleri (`*_focused.log`, `*_full_suite.log`, `*_packaging.log`, `*_docs_gate*.log` vb.) repodan çıkarıldı ve repo dışında `respected-orchestrator-evidence-logs.zip` arşivine taşındı. Aşağıda adı geçen ama `evidence/poc/` içinde bulunmayan günlükler bu arşivdedir. Betikler, sonuç JSON'ları ve canlı doğrulama kanıtları yerinde kalır.
+
 ---
 
 ## SEC-01 — Tehdit modeli ve yetki matrisi

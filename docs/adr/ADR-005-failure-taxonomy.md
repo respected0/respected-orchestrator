@@ -26,5 +26,5 @@ Sekiz sınıf kullanılacak: `test_failure`, `policy_denied`, `timeout`, `quota`
 
 ## Kaynaklar
 
-- [Görev planı](../evidence/respected_orchestrator_roadmap_gorev_plani.md) §QUA-02 (erişim: 2026-10-30).
+- [Görev planı](../archive/respected_orchestrator_roadmap_gorev_plani.md) §QUA-02 (erişim: 2026-10-30).
 - [Mimari](../ARCHITECTURE.md) §2 Codex sonucu ve hata sınıfları (erişim: 2026-10-30).
