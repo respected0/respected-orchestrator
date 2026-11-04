@@ -122,9 +122,9 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(check_result(self.ctx, task["run_id"])["status"], "verified")
 
     def test_unavailable_tester_is_refused_without_an_implicit_substitution(self):
-        with mock.patch.object(runner, "tool_available", side_effect=lambda tool: tool != "gemini"):
+        with mock.patch.object(runner, "tool_available", side_effect=lambda tool: tool != "opencode"):
             with self.assertRaises(roles.RoleError) as caught:
-                self.task(roles={"tester": {"tool": "gemini", "profile": "missing"}})
+                self.task(roles={"tester": {"tool": "opencode", "profile": "missing"}})
         self.assertEqual(caught.exception.code, "ROLE_UNAVAILABLE")
 
     def test_tester_command_cannot_be_supplied_or_run(self):
@@ -456,7 +456,7 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(command, [str(new / "node.exe"), "--preserve-symlinks", "--preserve-symlinks-main",
                                    "--require", str(runner.NODE_PIPE_SHIM), str(new / "index.js"), "--model", "auto",
                                    "--trust", "--output-format", "json", "-p", "do it"])
-        self.assertIsNone(worker_executable("gemini", str(shim)))  # other workers keep the hard refusal
+        self.assertIsNone(worker_executable("claude", str(shim)))  # other workers keep the hard refusal
 
     def test_opencode_npm_shim_resolves_to_native_sibling_and_missing_native_is_unavailable(self):
         from respected_orchestrator.engine.clis import worker_executable

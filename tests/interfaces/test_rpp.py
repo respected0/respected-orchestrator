@@ -166,7 +166,7 @@ class RppTests(unittest.TestCase):
     def test_apply_conflict(self):
         self.call("settings.apply", {"settings": {"default_worker": "claude"}}, operation_id=OPID)
         stored = (self.ctx.data_root / "settings.json").read_text("utf-8")
-        conflict = self.call("settings.apply", {"settings": {"default_worker": "gemini"}}, operation_id=OPID)
+        conflict = self.call("settings.apply", {"settings": {"default_worker": "codex"}}, operation_id=OPID)
         self.assertFalse(conflict["ok"])
         self.assertEqual(conflict["error"]["code"], "OPERATION_ID_CONFLICT")
         self.assertEqual((self.ctx.data_root / "settings.json").read_text("utf-8"), stored)

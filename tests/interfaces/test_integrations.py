@@ -48,14 +48,14 @@ class IntegrationsTest(unittest.TestCase):
         self.assertEqual(self.codex.read_text("utf-8").strip(), CODEX.strip())
 
     def test_an_unreadable_config_of_an_untouched_client_does_not_block_the_others(self):
-        (self.home / ".gemini").mkdir()
-        (self.home / ".gemini/settings.json").write_text('{ // comments are fine for gemini\n}', encoding="utf-8")
+        (self.home / ".cursor").mkdir()
+        (self.home / ".cursor/mcp.json").write_text('{ // comments are fine for cursor\n}', encoding="utf-8")
         self.go({"claude-code": True})
         self.assertIn("respected-orchestrator", self.claude.read_text("utf-8"))
         rows = {r["client"]: r for r in sil.plan(self.ctx, {"desired": {}, "launcher": LAUNCH})["clients"]}
-        self.assertEqual(rows["gemini"]["state"], "unreadable")
+        self.assertEqual(rows["cursor"]["state"], "unreadable")
         with self.assertRaises(sil.OperationError):
-            sil.plan(self.ctx, {"desired": {"gemini": True}, "launcher": LAUNCH})
+            sil.plan(self.ctx, {"desired": {"cursor": True}, "launcher": LAUNCH})
 
     def test_apply_is_idempotent_and_needs_the_approved_digest(self):
         first = self.go({"codex": True}, "op-test-idem1")

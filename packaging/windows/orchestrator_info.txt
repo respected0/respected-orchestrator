@@ -6,13 +6,13 @@ KURULUMDA NELER OLUR
 
   - Program: %LOCALAPPDATA%\Respected\RespectedOrchestrator\app. Yönetici izni ve Python gerekmez. Windows Ayarlar › Uygulamalar listesinde bir giriş.
   - Veri klasörü: %LOCALAPPDATA%\Respected\RespectedOrchestrator\data (ayarlar, işlem makbuzları, görev ve kampanya kayıtları, kanıtları imzalayan anahtar; anahtar yalnızca sizin hesabınıza açıktır).
-  - İsteğe bağlı: seçtiğiniz AI araçlarına MCP kaydı (Claude Code, Codex, Cursor, Gemini, Windsurf) ve Brain hafızasına bağlantı.
+  - İsteğe bağlı: seçtiğiniz AI araçlarına MCP kaydı (Claude Code, Codex, Cursor, Windsurf) ve Brain hafızasına bağlantı.
 
 KULLANIRKEN NELER OLUR
 
   - Her görev projenizin yalıtılmış bir Git çalışma ağacında çalışır (veri klasöründeki workspaces/ altında). Projenize ancak sizin onayınızla yama uygulanır.
   - Görev durumu, kanıt ve kampanya kayıtları veri klasöründe birikir.
-  - Görevi, bilgisayarınızda kurulu AI aracı (Codex, Claude, Gemini, agy, Cursor) komut satırından yapar; görev metni o aracın sağlayıcısına gider.
+  - Görevi, bilgisayarınızda kurulu AI aracı (Codex, Claude, agy, Cursor) komut satırından yapar; görev metni o aracın sağlayıcısına gider.
   - Doğrulama komutları kısıtlı bir Windows belirteciyle çalışır; çalışanın ortamından sır gibi görünen değişkenler çıkarılır.
   - Çalışan araç bilgisayarınızda sıradan bir süreçtir: projenizin çalışma ağacı dışına yazmasını Orchestrator engellemez, koruma o aracın kendi kum havuzundan gelir.
 

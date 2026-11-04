@@ -55,11 +55,10 @@ kendi başlatır (stdio); arka planda sürekli çalışan bir şey yoktur.
 | Claude Desktop | `%APPDATA%\Claude\claude_desktop_config.json` | `mcpServers.respected-orchestrator` |
 | Codex | `~\.codex\config.toml` | `[mcp_servers.respected-orchestrator]` tablosu |
 | Cursor | `~\.cursor\mcp.json` | `mcpServers.respected-orchestrator` |
-| Gemini CLI | `~\.gemini\settings.json` | `mcpServers.respected-orchestrator` |
 | OpenCode | `~\.config\opencode\opencode.json` | `mcp.servers.respected-orchestrator` (`type: local`) |
 | Windsurf | `~\.codeium\windsurf\mcp_config.json` | `mcpServers.respected-orchestrator` |
 
-**Şart:** aracın ayar klasörü bilgisayarınızda var olmalı (`~\.claude`, `~\.codex`, `~\.cursor`, `~\.gemini`, `~\.config\opencode`,
+**Şart:** aracın ayar klasörü bilgisayarınızda var olmalı (`~\.claude`, `~\.codex`, `~\.cursor`, `~\.config\opencode`,
 `~\.codeium\windsurf`, `%APPDATA%\Claude`). Kurulu olmayan bir aracı bağlamaya çalışırsanız Orchestrator **reddeder**
 ("Client not detected on this computer") ve klasörünü **oluşturmaz**. Birden çok aracı birlikte isterseniz, biri
 reddedilirse hiçbiri yazılmaz.

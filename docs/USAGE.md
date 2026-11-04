@@ -8,7 +8,7 @@ Kurulumdan kaldırmaya kadar kişinin yapacağı her şey. Komutların tam liste
 - Windows 10/11 (beta yalnızca Windows'u destekler).
 - **Git**: her görev projenin yalıtılmış bir Git çalışma ağacında çalışır; proje bir Git deposu olmalıdır.
 - Görevleri yapacak en az bir AI aracının komut satırı, **oturumu açık** olarak: Codex, Claude Code,
-  Antigravity, Cursor ya da OpenCode (Gemini CLI kapsam dışıdır, desteklenmez). Kota ve hesap o aracındır.
+  Antigravity, Cursor ya da OpenCode. Kota ve hesap o aracındır.
 - Python gerekmez. Brain ve Hub isteğe bağlıdır.
 
 ## 2. Kurulum
@@ -161,7 +161,7 @@ yaptır, sonucu doğrula" diyebilirsiniz.
 & $exe integrations set codex=off                 # kaydı kaldır
 ```
 
-İstemciler: `claude-code`, `claude-desktop`, `codex`, `cursor`, `gemini`, `windsurf`, `opencode`. Aynı işi Hub'da Orchestrator →
+İstemciler: `claude-code`, `claude-desktop`, `codex`, `cursor`, `windsurf`, `opencode`. Aynı işi Hub'da Orchestrator →
 Ayarlar → "AI araçlarından kullan (MCP)" yapar (önce ne ekleneceğini gösterir). Ürün yalnızca kendi girdisini ekler ve kaldırır;
 aracın ve sizin diğer ayarlarınız korunur. Kayıttan sonra AI aracını yeniden başlatın.
 

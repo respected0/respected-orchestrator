@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 import sys
 
-SUPPORTED_AGENTS = ("claude", "gemini", "antigravity", "agy", "codex", "cursor", "opencode", "custom")
+SUPPORTED_AGENTS = ("claude", "antigravity", "agy", "codex", "cursor", "opencode", "custom")
 EXECUTABLE = {"antigravity": "agy", "agy": "agy", "cursor": "cursor-agent"}
 LOCAL_CODEX = Path(__file__).resolve().parents[3] / ".runtime" / "codex-0.162.0-alpha.20" / "bin" / "codex.exe"
 

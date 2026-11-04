@@ -75,10 +75,10 @@ def tool_available(tool):
 
 
 # Model-selection flags of CLIs that take the profile as a model name (codex profiles are handled below).
-_MODEL_FLAG = {"claude": "--model", "gemini": "--model", "cursor": "--model", "agy": "--model", "antigravity": "--model"}
+_MODEL_FLAG = {"claude": "--model", "cursor": "--model", "agy": "--model", "antigravity": "--model"}
 # Headless CLIs refuse edits unless told to accept them; this allows file edits only (shell stays unapproved) and the
 # engine still validates scope, runs acceptance outside the worker and rejects out-of-scope changes.
-_EDIT_FLAGS = {"claude": ["--permission-mode", "acceptEdits"], "gemini": ["--approval-mode", "auto_edit"],
+_EDIT_FLAGS = {"claude": ["--permission-mode", "acceptEdits"],
                "agy": ["--mode", "accept-edits"], "antigravity": ["--mode", "accept-edits"]}
 
 
@@ -89,7 +89,7 @@ def command_for(worker, prompt, custom=(), profile=None, write=False):
     if command is None:
         raise lanes.WorkerUnavailableError(f"Worker CLI '{worker}' unavailable")
     if worker in _MODEL_FLAG:
-        envelope = {"claude": ["--output-format", "json"], "gemini": ["-o", "json"],
+        envelope = {"claude": ["--output-format", "json"],
                     "agy": ["--output-format", "json"], "antigravity": ["--output-format", "json"],
                     # headless Cursor refuses an untrusted workspace; the engine's isolated worktree is the trusted one
                     "cursor": ["--trust", "--output-format", "json"]}.get(worker, [])
@@ -192,12 +192,6 @@ def tool_result(tool, stdout):
         known = all(isinstance(v, int) and not isinstance(v, bool) for v in (*fresh, cached))
         usage = _usage(sum(fresh) + cached, cached, raw.get("outputTokens"), None) if known else None
         return str(data.get("result", "")), usage, None, ("cursor reported an error result" if data.get("is_error") else None)
-    if tool == "gemini" and ("response" in data or "error" in data):  # shape taken from the CLI docs; not verified live
-        models = ((data.get("stats") or {}).get("models") or {}) if isinstance(data.get("stats"), dict) else {}
-        tokens = [m.get("tokens") for m in models.values() if isinstance(m, dict) and isinstance(m.get("tokens"), dict)]
-        usage = _usage(sum(t.get("prompt", 0) for t in tokens), sum(t.get("cached", 0) for t in tokens),
-                       sum(t.get("candidates", 0) for t in tokens), sum(t.get("thoughts", 0) for t in tokens)) if tokens else None
-        return str(data.get("response", "")), usage, next(iter(models), None), (str(data["error"])[:200] if data.get("error") else None)
     return stdout, None, None, None
 
 

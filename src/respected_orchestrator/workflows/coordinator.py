@@ -88,7 +88,7 @@ def _context(request, root):
 def _planner_run(ctx, request, settings, root, assignment):
     if assignment["tool"] == "custom":
         raise roles.RoleError("ROLE_UNAVAILABLE", "The coordinator needs a model tool; custom commands cannot plan",
-                              "Assign claude, codex, gemini, agy or cursor to the coordinator role.")
+                              "Assign claude, codex, agy or cursor to the coordinator role.")
     files = planner._git_path_list(root, "ls-files", "-z")[:FILE_LIST_LIMIT]
     prompt = _prompt(request["goal"].strip()[:4000], str(root).replace("\\", "/"), files, _context(request, root))
     with tempfile.TemporaryDirectory(prefix="coordinator-") as neutral:

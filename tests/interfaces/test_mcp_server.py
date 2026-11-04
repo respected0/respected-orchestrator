@@ -55,7 +55,7 @@ class McpServerTest(unittest.TestCase):
             self.assertTrue(out["isError"], args)
             self.assertIn("disabled over MCP", out["content"][0]["text"])
         for bad in (["claude", "--permission-mode", "bypassPermissions"], ["codex", "exec", "-s", "danger-full-access"],
-                    ["gemini", "-y"], ["gemini", "--approval-mode", "yolo"], ["x", "--dangerously-skip-permissions=true"]):
+                    ["x", "--dangerously-skip-permissions=true"]):
             with self.assertRaises(ValueError):
                 runner._command(bad)
 

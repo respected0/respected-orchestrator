@@ -186,7 +186,7 @@ taşımaması için komutlar `sandbox_exec` ile **kısıtlı bir belirteçle** (
 Her uyumlu model, sağlayıcı ya da araç her role atanabilir; kod hiçbir zaman "X modeli yalnızca Y rolünü yapar"
 demez. Kavramlar ayrıdır: **rol** (iş akışındaki görev, `^[a-z][a-z0-9_]{0,39}$`, açık küme: `implementer`, `reviewer`,
 `deep_reviewer`, `planner`, `debugger`, `tester`, `coordinator`, `master`…), **profil** (motor için opak bir model
-yapılandırması), **araç** (`codex`, `claude`, `agy`, `cursor`, `opencode`, `custom`; Gemini kapsam dışıdır) ve **atama** (`{tool, profile}` + kaynağı).
+yapılandırması), **araç** (`codex`, `claude`, `agy`, `cursor`, `opencode`, `custom`) ve **atama** (`{tool, profile}` + kaynağı).
 
 Her rol için öncelik:
 
@@ -396,7 +396,7 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
 
 - Beta yalnızca Windows'u destekler; macOS/Linux kod yolları var ama doğrulanmadı. POSIX'te anahtar için işletim sistemi
   kum havuzu sınırı yoktur.
-- Claude ve Cursor çalışanları (Gemini kapsam dışıdır, canlı doğrulanmadı) kendi onay modellerini korur. Sağlayıcının `turn.completed` olayı modeli
+- Claude ve Cursor çalışanları kendi onay modellerini korur. Sağlayıcının `turn.completed` olayı modeli
   bildirmediği için incelemelerde `model: null` görünür.
 - Kapsam denetimi çalışmadan sonra, yamaya bakarak yapılır; çalışan ayrıca AppContainer içinde çalışır (bölüm 2, SEC-03), bu
   yüzden çalışma ağacının dışına yazamaz. Windows dışında worker başlatılmaz.

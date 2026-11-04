@@ -30,7 +30,6 @@ def _clients():
     table = {"claude-code": ("json", home / ".claude.json", home / ".claude"),
              "codex": ("toml", home / ".codex/config.toml", home / ".codex"),
              "cursor": ("json", home / ".cursor/mcp.json", home / ".cursor"),
-             "gemini": ("json", home / ".gemini/settings.json", home / ".gemini"),
              "opencode": ("opencode-json", home / ".config/opencode/opencode.json", home / ".config/opencode"),
              "windsurf": ("json", home / ".codeium/windsurf/mcp_config.json", home / ".codeium/windsurf")}
     if sys.platform == "win32":

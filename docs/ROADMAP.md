@@ -49,8 +49,6 @@
 - [x] Cursor token kullanımı gerçek CLI ile doğrulandı (Free plan; `inputTokens` önbellek okumasını içermez,
   kanıt `evidence/poc/cursor_cache_probe.log`). Claude ve agy kullanımı da gerçek çalıştırmayla doğrulandı
   (Claude modeli de bildiriyor, agy modeli bildirmiyor, o yüzden agy incelemelerinde `model: null` doğru).
-- [ ] Gemini kapsam dışı (kullanıcı kararı, 2026-11-04): kod yolu duruyor ama canlı doğrulanmadı ve desteklenmiyor;
-  Windows'ta npm'in `.cmd` kabuğu olarak kurulursa cmd.exe komut enjeksiyonu kuralı gereği kullanılamaz.
 
 ## Araştırmaya dayalı tasarım
 

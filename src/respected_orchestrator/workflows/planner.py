@@ -210,7 +210,7 @@ def plan(ctx: EngineContext, request: dict, settings: dict | None = None) -> dic
                             history=lambda: _track_record(ctx))["planner"]
     if planner["tool"] == "custom":
         raise roles.RoleError("ROLE_UNAVAILABLE", "The planner needs a model tool; custom commands cannot plan",
-                              "Assign claude, codex, gemini or agy to the planner role.")
+                              "Assign claude, codex or agy to the planner role.")
     files = _git_path_list(root, "ls-files", "-z")[:FILE_LIST_LIMIT]
     context = {}
     for name in request.get("context_files", [])[:10]:

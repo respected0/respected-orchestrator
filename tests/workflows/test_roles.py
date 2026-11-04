@@ -38,7 +38,7 @@ class ResolutionTests(unittest.TestCase):
 
     def test_auto_assignment_ranks_by_measured_record_and_is_honest_without_one(self):
         pool = json.dumps([{"tool": "claude", "profile": "a"}, {"tool": "codex", "profile": "b"}, {"tool": "custom", "profile": "c"},
-                           {"tool": "gemini", "profile": "g"}])
+                           {"tool": "opencode", "profile": "g"}])
         settings = {"auto_assign": True, "auto_pool": pool}
         table = {("write", "claude", "a"): {"runs": 6, "ok": 2, "avg_tokens": 10, "avg_seconds": 1},
                  ("write", "codex", "b"): {"runs": 6, "ok": 6, "avg_tokens": 90, "avg_seconds": 1}}
@@ -46,7 +46,7 @@ class ResolutionTests(unittest.TestCase):
         self.assertEqual(got["basis"], "pool_order")  # no read-family history: says so, takes the first usable entry
         self.assertIn("not a measured recommendation", got["reason"])
         self.assertEqual((got["tool"], got["profile"]), ("claude", "a"))
-        self.assertEqual([e["tool"] for e in got["excluded"]], ["custom", "gemini"])  # cannot do read work / not installed
+        self.assertEqual([e["tool"] for e in got["excluded"]], ["custom", "opencode"])  # cannot do read work / not installed
         got = roles.recommend("debugger", [roles.normalize("x", e, tools=TOOLS) for e in json.loads(pool)], settings,
                               lambda t: t in ("claude", "codex", "custom"), "codex", [], lambda: table)
         self.assertEqual((got["basis"], got["tool"], got["profile"]), ("history", "codex", "b"))  # 6/6 beats 2/6
@@ -82,14 +82,14 @@ class ResolutionTests(unittest.TestCase):
         # auto is opt-in, and an explicit unavailable choice is an error, not a substitution
         with self.assertRaises(roles.RoleError) as caught:
             resolve({"auto_assign": True, "auto_pool": json.dumps([{"tool": "codex", "profile": "x"}])},
-                    {"reviewer": {"tool": "gemini", "profile": "g"}}, ["implementer", "reviewer"])
+                    {"reviewer": {"tool": "opencode", "profile": "g"}}, ["implementer", "reviewer"])
         self.assertEqual(caught.exception.code, "ROLE_UNAVAILABLE")
 
     def test_fallbacks_are_only_the_listed_ones(self):
-        ask = {"reviewer": {"tool": "gemini", "profile": "g", "fallbacks": [{"tool": "claude", "profile": "c"}]}}
+        ask = {"reviewer": {"tool": "opencode", "profile": "g", "fallbacks": [{"tool": "claude", "profile": "c"}]}}
         got = resolve({}, ask, ["implementer", "reviewer"])["reviewer"]
         self.assertEqual((got["tool"], got["profile"], got["source"]), ("claude", "c", "explicit"))
-        self.assertIn("gemini", got["fallback_of"])
+        self.assertIn("opencode", got["fallback_of"])
 
     def test_blocked_profiles_are_a_setting_not_code(self):
         with self.assertRaises(roles.RoleError):
@@ -111,8 +111,6 @@ class CommandTests(unittest.TestCase):
             self.assertEqual(runner.command_for("claude", "p", profile="m", write=True),
                              ["tool", "--model", "m", "--permission-mode", "acceptEdits", "--output-format", "json", "-p", "p"])
             self.assertEqual(runner.command_for("claude", "p"), ["tool", "--output-format", "json", "-p", "p"])
-            self.assertEqual(runner.command_for("gemini", "p", profile="g", write=True),
-                             ["tool", "--model", "g", "--approval-mode", "auto_edit", "-o", "json", "-p", "p"])
             self.assertEqual(runner.command_for("agy", "p", profile="a", write=True),
                              ["tool", "--model", "a", "--mode", "accept-edits", "--output-format", "json", "-p", "p"])
         self.assertEqual(runner.command_for("custom", "p", ["x", "{prompt}", "{profile}"], "m"), ["x", "p", "m"])
@@ -304,11 +302,11 @@ class TaskIntegrationTests(unittest.TestCase):
             return [sys.executable, "-c", "1"]
         with mock.patch.object(maf_workflow, "command_for", fake_command), \
                 mock.patch.object(maf_workflow, "execute", return_value=completed):
-            review = maf_workflow._run_codex_review(stage="fast", task="t", result={}, profile="gem", tool="gemini",
+            review = maf_workflow._run_codex_review(stage="fast", task="t", result={}, profile="gem", tool="opencode",
                                                     cwd=self.repo, run_root=self.root / "rev", codex_path=None,
                                                     timeout_seconds=5)
-        self.assertEqual((review["decision"], review["tool"], review["usage"]), ("APPROVED", "gemini", {}))
-        self.assertEqual(seen, {"tool": "gemini", "profile": "gem"})
+        self.assertEqual((review["decision"], review["tool"], review["usage"]), ("APPROVED", "opencode", {}))
+        self.assertEqual(seen, {"tool": "opencode", "profile": "gem"})
 
 
 if __name__ == "__main__":

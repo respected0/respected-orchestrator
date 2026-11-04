@@ -85,7 +85,7 @@ const
   HubSetupName = 'RespectedHub-Setup.exe';  // local file name only; the release asset carries a version
   HubReleasesPage = 'https://github.com/respected0/respected-hub/releases';
   HubReleaseApi = 'https://api.github.com/repos/respected0/respected-hub/releases';
-  Workers = 'codex,claude,gemini,antigravity,agy,cursor';
+  Workers = 'codex,claude,antigravity,agy,cursor';
 
 var
   ChoicePage, MaintenancePage, WorkerPage, MemoryPage: TWizardPage;
