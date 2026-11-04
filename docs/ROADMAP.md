@@ -1,7 +1,6 @@
 # Orchestrator: gelecekte yapılacaklar
 
-> Yürütme sırası, kapılar ve görev durumu: `ROADMAP_EXECUTION_PLAN.md`.
-> Tamamlanan işlerin kanıtı: `evidence/KANIT_LOG.md`. Tamamlanan görevlerin özeti: `ROADMAP_EXECUTION_PLAN.md`.
+> Tamamlanan işlerin kanıtı: `evidence/KANIT_LOG.md`.
 
 Ürün beklentisiyle bugünkü durum arasındaki açıklar. Yapılan madde silinir.
 

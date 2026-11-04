@@ -27,4 +27,3 @@ Benchmark sonucu; makine, ortam ve rastgelelik değişince yanıltıcı olabilir
 
 - [EVAL-01 kanıtı](../evidence/KANIT_LOG.md) §EVAL-01 (erişim: 2026-10-30).
 - [eval01_results.json](../evidence/poc/eval01_results.json) — 60 koşu özeti (erişim: 2026-10-30).
-- [Rakip araştırması](../archive/COMPETITOR_RESEARCH.md) §Benchmark'a bağlı kararlar (erişim: 2026-10-30).

@@ -2,9 +2,9 @@
 
 Bu dosya tamamlanan her görevin kanıtını tutar. Kural: **kanıt yoksa görev tamamlanmış sayılmaz.**
 Her giriş şu dört parçayı içerir: kapsam, değişen dosyalar, doğrulama komutu ve gerçek çıktı, kalan risk.
-Plan ve sıra: `docs/ROADMAP_EXECUTION_PLAN.md`
+Açık işler: `docs/ROADMAP.md`. Kararların gerekçesi: `docs/adr/`.
 
-> **Not (4 Kasım 2026):** `evidence/poc/` altındaki koşu günlükleri (`*_focused.log`, `*_full_suite.log`, `*_packaging.log`, `*_docs_gate*.log` vb.) repodan çıkarıldı ve repo dışında `respected-orchestrator-evidence-logs.zip` arşivine taşındı. Aşağıda adı geçen ama `evidence/poc/` içinde bulunmayan günlükler bu arşivdedir. Betikler, sonuç JSON'ları ve canlı doğrulama kanıtları yerinde kalır.
+> **Not (4 Kasım 2026):** `evidence/poc/` altındaki koşu günlükleri (`*_focused.log`, `*_full_suite.log`, `*_packaging.log`, `*_docs_gate*.log` vb.) repodan çıkarıldı ve repo dışında `respected-orchestrator-evidence-logs.zip` arşivine taşındı. Aynı tarihte plan taslakları, rakip araştırması (`COMPETITOR_RESEARCH.md`) ve `ROADMAP_EXECUTION_PLAN.md` kaldırıldı; içerikleri git geçmişindedir ve kararlar `docs/adr/` altında özetlenmiştir. Aşağıda adı geçen ama `evidence/poc/` içinde bulunmayan günlükler bu arşivdedir. Betikler, sonuç JSON'ları ve canlı doğrulama kanıtları yerinde kalır.
 
 ---
 
