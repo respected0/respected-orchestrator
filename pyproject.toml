@@ -19,7 +19,7 @@ dependencies = [
 Repository = "https://github.com/respected0/respected-orchestrator"
 
 [project.optional-dependencies]
-dev = ["pyinstaller>=6"]
+dev = ["pyinstaller>=6", "pywin32>=306; sys_platform == 'win32'"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

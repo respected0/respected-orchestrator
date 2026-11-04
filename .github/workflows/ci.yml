@@ -50,8 +50,8 @@ jobs:
       - name: Unit, integration, adversarial and packaged-build tests
         # tests/packaging runs the built exe with no Python on PATH and is required here (CI is set)
         env:
-          ORCH_ALLOW_ELEVATED_SKIP: "1"  # the matrix already ran de-elevated above
-        run: python -m unittest discover -s tests -t .
+          ORCH_ALLOW_ELEVATED_SKIP: "1"  # elevated hosted runner: ids in tests/elevated_ci_skips.txt are skipped
+        run: python tests/tools/run_ci.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: orchestrator-windows
