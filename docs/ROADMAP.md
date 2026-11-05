@@ -19,7 +19,7 @@ Yerelde (yükseltilmemiş Windows 11) kanıtlananlar ve hâlâ dış girdi bekle
 | --- | --- | --- |
 | FIX-01 | Skip yolu kaldırıldı; güvenlik kümesi sıfır skip + SHA'lı manifest + kapı (`tests/tools/run_security_ci.py`, sahte manifestlerle birim testli); geçici standart kullanıcı betiği ve `ci.yml` yazıldı | Hosted GitHub koşusu yapılmadı (push/Actions gerekir); merge koruması/etiket kapısı repo ayarıdır; hosted `git` farkı ve runner görüntüsü kayması |
 | FIX-04 | Verify ve kabul AppContainer'da, ağ kapalı, fail-closed; `sandbox_exec` kaldırıldı; S-24 yeniden sınıflandırıldı; araç uyumu ölçüldü | Hosted manifest kanıtı FIX-01'e bağlı |
-| FIX-02 | Gerçek ajan yürütücüsü, iki kol, sızıntı denetimi, 60 koşuluk plan (`fix02_plan.json`), şema ve kapı (`tests/evals/bench.py`) stub ajanla uçtan uca testli | Gerçek ajanla 60 koşu: ADR-019 gereği ücretsiz ajan doğrulaması ve parti öncesi kullanıcı onayı |
+| FIX-02 | Gerçek ajan yürütücüsü, iki kol, sızıntı denetimi, 60 koşuluk plan (`fix02_plan.json`), şema ve kapı (`tests/evals/bench.py`) stub ajanla uçtan uca testli | Yok: 60 gerçek koşu tamam (OpenCode `amd/DeepSeek-V4.1-Flash`, ücretsiz); sonuç ve sınırlar KANIT_LOG'da |
 | FIX-03A | `pr_create` PR'ı geri okur (açık taslak, doğrulanmış head commit), makbuza `pr_number`/`head_sha` yazar | Gerçek taslak PR: test deposu ve en düşük yetkili token (kullanıcı sağlar) |
 | FIX-03B | HMAC doğrulayıcı, içe aktarma, `gh api` yoklaması, idempotensi, commit/PR eşlemesi, sırasız olay (`github-ci-ingest`, `github-ci-poll`) testli | Gerçek test deposundaki check-run ile doğrulama (03A'ya bağlı) |
 | FIX-03C | **Tamamlandı**: Hub `evidence` (salt-okunur) ile gösterir; stale/failed/tampered/şema uyuşmazlığı; sızıntı; onay yok; gerçek çıktı Hub modelinden geçirildi | PR/CI satırı gerçek PR olmadan yalnızca makbuz verisiyle gösterildi |
@@ -43,7 +43,7 @@ Aşağıdakilerin **tamamı aynı yayın commit SHA'sı** için kanıtlanmadan b
 
 - [ ] FIX-01: Windows güvenlik matrisi yükseltilmemiş ortamda gerçekten koştu; `skipped = 0` ve `failed = 0` (tek istisna: ADR-017'de adıyla çıkarılan Cursor testi, manifestte `excluded` altında listeli); kanıt manifesti commit SHA'sını taşıyor.
 - [ ] FIX-04: ağ-kapalı verify negatif matrisi %100 geçti; izin politikası kurulamazsa verify koşmadı; S-24 satırı güncellendi.
-- [ ] FIX-02: ≥10 görev x ≥3 tekrar x 2 kol gerçek ajan koşusu tamam; rapor makine okunur, commit/model/ortam kayıtlı; altın çözüm hiçbir gerçek koşuda kullanılmadı; güvenlik ihlali ayrı metrik.
+- [x] FIX-02: ≥10 görev x ≥3 tekrar x 2 kol gerçek ajan koşusu tamam; rapor makine okunur, commit/model/ortam kayıtlı; altın çözüm hiçbir gerçek koşuda kullanılmadı; güvenlik ihlali ayrı metrik.
 - [ ] FIX-03A: test reposunda gerçek taslak PR açıldı; otomatik merge yok.
 - [ ] FIX-03B: imza, idempotensi, yanlış-commit reddi ve sırasız olay testleri geçti.
 - [ ] FIX-03C: Hub güncel kanıtı gösteriyor, eski/geçersiz kanıtı reddediyor; insan onayı sözleşmesi (UX-03, ADR-004) bozulmadı.

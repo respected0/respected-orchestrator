@@ -116,6 +116,10 @@ class BenchTests(unittest.TestCase):
             with self.assertRaises(bench.ProviderMissing):
                 bench.real_agent("claude", "m", confirm_free=True)
 
+    def test_the_agent_sees_its_own_work_tree_as_cwd_and_pwd(self):
+        done = bench.runner._execute([sys.executable, "-c", "import os;print(os.getcwd());print(os.environ['PWD'])"], Path(self.tmp.name), 30)
+        self.assertEqual(set(done["stdout"].split()), {str(Path(self.tmp.name))})
+
     def test_the_synthetic_harness_is_labelled_synthetic(self):
         self.assertEqual(compare.compare(self.fixtures[:1], repeat=1)["kind"], "synthetic")
 

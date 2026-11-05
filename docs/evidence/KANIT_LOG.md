@@ -2787,3 +2787,11 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - Sonuç: 60 koşu yazıldı ama OpenCode "Free usage limit reached" verdi; 26 Direct `agent_error`, 27 Orchestrated `worker_failed`, geçerli koşular (ilk ~4 görev): Direct 0/3 geçti, Orchestrated 3/3 (RSP-001) — örnek küçük, kanıt değil. Rapor `fix02_real_opencode_deepseek_INVALID.json`.
 - Ders: kota ifadesi regex'inde kaçtı; "usage limit" eklendi ve testlendi, parti artık ilk işarette durur. Bu hata düzelmeden koşu yeniden yapılmadı (kota bitti).
 - FIX-02 kutusu açık: kota yenilenince yeniden koşulmalı.
+
+## FIX-02 gerçek koşu — GEÇERLİ (5 Kasım 2026)
+
+- Ajan: OpenCode, model `amd/DeepSeek-V4.1-Flash`, ücretsiz yol (ADR-019 §3, `--confirm-free`, kullanıcı onaylı). 10 görev x 3 tekrar x 2 kol = 60 koşu, zaman aşımı 300 sn.
+- Rapor: `docs/evidence/poc/fix02_real_opencode_amd_deepseek.json`, SHA-256 `efc54aa6647891acd1f8f75f898281e795c2bbd8c1a0c66c65aaa54a0e5f6a9c`. `bench.validate`: hata yok (durum complete, kind real, sızıntı yok, geçersiz koşu yok, ölçülmeyen değer 0 yazılmadı).
+- Sonuç: direct 29/30 geçti (%96,7; 1 zaman aşımı); orchestrated 21/30 geçti (%70; 9 başarısız). Orchestrated güvenlik ihlali 0, direct güvenlik ölçümü `unknown`. Token ve maliyet `unknown` (OpenCode ücretsiz yolu vermiyor).
+- Yorum: bu ölçümde orkestratör kolu doğrudan ajandan **daha başarısız** ve ~2,4 kat yavaş (5580 sn / 2361 sn). Bu, "orkestratör daha iyi" iddiasını desteklemez; tek model, tek ajan, küçük görevler. 9 başarısızlığın nedeni bu girdide çözümlenmedi.
+- Önceki geçersiz kayıt: `fix02_real_opencode_amd_deepseek_INVALID.json` (direct kol, OpenCode'un `PWD` mirası yüzünden repo kökünde çalıştı; 0/30). Düzeltme: `runner._execute` artık `PWD`'yi `cwd`'ye ayarlar, regresyon testi eklendi; yanlışlıkla commit edilen kök `solution.py` silindi.

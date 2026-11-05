@@ -92,7 +92,7 @@ def _execute(command: list[str], cwd: Path, timeout: float) -> dict:
     try:
         done = subprocess.run(
             command, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout,
-            env={**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONDONTWRITEBYTECODE": "1"},
+            env={**os.environ, "PWD": str(cwd), "PYTHONIOENCODING": "utf-8", "PYTHONDONTWRITEBYTECODE": "1"},
         )
         return {
             "returncode": done.returncode,
