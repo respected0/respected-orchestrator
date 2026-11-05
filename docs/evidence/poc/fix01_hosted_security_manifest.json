@@ -1,0 +1,17 @@
+{
+  "commit_sha": "a700aff899be78028235345c2353a3bc86e27dcb",
+  "runner": "20261030.294.1",
+  "elevated": false,
+  "expected": 28,
+  "tests": 28,
+  "passed": 28,
+  "failed": 0,
+  "errors": 0,
+  "skipped": 0,
+  "excluded": {
+    "tests.engine.test_worker_policy.RealSandboxTests.test_node_worker_can_start_piped_children_and_resolve_paths": "needs a Cursor CLI session; runs only on a machine that has one (ADR-017)"
+  },
+  "skipped_ids": [],
+  "started": 1793872583.4999044,
+  "finished": 1793872614.176164
+}

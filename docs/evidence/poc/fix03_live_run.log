@@ -1,0 +1,28 @@
+.
+----------------------------------------------------------------------
+Ran 1 test in 24.089s
+
+OK
+{
+ "head_sha": "10defca7616a785bea806250b588e7679235c835",
+ "results": [
+  {
+   "accepted": false,
+   "reason": "pending",
+   "feedback": null
+  },
+  {
+   "accepted": true,
+   "reason": "success",
+   "feedback": {
+    "sha": "10defca7616a785bea806250b588e7679235c835",
+    "conclusion": "success"
+   }
+  },
+  {
+   "accepted": false,
+   "reason": "stale_event",
+   "feedback": null
+  }
+ ]
+}

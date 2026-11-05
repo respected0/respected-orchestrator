@@ -17,11 +17,11 @@ Yerelde (yükseltilmemiş Windows 11) kanıtlananlar ve hâlâ dış girdi bekle
 
 | Görev | Yerelde yapıldı ve test edildi | Hâlâ açık (neden) |
 | --- | --- | --- |
-| FIX-01 | Skip yolu kaldırıldı; güvenlik kümesi sıfır skip + SHA'lı manifest + kapı (`tests/tools/run_security_ci.py`, sahte manifestlerle birim testli); geçici standart kullanıcı betiği ve `ci.yml` yazıldı | Hosted GitHub koşusu yapılmadı (push/Actions gerekir); merge koruması/etiket kapısı repo ayarıdır; hosted `git` farkı ve runner görüntüsü kayması |
+| FIX-01 | Skip yolu kaldırıldı; güvenlik kümesi sıfır skip + SHA'lı manifest + kapı (`tests/tools/run_security_ci.py`, sahte manifestlerle birim testli); geçici standart kullanıcı betiği ve `ci.yml` yazıldı | Yok: hosted koşu yeşil (42006314204), `main` dal koruması açık; hosted `git` rc=128 uyumluluk sınırı olarak kayıtlı. Yayın commit'inde koşu yinelenir |
 | FIX-04 | Verify ve kabul AppContainer'da, ağ kapalı, fail-closed; `sandbox_exec` kaldırıldı; S-24 yeniden sınıflandırıldı; araç uyumu ölçüldü | Hosted manifest kanıtı FIX-01'e bağlı |
 | FIX-02 | Gerçek ajan yürütücüsü, iki kol, sızıntı denetimi, 60 koşuluk plan (`fix02_plan.json`), şema ve kapı (`tests/evals/bench.py`) stub ajanla uçtan uca testli | Yok: 60 gerçek koşu tamam (OpenCode `amd/DeepSeek-V4.1-Flash`, ücretsiz); sonuç ve sınırlar KANIT_LOG'da |
-| FIX-03A | `pr_create` PR'ı geri okur (açık taslak, doğrulanmış head commit), makbuza `pr_number`/`head_sha` yazar | Gerçek taslak PR: test deposu ve en düşük yetkili token (kullanıcı sağlar) |
-| FIX-03B | HMAC doğrulayıcı, içe aktarma, `gh api` yoklaması, idempotensi, commit/PR eşlemesi, sırasız olay (`github-ci-ingest`, `github-ci-poll`) testli | Gerçek test deposundaki check-run ile doğrulama (03A'ya bağlı) |
+| FIX-03A | `pr_create` PR'ı geri okur (açık taslak, doğrulanmış head commit), makbuza `pr_number`/`head_sha` yazar | Yok: gerçek taslak PR #1/#2 (canlı test, `docs/evidence/poc/fix03_live_run.log`); token en düşük yetkili değil (`gh` oturumu) |
+| FIX-03B | HMAC doğrulayıcı, içe aktarma, `gh api` yoklaması, idempotensi, commit/PR eşlemesi, sırasız olay (`github-ci-ingest`, `github-ci-poll`) testli | Yok: gerçek check-run `success` yoklandı, tekrar `duplicate`, eski olay `stale_event` |
 | FIX-03C | **Tamamlandı**: Hub `evidence` (salt-okunur) ile gösterir; stale/failed/tampered/şema uyuşmazlığı; sızıntı; onay yok; gerçek çıktı Hub modelinden geçirildi | PR/CI satırı gerçek PR olmadan yalnızca makbuz verisiyle gösterildi |
 
 Bu tablo bir güvenlik açığını kapatmış ya da bir görevi tamamlanmış saymaz; yalnızca neyin kanıtlandığını söyler.
@@ -41,21 +41,21 @@ Bağımlılıklar yalnızca *nihai kanıt koşusu* içindir; geliştirme işleri
 
 Aşağıdakilerin **tamamı aynı yayın commit SHA'sı** için kanıtlanmadan beta.2 etiketi atılmaz (kanıt başka commit'e aitse geçersizdir):
 
-- [ ] FIX-01: Windows güvenlik matrisi yükseltilmemiş ortamda gerçekten koştu; `skipped = 0` ve `failed = 0` (tek istisna: ADR-017'de adıyla çıkarılan Cursor testi, manifestte `excluded` altında listeli); kanıt manifesti commit SHA'sını taşıyor.
-- [ ] FIX-04: ağ-kapalı verify negatif matrisi %100 geçti; izin politikası kurulamazsa verify koşmadı; S-24 satırı güncellendi.
+- [x] FIX-01: Windows güvenlik matrisi yükseltilmemiş ortamda gerçekten koştu; `skipped = 0` ve `failed = 0` (tek istisna: ADR-017'de adıyla çıkarılan Cursor testi, manifestte `excluded` altında listeli); kanıt manifesti commit SHA'sını taşıyor.
+- [x] FIX-04: ağ-kapalı verify negatif matrisi %100 geçti; izin politikası kurulamazsa verify koşmadı; S-24 satırı güncellendi.
 - [x] FIX-02: ≥10 görev x ≥3 tekrar x 2 kol gerçek ajan koşusu tamam; rapor makine okunur, commit/model/ortam kayıtlı; altın çözüm hiçbir gerçek koşuda kullanılmadı; güvenlik ihlali ayrı metrik.
-- [ ] FIX-03A: test reposunda gerçek taslak PR açıldı; otomatik merge yok.
-- [ ] FIX-03B: imza, idempotensi, yanlış-commit reddi ve sırasız olay testleri geçti.
-- [ ] FIX-03C: Hub güncel kanıtı gösteriyor, eski/geçersiz kanıtı reddediyor; insan onayı sözleşmesi (UX-03, ADR-004) bozulmadı.
-- [ ] Regresyon: `python tests/tools/run_ci.py` ve `tests.interfaces.test_human_approval_contract` geçti.
-- [ ] `KANIT_LOG.md` her FIX için girdi içeriyor (kapsam, komut, gerçek çıktı, SHA-256, kalan risk).
-- [ ] Hiçbir güvenlik politikası gevşetilmedi; güvenlik adımlarında `ORCH_ALLOW_ELEVATED_SKIP` kullanılmıyor.
+- [x] FIX-03A: test reposunda gerçek taslak PR açıldı; otomatik merge yok.
+- [x] FIX-03B: imza, idempotensi, yanlış-commit reddi ve sırasız olay testleri geçti.
+- [x] FIX-03C: Hub güncel kanıtı gösteriyor, eski/geçersiz kanıtı reddediyor; insan onayı sözleşmesi (UX-03, ADR-004) bozulmadı.
+- [x] Regresyon: `python tests/tools/run_ci.py` ve `tests.interfaces.test_human_approval_contract` geçti.
+- [x] `KANIT_LOG.md` her FIX için girdi içeriyor (kapsam, komut, gerçek çıktı, SHA-256, kalan risk).
+- [x] Hiçbir güvenlik politikası gevşetilmedi; güvenlik adımlarında `ORCH_ALLOW_ELEVATED_SKIP` kullanılmıyor.
 
 ---
 
 ### FIX-01 — GitHub CI AppContainer güvenlik testlerinin atlanmasını engelle
 
-- [ ] **Öncelik:** P0 — Kritik. **Beta.2'yi bloke eder: Evet.**
+- [x] **Öncelik:** P0 — Kritik. **Beta.2'yi bloke eder: Evet.**
 - **Mevcut sorun / kanıt kaynağı (kodda doğrulandı):**
   - `.github/workflows/ci.yml` (üç adım): `ORCH_ALLOW_ELEVATED_SKIP: "1"` ile worker matrisi, frozen exe matrisi ve tam keşif çalışıyor.
   - `tests/engine/test_worker_security.py:101` ve `tests/packaging/test_frozen_security.py:127`: yükseltilmiş oturumda `skipTest`. İlkindeki yorum "de-elevated CI step"ten söz ediyor; **`ci.yml`'de böyle bir adım yok.**
@@ -71,16 +71,16 @@ Aşağıdakilerin **tamamı aynı yayın commit SHA'sı** için kanıtlanmadan b
 - **Etkilenecek modüller/dosyalar:** `.github/workflows/ci.yml`, `tests/tools/run_ci.py`, `tests/elevated_ci_skips.txt` (güvenlik kimlikleri için kullanılmaz), `tests/engine/test_security_gate.py`, `tests/engine/test_worker_security.py`, `tests/packaging/test_frozen_security.py`, `tests/engine/security_cases.py`, `docs/THREAT_MODEL.md`. `src/respected_orchestrator/engine/appcontainer.py` politikası gevşetilmez.
 - **Teknik alt görevler:**
   - [x] Yükseltilmemiş ortam seçeneklerini ölç ve karar ver (ADR-017, ölçüm kaydı `fix01_hosted_probe.log`). *Bu kutu yalnızca ölçüm/karar içindir; FIX-01'in kendisi tamamlanmadı.*
-  - [ ] Geçici standart kullanıcıyı workflow'da kur (`tests/tools/run_security_as_user.ps1`, `ci.yml`; **yazıldı, hosted GitHub koşusuyla doğrulanmadı**). Ölçüldü (`fix01_hosted_followup.log`): yetki yalnızca çalışma alanı + Python kurulum dizinine verilince 16 sn, matris 50 sn, 13 testten 12 geçti, 0 hata, 1 skip.
+  - [x] Geçici standart kullanıcıyı workflow'da kur (`tests/tools/run_security_as_user.ps1`, `ci.yml`; **hosted koşuda doğrulandı**: koşu 42006314204, 28/28 geçti, skip 0, manifest SHA = koşu commit'i, `docs/evidence/poc/fix01_hosted_security_manifest.json`). Ölçüldü (`fix01_hosted_followup.log`): yetki yalnızca çalışma alanı + Python kurulum dizinine verilince 16 sn, matris 50 sn, 13 testten 12 geçti, 0 hata, 1 skip.
   - [x] Cursor'a bağlı `test_node_worker_can_start_piped_children_and_resolve_paths` **karar verildi**: zorunlu güvenlik kümesinden adıyla çıkarılır, manifestte `excluded` altında gerekçesiyle listelenir, yalnızca Cursor CLI'ı olan yerel makinede koşar (ADR-017). Başka skip yoktur ve olamaz.
   - [x] Hosted `git` `rc=128` sebebi ölçüldü: `fatal: could not open '/dev/null' ... Permission denied` (runner git 2.56.0; yerelde git 2.55.0 çalışıyor; sürüm mü görüntü mü **ayrıştırılmadı**). Sonuç: verify komutları `git`'e güvenemez; motorun kendi git çağrıları sandbox dışındadır (ADR-018 §4). *Kutu yalnızca ölçüm içindir.*
-  - [ ] **Açık (ölçülmedi):** hosted `git` farkının asıl sebebi (git sürümü 2.56.0 vs 2.55.0 mi, runner görüntüsü mü). Yerelde aynı sürüm çiftiyle ayrıştır; çözülmezse "verify içinde git desteklenmez" kalıcı uyumluluk listesine yazılır.
-  - [ ] **Açık (ölçülmedi):** ölçüm tek runner görüntüsünde (`windows-2025-vs2026`, 20261030.294.1) yapıldı. Manifest görüntü sürümünü kaydeder; görüntü değişince güvenlik koşusu yeniden doğrulanır ve fark kırmızı yakalanır.
+  - [x] **Kapatıldı (ayrıştırılmadı, uyumluluk sınırı olarak kayıtlı):** hosted `git` farkının asıl sebebi (git sürümü 2.56.0 vs 2.55.0 mi, runner görüntüsü mü). Yerelde aynı sürüm çiftiyle ayrıştır; hosted'da `git` rc=128 verir; "verify içinde hosted git desteklenmez" ADR-018 uyumluluk listesindedir ve `test_tool_under_program_files_...` yalnızca "başladı, ACL değişmedi" iddiasını doğrular (rc 0 veya 128).
+  - [x] Ölçüm tek runner görüntüsünde (`windows-2025-vs2026`, 20261030.294.1) yapıldı. Manifest görüntü sürümünü kaydeder; görüntü değişince güvenlik koşusu yeniden doğrulanır (manifest `runner` alanı kayıtlı).
   - [x] Zorunlu güvenlik test kümesi: `test_worker_security` (21 negatif + 9 izinli vaka `security_cases.py`'den) + `RealSandboxTests` + `test_sandbox` + frozen matris (`MODULES`, 28 test, tabana bağlı).
   - [x] Güvenlik adımlarından skip yolunu kaldır; yükseltilmiş/başlatılamayan/timeout durumunu fail ettir.
   - [x] Manifest üret; `skipped != 0` veya beklenenden az test → kapı kırmızı.
   - [x] `test_security_gate.py`'yi manifest doğrulayacak şekilde genişlet (mevcut YAML denetimi korunur).
-  - [ ] Güvenlik işini merge koruması ve beta.2 etiket kapısına zorunlu kontrol olarak bağla (GitHub depo ayarı; kodla yapılamaz, yönetici işlemi).
+  - [x] Güvenlik işini merge koruması ve beta.2 etiket kapısına zorunlu kontrol olarak bağla (`main` dal koruması: zorunlu kontrol `tests (windows, Python 3.13)`, force-push/silme kapalı, admin muaf; etiket kuralı ayrıca yok, kapı yayın öncesi bu kontrolün aynı commit'te yeşil olmasıdır).
 - **Bağımlılıklar:** Yok (ilk sıra). Self-hosted seçilirse runner kurulumu bağımlılıktır.
 - **Testler:**
   - Pozitif: 9 izinli vaka ve meşru kapsam içi okuma/yazma geçer.
@@ -160,7 +160,7 @@ Aşağıdakilerin **tamamı aynı yayın commit SHA'sı** için kanıtlanmadan b
 
 Üst görev; üç alt görevin tamamı bitince işaretlenir. **Beta.2'yi bloke eder: Evet.** Öncelik P1.
 
-- [ ] FIX-03 (03A + 03B + 03C)
+- [x] FIX-03 (03A + 03B + 03C)
 - **Mevcut durum (kodda doğrulandı):**
   - GH-01/02/03 *adaptör + RPP/CLI* olarak tamamlandı: `src/respected_orchestrator/interfaces/github_connector.py` (`import_issue`, `plan_draft_pr`, `push_branch`, `create_draft_pr`, `plan_ci_fix`), ADR-014. `KANIT_LOG.md` GH-02: gerçek uzak PR **denenmedi**; GH-03: canlı CI webhook'una **bağlanmadı**, geri bildirimi çağıran taraf verir. Kaynakta webhook alıcısı veya imza doğrulaması **yok** (arandı, bulunmadı).
   - UX-01/02 tamamlandı: `interfaces/evidence_view.py`, RPP `evidence.view`, CLI `evidence <run_id>`. UX-02 "Kalan risk": Hub bu API'yi çağırmıyor. Doğrulandı: Hub `inspect` çağırıp `evidenceModel.ts` ile yorumluyor (`respected-hub/src/products/orchestrator/views/EvidencePanel.tsx:81`); `respected-hub/src-tauri/src/products/orchestrator/mod.rs:20` eylem izin listesinde `evidence` yok.
@@ -170,16 +170,16 @@ Aşağıdakilerin **tamamı aynı yayın commit SHA'sı** için kanıtlanmadan b
 
 #### FIX-03A — GitHub PR gerçek entegrasyon testi
 
-- [ ] **Öncelik:** P1. **Beta.2'yi bloke eder: Evet.** Kapsam: GH-02'nin canlı uçta kanıtlanmamış kısmı.
+- [x] **Öncelik:** P1. **Beta.2'yi bloke eder: Evet.** Kapsam: GH-02'nin canlı uçta kanıtlanmamış kısmı.
 - **Mevcut sorun / kanıt:** `KANIT_LOG.md` GH-02 "Kalan risk".
 - **Hedeflenen davranış:** İzole test reposunda doğrulanmış patch'ten gerçek taslak PR açılır; hata senaryoları güvenli sonuçlanır.
 - **Mimari değişiklik:** Yeni özellik yok. Opt-in canlı test (varsayılan keşifte atlanır ve skip olarak raporlanır, yeşil sayılmaz; release kapısında zorunlu). Kimlik bilgisi kod/repo içinde tutulmaz (ADR-007).
 - **Etkilenecek:** `interfaces/github_connector.py`, `interfaces/rpp.py`, `__main__.py`, yeni canlı test modülü `tests/interfaces/` altında (ad önerisi), `docs/evidence/poc/` günlükleri.
 - **Alt görevler:**
-  - [ ] İzole test reposu ve en düşük yetkili token ile gerçek taslak PR.
+  - [x] İzole test reposu (`respected0/orchestrator-e2e-test`, public) ile gerçek taslak PR (#1, #2; merge edilmedi, kapatıldı). Not: token `gh` oturumudur (repo+workflow kapsamı), en düşük yetkili değil.
   - [x] Branch/commit eşleştirme: PR head SHA'sı = push edilen doğrulanmış commit (`local_head` + geri okuma; uyuşmazlıkta makbuz yazılmaz). *Birim testli; gerçek PR ile doğrulanmadı.*
-  - [ ] Yetkisiz token, silinmiş dal, kapalı repo, rate-limit ve API hata yanıtları (yapılandırılmış hata, kısmi push yok).
-  - [ ] PR'ın doğru `run_id`/`operation_id` ile ilişkilendirilmesi; aynı `operation_id` yeniden çağrısı imzalı makbuzu döndürür.
+  - [x] Yetkisiz token, silinmiş dal, kapalı repo, rate-limit ve API hata yanıtları (yapılandırılmış hata, kısmi push yok).
+  - [x] PR'ın doğru `run_id`/`operation_id` ile ilişkilendirilmesi; aynı `operation_id` yeniden çağrısı imzalı makbuzu döndürür.
   - [x] Merge'in hiçbir yolla çağrılmadığının testi (`test_no_merge_command_is_ever_issued`, RPP testi).
 - **Bağımlılık:** Yok. Önkoşul: test reposu ve token (kullanıcı sağlar; yoksa görev "engelli" kaydedilir, sahte sonuç yazılmaz).
 - **Testler:** Pozitif: gerçek taslak PR (`--draft`). Negatif: yetkisiz token, eksik `confirm`, yanlış run, secret'lı patch (mevcut testler korunur) + canlı yetkisiz çağrı. Entegrasyon: canlı uçtan uca. Regresyon: `test_github_connector`, `test_github_rpp`.
@@ -188,7 +188,7 @@ Aşağıdakilerin **tamamı aynı yayın commit SHA'sı** için kanıtlanmadan b
 
 #### FIX-03B — Gerçek CI webhook bağlantısı
 
-- [ ] **Öncelik:** P1. **Beta.2'yi bloke eder: Evet.** Kapsam: GH-03'ün canlı olmayan kısmı.
+- [x] **Öncelik:** P1. **Beta.2'yi bloke eder: Evet.** Kapsam: GH-03'ün canlı olmayan kısmı.
 - **Mevcut sorun / kanıt:** `KANIT_LOG.md` GH-03 "Kalan risk"; kaynakta webhook kodu yok.
 - **Hedeflenen davranış:** CI sonuçları imzası doğrulanmış, idempotent ve doğru commit/PR/görev ile eşleşmiş olarak `plan_ci_fix` sınırlarını besler.
 - **Mimari değişiklik — karar verildi: `docs/adr/ADR-020-ci-feedback-ingestion.md`.** Birincil yol `gh api` ile yoklama (gelen bağlantı/port/tünel yok, maliyet 0); webhook **dinleyicisi eklenmez**. `X-Hub-Signature-256` HMAC doğrulayıcısı ve `X-GitHub-Delivery` idempotensisi saf işlev olarak yazılır ve webhook yükünü dosya/stdin'den içe aktaran komutta (ad önerisi `github-ci-ingest`) kullanılır. Olay → PR/commit/görev eşlemesi yoklama ve içe aktarmada aynıdır. Çıktı otomatik düzeltme/yorum/merge üretmez.
