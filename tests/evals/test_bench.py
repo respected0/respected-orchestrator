@@ -84,6 +84,10 @@ class BenchTests(unittest.TestCase):
         self.assertEqual((report["status"], len(report["runs"])), ("stopped_quota", 1))
         self.assertTrue(bench.validate(report, release=False))
 
+    def test_the_opencode_free_limit_message_counts_as_a_quota_signal(self):
+        self.assertTrue(bench.QUOTA.search("Error: Free usage limit reached. Connect a provider or subscribe"))
+        self.assertFalse(bench.QUOTA.search("the function returns 429 items after 1000 ms"))
+
     def test_unmeasured_values_are_unknown_never_zero_and_conflicting_usage_is_unknown(self):
         self.assertEqual(bench.parse_claude_usage("not json"), {"tokens": "unknown", "cost": "unknown"})
         usage = {"m": {"inputTokens": 10, "outputTokens": 5}}

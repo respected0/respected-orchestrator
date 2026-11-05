@@ -29,7 +29,7 @@ SCHEMA = "respected.eval.bench.v1"
 UNKNOWN = "unknown"
 ARMS = ("direct", "orchestrated")
 MIN_TASKS, MIN_REPEAT = 10, 3
-QUOTA = re.compile(r"(?i)\b429\b|rate.?limit|quota|billing|insufficient.{0,20}(credit|fund)|payment required")
+QUOTA = re.compile(r"(?i)(http|status|error)\D{0,6}429|too many requests|usage limit (reached|exceeded)|rate.?limit(ed| exceeded)|quota (exceeded|exhausted)|insufficient.{0,20}(credit|fund)|payment required")
 
 
 class BenchError(RuntimeError):
@@ -158,7 +158,7 @@ def run_direct(agent, fixture, repeat, timeout):
         usage = agent.usage(done["stdout"])
         if done["timeout"]:
             return _record(fixture, "direct", repeat, start, "timeout", started, usage)
-        if QUOTA.search(output):
+        if done["returncode"] != 0 and QUOTA.search(output):  # only a failing call can be a quota stop; model text may say anything
             return _record(fixture, "direct", repeat, start, "quota_stop", started, usage)
         if done["returncode"] != 0:  # a crashed agent (port clash, auth) is not evidence about the model
             return _record(fixture, "direct", repeat, start, "agent_error", started, usage, reason=output[-200:])
@@ -177,7 +177,7 @@ def run_orchestrated(agent, fixture, repeat, timeout):
         repo.mkdir()
         start = runner.build_repository(fixture, repo)
         request = dict(project_root=str(repo), task=prompt_for(fixture), worker=agent.worker, kind="write", ownership=["solution.py"],
-                       acceptance=[runner.COMMAND], timeout_seconds=timeout)
+                       acceptance=[runner.COMMAND], timeout_seconds=int(timeout))
         if agent.worker == "custom":
             request["command"] = agent.orchestrated(prompt_for(fixture))
         elif agent.worker in ("openrouter", "opencode"):

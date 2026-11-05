@@ -2780,3 +2780,10 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - `docs/adr/ADR-018-verify-network-isolation.md` -> `9F0AC15F551CDA7A8AD0852A10983F8C074FDF228DF311892A7909FBBD3B59C6`
 - `docs/adr/ADR-019-real-agent-benchmark.md` -> `4B05B480A17316F3546A74F973375F6D1518BC79D918BE2687A8DE4FFCF75F49`
 - `docs/adr/ADR-020-ci-feedback-ingestion.md` -> `E351E1B1D644AB04A98E1860D81862C5B4DBC82E6B1F67B9BCE1CF2BCB1B3C38`
+
+## FIX-02 gerçek koşu denemesi (5 Kasım 2026) — GEÇERSİZ
+
+- Ajan/model: opencode/deepseek-v4.1-flash-free (kullanıcı onaylı, 0 maliyet). Komut: `RESPECTED_TEST_SANDBOX=real RESPECTED_OPENCODE_NETWORK=allow python -m tests.evals.bench run ... --confirm-free`.
+- Sonuç: 60 koşu yazıldı ama OpenCode "Free usage limit reached" verdi; 26 Direct `agent_error`, 27 Orchestrated `worker_failed`, geçerli koşular (ilk ~4 görev): Direct 0/3 geçti, Orchestrated 3/3 (RSP-001) — örnek küçük, kanıt değil. Rapor `fix02_real_opencode_deepseek_INVALID.json`.
+- Ders: kota ifadesi regex'inde kaçtı; "usage limit" eklendi ve testlendi, parti artık ilk işarette durur. Bu hata düzelmeden koşu yeniden yapılmadı (kota bitti).
+- FIX-02 kutusu açık: kota yenilenince yeniden koşulmalı.
