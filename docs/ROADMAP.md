@@ -4,10 +4,6 @@
 
 Ürün beklentisiyle bugünkü durum arasındaki açıklar. Yapılan madde silinir.
 
-## Güncelleme
-
-- Sonraki biçim değişikliğinde yeni sürüm için `migrate.STEPS`'e yeni adım ve `tests/fixtures/releases/<sürüm>/` eklenir; eski adımlar silinmez.
-
 ---
 
 ## İlk sabit sürümü öncesi kontrol edilecek (v.1.0 öncesi)
