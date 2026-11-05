@@ -16,7 +16,7 @@
   {
    "step": "old: Gemini MCP registered",
    "ok": true,
-   "detail": "{'operation_id': 'cli-6631dd513cfb4855', 'op': 'integrations.apply', 'status': 'applied', 'started_at': '2026-11-05T10:32:56.061040+00:00', 'changes': [{'client': 'gemini', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\home\\\\.gemini\\\\settings.json', 'action': 'create', 'before': None, 'after': '{\"args\": [\"-m\", \"respected_orchestrator\", \"mcp\"], \"command\": \"C:\\\\\\\\Users\\"
+   "detail": "{'operation_id': 'cli-ba3fcf01d6ca4eff', 'op': 'integrations.apply', 'status': 'applied', 'started_at': '2026-11-05T10:57:54.652026+00:00', 'changes': [{'client': 'gemini', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\home\\\\.gemini\\\\settings.json', 'action': 'create', 'before': None, 'after': '{\"args\": [\"-m\", \"respected_orchestrator\", \"mcp\"], \"command\": \"C:\\\\\\\\Users\\\\\\\\Furkan\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Programs\\\\\\\\Python\\\\\\\\Python313\\\\\\\\python.exe\"}', 'entry': {'command': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe', 'args': ['-m', 'respected_orchestrator', 'mcp']}, 'file_existed': True}], 'finished_at': '2026-11-05T10:57:54.665487+00:00'}"
   },
   {
    "step": "old: task completed",
@@ -26,17 +26,22 @@
   {
    "step": "old: unstarted task created",
    "ok": true,
-   "detail": "{'run_id': 'run-20261105103302-9929749a39d3', 'status': 'queued'}"
+   "detail": "{'run_id': 'run-20261105105800-3a353d1028d8', 'status': 'queued'}"
   },
   {
    "step": "old: campaign reached a terminal state",
    "ok": true,
-   "detail": "{'campaign_id': 'camp-20261105103302-d20048c0', 'status': 'LANES_NEED_REVIEW', 'result': {'campaign_id': 'camp-20261105103302-d20048c0', 'status': 'LANES_NEED_REVIEW', 'lanes': [{'name': 'lane', 'status': None, 'reason': 'unknown', 'final_run_id': None, 'lane_data_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\data\\\\campaigns\\\\camp-20261105103302-d20048c0\\\\lanes\\\\lane', '"
+   "detail": "{'campaign_id': 'camp-20261105105801-68d6d890', 'status': 'LANES_NEED_REVIEW', 'result': {'campaign_id': 'camp-20261105105801-68d6d890', 'status': 'LANES_NEED_REVIEW', 'lanes': [{'name': 'lane', 'status': None, 'reason': 'unknown', 'final_run_id': None, 'lane_data_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\data\\\\campaigns\\\\camp-20261105105801-68d6d890\\\\lanes\\\\lane', 'changed_files': [], 'attempts': 0, 'implementers': [], 'reviews': [], 'token_usage': None, 'token_usage_status': None, 'unknown_usage_steps': None, 'token_budget': None}], 'completed_at': '2026-11-05T10:58:03.571874+00:00'}, 'events': [{'event': 'lane.started', 'at': '2026-11-05T10:58:02.463989+00:00', 'lane': 'lane', 'run_id': 'run-20261105105802-317306327ea9', 'resumed': False}, {'event': 'lane.completed', 'at': '2026-11-05T10:58:03.571621+00:00', 'lane': 'lane', 'status': None}, {'event': 'campaign.completed', 'at': '2026-11-05T10:58:03.577857+00:00', 'status': 'LANES_NEED_REVIEW'}, {'event': 'master.finished', 'at': '2026-11-05T10:58:03.739577+00:00', 'status': 'COMPLETE', 'returncode': 0}], 'supervisor_alive': False}"
   },
   {
    "step": "old: project started and reached a stable state",
    "ok": true,
-   "detail": "{'project_id': 'proj-20261105103306-72987f37', 'status': 'blocked', 'phases': {'one': {'status': 'failed', 'attempts': [{'stages': [{'campaign_id': 'camp-20261105103306-42c5fba9', 'lanes': ['one'], 'applied': [], 'weighted_tokens': 0, 'unknown_usage_steps': 0}], 'campaign_id': 'camp-20261105103306-42c5fba9', 'started_at': '2026-11-05T10:33:06.919207+00:00', 'engine_snapshot': '0507683652ee', 'weig"
+   "detail": "{'project_id': 'proj-20261105105805-be34416b', 'status': 'blocked', 'phases': {'one': {'status': 'failed', 'attempts': [{'stages': [{'campaign_id': 'camp-20261105105805-4c723404', 'lanes': ['one'], 'applied': [], 'weighted_tokens': 0, 'unknown_usage_steps': 0}], 'campaign_id': 'camp-20261105105805-4c723404', 'started_at': '2026-11-05T10:58:05.945442+00:00', 'engine_snapshot': '0507683652ee', 'weighted_tokens': 0, 'unknown_usage_steps': 0, 'lanes': [{'name': 'one', 'status': None, 'reason': 'unknown', 'changed_files': []}], 'applied': [], 'failed_lanes': ['one'], 'outcome': 'failed', 'note': 'lanes not approved: one: None/unknown', 'finished_at': '2026-11-05T10:58:07.901869+00:00'}, {'stages': [{'campaign_id': 'camp-20261105105807-325e272c', 'lanes': ['one'], 'applied': [], 'weighted_tokens': 0, 'unknown_usage_steps': 0}], 'campaign_id': 'camp-20261105105807-325e272c', 'started_at': '2026-11-05T10:58:07.922574+00:00', 'engine_snapshot': '0507683652ee', 'weighted_tokens': 0, 'unknown_usage_steps': 0, 'lanes': [{'name': 'one', 'status': None, 'reason': 'unknown', 'changed_files': []}], 'applied': [], 'failed_lanes': ['one'], 'outcome': 'failed', 'note': 'lanes not approved: one: None/unknown', 'finished_at': '2026-11-05T10:58:09.800563+00:00'}], 'applied': [], 'applied_lanes': {}}}, 'weighted_tokens': 0, 'unknown_usage_steps': 0, 'created_at': '2026-11-05T10:58:05.451365+00:00', 'deadline_epoch': 1793962685.4513736, 'reason': 'phase one exhausted 2 attempts: lanes not approved: "
+  },
+  {
+   "step": "old: project killed mid-run (second phase in flight)",
+   "ok": true,
+   "detail": "rc=9 {'project_id': 'proj-20261105105810-dcb61054', 'status': 'running', 'phases': {'one': {'status': 'pending', 'attempts': [{'stages': [{'campaign_id': 'camp-20261105105810-4fc6f7de', 'lanes': ['one'], 'applied': [], 'weighted_tokens': 0, 'unknown_usage_steps': 0}], 'campaign_id': 'camp-20261105105810-4fc6f7de', 'started_at': '2026-11-05T10:58:10.948417+00:00', 'engine_snapshot': '0507683652ee', 'weighted_tokens': 0, 'unknown_usage_steps': 0, 'lanes': [{'name': 'one', 'status': 'completed', 'reason': 'completed', 'changed_files': []}], 'applied': [], 'failed_lanes': ['one'], 'outcome': 'failed', 'note': 'lanes not approved: one: completed/completed', 'finished_at': '2026-11-05T10:58:11.295930+00:00'}, {'stages': [{'campaign_id': 'camp-20261105105811-ea35b6ef', 'lanes': ['one'], 'applied': []}], 'campaign_id': 'camp-20261105105811-ea35b6ef', 'started_at': '2026-11-05T10:58:11.315645+00:00', 'engine_snapshot': '0507683652ee'}], 'applied': [], 'applied_lanes': {}}, 'two': {'status': 'pending', 'attempts': [], 'applied': [], 'applied_lanes': {}}}, 'weighted_tokens': 0, 'unknown_usage_steps': 0, 'created_at': '2026-11-05T10:58:10.883884+00:00', 'deadline_epoch': 1793962690.883893, 'alive': False} "
   },
   {
    "step": "new release runs and is a different version",
@@ -46,12 +51,12 @@
   {
    "step": "new: setup migrates in place",
    "ok": true,
-   "detail": "{'status': 'installed', 'product_version': '0.1.0b2', 'app_root': 'C:\\\\Users\\\\Furkan\\\\Documents\\\\respected-ecosystem\\\\respected-orchestrator\\\\dist\\\\RespectedOrchestrator', 'data_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\data'}"
+   "detail": "{'status': 'installed', 'product_version': '0.1.0b2', 'app_root': 'C:\\\\Users\\\\Furkan\\\\Documents\\\\respected-ecosystem\\\\respected-orchestrator\\\\dist\\\\RespectedOrchestrator', 'data_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\data'}"
   },
   {
    "step": "new: Gemini defaults moved to agy, other keys kept",
    "ok": true,
-   "detail": "{'default_worker': 'agy', 'default_worker_profile': '', 'default_reviewer_profile': '', 'default_timeout_seconds': 900, 'default_reviewer_tool': 'agy', 'default_roles': '', 'auto_assign': False, 'auto_pool': '', 'require_independent_review': False, 'mcp_acceptance_allow': '', 'blocked_profiles': 'mimo', 'memory_enabled': False, 'memory_command': '', 'memory_write': False, 'memory_grant_id': '', 's"
+   "detail": "{'default_worker': 'agy', 'default_worker_profile': '', 'default_reviewer_profile': '', 'default_timeout_seconds': 900, 'default_reviewer_tool': 'agy', 'default_roles': '', 'auto_assign': False, 'auto_pool': '', 'require_independent_review': False, 'mcp_acceptance_allow': '', 'blocked_profiles': 'mimo', 'memory_enabled': False, 'memory_command': '', 'memory_write': False, 'memory_grant_id': '', 'schema_version': 2}"
   },
   {
    "step": "new: original settings kept as .bak",
@@ -61,37 +66,37 @@
   {
    "step": "new: repair is idempotent",
    "ok": true,
-   "detail": "{'status': 'repaired', 'product_version': '0.1.0b2', 'app_root': 'C:\\\\Users\\\\Furkan\\\\Documents\\\\respected-ecosystem\\\\respected-orchestrator\\\\dist\\\\RespectedOrchestrator', 'data_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\data'}"
+   "detail": "{'status': 'repaired', 'product_version': '0.1.0b2', 'app_root': 'C:\\\\Users\\\\Furkan\\\\Documents\\\\respected-ecosystem\\\\respected-orchestrator\\\\dist\\\\RespectedOrchestrator', 'data_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\data'}"
   },
   {
    "step": "new: health",
    "ok": true,
-   "detail": "{'status': 'healthy', 'version': '0.1.0b2', 'checks': [{'name': 'data_root_writable', 'ok': True, 'detail': 'data root accepts writes'}, {'name': 'git_available', 'ok': True, 'detail': 'C:\\\\Program Files\\\\Git\\\\mingw64\\\\bin\\\\git.exe'}, {'name': 'worker_cli', 'ok': True, 'detail': 'claude, antigravity, agy, codex, cursor, opencode'}, {'name': 'engine_key', 'ok': True, 'detail': 'engine key present a"
+   "detail": "{'status': 'healthy', 'version': '0.1.0b2', 'checks': [{'name': 'data_root_writable', 'ok': True, 'detail': 'data root accepts writes'}, {'name': 'git_available', 'ok': True, 'detail': 'C:\\\\Program Files\\\\Git\\\\mingw64\\\\bin\\\\git.exe'}, {'name': 'worker_cli', 'ok': True, 'detail': 'claude, antigravity, agy, codex, cursor, opencode'}, {'name': 'engine_key', 'ok': True, 'detail': 'engine key present and readable'}], 'wizard': {'hub_required': False, 'hub_installed': False, 'steps': [], 'sample_task': {'mode': 'read', 'writes': False, 'prompt': 'Repo kökündeki dosyaları listele ve hiçbir şeyi değiştirme.'}, 'data_locations': {'data': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\data'}, 'uninstall': {'keeps_data': True, 'purge_flag': '--purge'}}}"
   },
   {
    "step": "new: old finished task still verifies",
    "ok": true,
-   "detail": "{'run_id': 'run-20261105103256-817f20948564', 'status': 'verified', 'patch': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\data\\\\state\\\\run-20261105103256-817f20948564\\\\worker.patch', 'changed_files': ['f.txt']}"
+   "detail": "{'run_id': 'run-20261105105755-608686553bcd', 'status': 'verified', 'patch': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\data\\\\state\\\\run-20261105105755-608686553bcd\\\\worker.patch', 'changed_files': ['f.txt']}"
   },
   {
    "step": "new: old task inspectable",
    "ok": true,
-   "detail": "{'request': {'run_id': 'run-20261105103256-817f20948564', 'task': 'finished', 'project_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\proj', 'master': 'user', 'worker': 'custom', 'kind': 'write', 'ownership': ['f.txt'], 'forbidden': [], 'acceptance': [['C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe', '-c', \"from pathlib import Path; assert Pat"
+   "detail": "{'request': {'run_id': 'run-20261105105755-608686553bcd', 'task': 'finished', 'project_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\proj', 'master': 'user', 'worker': 'custom', 'kind': 'write', 'ownership': ['f.txt'], 'forbidden': [], 'acceptance': [['C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe', '-c', \"from pathlib import Path; assert Path('f.txt').read_text()=='new\\\\n'\"]], 'command': ['C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe', '-c', \"from pathlib import Path; Path('f.txt').write_text('new\\\\n')\"], 'include_untracked': [], 'context_paths': [], 'timeout_seconds': 60, 'created_at': '2026-11-05T10:57:55.369350+00:00', 'project_fingerprint': '22ba9ace98eca6c4fb3e36a0126e30c0a8917da810a76f13511ec114d5bf9ba0', 'retry_of': None, 'retry_depth': 0, 'worker_profile': '', 'workflow': {'max_corrections': 2, 'deep_review': 'never', 'reviewer_profile': None, 'deep_review_profile': None, 'reviewer_tool': None, 'deep_review_tool': None, 'require_independent_review': False, 'risk_changed_files': 5, 'timeout_seconds': None, 'review_timeout_seconds': None, 'review_retries': 1, 'max_weighted_tokens': None, 'unknown_step_tokens': 50000, 'human_approval': False, 'escalate_profile': None, 'escalate_from_round': 2}, 'role_assignments': {'implementer': {'tool': 'custom', 'profile': '', 'source': 'explicit'}}, 'role_notes': [], 'correction_of': None, 'correction_round': 0, 'inherited_patch_run_id': None, 'inh"
   },
   {
    "step": "new: old task evidence readable",
    "ok": true,
-   "detail": "{'schema_version': 2, 'task_id': 'run-20261105103256-817f20948564', 'delivery': None, 'status': 'completed', 'reason': 'completed', 'patch_summary': {'sha256': '5022e43e851230f58d835d87438e86dcd2f3abcaf048ca658a78a513609fd0bb', 'changed_files': ['f.txt']}, 'checks': [{'command': ['C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe', '-c', \"from pathlib import Path; assert P"
+   "detail": "{'schema_version': 2, 'task_id': 'run-20261105105755-608686553bcd', 'delivery': None, 'status': 'completed', 'reason': 'completed', 'patch_summary': {'sha256': '5022e43e851230f58d835d87438e86dcd2f3abcaf048ca658a78a513609fd0bb', 'changed_files': ['f.txt']}, 'checks': [{'command': ['C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe', '-c', \"from pathlib import Path; assert Path('f.txt').read_text()=='new\\\\n'\"], 'returncode': 0}], 'reviewer': None, 'tests': None, 'risks': [], 'cost': {'known': False, 'tokens': None, 'estimated': 'bilinmiyor'}}"
   },
   {
    "step": "new: old tasks listed",
    "ok": true,
-   "detail": "{'runs': [{'request': {'run_id': 'run-20261105103302-9929749a39d3', 'task': 'unstarted', 'project_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\proj', 'master': 'user', 'worker': 'custom', 'kind': 'write', 'ownership': ['f.txt'], 'forbidden': [], 'acceptance': [['C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe', '-c', \"from pathlib import Path;"
+   "detail": "{'runs': [{'request': {'run_id': 'run-20261105105800-3a353d1028d8', 'task': 'unstarted', 'project_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\proj', 'master': 'user', 'worker': 'custom', 'kind': 'write', 'ownership': ['f.txt'], 'forbidden': [], 'acceptance': [['C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe', '-c', \"from pathlib import Path; assert Path('f.txt').read_text()=='new\\\\n'\"]], 'command': ['C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe', '-c', \"from pathlib import Path; Path('f.txt').write_text('new\\\\n')\"], 'include_untracked': [], 'context_paths': [], 'timeout_seconds': 60, 'created_at': '2026-11-05T10:58:00.907178+00:00', 'project_fingerprint': '22ba9ace98eca6c4fb3e36a0126e30c0a8917da810a76f13511ec114d5bf9ba0', 'retry_of': None, 'retry_depth': 0, 'worker_profile': '', 'workflow': {'max_corrections': 2, 'deep_review': 'never', 'reviewer_profile': None, 'deep_review_profile': None, 'reviewer_tool': None, 'deep_review_tool': None, 'require_independent_review': False, 'risk_changed_files': 5, 'timeout_seconds': None, 'review_timeout_seconds': None, 'review_retries': 1, 'max_weighted_tokens': None, 'unknown_step_tokens': 50000, 'human_approval': False, 'escalate_profile': None, 'escalate_from_round': 2}, 'role_assignments': {'implementer': {'tool': 'custom', 'profile': '', 'source': 'explicit'}}, 'role_notes': [], 'correction_of': None, 'correction_round': 0, 'inherited_patch_run_id':"
   },
   {
    "step": "new: old unstarted task starts",
    "ok": true,
-   "detail": "{'run_id': 'run-20261105103302-9929749a39d3', 'status': 'queued', 'pid': 21748}"
+   "detail": "{'run_id': 'run-20261105105800-3a353d1028d8', 'status': 'queued', 'pid': 26832}"
   },
   {
    "step": "new: old unstarted task runs to a result",
@@ -101,7 +106,7 @@
   {
    "step": "new: old campaign status readable",
    "ok": true,
-   "detail": "{'campaign_id': 'camp-20261105103302-d20048c0', 'status': 'LANES_NEED_REVIEW', 'result': {'campaign_id': 'camp-20261105103302-d20048c0', 'status': 'LANES_NEED_REVIEW', 'lanes': [{'name': 'lane', 'status': None, 'reason': 'unknown', 'final_run_id': None, 'lane_data_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\data\\\\campaigns\\\\camp-20261105103302-d20048c0\\\\lanes\\\\lane', '"
+   "detail": "{'campaign_id': 'camp-20261105105801-68d6d890', 'status': 'LANES_NEED_REVIEW', 'result': {'campaign_id': 'camp-20261105105801-68d6d890', 'status': 'LANES_NEED_REVIEW', 'lanes': [{'name': 'lane', 'status': None, 'reason': 'unknown', 'final_run_id': None, 'lane_data_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\data\\\\campaigns\\\\camp-20261105105801-68d6d890\\\\lanes\\\\lane', 'changed_files': [], 'attempts': 0, 'implementers': [], 'reviews': [], 'token_usage': None, 'token_usage_status': None, 'unknown_usage_steps': None, 'token_budget': None}], 'completed_at': '2026-11-05T10:58:03.571874+00:00'}, 'events': [{'event': 'lane.started', 'at': '2026-11-05T10:58:02.463989+00:00', 'lane': 'lane', 'run_id': 'run-20261105105802-317306327ea9', 'resumed': False}, {'event': 'lane.completed', 'at': '2026-11-05T10:58:03.571621+00:00', 'lane': 'lane', 'status': None}, {'event': 'campaign.completed', 'at': '2026-11-05T10:58:03.577857+00:00', 'status': 'LANES_NEED_REVIEW'}, {'event': 'master.finished', 'at': '2026-11-05T10:58:03.739577+00:00', 'status': 'COMPLETE', 'returncode': 0}], 'supervisor_alive': False, 'goal': 'demo', 'created_at': '2026-11-05T10:58:01.500484+00:00', 'cancel_requested': False, 'workstreams': [{'name': 'lane', 'request': {'project_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\proj', 'task': 'lane', 'worker': 'custom', 'kind': 'write', 'ownership': ['f.txt'], 'command': ['C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Programs\\\\Python"
   },
   {
    "step": "new: old project status readable and unchanged",
@@ -109,9 +114,24 @@
    "detail": "old=blocked new=blocked "
   },
   {
+   "step": "new: interrupted old project is readable and not falsely finished",
+   "ok": true,
+   "detail": "{'project_id': 'proj-20261105105810-dcb61054', 'status': 'running', 'phases': {'one': {'status': 'pending', 'attempts': [{'stages': [{'campaign_id': 'camp-20261105105810-4fc6f7de', 'lanes': ['one'], 'applied': [], 'weighted_tokens': 0, 'unknown_usage_steps': 0}], 'campaign_id': 'camp-20261105105810-4fc6f7de', 'started_at': '2026-11-05T10:58:10.948417+00:00', 'engine_snapshot': '0507683652ee', 'weighted_tokens': 0, 'unknown_usage_steps': 0, 'lanes': [{'name': 'one', 'status': 'completed', 'reason': 'completed', 'changed_files': []}], 'applied': [], 'failed_lanes': ['one'], 'outcome': 'failed', 'note': 'lanes not approved: one: completed/completed', 'finished_at': '2026-11-05T10:58:11.295930+00:00'}, {'stages': [{'campaign_id': 'camp-20261105105811-ea35b6ef', 'lanes': ['one'], 'applied': []}], 'campaign_id': 'camp-20261105105811-ea35b6ef', 'started_at': '2026-11-05T10:58:11.315645+00:00', 'engine_snapshot': '0507683652ee'}], 'applied': [], 'applied_lanes': {}}, 'two': {'status': 'pending', 'attempts': [], 'applied': [], 'applied_lanes': {}}}, 'weighted_tokens': 0, 'unknown_usage_steps': 0, 'created_at': '2026-11-05T10:58:10.883884+00:00', 'deadline_epoch': 1793962690.883893, 'alive': False}"
+  },
+  {
+   "step": "new: interrupted old project resumes, or is refused only for human approval",
+   "ok": true,
+   "detail": "{'error': {'code': 'FAILED', 'message': 'Project resume requires human approval (checkpoint_missing); run project-approve in an interactive terminal', 'hint': 'Ayrıntı için mesaja bakın.'}}"
+  },
+  {
+   "step": "new: interrupted old project can be cancelled",
+   "ok": true,
+   "detail": "{'project_id': 'proj-20261105105810-dcb61054', 'status': 'cancel_requested'}"
+  },
+  {
    "step": "new: Gemini MCP entry removed, user's own entries kept",
    "ok": true,
-   "detail": "{'operation_id': 'cli-9aca7fc423a64908', 'op': 'integrations.apply', 'status': 'applied', 'started_at': '2026-11-05T10:33:19.379170+00:00', 'changes': [{'client': 'gemini', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\home\\\\.gemini\\\\settings.json', 'action': 'remove', 'before': '{\"args\": [\"-m\", \"respected_orchestrator\", \"mcp\"], \"command\": \"C:\\\\\\\\Users\\\\\\\\Furkan\\\\\\\\Ap"
+   "detail": "{'operation_id': 'cli-b68b10aaab024c29', 'op': 'integrations.apply', 'status': 'applied', 'started_at': '2026-11-05T10:58:21.789281+00:00', 'changes': [{'client': 'gemini', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\home\\\\.gemini\\\\settings.json', 'action': 'remove', 'before': '{\"args\": [\"-m\", \"respected_orchestrator\", \"mcp\"], \"command\": \"C:\\\\\\\\Users\\\\\\\\Furkan\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Programs\\\\\\\\Python\\\\\\\\Python313\\\\\\\\python.exe\"}', 'after': None, 'entry': None, 'file_existed': True}], 'finished_at': '2026-11-05T10:58:21.802272+00:00'}"
   },
   {
    "step": "new: a fresh task works end to end",
@@ -126,7 +146,7 @@
   {
    "step": "new: integrations listing has no gemini",
    "ok": true,
-   "detail": "{'clients': [{'client': 'claude-code', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\home\\\\.claude.json', 'detected': True, 'state': 'absent', 'action': 'unchanged', 'reason': ''}, {'client': 'codex', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\home\\\\.codex\\\\config.toml', 'detected': False, 'state': 'absent', 'action': 'unchanged', 'rea"
+   "detail": "{'clients': [{'client': 'claude-code', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\home\\\\.claude.json', 'detected': True, 'state': 'absent', 'action': 'unchanged', 'reason': ''}, {'client': 'codex', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\home\\\\.codex\\\\config.toml', 'detected': False, 'state': 'absent', 'action': 'unchanged', 'reason': ''}, {'client': 'cursor', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\home\\\\.cursor\\\\mcp.json', 'detected': False, 'state': 'absent', 'action': 'unchanged', 'reason': ''}, {'client': 'opencode', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\home\\\\.config\\\\opencode\\\\opencode.json', 'detected': False, 'state': 'absent', 'action': 'unchanged', 'reason': ''}, {'client': 'windsurf', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\home\\\\.codeium\\\\windsurf\\\\mcp_config.json', 'detected': False, 'state': 'absent', 'action': 'unchanged', 'reason': ''}, {'client': 'claude-desktop', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-brlw2o6m\\\\home\\\\AppData\\\\Roaming\\\\Claude\\\\claude_desktop_config.json', 'detected': False, 'state': 'absent', 'action': 'unchanged', 'reason': ''}], 'plan_digest': '9267a02ead2da3216dbf506ab0b1146a295159cccd7e4dcd2f8466b84c1775f2', 'writes_nothing': True}"
   }
  ]
 }

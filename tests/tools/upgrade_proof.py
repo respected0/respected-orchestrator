@@ -25,7 +25,7 @@ TERMINAL = {"completed", "failed", "blocked", "cancelled", "LANES_NEED_REVIEW"}
 
 
 def step(name, ok, detail=""):
-    report.append({"step": name, "ok": bool(ok), "detail": str(detail)[:400]})
+    report.append({"step": name, "ok": bool(ok), "detail": str(detail)[:1500]})
     print(("PASS " if ok else "FAIL ") + name + (f"  [{str(detail)[:160]}]" if not ok else ""), flush=True)
 
 
@@ -150,6 +150,38 @@ def main():
     project_old_status = proj.get("status")
     step("old: project started and reached a stable state", bool(project_old_status), proj or made5 or err)
 
+    # a project the OLD engine was running when the process died (an update stops running processes): the old code
+    # itself writes the in-flight state, then the process is hard-killed inside the second phase.
+    repo4 = git_repo(work / "proj4")
+    crash = f"""
+import os, sys
+from pathlib import Path
+from unittest import mock
+from respected_orchestrator.context import EngineContext
+from respected_orchestrator.workflows import project, campaign
+ctx = EngineContext(Path(r"{work / 'data'}"))
+def lane(n): return {{"name": n, "after": [], "request": {{"project_root": r"{repo4}", "task": n, "worker": "custom", "kind": "write",
+    "ownership": ["f.txt"], "command": [r"{PY}", "-c", "pass"], "acceptance": [[r"{PY}", "-c", "pass"]], "timeout_seconds": 30,
+    "workflow": {{"max_fix_rounds": 0}}}}}}
+def phase(n, after=()): return {{"name": n, "after": list(after), "workstreams": [lane(n)], "auto_apply": False,
+    "verify": [{{"command": [r"{PY}", "-c", "pass"], "cwd": r"{repo4}"}}]}}
+pid, _ = project.create_project(ctx, {{"goal": "crash", "phases": [phase("one"), phase("two", ["one"])]}})
+calls = []
+def runner(c, campaign_id, timeout, cancel):
+    calls.append(campaign_id)
+    if len(calls) == 2:
+        os._exit(9)                       # hard kill while the second phase is running
+    campaign.run_campaign(c, campaign_id, lane_runner=lambda lc, rid: {{"status": "completed"}})
+with mock.patch("respected_orchestrator.engine.runner._stdin_is_tty", return_value=True):
+    project.run_project(ctx, pid, campaign_runner=runner)
+"""
+    done = subprocess.run([PY, "-c", crash], env=old.env, capture_output=True, text=True, cwd=work)
+    found = sorted((work / "data").rglob("proj-*/project.json"))
+    killed_id = found[-1].parent.name if found else None
+    code, st, _ = old.cli("project-status", killed_id) if killed_id else (1, {}, "")
+    step("old: project killed mid-run (second phase in flight)", done.returncode == 9 and st.get("status") not in
+         {"completed", "cancelled", "blocked"}, f"rc={done.returncode} {st} {done.stderr[-300:]}")
+
     # ---- phase 2: THIS checkout on the same data ---------------------------------------------------------------
     code, out, err = new.cli("--version")
     new_version = out.get("raw", "").split()[-1] if isinstance(out, dict) else None
@@ -190,6 +222,16 @@ def main():
         code, out, err = new.cli("project-status", project_id)
         step("new: old project status readable and unchanged", code == 0 and out.get("status") == project_old_status,
              f"old={project_old_status} new={out.get('status') if isinstance(out, dict) else out} {err}")
+
+    code, st2, err = new.cli("project-status", killed_id)
+    step("new: interrupted old project is readable and not falsely finished", code == 0 and st2.get("status") not in {"completed"}, st2 or err)
+    code, out, err = new.cli("project-resume", killed_id)
+    refused = code != 0 and "approval" in json.dumps(out).lower()
+    step("new: interrupted old project resumes, or is refused only for human approval", code == 0 or refused, out or err)
+    if code == 0:
+        time.sleep(3)
+    code, out, err = new.cli("project-cancel", killed_id)
+    step("new: interrupted old project can be cancelled", code == 0, out or err)
 
     code, out, err = new.cli("integrations", "set", "gemini=off")
     gem = (home / ".gemini" / "settings.json").read_text()

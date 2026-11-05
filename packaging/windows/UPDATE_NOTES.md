@@ -8,5 +8,5 @@ beta.2'de neler değişti:
 - GitHub: doğrulanmış sonuçtan taslak PR açma ve CI sonuçlarını yoklama (otomatik birleştirme yok).
 - Projeler ve kampanyalar için doğrulanmış sürdürme noktaları.
 - Gerçek ajanlarla karşılaştırmalı ölçüm altyapısı.
-- Güncelleme verinizi yerinde taşır; beta.1'de oluşturduğunuz görevler, kampanyalar ve projeler okunur ve doğrulanır. Güncelleme yedeklidir: bir şey ters giderse önceki sürüm ve ayarlar kendiliğinden geri yüklenir.
+- Güncelleme verinizi yerinde taşır; beta.1'de oluşturduğunuz görevler, kampanyalar ve projeler okunur ve doğrulanır. beta.1'de yarıda kalmış bir proje varsa güncellemeden sonra kendiliğinden sürmez; `project-approve` ile onaylayıp sürdürürsünüz. Güncelleme yedeklidir: bir şey ters giderse önceki sürüm ve ayarlar kendiliğinden geri yüklenir.
 - Hesap yok, telemetri yok.
