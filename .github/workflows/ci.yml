@@ -56,5 +56,4 @@ jobs:
           path: |
             security-manifest.json
             security-run.log.stdout
-            security-run.log.stderr
           if-no-files-found: error

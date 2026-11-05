@@ -14,9 +14,8 @@ $manifest = Join-Path $work 'security-manifest.json'
 $credential = New-Object System.Management.Automation.PSCredential($name, $password)
 # Start-Process -Credential gives the child the new user's own environment, so pass what the job needs explicitly.
 $inner = "`$env:PATH='$env:PATH'; `$env:GITHUB_SHA='$env:GITHUB_SHA'; `$env:ImageVersion='$env:ImageVersion'; `$env:PYTHONUTF8='1'; " +
-  "& '$python' tests/tools/run_security_ci.py run '$manifest'; exit `$LASTEXITCODE"
+  "& '$python' tests/tools/run_security_ci.py run '$manifest' *> '$out.stdout'; exit `$LASTEXITCODE"
 $process = Start-Process -FilePath powershell.exe -ArgumentList '-NoProfile', '-Command', $inner `
-  -WorkingDirectory $work -Credential $credential -LoadUserProfile -Wait -PassThru `
-  -RedirectStandardOutput "$out.stdout" -RedirectStandardError "$out.stderr"
-Get-Content "$out.stdout", "$out.stderr" -ErrorAction SilentlyContinue
+  -WorkingDirectory $work -Credential $credential -LoadUserProfile -Wait -PassThru
+Get-Content "$out.stdout" -ErrorAction SilentlyContinue
 if ($process.ExitCode -ne 0) { throw "security run failed with exit code $($process.ExitCode)" }
