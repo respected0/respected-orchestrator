@@ -38,7 +38,7 @@ def foreign_modules() -> list[str]:
     contain the same as a clean CI build."""
     from importlib import metadata
     name = lambda raw: re.split(r"[ ;\[<>=!~(]", raw.strip(), maxsplit=1)[0].lower().replace("_", "-")
-    closure, queue = set(), ["respected-orchestrator"]
+    closure, queue = set(), ["respected-orchestrator", "pywin32"]  # pywin32: DPAPI key vault, imported lazily
     while queue:
         current = queue.pop()
         if current in closure:

@@ -128,7 +128,7 @@ Aşağıdakilerin **tamamı aynı yayın commit SHA'sı** için kanıtlanmadan b
 
 ### FIX-02 — Gerçek AI ajanlarıyla karşılaştırmalı benchmark
 
-- [ ] **Öncelik:** P1 — Yüksek. **Beta.2'yi bloke eder: Evet.** (Kod ve plan hazır. **Gerçek koşu denendi, geçersiz** (`fix02_real_opencode_deepseek_INVALID.json`): OpenCode ücretsiz kotası ilk ~4 görevden sonra bitti ("Free usage limit reached"), 26 Direct koşu `agent_error`, 27 Orchestrated `worker_failed`; model başarısı olarak yorumlanamaz. ADR-019 gereği üstüne gidilmedi. Kota yenilenince ya da başka ücretsiz ajanla yeniden koşulmalı; ücretsiz ajan doğrulaması ve parti onayı kullanıcıdan gelir. Çalıştırma: `python -m tests.evals.bench run OUT.json --agent AJAN --model MODEL --confirm-free`.)
+- [x] **Öncelik:** P1 — Yüksek. **Beta.2'yi bloke eder: Evet.** (Tamamlandı: 60 gerçek koşu geçerli, `KANIT_LOG.md` "FIX-02 gerçek koşu — GEÇERLİ". Orchestrated kol %70, Direct %96,7; "orkestratör daha iyi" iddiasını desteklemez. Orchestrated'taki 9 başarısızlık henüz çözümlenmedi.)
 - **Mevcut sorun / kanıt kaynağı (kodda doğrulandı):** `tests/evals/compare.py`: Orchestrated kolda `fixture.fixed_source` doğrudan `solution.py`'ye yazılır; Direct kolda hiçbir şey yapılmaz; `model="golden-fixture"`, `security_violation` sabit `False`, `interventions` sabit 0. `KANIT_LOG.md` EVAL-02/EVAL-03 "Kalan risk": sonuç model başarısı değildir. 20 fixture (`tests/evals/fixtures.py`, sabit SHA'lar `start_shas.json`) ve rapor/regresyon kapısı (`tests/evals/report.py`) var; ADR-002 yeniden üretilebilirliği tanımlar.
 - **Hedeflenen davranış:** Aynı coding agent, aynı model/sürüm/görev/başlangıç commit'i ile Direct ve Orchestrated kolda **gerçekten** çalışır; sonuç tarafsız ve tekrar üretilebilir.
 - **Mimari değişiklikler:**
