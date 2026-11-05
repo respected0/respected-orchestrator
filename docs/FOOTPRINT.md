@@ -2,7 +2,7 @@
 
 Bu belge, Orchestrator'ı kurduğunuzda, AI araçlarına bağladığınızda, görev çalıştırdığınızda ve kaldırdığınızda
 **bilgisayarınızda hangi dosyanın nerede, hangi şartla ve neden oluştuğunu** anlatır. Kod okunarak ve boş bir kullanıcı
-klasöründe doğrulandı (`0.1.0-beta.1`). Kullanım için [USAGE.md](USAGE.md), güvenlik sınırları için
+klasöründe doğrulandı (`0.1.0-beta.2`). Kullanım için [USAGE.md](USAGE.md), güvenlik sınırları için
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## 1. Tek bakışta

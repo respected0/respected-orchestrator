@@ -1,6 +1,6 @@
 # Gizlilik: Respected Orchestrator
 
-Bu metin Orchestrator `0.1.0-beta.1` için geçerlidir (2026-10-24, güncelleme 2026-11-04). Kod okunarak yazıldı; kod değişirse metin de değişir.
+Bu metin Orchestrator `0.1.0-beta.2` için geçerlidir (2026-10-24, güncelleme 2026-11-04). Kod okunarak yazıldı; kod değişirse metin de değişir.
 
 ## Kısaca
 

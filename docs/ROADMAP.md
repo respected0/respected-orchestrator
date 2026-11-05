@@ -6,9 +6,9 @@
 
 ## Güncelleme
 
-- [ ] beta.2 yayınlanırken o sürümün gerçek veri dosyaları `tests/fixtures/releases/0.1.0-beta.2/` altına kopyalanmalı
-  (sözleşme §4). `settings.json` 1→2 taşıma adımı (`STEPS`) hazır ve beta.1 fixture'ı ile sınanıyor; sonraki biçim
-  değişikliğinde yeni sürüm için yeni adım eklenir, eski adımlar silinmez.
+- [ ] Kurucu düzeyinde beta.1 → beta.2 yerinde güncelleme (Inno: yedek, `update-backup`, geri alma) gerçek kurulumla denenmedi; motor düzeyi kanıtlı (`tests/tools/upgrade_proof.py`). Kurucu betiği beta.1'den yalnızca `CloseApplications` ve işçi listesi satırlarında farklı.
+- Sonraki biçim değişikliğinde yeni sürüm için `migrate.STEPS`'e yeni adım ve `tests/fixtures/releases/<sürüm>/` eklenir; eski adımlar silinmez.
+
 ---
 
 ## İlk sabit sürümü öncesi kontrol edilecek (v.1.0 öncesi)

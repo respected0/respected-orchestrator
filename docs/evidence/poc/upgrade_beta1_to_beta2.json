@@ -1,0 +1,132 @@
+{
+ "from": "v0.1.0-beta.1",
+ "from_version": "0.1.0b1",
+ "ok": true,
+ "steps": [
+  {
+   "step": "old release runs",
+   "ok": true,
+   "detail": "{'raw': 'respected-orchestrator 0.1.0b1\\n'}"
+  },
+  {
+   "step": "old: Gemini defaults saved",
+   "ok": true,
+   "detail": "{'default_worker': 'gemini', 'default_reviewer_tool': 'gemini', 'blocked_profiles': 'mimo'}"
+  },
+  {
+   "step": "old: Gemini MCP registered",
+   "ok": true,
+   "detail": "{'operation_id': 'cli-6631dd513cfb4855', 'op': 'integrations.apply', 'status': 'applied', 'started_at': '2026-11-05T10:32:56.061040+00:00', 'changes': [{'client': 'gemini', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\home\\\\.gemini\\\\settings.json', 'action': 'create', 'before': None, 'after': '{\"args\": [\"-m\", \"respected_orchestrator\", \"mcp\"], \"command\": \"C:\\\\\\\\Users\\"
+  },
+  {
+   "step": "old: task completed",
+   "ok": true,
+   "detail": "completed"
+  },
+  {
+   "step": "old: unstarted task created",
+   "ok": true,
+   "detail": "{'run_id': 'run-20261105103302-9929749a39d3', 'status': 'queued'}"
+  },
+  {
+   "step": "old: campaign reached a terminal state",
+   "ok": true,
+   "detail": "{'campaign_id': 'camp-20261105103302-d20048c0', 'status': 'LANES_NEED_REVIEW', 'result': {'campaign_id': 'camp-20261105103302-d20048c0', 'status': 'LANES_NEED_REVIEW', 'lanes': [{'name': 'lane', 'status': None, 'reason': 'unknown', 'final_run_id': None, 'lane_data_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\data\\\\campaigns\\\\camp-20261105103302-d20048c0\\\\lanes\\\\lane', '"
+  },
+  {
+   "step": "old: project started and reached a stable state",
+   "ok": true,
+   "detail": "{'project_id': 'proj-20261105103306-72987f37', 'status': 'blocked', 'phases': {'one': {'status': 'failed', 'attempts': [{'stages': [{'campaign_id': 'camp-20261105103306-42c5fba9', 'lanes': ['one'], 'applied': [], 'weighted_tokens': 0, 'unknown_usage_steps': 0}], 'campaign_id': 'camp-20261105103306-42c5fba9', 'started_at': '2026-11-05T10:33:06.919207+00:00', 'engine_snapshot': '0507683652ee', 'weig"
+  },
+  {
+   "step": "new release runs and is a different version",
+   "ok": true,
+   "detail": "old=0.1.0b1 new=0.1.0b2"
+  },
+  {
+   "step": "new: setup migrates in place",
+   "ok": true,
+   "detail": "{'status': 'installed', 'product_version': '0.1.0b2', 'app_root': 'C:\\\\Users\\\\Furkan\\\\Documents\\\\respected-ecosystem\\\\respected-orchestrator\\\\dist\\\\RespectedOrchestrator', 'data_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\data'}"
+  },
+  {
+   "step": "new: Gemini defaults moved to agy, other keys kept",
+   "ok": true,
+   "detail": "{'default_worker': 'agy', 'default_worker_profile': '', 'default_reviewer_profile': '', 'default_timeout_seconds': 900, 'default_reviewer_tool': 'agy', 'default_roles': '', 'auto_assign': False, 'auto_pool': '', 'require_independent_review': False, 'mcp_acceptance_allow': '', 'blocked_profiles': 'mimo', 'memory_enabled': False, 'memory_command': '', 'memory_write': False, 'memory_grant_id': '', 's"
+  },
+  {
+   "step": "new: original settings kept as .bak",
+   "ok": true,
+   "detail": "['settings.json.v1.bak']"
+  },
+  {
+   "step": "new: repair is idempotent",
+   "ok": true,
+   "detail": "{'status': 'repaired', 'product_version': '0.1.0b2', 'app_root': 'C:\\\\Users\\\\Furkan\\\\Documents\\\\respected-ecosystem\\\\respected-orchestrator\\\\dist\\\\RespectedOrchestrator', 'data_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\data'}"
+  },
+  {
+   "step": "new: health",
+   "ok": true,
+   "detail": "{'status': 'healthy', 'version': '0.1.0b2', 'checks': [{'name': 'data_root_writable', 'ok': True, 'detail': 'data root accepts writes'}, {'name': 'git_available', 'ok': True, 'detail': 'C:\\\\Program Files\\\\Git\\\\mingw64\\\\bin\\\\git.exe'}, {'name': 'worker_cli', 'ok': True, 'detail': 'claude, antigravity, agy, codex, cursor, opencode'}, {'name': 'engine_key', 'ok': True, 'detail': 'engine key present a"
+  },
+  {
+   "step": "new: old finished task still verifies",
+   "ok": true,
+   "detail": "{'run_id': 'run-20261105103256-817f20948564', 'status': 'verified', 'patch': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\data\\\\state\\\\run-20261105103256-817f20948564\\\\worker.patch', 'changed_files': ['f.txt']}"
+  },
+  {
+   "step": "new: old task inspectable",
+   "ok": true,
+   "detail": "{'request': {'run_id': 'run-20261105103256-817f20948564', 'task': 'finished', 'project_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\proj', 'master': 'user', 'worker': 'custom', 'kind': 'write', 'ownership': ['f.txt'], 'forbidden': [], 'acceptance': [['C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe', '-c', \"from pathlib import Path; assert Pat"
+  },
+  {
+   "step": "new: old task evidence readable",
+   "ok": true,
+   "detail": "{'schema_version': 2, 'task_id': 'run-20261105103256-817f20948564', 'delivery': None, 'status': 'completed', 'reason': 'completed', 'patch_summary': {'sha256': '5022e43e851230f58d835d87438e86dcd2f3abcaf048ca658a78a513609fd0bb', 'changed_files': ['f.txt']}, 'checks': [{'command': ['C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe', '-c', \"from pathlib import Path; assert P"
+  },
+  {
+   "step": "new: old tasks listed",
+   "ok": true,
+   "detail": "{'runs': [{'request': {'run_id': 'run-20261105103302-9929749a39d3', 'task': 'unstarted', 'project_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\proj', 'master': 'user', 'worker': 'custom', 'kind': 'write', 'ownership': ['f.txt'], 'forbidden': [], 'acceptance': [['C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe', '-c', \"from pathlib import Path;"
+  },
+  {
+   "step": "new: old unstarted task starts",
+   "ok": true,
+   "detail": "{'run_id': 'run-20261105103302-9929749a39d3', 'status': 'queued', 'pid': 21748}"
+  },
+  {
+   "step": "new: old unstarted task runs to a result",
+   "ok": true,
+   "detail": "completed"
+  },
+  {
+   "step": "new: old campaign status readable",
+   "ok": true,
+   "detail": "{'campaign_id': 'camp-20261105103302-d20048c0', 'status': 'LANES_NEED_REVIEW', 'result': {'campaign_id': 'camp-20261105103302-d20048c0', 'status': 'LANES_NEED_REVIEW', 'lanes': [{'name': 'lane', 'status': None, 'reason': 'unknown', 'final_run_id': None, 'lane_data_root': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\data\\\\campaigns\\\\camp-20261105103302-d20048c0\\\\lanes\\\\lane', '"
+  },
+  {
+   "step": "new: old project status readable and unchanged",
+   "ok": true,
+   "detail": "old=blocked new=blocked "
+  },
+  {
+   "step": "new: Gemini MCP entry removed, user's own entries kept",
+   "ok": true,
+   "detail": "{'operation_id': 'cli-9aca7fc423a64908', 'op': 'integrations.apply', 'status': 'applied', 'started_at': '2026-11-05T10:33:19.379170+00:00', 'changes': [{'client': 'gemini', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\home\\\\.gemini\\\\settings.json', 'action': 'remove', 'before': '{\"args\": [\"-m\", \"respected_orchestrator\", \"mcp\"], \"command\": \"C:\\\\\\\\Users\\\\\\\\Furkan\\\\\\\\Ap"
+  },
+  {
+   "step": "new: a fresh task works end to end",
+   "ok": true,
+   "detail": "completed"
+  },
+  {
+   "step": "new: uninstall leaves no Respected entry in AI tools",
+   "ok": true,
+   "detail": "{'status': 'removed', 'purged': False, 'conflicts': []}"
+  },
+  {
+   "step": "new: integrations listing has no gemini",
+   "ok": true,
+   "detail": "{'clients': [{'client': 'claude-code', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\home\\\\.claude.json', 'detected': True, 'state': 'absent', 'action': 'unchanged', 'reason': ''}, {'client': 'codex', 'config': 'C:\\\\Users\\\\Furkan\\\\AppData\\\\Local\\\\Temp\\\\upgrade-proof-nb2vgmvf\\\\home\\\\.codex\\\\config.toml', 'detected': False, 'state': 'absent', 'action': 'unchanged', 'rea"
+  }
+ ]
+}
