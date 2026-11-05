@@ -17,8 +17,6 @@ $inner = "Set-Location '$work'; `$env:PATH='$env:PATH'; `$env:GITHUB_SHA='$env:G
   "& '$python' tests/tools/run_security_ci.py run '$manifest' *> '$out.stdout'; exit `$LASTEXITCODE"
 $script = Join-Path $work 'security-inner.ps1'
 Set-Content -Path $script -Value $inner -Encoding UTF8
-$process = Start-Process -FilePath powershell.exe -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $script `
-
-  -Credential $credential -Wait -PassThru
+$process = Start-Process -FilePath powershell.exe -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $script -Credential $credential -Wait -PassThru
 Get-Content "$out.stdout" -ErrorAction SilentlyContinue
 if ($process.ExitCode -ne 0) { throw "security run failed with exit code $($process.ExitCode)" }
