@@ -6,7 +6,7 @@
 
 ## Güncelleme
 
-- [ ] Kurucu düzeyinde beta.1 → beta.2 yerinde güncelleme (Inno: yedek, `update-backup`, geri alma) gerçek kurulumla denenmedi; motor düzeyi kanıtlı (`tests/tools/upgrade_proof.py`). Kurucu betiği beta.1'den yalnızca `CloseApplications` ve işçi listesi satırlarında farklı.
+- [ ] Kurucunun geri alma yolu (beta.2 `repair` başarısız olunca beta.1'in geri gelmesi) temiz bir senaryoyla kanıtlanmadı; mutlu yol kanıtlı (`KANIT_LOG.md` "kurucu düzeyi güncelleme").
 - Sonraki biçim değişikliğinde yeni sürüm için `migrate.STEPS`'e yeni adım ve `tests/fixtures/releases/<sürüm>/` eklenir; eski adımlar silinmez.
 
 ---
