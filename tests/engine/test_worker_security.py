@@ -16,7 +16,7 @@ import tempfile
 import unittest
 
 from respected_orchestrator.context import EngineContext
-from respected_orchestrator.engine import appcontainer, lanes
+from respected_orchestrator.engine import lanes
 from respected_orchestrator.engine.evidence import key_path
 from respected_orchestrator.engine.processes import execute
 from respected_orchestrator.engine.worker_policy import default_policy
@@ -97,9 +97,6 @@ class WorkerSecurityMatrixTest(unittest.TestCase):
         return dataclasses.replace(policy, secrets=("MY_SENTINEL_SECRET",))
 
     def probe(self, policy):
-        # Elevated sessions are refused by design; only an explicit opt-in may skip, so the matrix never goes quietly unrun.
-        if policy is not None and os.environ.get("ORCH_ALLOW_ELEVATED_SKIP") == "1" and appcontainer._is_elevated():
-            self.skipTest("elevated session; the matrix runs in the de-elevated CI step")
         command = [
             sys.executable, "-c", PROBE,
             str(self.data), str(self.key), str(self.outside),

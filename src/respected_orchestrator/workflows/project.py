@@ -467,13 +467,13 @@ def _default_campaign_runner(ctx, campaign_id, timeout, cancel, engine_source):
 
 def _verify(ctx, phase, cancel):
     for check in phase["verify"]:
-        try:
-            command = sandbox.wrap(ctx.data_root, key_path(ctx), check["command"])  # applied worker code: no engine authority
+        try:  # applied worker code: AppContainer, network denied unless the operator listed this phase (ADR-018)
+            done, network = sandbox.run_check(ctx, check["command"], Path(check["cwd"]), check["timeout_seconds"], task_id=phase["name"],
+                                              scratch=ctx.data_root / "verify-tmp", cancel_path=cancel)
         except sandbox.SandboxError as error:
             return f"verify refused, sandbox unavailable: {str(error)[:200]}"
-        done = execute(command, Path(check["cwd"]), check["timeout_seconds"], cancel_path=cancel, scrub_env=True)
         if done.returncode:
-            return f"verify {check['command'][:3]} exit {done.returncode}: {(done.stdout + done.stderr)[-1500:]}"
+            return f"verify {check['command'][:3]} exit {done.returncode} (network: {network}): {(done.stdout + done.stderr)[-1500:]}"
     return None
 
 

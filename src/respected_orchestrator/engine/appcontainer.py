@@ -205,7 +205,14 @@ def _grant_toolchain(path):
 def _inside_toolchain(path):
     prefix = Path(sys.prefix).resolve()
     path = Path(path).resolve()
-    return path == prefix or path.is_relative_to(prefix)
+    return path == prefix or path.is_relative_to(prefix) or _shared_readable(path)
+
+
+def _shared_readable(path):
+    """True when ALL APPLICATION PACKAGES can already read the path (Program Files tools): no ACL change, and none possible without admin."""
+    check = winproc.run([winproc.system_tool("icacls"), str(path), "/findsid", f"*{_SHARED_TOOLCHAIN}"],
+                        capture_output=True, text=True, encoding="utf-8", errors="replace")
+    return "SID Found:" in check.stdout
 
 
 def _pipe():

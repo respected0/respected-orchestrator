@@ -133,9 +133,6 @@ def main(argv=None):
             if callable(getattr(stream, "reconfigure", None)):
                 stream.reconfigure(encoding="utf-8", errors="replace")
     argv = list(sys.argv[1:] if argv is None else argv)
-    if argv[:1] == ["_sandbox-exec"]:  # restricted-token launcher of the packaged build: touches no data root
-        from .engine import sandbox_exec
-        return sandbox_exec.main(argv[1:])
     if argv[:1] == ["_openrouter"]:  # read-only provider worker: touches no data root beyond the key vault
         from .engine import openrouter_worker
         return openrouter_worker.main(argv[1:])
@@ -150,7 +147,7 @@ def main(argv=None):
     from .workflows import roles
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=default_data_root(), help=argparse.SUPPRESS)
-    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", "provider-key", "provider-models", *SHARED, "_selfcheck"])
+    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", "github-ci-ingest", "github-ci-poll", "provider-key", "provider-models", *SHARED, "_selfcheck"])
     parser.add_argument("args", nargs=argparse.REMAINDER)
     try:
         args = parser.parse_args(argv)
@@ -204,7 +201,9 @@ def main(argv=None):
             request = {"rpp": rpp.RPP, "op": {"github-import-issue": "github.issue_import",
                                               "github-pr-plan": "github.pr_plan",
                                               "github-pr-create": "github.pr_create",
-                                              "github-ci-plan": "github.ci_plan"}[args.command],
+                                              "github-ci-plan": "github.ci_plan",
+                                              "github-ci-ingest": "github.ci_ingest",
+                                              "github-ci-poll": "github.ci_poll"}[args.command],
                        "payload": _stdin_json()}
             if request["payload"].get("operation_id"):
                 request["operation_id"] = request["payload"]["operation_id"]

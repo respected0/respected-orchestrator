@@ -39,14 +39,14 @@ kaydedilir. Motorun kendi sınırı, worker'ı Windows AppContainer içinde baş
 | B2 | Motor → worker CLI süreci | **Windows'ta AppContainer (SEC-03/SEC-04, test):** varsayılan olarak yalnızca görevin çalışma ağacı ve geçici kökü yazılabilir, ağ kapalıdır, veri kökü ve kullanıcı profili okunamaz; kum havuzu kurulamazsa worker başlamaz. Codex ayrıca kendi `workspace-write` kum havuzunu ister; Claude/Cursor kendi izin modellerini korur; `custom` keyfi komuttur ve aynı AppContainer politikasından geçer. Windows dışında worker başlatılmaz |
 | B2a | Cursor çalışanı → ağ/kimlik bilgisi | Ağ yalnızca operatör anahtarı `RESPECTED_CURSOR_NETWORK=allow` ile açılır (modelden kontrol edilemez); yalnızca `auth.json` izole HOME'a kopyalanır, kanıta/log'a yazılmaz, çalışma sonunda silinir. Açık risk: açık ağda çalışan süreç kopyalanan token'ı kullanabilir/sızdırabilir (OpenCode ile aynı sınıf). Cursor AppContainer içinde çalışır (boru shim'i, ARCHITECTURE.md, CUR-01); shim yalnız alt süreç borularının adını `LOCAL\` altına alır, izin sınırını genişletmez |
 | B3 | Worker çıktısı → kapsam ve yama doğrulaması | Çalışma ağacındaki değişiklikler sonradan denetlenir; ağaç dışına yazım AppContainer tarafından işletim sistemi düzeyinde engellenir (B2), yama denetimi buna ek bir katmandır |
-| B4 | Worker'ın yazdığı kabul/verify kodu → motor yürütmesi | Windows'ta kısıtlı belirteç; veri kökünün kanıt/onay/gizli alanları kapalı |
+| B4 | Worker'ın yazdığı kabul/verify kodu → motor yürütmesi | Windows'ta worker ile aynı AppContainer yolu, ağ varsayılan kapalı (ADR-018, FIX-04); kurulamazsa verify çalışmaz |
 | B5 | Motor → gerçek proje ağacı (`apply`) | Yalnızca doğrulanmış, taze, imzalı ve gerekliyse insan onaylı yama; `git apply --check` sonrası yazım |
 | B6 | Motor → MCP/Hub | MCP, motorun kendi onaylarını üretemez; `maf-approve` MCP'de yoktur |
 | B7 | Motor → Brain | Kod bağımlılığı yok; yalnızca `rpp` ve izinli `memory.write` |
 | B8 | Motor → alt süreçler | Windows job object; timeout/iptal/supervisor çöküşünde ağaç öldürülür |
 
-**Kritik ayrım:** B4 (doğrulama kum havuzu: kısıtlı belirteç) ile B2 (worker yürütme sınırı: AppContainer) aynı mekanizma
-değildir. Motorun kendi çalıştırdığı kabul/verify kodu kısıtlı belirteçle, coding ajanının kendisi AppContainer ile çalışır.
+**Not:** B4 ve B2 artık aynı mekanizmayı kullanır (AppContainer, `engine/sandbox.run_check` → `worker_policy` → `appcontainer.spawn`);
+kısıtlı belirteç yolu kaldırıldı. Fark yalnızca politikadadır: verify yalnızca çalışma ağacına yazar, ağ kapalıdır.
 
 ## 4. Yetki matrisi
 
@@ -75,7 +75,7 @@ ilgili dosyada; **Kısmi** = bazı koşullarda korur; **Yok** = bugün motor eng
 | S-02 | Worker profil altındaki kimlik bilgilerini okur | Worker / sağlayıcı | B2 AppContainer | Okuma reddi | **Engellenir (test, Windows)**; `read_outside_file` ve `.engine-key` okuma vakaları. İstisna: OpenCode/Cursor için kasıtlı kopyalanan `auth.json` | `test_worker_security.py`; SEC-03/04; B2a |
 | S-03 | Worker proje içindeki `.env` dosyasını okur | Worker / operatör | Proje hijyeni | Sır yoksa sorun yok; varsa okuma reddi | **Yok**; dosya worktree'deyse okunabilir (worktree worker'a bilerek açılır), `forbidden` yolları yalnızca yamayı denetler | SEC-03; operatör kontrol listesi |
 | S-04 | Worker onaysız adrese HTTP/TCP çıkar | Worker / sağlayıcı | B2 AppContainer ağ politikası | Varsayılan kapalı | **Engellenir (test, Windows)**; `network_egress` vakası. Operatör anahtarıyla açılan OpenCode/Cursor için ağ açıktır (B2a) | `test_worker_security.py`; SEC-03/04 |
-| S-05 | Kabul kodu `.engine-key` okur (düz, `\\?\`, junction, hardlink) | Kabul kodu | B4 kısıtlı belirteç | Erişim reddi | **Engellenir (test)** | `tests/engine/test_sandbox.py` |
+| S-05 | Kabul kodu `.engine-key` okur (düz, `\\?\`, junction, hardlink) | Kabul kodu | B4 AppContainer | Erişim reddi | **Engellenir (test)** | `tests/engine/test_sandbox.py` |
 | S-06 | Kabul kodu `settings.json` veya imzalı kanıtı okur/değiştirir/siler | Kabul kodu | B4 | Erişim ve yazma reddi | **Engellenir (test)** | `tests/engine/test_sandbox.py` |
 | S-07 | Kabul kodu sahte `maf-approval.json` yazar | Kabul kodu | B4 + B5 | Yazma reddi; onay yok sayılır | **Engellenir (test)** | `test_sandbox.py`; `test_maf_coding.py` |
 | S-08 | Kabul kodu DENY ACE'yi kaldırır veya anahtara kendini yetkilendirir | Kabul kodu | B4 ACL | Red; OWNER RIGHTS ile WRITE_DAC sınırlı | **Engellenir (test)** | `test_sandbox.py` (negatif kontrolle) |
@@ -94,13 +94,13 @@ ilgili dosyada; **Kısmi** = bazı koşullarda korur; **Yok** = bugün motor eng
 | S-21 | MCP istemcisi `custom` worker, `apply_root` veya `engine_source` ister | MCP istemcisi | B1 MCP izin listesi | Varsayılan red | **Engellenir (test)** | `tests/interfaces/test_mcp_server.py` |
 | S-22 | MCP istemcisi yanlış/eski `patch_sha256` ile `apply` çağırır | MCP istemcisi | B5 + B6 | Red | **Engellenir (test)** | `tests/interfaces/test_mcp_server.py` |
 | S-23 | Worker, worktree dışına işaret eden symlink içeren yama üretir | Worker | B3/B5 yama güvenliği | Red | **Engellenir (test)**; `120000`/`160000` indeks modu güvensiz sayılır, kapsam ve export reddeder, apply çakışma döner | `test_worker_security.py::test_symlink_mode_patch_is_rejected_before_export_or_apply`; `test_frozen_security.py::test_frozen_engine_rejects_a_symlink_mode_patch_staged_without_symlink_privilege`; `engine/lanes.py` |
-| S-24 | Kabul kodu ağ üzerinden dışarı veri sızdırır | Kabul kodu | B4 ağ | Varsayılan kapalı | **Yok**; kısıtlı belirteç ağı kapatmaz. Karar: verify AppContainer'da ağ kapalı çalışacak (ADR-018, ölçüldü); **uygulama FIX-04, henüz yapılmadı** | `sandbox.py` limit notu; SEC-03; `docs/evidence/poc/fix04_results.json` (ölçüm, düzeltme değil) |
+| S-24 | Kabul kodu ağ üzerinden dışarı veri sızdırır | Kabul kodu | B4 ağ | Varsayılan kapalı | **Engellenir (test, Windows)**; verify AppContainer'da ağ kapalı: IP, DNS, loopback ve alt süreç çıkışı reddedilir. Ağ istisnası yalnızca operatörün `RESPECTED_VERIFY_NETWORK_TASKS` ile adını verdiği görevde, hep-ya-hiç, kanıtta `network: allow`. AppContainer kurulamazsa verify çalışmaz | `tests/engine/test_sandbox.py` (ADR-018, FIX-04) |
 | S-25 | Hub/MCP üzerinden insan onayı sahte bir düğmeyle verilir | Hub/MCP | B5/B6 | Yalnızca gerçek TTY oturumu | **Engellenir (test)** | `test_maf_coding.py`; MCP araç listesinde `maf-approve` yok |
 ## 6. Windows kullanıcı ve yönetici kararı
 
 | Çalışma bağlamı | Karar | Gerekçe | Bugünkü uygulama |
 |---|---|---|---|
-| Windows normal kullanıcı (yükseltilmemiş) | **Desteklenir** | Kısıtlı belirteç, kullanıcının gruplarını korur; veri kökü SID'i kanıt/onay/sırrı kapatır | ACL + `sandbox_exec`; testli |
+| Windows normal kullanıcı (yükseltilmemiş) | **Desteklenir** | AppContainer yalnızca çalışma ağacı, araç dizinleri ve geçici alanı görür; kanıt/onay/sır erişilemez, ağ kapalı | `sandbox.run_check`; testli |
 | Windows yönetici (yükseltilmiş) | **Desteklenmez** | Yönetici belirteci ve ayrıcalıkları bu modelin dışında; kısıtlı belirteç yine de yönetici gruplarını taşır | **Aktif ret:** AppContainer başlatıcısı yükseltilmiş belirteci görürse hiçbir worker başlatmaz; `unsupported_elevated` (`tests/engine/test_worker_policy.py`) |
 | Windows admin olmayan ama UAC ile yükseltilmiş | Desteklenmez | Aynı gerekçe | **Aktif ret:** oturum doğrulanamıyor veya yükseltilmişse başlangıç fail-closed durur; sessiz sandbox'sız geri dönüş yok |
 | macOS/Linux | **Desteklenmez (beta dışı)** | POSIX'te anahtar için işletim sistemi kum havuzu yok; `RESPECTED_ORCH_SANDBOX=off` tek yol | ARCHITECTURE §10; platform doğrulaması yok |
@@ -116,7 +116,7 @@ Aşağıdaki tablo, ürünün güvenlik iddialarını tek yerde toplar. "Yok" sa
 |---|---|---|
 | `apply` doğrulanmamış, bayat veya kurcalanmış sonucu uygulamaz | **Var** | HMAC, `patch_sha256`, tazelik, `git apply --check`; `test_runner.py` |
 | İnsan onayı ajan tarafından üretilemez | **Var (kimlik doğrulama değil)** | `RESPECTED_ORCH_CHILD`, TTY, patch bağı; `test_maf_coding.py` |
-| Doğrulama kodu motorun sırlarını okuyamaz | **Var (Windows)** | Kısıtlı belirteç + ACL; `test_sandbox.py` |
+| Doğrulama kodu motorun sırlarını okuyamaz ve ağa çıkamaz | **Var (Windows)** | AppContainer, ağ kapalı; `test_sandbox.py` |
 | Doğrulama kodu ağa çıkamaz | **Yok** | Kısıtlı belirteç ağı kapatmaz; SEC-03 |
 | Worker işletim sistemi düzeyinde kapatılmıştır | **Var (Windows)** | AppContainer; `test_worker_security.py`, `test_worker_policy.py`; Windows dışında worker başlamaz |
 | Worker ağı varsayılan olarak kapalıdır | **Var (Windows, worker)** | AppContainer `internetClient` vermez; operatör anahtarıyla açılan OpenCode/Cursor hariç. Doğrulama (kabul) kodu için **Yok** |
@@ -149,7 +149,7 @@ P-04 (worktree içindeki `.env`) bilinçli olarak açık kalan sınırdır (S-03
 
 | Kanıt | Kapsadığı senaryolar |
 |---|---|
-| `tests/engine/test_sandbox.py` | S-05, S-06, S-07, S-08, S-09; negatif kontrol aynı saldırıların kum havuzu olmadan başarılı olduğunu gösterir |
+| `tests/engine/test_sandbox.py` | S-24 ve verify sınırı: ağ çıkışı, anahtar/veri kökü erişimi, fail-closed; negatif kontrol aynı betiğin sınırsız bağlandığını gösterir. S-05..S-09 worker matrisiyle (`test_worker_security.py`) aynı AppContainer yolunda ölçülür |
 | `tests/engine/security_cases.py` + `test_worker_security.py` | 21 negatif (19 worker içi + 2 dış) ve 9 izinli vaka; gerçek AppContainer, sandbox'sız kırmızı-takım kontrolü, özyinelemeli MCP ve symlink yaması |
 | `tests/packaging/test_frozen_security.py` | Aynı worker matrisi, symlink yaması ve özyinelemeli MCP reddi paketlenmiş exe üzerinde |
 | `tests/engine/test_security_gate.py` | Kayıt küçülemez; 13 zorunlu kategori ve ayrı worker/verify/frozen CI adımları zorunlu; `continue-on-error` yok |
@@ -179,11 +179,8 @@ Kanıt, test adı + çalışma tarihiyle birlikte sunulur; test adı belge cüml
 - Her yeni güvenlik iddiası bu belgeye bir satır ekler; testi yoksa "Kısmi" veya "Yok" yazılır.
 - `sandbox.py`, `runner.py` (`apply`, `approve_maf_task`), `processes.py` veya MCP izin listesi değişirse bu belge
   aynı değişiklikte güncellenir.
-- SEC-02/SEC-03 tamamlandığında B2 satırı ve S-01..S-04 yeniden sınıflandırıldı (4 Kasım 2026); S-24 (kabul kodunun ağı)
-  ve S-03 (worktree içindeki `.env`) hâlâ "Yok"tur ve öyle kalmalıdır. S-24 için çözüm yolu 5 Kasım 2026'da
-  ölçülerek seçildi (ADR-018: verify'ı ağ kapalı AppContainer'da koşturmak); S-24 yalnızca FIX-04 testleri geçtiğinde
-  yeniden sınıflandırılır, karar tek başına satırı değiştirmez.
-- **CI sınırı (5 Kasım 2026 denetimi):** GitHub'ın hosted Windows runner'ı yükseltilmiş çalıştığı için AppContainer
-  vakaları orada `ORCH_ALLOW_ELEVATED_SKIP=1` ile atlanır (S-19 reddi yüzünden); yani yukarıdaki "ayrı zorunlu CI
-  adımları" bugün hosted'da AppContainer sınırını ölçmez, kanıt yükseltilmemiş yerel koşudan gelir. Çözüm yolu
-  ölçülerek seçildi (ADR-017: iş içinde geçici standart yerel kullanıcı); uygulama FIX-01, henüz yapılmadı.
+- SEC-02/SEC-03 tamamlandığında B2 satırı ve S-01..S-04 yeniden sınıflandırıldı (4 Kasım 2026); S-03 (worktree içindeki `.env`) hâlâ "Yok"tur ve öyle kalmalıdır. S-24 (kabul kodunun ağı)
+  FIX-04 testleri geçtiğinde "Engellenir" olarak yeniden sınıflandırıldı (ADR-018, 5 Kasım 2026).
+- **CI sınırı (FIX-01):** hosted runner yükseltilmiş olduğundan güvenlik kümesi iş içinde oluşturulan geçici standart kullanıcıyla koşar
+  (`tests/tools/run_security_as_user.ps1`), sıfır skip ister ve commit SHA'lı manifest üretir (`run_security_ci.py`). Kapı mantığı birim
+  testlidir; **hosted koşunun kendisi bu depoda henüz bir GitHub koşusuyla kanıtlanmadı** (ROADMAP FIX-01 açık madde).

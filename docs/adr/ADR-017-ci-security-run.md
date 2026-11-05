@@ -2,7 +2,7 @@
 
 ## Durum
 
-Kabul edildi (5 Kasım 2026). Uygulama FIX-01 ile yapılır; karar GitHub Actions üzerinde yapılan gerçek ölçüme dayanır.
+Kabul edildi (5 Kasım 2026). Kod FIX-01 ile yazıldı (5 Kasım 2026); hosted koşusu henüz bir GitHub Actions çalıştırmasıyla doğrulanmadı. Karar GitHub Actions üzerinde yapılan gerçek ölçüme dayanır.
 
 ## Bağlam
 

@@ -70,6 +70,7 @@ def compare(fixtures=None, repeat=3, timeout=20.0):
     ]
     return {
         "schema": "respected.eval.compare.v1",
+        "kind": "synthetic",  # harness consistency only (ADR-019); real-agent results live in bench.py
         "metadata": metadata(),
         "repeat": repeat,
         "timeout": timeout,

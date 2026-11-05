@@ -7,17 +7,24 @@
 ## Beta.2 Öncesi Kalan Kritik Düzeltmeler
 
 Bu bölümdeki dört düzeltme (FIX-01..FIX-04; FIX-03 üç alt görev) **beta.2 yayın kapısına dahildir**; biri bile açıksa beta.2
-yayınlanmaz. Hiçbiri henüz uygulanmadı; kutular yalnızca "Tamamlanma kanıtı" üretildiğinde işaretlenir. Mevcut GH-01/02/03,
+yayınlanmaz. Kod ve yerel testler 5 Kasım 2026'da yazıldı (aşağıdaki durum notu); kutular yalnızca "Tamamlanma kanıtı" üretildiğinde işaretlenir. Mevcut GH-01/02/03,
 UX-01/02/03, EVAL-02/03 ve SEC-01..04 işleri tamamlandı sayılır ve yeniden açılmaz; aşağıdaki görevler onların **bıraktığı
 açıkları** kapatır (kaynak: ilgili `KANIT_LOG.md` "Kalan risk" satırları). Mevcut görev kimlikleri yeniden numaralanmaz.
 Dosya yolları depo kökünden verilir; `(Hub)` = `respected-hub` deposu.
 
-**Ölçümler yapıldı, düzeltmeler yapılmadı (5 Kasım 2026).** Kararlar ADR-017..020'dedir; ham kanıt
-`docs/evidence/poc/` altındadır (`fix01_hosted_probe.log`, `fix01_hosted_followup.log`, `fix01_deelevate_probe.py`,
-`fix04_verify_appcontainer_probe.py`, `fix04_results.json`, `fix04_toolchain_probe.py`, `fix04_toolchain_results.json`).
-Bu ölçümler bir seçeneğin çalıştığını ya da çalışmadığını gösterir; hiçbiri bir güvenlik açığını kapatmış ya da bir
-görevi tamamlamış sayılmaz. Bugünkü kod ve CI aynen eskisi gibidir: hosted CI AppContainer vakalarını atlar,
-verify hâlâ ağa çıkabilir (S-24 "Yok"), Hub `evidence.view` kullanmaz, gerçek PR/canlı CI denenmemiştir.
+**Durum (5 Kasım 2026, uygulama sonrası).** Kararlar ADR-017..020'dedir; ham kanıt `docs/evidence/poc/` altındadır.
+Yerelde (yükseltilmemiş Windows 11) kanıtlananlar ve hâlâ dış girdi bekleyenler:
+
+| Görev | Yerelde yapıldı ve test edildi | Hâlâ açık (neden) |
+| --- | --- | --- |
+| FIX-01 | Skip yolu kaldırıldı; güvenlik kümesi sıfır skip + SHA'lı manifest + kapı (`tests/tools/run_security_ci.py`, sahte manifestlerle birim testli); geçici standart kullanıcı betiği ve `ci.yml` yazıldı | Hosted GitHub koşusu yapılmadı (push/Actions gerekir); merge koruması/etiket kapısı repo ayarıdır; hosted `git` farkı ve runner görüntüsü kayması |
+| FIX-04 | Verify ve kabul AppContainer'da, ağ kapalı, fail-closed; `sandbox_exec` kaldırıldı; S-24 yeniden sınıflandırıldı; araç uyumu ölçüldü | Hosted manifest kanıtı FIX-01'e bağlı |
+| FIX-02 | Gerçek ajan yürütücüsü, iki kol, sızıntı denetimi, 60 koşuluk plan (`fix02_plan.json`), şema ve kapı (`tests/evals/bench.py`) stub ajanla uçtan uca testli | Gerçek ajanla 60 koşu: ADR-019 gereği ücretsiz ajan doğrulaması ve parti öncesi kullanıcı onayı |
+| FIX-03A | `pr_create` PR'ı geri okur (açık taslak, doğrulanmış head commit), makbuza `pr_number`/`head_sha` yazar | Gerçek taslak PR: test deposu ve en düşük yetkili token (kullanıcı sağlar) |
+| FIX-03B | HMAC doğrulayıcı, içe aktarma, `gh api` yoklaması, idempotensi, commit/PR eşlemesi, sırasız olay (`github-ci-ingest`, `github-ci-poll`) testli | Gerçek test deposundaki check-run ile doğrulama (03A'ya bağlı) |
+| FIX-03C | **Tamamlandı**: Hub `evidence` (salt-okunur) ile gösterir; stale/failed/tampered/şema uyuşmazlığı; sızıntı; onay yok; gerçek çıktı Hub modelinden geçirildi | PR/CI satırı gerçek PR olmadan yalnızca makbuz verisiyle gösterildi |
+
+Bu tablo bir güvenlik açığını kapatmış ya da bir görevi tamamlanmış saymaz; yalnızca neyin kanıtlandığını söyler.
 
 ### Uygulama sırası ve bağımlılık
 
@@ -64,16 +71,16 @@ Aşağıdakilerin **tamamı aynı yayın commit SHA'sı** için kanıtlanmadan b
 - **Etkilenecek modüller/dosyalar:** `.github/workflows/ci.yml`, `tests/tools/run_ci.py`, `tests/elevated_ci_skips.txt` (güvenlik kimlikleri için kullanılmaz), `tests/engine/test_security_gate.py`, `tests/engine/test_worker_security.py`, `tests/packaging/test_frozen_security.py`, `tests/engine/security_cases.py`, `docs/THREAT_MODEL.md`. `src/respected_orchestrator/engine/appcontainer.py` politikası gevşetilmez.
 - **Teknik alt görevler:**
   - [x] Yükseltilmemiş ortam seçeneklerini ölç ve karar ver (ADR-017, ölçüm kaydı `fix01_hosted_probe.log`). *Bu kutu yalnızca ölçüm/karar içindir; FIX-01'in kendisi tamamlanmadı.*
-  - [ ] Geçici standart kullanıcıyı workflow'da kur. Ölçüldü (`fix01_hosted_followup.log`): yetki yalnızca çalışma alanı + Python kurulum dizinine verilince 16 sn, matris 50 sn, 13 testten 12 geçti, 0 hata, 1 skip.
-  - [ ] Cursor'a bağlı `test_node_worker_can_start_piped_children_and_resolve_paths` **karar verildi**: zorunlu güvenlik kümesinden adıyla çıkarılır, manifestte `excluded` altında gerekçesiyle listelenir, yalnızca Cursor CLI'ı olan yerel makinede koşar (ADR-017). Başka skip yoktur ve olamaz.
+  - [ ] Geçici standart kullanıcıyı workflow'da kur (`tests/tools/run_security_as_user.ps1`, `ci.yml`; **yazıldı, hosted GitHub koşusuyla doğrulanmadı**). Ölçüldü (`fix01_hosted_followup.log`): yetki yalnızca çalışma alanı + Python kurulum dizinine verilince 16 sn, matris 50 sn, 13 testten 12 geçti, 0 hata, 1 skip.
+  - [x] Cursor'a bağlı `test_node_worker_can_start_piped_children_and_resolve_paths` **karar verildi**: zorunlu güvenlik kümesinden adıyla çıkarılır, manifestte `excluded` altında gerekçesiyle listelenir, yalnızca Cursor CLI'ı olan yerel makinede koşar (ADR-017). Başka skip yoktur ve olamaz.
   - [x] Hosted `git` `rc=128` sebebi ölçüldü: `fatal: could not open '/dev/null' ... Permission denied` (runner git 2.56.0; yerelde git 2.55.0 çalışıyor; sürüm mü görüntü mü **ayrıştırılmadı**). Sonuç: verify komutları `git`'e güvenemez; motorun kendi git çağrıları sandbox dışındadır (ADR-018 §4). *Kutu yalnızca ölçüm içindir.*
   - [ ] **Açık (ölçülmedi):** hosted `git` farkının asıl sebebi (git sürümü 2.56.0 vs 2.55.0 mi, runner görüntüsü mü). Yerelde aynı sürüm çiftiyle ayrıştır; çözülmezse "verify içinde git desteklenmez" kalıcı uyumluluk listesine yazılır.
   - [ ] **Açık (ölçülmedi):** ölçüm tek runner görüntüsünde (`windows-2025-vs2026`, 20261030.294.1) yapıldı. Manifest görüntü sürümünü kaydeder; görüntü değişince güvenlik koşusu yeniden doğrulanır ve fark kırmızı yakalanır.
-  - [ ] Zorunlu güvenlik test kümesini `security_cases.py`'den türet (21 negatif, 9 izinli vaka) + `RealSandboxTests` + frozen matris.
-  - [ ] Güvenlik adımlarından skip yolunu kaldır; yükseltilmiş/başlatılamayan/timeout durumunu fail ettir.
-  - [ ] Manifest üret; `skipped != 0` veya beklenenden az test → kapı kırmızı.
-  - [ ] `test_security_gate.py`'yi manifest doğrulayacak şekilde genişlet (mevcut YAML denetimi korunur).
-  - [ ] Güvenlik işini merge koruması ve beta.2 etiket kapısına zorunlu kontrol olarak bağla.
+  - [x] Zorunlu güvenlik test kümesi: `test_worker_security` (21 negatif + 9 izinli vaka `security_cases.py`'den) + `RealSandboxTests` + `test_sandbox` + frozen matris (`MODULES`, 28 test, tabana bağlı).
+  - [x] Güvenlik adımlarından skip yolunu kaldır; yükseltilmiş/başlatılamayan/timeout durumunu fail ettir.
+  - [x] Manifest üret; `skipped != 0` veya beklenenden az test → kapı kırmızı.
+  - [x] `test_security_gate.py`'yi manifest doğrulayacak şekilde genişlet (mevcut YAML denetimi korunur).
+  - [ ] Güvenlik işini merge koruması ve beta.2 etiket kapısına zorunlu kontrol olarak bağla (GitHub depo ayarı; kodla yapılamaz, yönetici işlemi).
 - **Bağımlılıklar:** Yok (ilk sıra). Self-hosted seçilirse runner kurulumu bağımlılıktır.
 - **Testler:**
   - Pozitif: 9 izinli vaka ve meşru kapsam içi okuma/yazma geçer.
@@ -91,7 +98,7 @@ Aşağıdakilerin **tamamı aynı yayın commit SHA'sı** için kanıtlanmadan b
 
 ### FIX-04 — Verify sandbox ağ erişiminin sınırlandırılması
 
-- [ ] **Öncelik:** P1 — Güvenlik. **Beta.2'yi bloke eder: Evet.**
+- [x] **Öncelik:** P1 — Güvenlik. **Beta.2'yi bloke eder: Evet.** (Yerel kanıt tamam; hosted manifest kanıtı FIX-01 koşusuyla gelir.)
 - **Mevcut sorun / kanıt kaynağı (kodda doğrulandı):** `docs/THREAT_MODEL.md` S-24: "**Yok**; kısıtlı belirteç ağı kapatmaz"; §11 S-24'ün "hâlâ Yok" kalması gerektiğini söyler. `src/respected_orchestrator/engine/sandbox.py` başlık notu: verify/kabul kodu kısıtlı belirteçle çalışır, kullanıcı dosyalarını okuyabilir ve ağı kullanabilir. Worker tarafında ağ reddi AppContainer ile kanıtlı (`tests/engine/test_worker_policy.py::RealSandboxTests::test_network_is_denied_by_default`, `security_cases.py`); verify yolunda eşdeğeri yok. İki sınır aynı kabul edilmez.
 - **Hedeflenen davranış:** Varsayılan olarak ağ kapalı verify; yalnızca açıkça yetkilendirilmiş, sınırlı istisna.
 - **Mimari değişiklikler:**
@@ -102,13 +109,13 @@ Aşağıdakilerin **tamamı aynı yayın commit SHA'sı** için kanıtlanmadan b
 - **Etkilenecek modüller/dosyalar:** `src/respected_orchestrator/engine/sandbox.py`, `sandbox_exec.py`, `appcontainer.py`, `worker_policy.py`, `winproc.py`, `engine/runner.py` (acceptance/verify çağrıları), `workflows/project.py` (proje verify), `tests/engine/test_sandbox.py`, `tests/engine/security_cases.py`, `docs/THREAT_MODEL.md` (S-24, §11), `docs/ARCHITECTURE.md`, `docs/evidence/KANIT_LOG.md`.
 - **Teknik alt görevler:**
   - [x] Verify ağ tehdit modeli ve teknoloji karşılaştırması (ADR-018, `fix04_verify_appcontainer_probe.py`). *Yalnızca ölçüm/karar; FIX-04'ün kendisi tamamlanmadı.*
-  - [ ] Verify/acceptance çağrılarını (`engine/runner.py`, `workflows/project.py`, `sandbox.py`) AppContainer yoluna taşı; OS düzeyinde varsayılan-kapalı ağ.
-  - [ ] Çıkış denemeleri: DNS adı, doğrudan IP, localhost/loopback, alt süreç ve özyinelemeli alt süreç.
-  - [ ] Politika kurulamazsa fail-closed (yapılandırılmış hata; verify koşmaz).
-  - [ ] Yetkilendirilmiş ağ istisnası (görev başına, insan onaylı, hep-ya-hiç) ve testleri: onaysız istek reddedilir, onay yalnızca o görevde geçerli, kanıtta `network: allowed` görünür.
-  - [ ] Araç uyumluluk testi (ölçülen sonuçlar ADR-018'de): `.cmd` shim reddi; `npm test` desteklenmez (npm sürücü kökünü `lstat` eder); `sys.prefix` dışı venv yalnızca onaylı `extra_readonly_roots` ile; `default_policy` `Program Files` altındaki `command[0]` dizini için ACL denemesi yapmamalı (bugün `SandboxStartError` verir); hosted'da `git` çalışmaz.
-  - [ ] **Açık (ölçülmedi):** Python/node/cmd dışındaki araç zincirleri (ör. pytest ve eklentileri, derleyiciler, pip kurulu araçlar) AppContainer'da denenir; sonuç "desteklenir / desteklenmez" uyumluluk listesine yazılır. Listede olmayan araç için "çalışır" denmez.
-  - [ ] S-24 yeniden sınıflandırma ve §11 "Yok kalmalıdır" cümlesinin güncellenmesi (yalnızca testler geçtikten sonra).
+  - [x] Verify/acceptance çağrılarını (`engine/runner.py`, `workflows/project.py`, `sandbox.py`) AppContainer yoluna taşı; OS düzeyinde varsayılan-kapalı ağ.
+  - [x] Çıkış denemeleri: DNS adı, doğrudan IP, localhost/loopback, alt süreç ve özyinelemeli alt süreç.
+  - [x] Politika kurulamazsa fail-closed (yapılandırılmış hata; verify koşmaz).
+  - [x] Yetkilendirilmiş ağ istisnası (görev başına, hep-ya-hiç; operatör `RESPECTED_VERIFY_NETWORK_TASKS` ile görev kimliğini yazar, model açamaz) ve testleri: onaysız istek reddedilir, onay yalnızca o görevde geçerli, kanıtta `network: allowed` görünür.
+  - [x] Araç uyumluluk testi (ölçülen sonuçlar ADR-018'de): `.cmd` shim reddi; `npm test` desteklenmez (npm sürücü kökünü `lstat` eder); `sys.prefix` dışı venv yalnızca onaylı `extra_readonly_roots` ile; `default_policy` `Program Files` altındaki `command[0]` dizini için ACL denemesi yapmamalı (bugün `SandboxStartError` verir); hosted'da `git` çalışmaz.
+  - [x] **Ölçüldü:** Python/node/cmd dışındaki araç zincirleri (`fix04_toolchain2_probe.py` → `fix04_toolchain2_results.json`, ADR-018 sonu) (ör. pytest ve eklentileri, derleyiciler, pip kurulu araçlar) AppContainer'da denenir; sonuç "desteklenir / desteklenmez" uyumluluk listesine yazılır. Listede olmayan araç için "çalışır" denmez.
+  - [x] S-24 yeniden sınıflandırma ve §11 "Yok kalmalıdır" cümlesinin güncellenmesi (yalnızca testler geçtikten sonra).
 - **Bağımlılıklar:** Tasarım/kod bağımsız. Nihai CI kanıtı FIX-01 manifest hattına bağlanır (ağ negatifleri güvenlik matrisine girer). FIX-02'nin Orchestrated kol nihai koşusu bunu bekler.
 - **Testler:**
   - Pozitif: ağ gerektirmeyen mevcut kabul/verify akışları değişmeden geçer; onaylı istisna yalnızca o görevin verify'ında ağı açar.
@@ -121,7 +128,7 @@ Aşağıdakilerin **tamamı aynı yayın commit SHA'sı** için kanıtlanmadan b
 
 ### FIX-02 — Gerçek AI ajanlarıyla karşılaştırmalı benchmark
 
-- [ ] **Öncelik:** P1 — Yüksek. **Beta.2'yi bloke eder: Evet.**
+- [ ] **Öncelik:** P1 — Yüksek. **Beta.2'yi bloke eder: Evet.** (Kod ve plan hazır; **gerçek 60 koşu yapılmadı**: ücretsiz ajan doğrulaması ve parti onayı kullanıcıdan gelir. Çalıştırma: `python -m tests.evals.bench run OUT.json --agent AJAN --model MODEL --confirm-free`.)
 - **Mevcut sorun / kanıt kaynağı (kodda doğrulandı):** `tests/evals/compare.py`: Orchestrated kolda `fixture.fixed_source` doğrudan `solution.py`'ye yazılır; Direct kolda hiçbir şey yapılmaz; `model="golden-fixture"`, `security_violation` sabit `False`, `interventions` sabit 0. `KANIT_LOG.md` EVAL-02/EVAL-03 "Kalan risk": sonuç model başarısı değildir. 20 fixture (`tests/evals/fixtures.py`, sabit SHA'lar `start_shas.json`) ve rapor/regresyon kapısı (`tests/evals/report.py`) var; ADR-002 yeniden üretilebilirliği tanımlar.
 - **Hedeflenen davranış:** Aynı coding agent, aynı model/sürüm/görev/başlangıç commit'i ile Direct ve Orchestrated kolda **gerçekten** çalışır; sonuç tarafsız ve tekrar üretilebilir.
 - **Mimari değişiklikler:**
@@ -133,12 +140,12 @@ Aşağıdakilerin **tamamı aynı yayın commit SHA'sı** için kanıtlanmadan b
   - **Karar verildi: `docs/adr/ADR-019-real-agent-benchmark.md`.** Ücretsiz yol kuralı: yalnızca marjinal maliyeti 0 olan ajan/model (ücretsiz katman modelleri, kullanıcının zaten ödediği abonelik kotası); kullanım başına faturalı API anahtarı kullanılmaz; kota/fatura belirtisinde parti durur. Temsilî görev ölçütü ADR'de tanımlı.
 - **Etkilenecek modüller/dosyalar:** `tests/evals/compare.py` (dokunulmaz ya da yalnızca etiket), yeni `tests/evals/` yürütücü/rapor modülleri, `tests/evals/fixtures.py`, `start_shas.json`, `tests/evals/report.py`, `engine/clis.py` ve worker modülleri (yalnızca çağrı), `docs/evidence/poc/` sonuçları, `docs/adr/ADR-002-reproducible-evaluation.md` (güncelleme önerilir).
 - **Teknik alt görevler:**
-  - [ ] Gerçek benchmark yürütücüsü ve iki kol (Direct / Orchestrated).
-  - [ ] Ajan adaptör katmanı (Claude Code, Codex, kurulu diğerleri); kurulu olmayan ajan `PROVIDER_MISSING` kaydedilir, uydurulmaz.
-  - [ ] Eşdeğerlik: aynı model/sürüm/başlangıç commit'i/timeout/ortam; ajan sürümü ve model kimliği rapora yazılır.
-  - [ ] ≥10 temsilî görev seçimi (ADR-019 §6 ölçütleriyle 20 fixture'dan; seçim ve gerekçesi rapora yazılır) ve her biri için ≥3 tekrar planı; toplam ≥ 10 x 3 x 2 = 60 koşu.
-  - [ ] Güvenlik ihlali, timeout, müdahale ve retry kaydı; başarı ile güvenlik ihlali ayrı alanlar.
-  - [ ] Makine okunur rapor (commit, model, ortam, ham koşular); sentetik/gerçek ayrımı; `report.py` kapısının gerçek rapora uyarlanması.
+  - [x] Gerçek benchmark yürütücüsü ve iki kol (Direct / Orchestrated).
+  - [x] Ajan adaptör katmanı (Claude Code, Codex, kurulu diğerleri); kurulu olmayan ajan `PROVIDER_MISSING` kaydedilir, uydurulmaz.
+  - [x] Eşdeğerlik: aynı model/sürüm/başlangıç commit'i/timeout/ortam; ajan sürümü ve model kimliği rapora yazılır.
+  - [x] ≥10 temsilî görev seçimi (ADR-019 §6 ölçütleriyle 20 fixture'dan; seçim ve gerekçesi rapora yazılır) ve her biri için ≥3 tekrar planı; toplam ≥ 10 x 3 x 2 = 60 koşu.
+  - [x] Güvenlik ihlali, timeout, müdahale ve retry kaydı; başarı ile güvenlik ihlali ayrı alanlar.
+  - [x] Makine okunur rapor (commit, model, ortam, ham koşular); sentetik/gerçek ayrımı; `report.py` kapısının gerçek rapora uyarlanması.
 - **Bağımlılıklar:** Yürütücü/adaptör bağımsız. Nihai sonuç koşusu FIX-01 (güvenlik ihlali sayacının dayandığı izolasyon kanıtı) ve FIX-04 sonrası. **Gerçek koşular yalnızca 0 maliyetli ajan/modelle yapılır (ADR-019) ve her koşu partisinden önce kullanıcıdan onay alınır.**
 - **Testler:**
   - Pozitif: sahte (stub) ajan CLI'ı ile iki kol uçtan uca koşar, rapor şemaya uyar.
@@ -170,10 +177,10 @@ Aşağıdakilerin **tamamı aynı yayın commit SHA'sı** için kanıtlanmadan b
 - **Etkilenecek:** `interfaces/github_connector.py`, `interfaces/rpp.py`, `__main__.py`, yeni canlı test modülü `tests/interfaces/` altında (ad önerisi), `docs/evidence/poc/` günlükleri.
 - **Alt görevler:**
   - [ ] İzole test reposu ve en düşük yetkili token ile gerçek taslak PR.
-  - [ ] Branch/commit eşleştirme: PR head SHA'sı = kanıttaki doğrulanmış patch commit'i.
+  - [x] Branch/commit eşleştirme: PR head SHA'sı = push edilen doğrulanmış commit (`local_head` + geri okuma; uyuşmazlıkta makbuz yazılmaz). *Birim testli; gerçek PR ile doğrulanmadı.*
   - [ ] Yetkisiz token, silinmiş dal, kapalı repo, rate-limit ve API hata yanıtları (yapılandırılmış hata, kısmi push yok).
   - [ ] PR'ın doğru `run_id`/`operation_id` ile ilişkilendirilmesi; aynı `operation_id` yeniden çağrısı imzalı makbuzu döndürür.
-  - [ ] Merge'in hiçbir yolla çağrılmadığının testi.
+  - [x] Merge'in hiçbir yolla çağrılmadığının testi (`test_no_merge_command_is_ever_issued`, RPP testi).
 - **Bağımlılık:** Yok. Önkoşul: test reposu ve token (kullanıcı sağlar; yoksa görev "engelli" kaydedilir, sahte sonuç yazılmaz).
 - **Testler:** Pozitif: gerçek taslak PR (`--draft`). Negatif: yetkisiz token, eksik `confirm`, yanlış run, secret'lı patch (mevcut testler korunur) + canlı yetkisiz çağrı. Entegrasyon: canlı uçtan uca. Regresyon: `test_github_connector`, `test_github_rpp`.
 - **Kabul:** Gerçek PR başarıyla açıldı; PR ↔ görev/commit eşleşti; otomatik merge yok; yetkisiz işlem güvenli hata verdi.
@@ -187,12 +194,12 @@ Aşağıdakilerin **tamamı aynı yayın commit SHA'sı** için kanıtlanmadan b
 - **Mimari değişiklik — karar verildi: `docs/adr/ADR-020-ci-feedback-ingestion.md`.** Birincil yol `gh api` ile yoklama (gelen bağlantı/port/tünel yok, maliyet 0); webhook **dinleyicisi eklenmez**. `X-Hub-Signature-256` HMAC doğrulayıcısı ve `X-GitHub-Delivery` idempotensisi saf işlev olarak yazılır ve webhook yükünü dosya/stdin'den içe aktaran komutta (ad önerisi `github-ci-ingest`) kullanılır. Olay → PR/commit/görev eşlemesi yoklama ve içe aktarmada aynıdır. Çıktı otomatik düzeltme/yorum/merge üretmez.
 - **Etkilenecek:** `interfaces/github_connector.py`, `interfaces/rpp.py`, olay deposu (mevcut imzalı kanıt düzenine uygun), testler `tests/interfaces/`.
 - **Alt görevler:**
-  - [ ] `gh api` ile check-run yoklaması (head SHA'ya bağlı) ve `github-ci-ingest` içe aktarma yolu.
-  - [ ] İmza doğrulama; imzasız/yanlış imzalı olay reddi.
-  - [ ] `success`, `failure`, `cancelled` (ve `timed_out`/`neutral`) işleme.
-  - [ ] Tekrarlanan teslimatın idempotent işlenmesi (aynı delivery id → tek etki).
-  - [ ] Başka commit/PR/depoya ait sonucun reddi (head SHA = görevin doğrulanmış SHA'sı).
-  - [ ] Eksik, gecikmiş ve sırasız olay: eski SHA'lı olay durumu geri almaz; bilinmeyende fail-closed.
+  - [x] `gh api` ile check-run yoklaması (head SHA'ya bağlı) ve `github-ci-ingest` içe aktarma yolu.
+  - [x] İmza doğrulama; imzasız/yanlış imzalı olay reddi.
+  - [x] `success`, `failure`, `cancelled` (ve `timed_out`/`neutral`) işleme.
+  - [x] Tekrarlanan teslimatın idempotent işlenmesi (aynı delivery id → tek etki).
+  - [x] Başka commit/PR/depoya ait sonucun reddi (head SHA = görevin doğrulanmış SHA'sı).
+  - [x] Eksik, gecikmiş ve sırasız olay: eski SHA'lı olay durumu geri almaz; bilinmeyende fail-closed.
 - **Bağımlılık:** FIX-03A. Gerçek doğrulama için ücretsiz public test deposu (Actions ücretsiz); gelen bağlantı gerekmez.
 - **Testler:** Pozitif: geçerli imzalı başarı/başarısızlık/iptal. Negatif: sahte imza, tekrar, yanlış SHA, sırasız olay, bozuk JSON, aşırı büyük gövde. Entegrasyon: gerçek test deposundaki check-run'ın yoklanması. Regresyon: `plan_ci_fix` sınırları, `test_github_*`.
 - **Kabul:** Sahte imzalı olay reddedilir; tekrar tek kez işlenir; doğru görev/commit ile eşleşir; sırasız olay güvenli yönetilir.
@@ -200,33 +207,34 @@ Aşağıdakilerin **tamamı aynı yayın commit SHA'sı** için kanıtlanmadan b
 
 #### FIX-03C — Hub Evidence API entegrasyonu
 
-- [ ] **Öncelik:** P1. **Beta.2'yi bloke eder: Evet.** Kapsam: UX-02'nin Hub tarafı (`respected-hub` deposu).
+- [x] **Öncelik:** P1. **Beta.2'yi bloke eder: Evet.** Kapsam: UX-02'nin Hub tarafı (`respected-hub` deposu).
 - **Mevcut sorun / kanıt:** Yukarıda doğrulanan `inspect` kullanımı; `KANIT_LOG.md` UX-02 "Kalan risk".
 - **Hedeflenen davranış:** Hub, imzalı kanıtı doğrulayan salt-okunur `evidence.view` çıktısını gösterir; eski/geçersiz kanıt onaya hazır görünmez; Hub yeni yetki almaz.
 - **Mimari değişiklik:** Hub'ın eylem izin listesine salt-okunur `evidence` eklenir; `EvidencePanel` bu çıktıyı kullanır. Gerekirse `evidence_view` şemasına diff/test özeti alanları eklenir (şema sürümü artar, eski alanlar silinmez). Onay/uygulama komutu kullanıcının terminalinde kalır (`workspaceModel.ts` açıklaması korunur).
 - **Etkilenecek:** (Hub) `src-tauri/src/products/orchestrator/mod.rs`, `src/products/orchestrator/evidenceModel.ts`, `views/EvidencePanel.tsx`, `campaigns.ts` ve testleri; (Orchestrator) `interfaces/evidence_view.py`, `interfaces/rpp.py`.
 - **Alt görevler:**
-  - [ ] `evidence.view` çıktısını göstermek: durum, sebep, patch özeti/dosya diff'i, kontrol sonuçları, reviewer kararları, tester.
-  - [ ] Kanıt durumları (geçerli, `stale`, başarısız, kurcalanmış) açık gösterilir; kanıt güncelliği/geçerliliği her gösterimde yeniden okunur.
-  - [ ] Hata durumları (kilitli, bulunamadı, şema uyuşmazlığı) anlaşılır mesajla.
-  - [ ] Secret/yol sızıntısı: redakte edilmemiş alan arayüze geçmez; yeni alanlar için sızıntı testi.
-  - [ ] PR/CI durumunu (FIX-03A/B) görünüme bağlamak.
-  - [ ] Hub'da onay düğmesi/uygulama yetkisi eklenmediğinin testi.
+  - [x] `evidence.view` çıktısını göstermek: durum, sebep, patch özeti/dosya diff'i, kontrol sonuçları, reviewer kararları, tester.
+  - [x] Kanıt durumları (geçerli, `stale`, başarısız, kurcalanmış) açık gösterilir; kanıt güncelliği/geçerliliği her gösterimde yeniden okunur.
+  - [x] Hata durumları (kilitli, bulunamadı, şema uyuşmazlığı) anlaşılır mesajla.
+  - [x] Secret/yol sızıntısı: redakte edilmemiş alan arayüze geçmez; yeni alanlar için sızıntı testi.
+  - [x] PR/CI durumunu (FIX-03A/B) görünüme bağlamak.
+  - [x] Hub'da onay düğmesi/uygulama yetkisi eklenmediğinin testi.
 - **Bağımlılık:** `evidence.view` bağlantısı bağımsız; PR/CI gösterimi FIX-03B'ye bağlı.
 - **Testler:** Pozitif: güncel kanıt gösterilir. Negatif: stale/tampered/şema uyuşmazlığı reddedilir; secret içeren kanıt maskelenir; onay eylemi izin listesinde yok. Entegrasyon: gerçek `evidence` çıktısı ile Hub modeli. Regresyon: `tests.interfaces.test_evidence_api`, `test_human_approval_contract`, Hub `evidenceModel` testleri, CLI/MCP davranışı.
 - **Kabul:** Hub güncel doğrulama kanıtını gösterir; eski/geçersiz kanıt kabul edilmez; insan onayı ve ürün sözleşmesi bozulmaz; hassas veri sızmaz.
 - **Kanıt:** `KANIT_LOG.md` FIX-03C girdisi + Hub test çıktısı ve ekran/yapılandırılmış çıktı kaydı.
 
+### Güncelleme
+
+- [ ] beta.2 yayınlanırken o sürümün gerçek veri dosyaları `tests/fixtures/releases/0.1.0-beta.2/` altına kopyalanmalı
+  (sözleşme §4). `settings.json` 1→2 taşıma adımı (`STEPS`) hazır ve beta.1 fixture'ı ile sınanıyor; sonraki biçim
+  değişikliğinde yeni sürüm için yeni adım eklenir, eski adımlar silinmez.
 ---
 
-## Yayın
+## İlk sabit sürümü öncesi kontrol edilecek (v.1.0 öncesi)
 
 - [ ] Kurucuyu Authenticode ile imzalamak (SmartScreen uyarısı). Kod imzalama sertifikası gerekir; yok.
 - [ ] macOS / Linux: kod yolları var, doğrulanmadı; POSIX'te anahtar için işletim sistemi kum havuzu yok. Bu geliştirme
   makinesi Windows.
 
-## Güncelleme
 
-- [ ] beta.2 yayınlanırken o sürümün gerçek veri dosyaları `tests/fixtures/releases/0.1.0-beta.2/` altına kopyalanmalı
-  (sözleşme §4). `settings.json` 1→2 taşıma adımı (`STEPS`) hazır ve beta.1 fixture'ı ile sınanıyor; sonraki biçim
-  değişikliğinde yeni sürüm için yeni adım eklenir, eski adımlar silinmez.

@@ -2621,6 +2621,66 @@ python docs/evidence/poc/fix04_toolchain_probe.py docs/evidence/poc/fix04_toolch
 
 ---
 
+## FIX-01 / FIX-04 / FIX-02 / FIX-03 — uygulama (5 Kasım 2026)
+
+- Durum: **Kod ve yerel testler tamam; dört görevin dış girdi isteyen kısmı açık** (ROADMAP "Durum" tablosu). Hiçbir release
+  kapısı kutusu bu girdiyle işaretlenmedi: kapı tek bir yayın SHA'sı için kanıt ister.
+- Kapsam: FIX-01 (güvenlik koşusu: sıfır skip, manifest, kapı, geçici standart kullanıcı betiği), FIX-04 (verify/kabul AppContainer'da,
+  ağ kapalı, fail-closed, S-24), FIX-02 (gerçek ajan yürütücüsü, sızıntı denetimi, plan, kapı), FIX-03A/B (PR geri okuma, CI içe
+  aktarma/yoklama), FIX-03C (Hub `evidence`).
+- Ortam: yerel Windows 11, yükseltilmemiş oturum, Python 3.13.15, git 2.55.0, node/cargo yerel.
+- Doğrulama komutları:
+
+```text
+python tests/tools/run_ci.py
+python tests/tools/run_security_ci.py run %TEMP%\m.json ; python tests/tools/run_security_ci.py verify %TEMP%\m.json
+python -m unittest tests.evals.test_bench tests.interfaces.test_github_ci_ingest tests.interfaces.test_github_connector
+python -m tests.evals.bench plan docs/evidence/poc/fix02_plan.json
+python docs/evidence/poc/fix04_toolchain2_probe.py
+(respected-hub) npm run check ; cargo test --test campaign_e2e
+```
+
+- Gerçek çıktı (özet):
+
+```text
+Ran 658 tests in 1059.977s | OK (skipped=1) [skip = Cursor CLI yok, ADR-017 ile güvenlik kümesi dışında]
+--- güvenlik koşusu ---
+Ran 28 tests in 98.389s | OK | security run: OK | security gate: OK (manifest: failed=0 errors=0 skipped=0 elevated=false)
+--- Hub ---
+npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFacts.test.ts 'orchestrator installer notice', degisiklikten ONCE de basarisiz: 126 pass / 1 fail); cargo test --test campaign_e2e invalid_campaign_identity: ok
+```
+
+- Kabul kriteri karşılandı mı:
+  - FIX-04: **evet (yerel)**. Aynı betik sandbox'sız bağlanır (kontrol), AppContainer'da IP/DNS/loopback/alt süreç reddedilir;
+    anahtar ve veri kökü erişilemez; AppContainer kurulamazsa, `.cmd` shim'inde ve Windows dışında `SandboxError`;
+    `RESPECTED_ORCH_SANDBOX=off` yok sayılır; ağ istisnası yalnızca listedeki görevde `allow`; kanıtta `network` alanı.
+  - FIX-03C: **evet**. Gerçek `evidence` çıktısı (`fix03c_real_evidence_view.json`) Hub modelinden geçirildi; stale/failed/tampered ve
+    bilinmeyen şema onaya hazır görünmez; sızıntı ve onay-yok testleri; Rust izin listesi testi.
+  - FIX-01: **kısmen**. Manifest/kapı yerelde (25 test, 0 skip) ve sahte manifestlerle kırmızı; `ci.yml` değişti. **Hosted GitHub koşusu
+    yapılmadı**; geçici kullanıcı betiği hosted'da denenmedi.
+  - FIX-02: **kısmen**. Stub ajanla iki kol uçtan uca, sızıntı geçersiz kılar, kota durdurur, bilinmeyen `unknown`. **Gerçek ajanla
+    60 koşu yapılmadı** (ücretsiz ajan doğrulaması ve parti onayı gerekir).
+  - FIX-03A/B: **kısmen**. Kod ve mock'lu `gh` ile testler; **gerçek taslak PR ve gerçek check-run yok** (test deposu + token gerekir).
+- Kalan risk / shortcut: hosted `git` farkı ve runner görüntüsü kayması ölçülmedi; merge koruması/etiket kapısı repo ayarı;
+  `pytest/ruff/mypy/gcc/go/tsc` bu makinede kurulu olmadığından ölçülemedi; `RESPECTED_VERIFY_NETWORK_TASKS` operatör
+  anahtarıdır (görev başına insan onayı kanıtı yoktur, yalnızca operatörün adını yazması); webhook gövdesi dize olarak gelirse
+  imza UTF-8 yeniden kodlamasıyla doğrulanır.
+
+### Artefakt SHA-256
+
+- `tests/tools/run_security_ci.py` -> `6FF4A3BDD5CB868367952F5B00B9F421FAEFBF40F33CF728B0D74F1C1B80A8E3`
+- `tests/tools/run_security_as_user.ps1` -> `BDBE7969AC13B42AA1F245A8CF8CDD3294D3136A26A00269A5C1BC3020246C8F`
+- `.github/workflows/ci.yml` -> `25A0DA1DD48FE7D4370B02298AD97FD26AD043934E59B1B3387A134683615696`
+- `src/respected_orchestrator/engine/sandbox.py` -> `12FB768E77C9377B6D266579B89BD0FA27091213CB66794C46B56FED7EC9F968`
+- `tests/engine/test_sandbox.py` -> `631D83EEC986AAA6DF231DBA54A042493F8E3CCFFE8DB69F6AEE26D556901201`
+- `tests/evals/bench.py` -> `24A2D4C91D1DAAAB0011C520C3C36C0015CD78A020E08142BFD21B79A042CAB8`
+- `tests/evals/test_bench.py` -> `954B0796894609844E5EE56D1D6E70E90F84F5865181C6B69829F55855BA1965`
+- `docs/evidence/poc/fix02_plan.json` -> `C1C40C472B8776F305A65D38E637AB56FE402295B6896AB5D2E95C1076ACF75F`
+- `docs/evidence/poc/fix04_toolchain2_results.json` -> `FB133A884E0048BD59B82C8CA9F50BD7F12CD53567FCA45FEE60573F80B209A2`
+- `docs/evidence/poc/fix03c_real_evidence_view.json` -> `378E74418F2501090A1C82ECF29BD1B63DF52C39CD22EC7B659C578E2F5D99B4`
+- `src/respected_orchestrator/interfaces/github_connector.py` -> `1062EA7BB069E3AE1D6397062D1475151414542E7F1162DA6214971576C8CCD1`
+- `tests/interfaces/test_github_ci_ingest.py` -> `DD838C1B3DCAE614A0C89404568D6BC6F1B0075DF81F90AA6018B4CFDD65EB9C`
+
 ## Şablon (sonraki görevler)
 
 ```

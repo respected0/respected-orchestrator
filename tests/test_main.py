@@ -54,9 +54,6 @@ class MainTests(unittest.TestCase):
         with mock.patch("respected_orchestrator.interfaces.mcp_server.serve", return_value=0) as serve:
             call(*self.root, "mcp", "--allow-auto-apply")
         self.assertEqual(serve.call_args.kwargs, {"allow_auto_apply": True, "allow_privileged": False})
-        with mock.patch("respected_orchestrator.engine.sandbox_exec", create=True) as launcher:
-            launcher.main.return_value = 3
-            self.assertEqual(call("_sandbox-exec", "--sid", "S")[0], 3)
         with mock.patch("respected_orchestrator.workflows.campaign.list_campaigns", return_value={"campaigns": []}):
             self.assertEqual(json.loads(call(*self.root, "campaign-list")[1]), {"campaigns": []})
         with mock.patch("respected_orchestrator.workflows.campaign.cancel_campaign",

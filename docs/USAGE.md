@@ -302,11 +302,13 @@ adımı anlatır.
 '{"run_id":"run-...","repo":"owner/name","head":"dal","base":"main"}' | respected-orchestrator github-pr-plan
 '{"run_id":"run-...","repo":"owner/name","head":"dal","base":"main","confirm":true,"operation_id":"op-1","project_root":"C:\proje"}' | respected-orchestrator github-pr-create
 '{"feedback":{},"head_sha":"abc","max_rounds":3,"used_rounds":0}' | respected-orchestrator github-ci-plan
+'{"operation_id":"op-1"}' | respected-orchestrator github-ci-poll
 ```
 
 `github-pr-plan` hiçbir şey yazmaz. `github-pr-create` yalnızca imzalı `completed` sonuç, secret'sız patch, açık `confirm: true`,
 `operation_id` ve operatörün verdiği `project_root` ile dalı iter ve taslak PR açar; merge etmez. Aynı işlemler RPP'de
-`github.issue_import|pr_plan|pr_create|ci_plan` adlarıyla bulunur.
+`github.issue_import|pr_plan|pr_create|ci_plan|ci_ingest|ci_poll` adlarıyla bulunur. `github-ci-poll` taslak PR'ın commit'indeki
+check-run'ları okur; webhook yükü elinizdeyse `github-ci-ingest` ile (sır `RESPECTED_GITHUB_WEBHOOK_SECRET`) içe aktarılır. Motor dinleyici açmaz.
 
 ## 13. İmzalı kurucu ve platform sınırı
 

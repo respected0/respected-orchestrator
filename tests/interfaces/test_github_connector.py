@@ -15,6 +15,15 @@ def ok(stdout="https://github.com/o/r/pull/1\n"):
     return SimpleNamespace(returncode=0, stdout=stdout.encode(), stderr=b"")
 
 
+HEAD = "b" * 40
+
+
+def pr_gh(view=None):
+    """gh stand-in: `pr create` prints the URL, `pr view` reports the draft PR as GitHub would."""
+    view = view or {"isDraft": True, "state": "OPEN", "headRefOid": HEAD, "number": 1}
+    return lambda args, **k: ok(json.dumps(view)) if args[1:3] == ["pr", "view"] else ok()
+
+
 def fail(stderr="denied"):
     return SimpleNamespace(returncode=1, stdout=b"", stderr=stderr.encode())
 
@@ -64,14 +73,28 @@ class DraftPrTests(unittest.TestCase):
         self.verified.start()
         self.addCleanup(self.verified.stop)
 
-    def create(self, push=lambda head: None, run=lambda *a, **k: ok(), operation="op-12345678"):
+    def create(self, push=lambda head: None, run=None, operation="op-12345678", head_sha=HEAD):
         return gh.create_draft_pr(self.ctx, "run-pr", repo="o/r", head="feature/x", base="main", title="t", body="b",
-                                  operation_id=operation, push=push, run=run)
+                                  operation_id=operation, push=push, head_sha=head_sha, run=run or pr_gh())
 
     def test_verified_result_creates_one_draft_pr_traceably(self):
         made = self.create()
         self.assertEqual((made["status"], made["url"]), ("draft", "https://github.com/o/r/pull/1"))
         self.assertEqual(made["patch_sha256"], "a" * 64)
+        self.assertEqual((made["pr_number"], made["head_sha"]), (1, HEAD))
+
+    def test_a_pr_that_is_not_an_open_draft_at_the_verified_commit_is_refused_and_leaves_no_receipt(self):
+        for view in ({"isDraft": False, "state": "OPEN", "headRefOid": HEAD, "number": 1},
+                     {"isDraft": True, "state": "OPEN", "headRefOid": "c" * 40, "number": 1},
+                     {"isDraft": True, "state": "CLOSED", "headRefOid": HEAD, "number": 1}):
+            with self.subTest(view=view), self.assertRaisesRegex(ValueError, "does not match"):
+                self.create(run=pr_gh(view))
+        self.assertFalse((self.ctx.data_root / "receipts" / "github-pr-op-12345678.json").exists())
+
+    def test_local_head_reads_the_branch_commit_and_refuses_a_missing_one(self):
+        self.assertEqual(gh.local_head("p", "feature/x", run=lambda *a, **k: ok(HEAD + "\n")), HEAD)
+        with self.assertRaisesRegex(ValueError, "does not exist"):
+            gh.local_head("p", "feature/x", run=lambda *a, **k: fail("fatal"))
 
     def test_failed_evidence_never_pushes(self):
         pushed = []
@@ -98,7 +121,8 @@ class DraftPrTests(unittest.TestCase):
 
     def test_no_merge_command_is_ever_issued(self):
         seen = []
-        self.create(run=lambda args, **k: seen.append(args) or ok())
+        viewer = pr_gh()
+        self.create(run=lambda args, **k: seen.append(args) or viewer(args))
         self.assertFalse(any("merge" in args for args in seen))
 
 

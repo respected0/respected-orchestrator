@@ -1,0 +1,64 @@
+{
+  "python": "3.13.15",
+  "results": {
+    "pytest": {
+      "control": 1,
+      "appcontainer": 1,
+      "tail": "C:\\Users\\Furkan\\AppData\\Local\\Programs\\Python\\Python313\\python.exe: No module named pytest"
+    },
+    "pip": {
+      "control": 0,
+      "appcontainer": 0,
+      "tail": "pip 26.2.1 from C:\\Users\\Furkan\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\pip (python 3.13)"
+    },
+    "pip_list": {
+      "control": 0,
+      "appcontainer": 0,
+      "tail": "apt                                          1.17.3\r\nwsproto                                        1.3.2\r\nyarl                                           1.25.1"
+    },
+    "venv_create": {
+      "control": 0,
+      "appcontainer": 1,
+      "tail": "emp\\\\orch-fix04-tc-z_u3c1lz\\\\data\\\\workspaces\\\\lane\\\\v\\\\Scripts\\\\python.exe', '-m', 'ensurepip', '--upgrade', '--default-pip']' returned non-zero exit status 1."
+    },
+    "compileall": {
+      "control": 0,
+      "appcontainer": 0,
+      "tail": ""
+    },
+    "ruff": {
+      "control": 1,
+      "appcontainer": 1,
+      "tail": "C:\\Users\\Furkan\\AppData\\Local\\Programs\\Python\\Python313\\python.exe: No module named ruff"
+    },
+    "mypy": {
+      "control": 1,
+      "appcontainer": 1,
+      "tail": "C:\\Users\\Furkan\\AppData\\Local\\Programs\\Python\\Python313\\python.exe: No module named mypy"
+    },
+    "gcc": {
+      "control": "not installed"
+    },
+    "go": {
+      "control": "not installed"
+    },
+    "cargo": {
+      "control": 0,
+      "appcontainer": 1,
+      "tail": "error: could not create home directory: 'C:\\Users\\Furkan\\.rustup': Halen varolan bir dosya oluþturulamaz. (os error 183)"
+    },
+    "dotnet": {
+      "control": 0,
+      "appcontainer": 0,
+      "tail": "10.0.401"
+    },
+    "tsc": {
+      "control": "not installed"
+    },
+    "git": {
+      "control": 0,
+      "appcontainer": 0,
+      "tail": "git version 2.55.0.windows.5"
+    }
+  }
+}

@@ -172,8 +172,10 @@ worker başlatılmaz, merge komutu üretilmez.
 | `github-pr-plan` | stdin: `{"run_id":"run-...","repo":"owner/name","head":"branch","base":"main"}` | İmzalı `completed` ve secret'sız sonuçtan taslak PR planı üretir; yazmaz. |
 | `github-pr-create` | stdin: `{"run_id":"run-...","confirm":true,"operation_id":"op-...","project_root":"C:\\proje","head":"branch"}` | Planı doğrular, yalnızca bu açık onayla branch'i push edip taslak PR açar. |
 | `github-ci-plan` | stdin: `{"feedback":{...},"head_sha":"...","max_rounds":3,"used_rounds":0,"authorized":true,"approval":true}` | Round/SHA/reviewer/onay sınırlı düzeltme planı üretir; PR'a yorum/merge yazmaz. |
+| `github-ci-ingest` | stdin: `{"operation_id":"op-...","body":"<ham webhook gövdesi>","headers":{"X-Hub-Signature-256":"sha256=...","X-GitHub-Event":"check_run","X-GitHub-Delivery":"..."}}`; sır `RESPECTED_GITHUB_WEBHOOK_SECRET` ortam değişkeninden | İmzalı `check_run` yükünü içe aktarır; yanlış imza/depo/commit/PR, tekrar ve eski sonuç reddedilir. Yorum/merge/düzeltme yapmaz. |
+| `github-ci-poll` | stdin: `{"operation_id":"op-..."}` | `gh api` ile taslak PR'ın head commit'inin check-run'larını okur ve aynı kurallarla işler. |
 
-Aynı sözleşme RPP `github.issue_import|pr_plan|pr_create|ci_plan` operasyonlarından da kullanılır.
+Aynı sözleşme RPP `github.issue_import|pr_plan|pr_create|ci_plan|ci_ingest|ci_poll` operasyonlarından da kullanılır.
 
 ## İmzalı kurucu ve yayın kapısı
 

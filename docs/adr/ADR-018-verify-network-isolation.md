@@ -2,7 +2,7 @@
 
 ## Durum
 
-Kabul edildi (5 Kasım 2026). Uygulama FIX-04 ile yapılır; bu karar ölçüme dayanır, kod henüz değişmedi.
+Kabul edildi (5 Kasım 2026). Uygulandı (FIX-04, 5 Kasım 2026): `engine/sandbox.run_check`; karar ölçüme dayanır.
 
 ## Bağlam
 
@@ -87,9 +87,26 @@ Sonuncusu bir tasarım bulgusudur: `Program Files` altındaki araçlar AppContai
 - Ağ gerektiren testler (paket indirme, canlı servis) varsayılan olarak başarısız olur; kullanıcı onaylı istisna şart.
 - Verify'ın bağımlılığı olan araçların bir kısmı AppContainer'da çalışmaz (npm betikleri, hosted'da git, kök
   `lstat` isteyen araçlar). FIX-04 bunları listeleyen bir uyumluluk testi içerir; ölçülmeyen araç için "çalışır" denmez.
-- Bugünkü durum ile karar arasındaki fark: **kod henüz değişmedi.** Bugün verify hâlâ kısıtlı belirteçle ve açık ağla
-  koşar; S-24 hâlâ "Yok"tur.
+- Uygulama sonrası: verify ve kabul AppContainer'da, ağ kapalı koşar; kısıtlı belirteç yolu (`sandbox_exec`) kaldırıldı; S-24
+  "Engellenir". Ağ istisnası: operatörün `RESPECTED_VERIFY_NETWORK_TASKS` ile görev kimliğini yazması.
 - Ölçüm tek makinede ve yükseltilmemiş oturumda yapıldı; hosted CI ayrı sorudur (ADR-017).
+
+## Araç zinciri ölçümü 2 (5 Kasım 2026, üretim yolu `sandbox.run_check`, ağ kapalı)
+
+`docs/evidence/poc/fix04_toolchain2_probe.py` → `fix04_toolchain2_results.json`. Kontrol = sarmalamasız aynı komut.
+
+| Araç | Kontrol | AppContainer | Sonuç |
+|---|---|---|---|
+| `python -m pip --version`, `pip list` | çalışır | çalışır | Desteklenir |
+| `python -m compileall` | çalışır | çalışır | Desteklenir |
+| `dotnet --version` | çalışır | çalışır | Desteklenir |
+| `git --version` | çalışır | çalışır | Desteklenir (hosted'da `status` çalışmaz, bkz. yukarı) |
+| `python -m venv v` | çalışır | **başarısız** (rc=1) | Desteklenmez: ağaç içinde venv oluşturma |
+| `cargo --version` | çalışır | **başarısız** (rc=1, `.rustup` ana dizini yazılamaz) | Desteklenmez |
+| `pytest`, `ruff`, `mypy` | kurulu değil (kontrol de rc=1) | — | **Ölçülemedi**: bu makinede kurulu değil; "çalışır" denmez |
+| `gcc`, `go`, `tsc` | kurulu değil | — | **Ölçülemedi** |
+
+Listede olmayan araç için "çalışır" denmez; yeni bir araç eklemek aynı betikle ölçmeyi gerektirir.
 
 ## Kaynaklar
 

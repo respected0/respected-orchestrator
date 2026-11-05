@@ -88,7 +88,7 @@ Tam liste ve istek biçimleri: [docs/COMMANDS.md](docs/COMMANDS.md).
 | **Bağlantılar** | `memory connect [--write] \| disconnect \| status` (Brain hafızası), `integrations [set İSTEMCİ=on\|off]` (AI araçlarına MCP kaydı), `provider-key`, `provider-models` (OpenRouter), `mcp`, `rpp` |
 | **Görevler** | `create` → `start` → `inspect` → `check` → `apply`; ayrıca `list`, `retry`, `cancel`, `artifact`, `evidence`, `maf`, `maf-approve`, `roles`, `plan`, `coordinate`, `integrate` |
 | **Projeler ve kampanyalar** | `project-start\|status\|resume\|approve\|cancel`, `campaign-start\|status\|cancel\|list` |
-| **GitHub** | `github-import-issue`, `github-pr-plan`, `github-pr-create`, `github-ci-plan` |
+| **GitHub** | `github-import-issue`, `github-pr-plan`, `github-pr-create`, `github-ci-plan`, `github-ci-ingest`, `github-ci-poll` |
 
 ## Geliştirme
 

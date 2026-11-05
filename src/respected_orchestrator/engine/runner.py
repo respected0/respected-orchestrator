@@ -920,28 +920,18 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
         tester = (request.get("role_assignments") or {}).get("tester")
         tester_checks = []
         tester_started_at = dt.datetime.now(dt.timezone.utc) if tester else None
-        try:
-            # The tester is an engine-owned verification stage, not another model call. Its commands are exactly the
-            # task's acceptance commands and run once. Without a tester, keep the established evidence-only wrapper.
-            sandboxed = [] if tester else [sandbox.wrap(ctx.data_root, key_path(ctx), command) for command in request["acceptance"]]
-        except sandbox.SandboxError as error:  # fail closed: worker-written code never runs with the engine's authority
-            return _write_status(ctx, directory, "failed", reason="sandbox_unavailable", detail=str(error)[:300], **details)
+        # Acceptance runs in the network-denied AppContainer (ADR-018); the tester stage is the same path plus a report.
         for index, command in enumerate(request["acceptance"], 1):
             check_started = time.monotonic()
-            if tester:
-                tester_tmp = safe_path(directory / "tester-tmp")
-                tester_tmp.mkdir(exist_ok=True)
-                tester_policy = default_policy(ctx, lane.worktree, command, temp_root=tester_tmp,
-                                               readonly_roots=extra_readonly_roots(), ttl=request["timeout_seconds"])
-                check = execute(command, lane.worktree, deadline - time.monotonic(), cancel_path=cancel,
-                                scrub_env=True, policy=tester_policy)
-            else:
-                check = execute(sandboxed[index - 1], lane.worktree, deadline - time.monotonic(), cancel_path=cancel,
-                                scrub_env=True)
+            try:
+                check, network = sandbox.run_check(ctx, command, lane.worktree, min(deadline - time.monotonic(), request["timeout_seconds"]),
+                                                   task_id=run_id, scratch=directory / "tester-tmp", cancel_path=cancel)
+            except sandbox.SandboxError as error:  # fail closed: worker-written code never runs with the engine's authority
+                return _write_status(ctx, directory, "failed", reason="sandbox_unavailable", detail=str(error)[:300], **details)
             (directory / f"check-{index}.log").write_text(lanes._redact(check.stdout + "\n" + check.stderr), encoding="utf8")
-            checks.append(dict(command=command, returncode=check.returncode))
+            checks.append(dict(command=command, returncode=check.returncode, network=network))
             if tester:
-                tester_checks.append(dict(command=command, returncode=check.returncode,
+                tester_checks.append(dict(command=command, returncode=check.returncode, network=network,
                                           duration_seconds=round(time.monotonic() - check_started, 3)))
             if check.returncode:
                 return _write_status(ctx, directory, "failed", reason="test_failed", checks=checks, **details)

@@ -404,7 +404,8 @@ def _github_pr_create(ctx, operation_id, payload):
         return github.create_draft_pr(
             ctx, payload.get("run_id"), repo=payload.get("repo"), head=payload.get("head"), base=payload.get("base"),
             title=str(payload.get("title") or "")[:300], body=str(payload.get("body") or "")[:100_000],
-            operation_id=operation_id, push=lambda head: github.push_branch(root, head))
+            operation_id=operation_id, push=lambda head: github.push_branch(root, head),
+            head_sha=github.local_head(root, payload.get("head") or ""))
     except (ValueError, OSError) as error:
         raise RppError("GITHUB_ERROR", str(error)[:500], "Only a verified, secret-free result can be published; nothing was merged.") from None
 
@@ -421,6 +422,24 @@ def _github_ci_plan(ctx, operation_id, payload):
     return github.plan_ci_fix(
         feedback, head_sha=payload.get("head_sha"), max_rounds=numbers["max_rounds"], used_rounds=numbers["used_rounds"],
         authorized=payload.get("authorized") is not False, approval=payload.get("approval") is not False)
+
+
+def _github_ci_ingest(ctx, operation_id, payload):
+    """Webhook payload imported from stdin/file; the secret comes from the operator's environment, never from the payload."""
+    from . import github_connector as github
+    try:
+        return github.ingest_webhook(ctx, payload.get("operation_id"), secret=os.environ.get("RESPECTED_GITHUB_WEBHOOK_SECRET", ""),
+                                     body=payload.get("body"), headers=payload.get("headers"))
+    except (ValueError, OSError) as error:
+        raise RppError("GITHUB_ERROR", str(error)[:500], "The event was refused; nothing was fixed, commented or merged.") from None
+
+
+def _github_ci_poll(ctx, operation_id, payload):
+    from . import github_connector as github
+    try:
+        return github.poll_checks(ctx, payload.get("operation_id"))
+    except (ValueError, OSError) as error:
+        raise RppError("GITHUB_ERROR", str(error)[:500], "Check the gh session and the draft PR receipt; nothing was changed.") from None
 
 
 _OPS = {
@@ -441,6 +460,8 @@ _OPS = {
     "github.pr_plan": _github_pr_plan,
     "github.pr_create": _github_pr_create,
     "github.ci_plan": _github_ci_plan,
+    "github.ci_ingest": _github_ci_ingest,
+    "github.ci_poll": _github_ci_poll,
 }
 
 

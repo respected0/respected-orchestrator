@@ -32,28 +32,29 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - name: Build the packaged engine
         run: python packaging/build_dist.py --output dist
-      - name: Worker isolation security matrix (AppContainer)
-        # Hosted runners are elevated and the boundary refuses that (a UAC-filtered token cannot start processes there),
-        # so the AppContainer probes SKIP here; the symlink and MCP tests in the module still run. Run the full matrix on a
-        # non-elevated machine: python -m unittest tests.engine.test_worker_security -v
+      - name: Security matrix (standard user, zero skips)
+        # Hosted runners are elevated and the AppContainer boundary refuses that, so the whole security set runs as a
+        # throw-away standard local user (ADR-017). It fails on any skip, error, elevation or missing test.
+        run: powershell -NoProfile -File tests/tools/run_security_as_user.ps1
+      - name: Security gate (manifest for this commit)
+        run: python tests/tools/run_security_ci.py verify security-manifest.json
+      - name: Unit, integration, adversarial and packaged-build tests
+        # tests/packaging runs the built exe with no Python on PATH and is required here (CI is set). Security tests are NOT
+        # in the skip list; the elevated hosted runner skips only the general sandbox-dependent ids (the aim is an empty list).
         env:
           ORCH_ALLOW_ELEVATED_SKIP: "1"
-        run: python -m unittest tests.engine.test_worker_security -v
-      - name: Verify and acceptance sandbox matrix (restricted token)
-        run: python -m unittest tests.engine.test_sandbox -v
-      - name: Security regression registry gate
-        run: python -m unittest tests.engine.test_security_gate -v
-      - name: Frozen executable security matrix
-        env:
-          ORCH_ALLOW_ELEVATED_SKIP: "1"  # elevated hosted runner: sandbox cases skip, the rest run
-        run: python -m unittest tests.packaging.test_frozen_security -v
-      - name: Unit, integration, adversarial and packaged-build tests
-        # tests/packaging runs the built exe with no Python on PATH and is required here (CI is set)
-        env:
-          ORCH_ALLOW_ELEVATED_SKIP: "1"  # elevated hosted runner: ids in tests/elevated_ci_skips.txt are skipped
         run: python tests/tools/run_ci.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: orchestrator-windows
           path: dist/RespectedOrchestrator
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: security-manifest
+          path: |
+            security-manifest.json
+            security-run.log.stdout
+            security-run.log.stderr
           if-no-files-found: error

@@ -29,6 +29,25 @@ def _clean(value, secrets):
     return value
 
 
+def _delivery(ctx, run_id):
+    """Draft PR and latest CI result recorded for this run (FIX-03A/B), or None. A receipt that fails verification is shown as tampered."""
+    for path in sorted(safe_path(ctx.data_root / "receipts").glob("github-pr-*.json")) if (ctx.data_root / "receipts").is_dir() else ():
+        try:
+            receipt = load_signed(ctx, path)
+        except ValueError:
+            return {"state": "tampered", "receipt": path.name}
+        if receipt.get("run_id") != run_id:
+            continue
+        ci = path.with_name("github-ci-" + path.name[len("github-pr-"):])
+        try:
+            observed = load_signed(ctx, ci) if ci.is_file() else None
+        except ValueError:
+            return {"state": "tampered", "receipt": ci.name}
+        return {"state": "ok", "url": receipt.get("url"), "pr_number": receipt.get("pr_number"), "head_sha": receipt.get("head_sha"),
+                "ci": {"conclusion": observed["conclusion"], "completed_at": observed["latest"]} if observed else None}
+    return None
+
+
 def view(ctx, run_id):
     """Return a presentation-only view; raises ValueError for missing or tampered evidence."""
     secrets = _secret_values()
@@ -54,8 +73,9 @@ def view(ctx, run_id):
     tester = result.get("tester") if result else None
     usage = (result or {}).get("usage")
     return _clean({
-        "schema_version": 1,
+        "schema_version": 2,  # 2 adds `delivery`; every version-1 field is unchanged
         "task_id": run_id,
+        "delivery": _delivery(ctx, run_id),
         "status": current,
         "reason": reason,
         "patch_summary": patch,

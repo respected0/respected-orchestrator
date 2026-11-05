@@ -84,10 +84,14 @@ class GithubRppTests(unittest.TestCase):
         payload = {"run_id": run_id, "repo": "o/r", "head": "feature/x", "base": "main",
                    "project_root": str(self.temp.name), "title": "t", "body": "b", "confirm": True}
         seen = []
-        ok_run = mock.Mock(returncode=0, stdout=b"https://github.com/o/r/pull/1\n", stderr=b"")
+        head = "d" * 40
+
+        def fake(args, **kwargs):  # git rev-parse -> branch commit; gh pr view -> the draft PR at that commit; gh pr create -> URL
+            out = head + "\n" if args[0] == "git" else json.dumps({"isDraft": True, "state": "OPEN", "headRefOid": head, "number": 1}) if args[1:3] == ["pr", "view"] else "https://github.com/o/r/pull/1\n"
+            return mock.Mock(returncode=0, stdout=out.encode(), stderr=b"")
         with mock.patch.object(gh.runner, "check_result", return_value={"status": "verified"}), \
                 mock.patch.object(gh, "push_branch", side_effect=lambda root, head: seen.append(("push", head))), \
-                mock.patch.object(gh.winproc, "run", return_value=ok_run) as run:
+                mock.patch.object(gh.winproc, "run", side_effect=fake) as run:
             first = response(self.ctx, "github.pr_create", payload, "op-create123")
             second = response(self.ctx, "github.pr_create", payload, "op-create123")
         self.assertTrue(first["ok"], first)

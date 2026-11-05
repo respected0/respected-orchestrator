@@ -98,6 +98,24 @@ class EvidenceViewTests(unittest.TestCase):
         self.assertNotIn("topsecretvalue", rendered)
         self.assertIn("[REDACTED]", rendered)
 
+    def test_delivery_shows_the_draft_pr_and_latest_ci_and_flags_a_tampered_record(self):
+        self.fixture()
+        self.assertEqual((view(self.ctx, "run-valid")["schema_version"], view(self.ctx, "run-valid")["delivery"]), (2, None))
+        receipts = self.ctx.data_root / "receipts"
+        receipts.mkdir()
+        save_signed(self.ctx, receipts / "github-pr-op-view1234.json", {
+            "run_id": "run-valid", "status": "draft", "url": "https://github.com/o/r/pull/7", "pr_number": 7, "head_sha": "b" * 40})
+        self.assertEqual(view(self.ctx, "run-valid")["delivery"]["ci"], None)
+        save_signed(self.ctx, receipts / "github-ci-op-view1234.json", {"seen": ["x"], "latest": "2026-11-05T10:00:00Z", "conclusion": "success"})
+        delivery = view(self.ctx, "run-valid")["delivery"]
+        self.assertEqual((delivery["state"], delivery["pr_number"], delivery["ci"]),
+                         ("ok", 7, {"conclusion": "success", "completed_at": "2026-11-05T10:00:00Z"}))
+        other = self.fixture("run-other")
+        self.assertIsNone(view(self.ctx, "run-other")["delivery"])
+        text = (receipts / "github-ci-op-view1234.json").read_text()
+        (receipts / "github-ci-op-view1234.json").write_text(text.replace("success", "failure"))
+        self.assertEqual(view(self.ctx, "run-valid")["delivery"]["state"], "tampered")
+
 
 if __name__ == "__main__":
     unittest.main()

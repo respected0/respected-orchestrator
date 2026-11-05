@@ -1,0 +1,319 @@
+{
+  "schema": "respected.eval.bench.v1.plan",
+  "tasks": [
+    "RSP-001",
+    "RSP-002",
+    "RSP-003",
+    "RSP-004",
+    "RSP-005",
+    "RSP-006",
+    "RSP-007",
+    "RSP-008",
+    "RSP-009",
+    "RSP-010"
+  ],
+  "repeat": 3,
+  "runs": [
+    {
+      "task_id": "RSP-001",
+      "arm": "direct",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-001",
+      "arm": "orchestrated",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-001",
+      "arm": "direct",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-001",
+      "arm": "orchestrated",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-001",
+      "arm": "direct",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-001",
+      "arm": "orchestrated",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-002",
+      "arm": "direct",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-002",
+      "arm": "orchestrated",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-002",
+      "arm": "direct",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-002",
+      "arm": "orchestrated",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-002",
+      "arm": "direct",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-002",
+      "arm": "orchestrated",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-003",
+      "arm": "direct",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-003",
+      "arm": "orchestrated",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-003",
+      "arm": "direct",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-003",
+      "arm": "orchestrated",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-003",
+      "arm": "direct",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-003",
+      "arm": "orchestrated",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-004",
+      "arm": "direct",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-004",
+      "arm": "orchestrated",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-004",
+      "arm": "direct",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-004",
+      "arm": "orchestrated",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-004",
+      "arm": "direct",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-004",
+      "arm": "orchestrated",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-005",
+      "arm": "direct",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-005",
+      "arm": "orchestrated",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-005",
+      "arm": "direct",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-005",
+      "arm": "orchestrated",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-005",
+      "arm": "direct",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-005",
+      "arm": "orchestrated",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-006",
+      "arm": "direct",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-006",
+      "arm": "orchestrated",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-006",
+      "arm": "direct",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-006",
+      "arm": "orchestrated",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-006",
+      "arm": "direct",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-006",
+      "arm": "orchestrated",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-007",
+      "arm": "direct",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-007",
+      "arm": "orchestrated",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-007",
+      "arm": "direct",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-007",
+      "arm": "orchestrated",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-007",
+      "arm": "direct",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-007",
+      "arm": "orchestrated",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-008",
+      "arm": "direct",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-008",
+      "arm": "orchestrated",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-008",
+      "arm": "direct",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-008",
+      "arm": "orchestrated",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-008",
+      "arm": "direct",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-008",
+      "arm": "orchestrated",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-009",
+      "arm": "direct",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-009",
+      "arm": "orchestrated",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-009",
+      "arm": "direct",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-009",
+      "arm": "orchestrated",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-009",
+      "arm": "direct",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-009",
+      "arm": "orchestrated",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-010",
+      "arm": "direct",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-010",
+      "arm": "orchestrated",
+      "repeat": 1
+    },
+    {
+      "task_id": "RSP-010",
+      "arm": "direct",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-010",
+      "arm": "orchestrated",
+      "repeat": 2
+    },
+    {
+      "task_id": "RSP-010",
+      "arm": "direct",
+      "repeat": 3
+    },
+    {
+      "task_id": "RSP-010",
+      "arm": "orchestrated",
+      "repeat": 3
+    }
+  ],
+  "total_runs": 60
+}
