@@ -160,6 +160,8 @@ def run_direct(agent, fixture, repeat, timeout):
             return _record(fixture, "direct", repeat, start, "timeout", started, usage)
         if QUOTA.search(output):
             return _record(fixture, "direct", repeat, start, "quota_stop", started, usage)
+        if done["returncode"] != 0:  # a crashed agent (port clash, auth) is not evidence about the model
+            return _record(fixture, "direct", repeat, start, "agent_error", started, usage, reason=output[-200:])
         return _record(fixture, "direct", repeat, start, _acceptance(root, timeout), started, usage)
     finally:
         shutil.rmtree(root, ignore_errors=True)
@@ -247,6 +249,8 @@ def validate(report_, *, release=True):
     runs = report_.get("runs", [])
     if report_.get("status") != "complete":
         problems.append(f"status is {report_.get('status')!r}")
+    if any(r.get("status") == "agent_error" for r in runs):
+        problems.append("agent_error runs present: the agent did not run, rerun them")
     if report_.get("golden_used") is not False or any(r.get("status") == "invalid" for r in runs):
         problems.append("golden fix reached an agent or a run is invalid")
     if release and report_.get("kind") != "real":
