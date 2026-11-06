@@ -60,6 +60,15 @@ pub fn discover(app_dir: Option<PathBuf>, local_app_data: Option<PathBuf>) -> Re
     }
 }
 
+impl Launch {
+    /// The same engine, started as the native presence connection. The renderer never gets a handle to it.
+    pub fn human(&self) -> Launch {
+        let mut l = self.clone();
+        l.args.push("--human".into());
+        l
+    }
+}
+
 pub struct Connection {
     child: Child,
     stdin: ChildStdin,
@@ -100,16 +109,21 @@ impl Connection {
         Ok(c)
     }
 
-    fn call(&mut self, cmd: &str) -> Result<Value, ConnectError> {
+    /// One request, the engine's whole reply (including `ok:false`): transport failures are errors, engine refusals are data.
+    pub fn raw(&mut self, cmd: &str, payload: Value) -> Result<Value, ConnectError> {
         self.n += 1;
-        let req = json!({"ipc": IPC, "id": format!("shell-{:08}", self.n), "session": self.token, "cmd": cmd, "payload": {}});
+        let req = json!({"ipc": IPC, "id": format!("shell-{:08}", self.n), "session": self.token, "cmd": cmd, "payload": payload});
         let gone = |e: String| ConnectError::Disconnected(e);
         writeln!(self.stdin, "{req}").and_then(|_| self.stdin.flush()).map_err(|e| gone(e.to_string()))?;
         let mut line = String::new();
         if self.stdout.read_line(&mut line).map_err(|e| gone(e.to_string()))? == 0 {
             return Err(gone("engine closed the connection".into()));
         }
-        let v: Value = serde_json::from_str(&line).map_err(|_| ConnectError::BrokenInstall(line.chars().take(120).collect()))?;
+        serde_json::from_str(&line).map_err(|_| ConnectError::BrokenInstall(line.chars().take(120).collect()))
+    }
+
+    fn call(&mut self, cmd: &str) -> Result<Value, ConnectError> {
+        let v = self.raw(cmd, json!({}))?;
         if v["ok"] != true {
             return Err(ConnectError::BrokenInstall(v["error"].to_string()));
         }

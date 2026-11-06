@@ -9,8 +9,8 @@ import json
 import re
 
 from ..interfaces import rpp
-from .authority import Action, Origin, authorize
-from . import read_model, review_model
+from .authority import Action, Origin, authorize, effective_origin
+from . import approval, read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control
 from .journal import Journal
 from .lanes import _pid_is_alive
@@ -46,6 +46,9 @@ COMMANDS = {
     "project.cancel": (None, Action.TASK),
     "project.resume": (None, Action.TASK),
     "review.view": (None, Action.READ),
+    "approval.open": (None, Action.TASK),
+    "approval.decide": (None, Action.PRIVILEGED),
+    "approval.apply": (None, Action.PRIVILEGED),
 }
 ERRORS = ("BAD_REQUEST", "UNSUPPORTED_VERSION", "UNAUTHENTICATED", "UNKNOWN_COMMAND", "FORBIDDEN",
           "PAYLOAD_TOO_LARGE", "REPLAY_CONFLICT", "ENGINE_ERROR")
@@ -57,11 +60,12 @@ def _reply(corr, ok, result=None, code=None, message=""):
 
 
 class LocalApi:
-    def __init__(self, ctx, token, origin=Origin.RENDERER, journal=None):
+    def __init__(self, ctx, token, origin=Origin.RENDERER, journal=None, only=None):
         if not isinstance(token, str) or len(token) < 16:
             raise ValueError("session token must be at least 16 characters")
         self.ctx, self._token, self.origin = ctx, token, origin
         self.journal = journal
+        self.only = only  # a connection that may use just these commands (the native approval pipe)
         self._seen = {}  # id -> (request digest, response)
 
     def handle_raw(self, raw):
@@ -82,6 +86,21 @@ class LocalApi:
                 return _reply(corr, True, project_control.status(self.ctx, pid))
             action = project_control.cancel if command == "project.cancel" else project_control.resume
             return _reply(corr, True, action(self.ctx, pid, corr))
+        except (ValueError, TypeError, KeyError, OSError) as error:
+            return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300])
+
+    def _approval(self, corr, command, payload):
+        """The approval protocol; the origin check in handle() already kept every non-human origin away from decide/apply."""
+        try:
+            if command == "approval.open":
+                result = approval.open_challenge(self.ctx, payload.get("run_id"), origin=self.origin)
+            elif command == "approval.decide":
+                result = approval.decide(self.ctx, payload.get("challenge_id"), payload.get("decision"), payload.get("binding"), origin=self.origin)
+            else:
+                result = approval.apply_with_grant(self.ctx, payload.get("token"), payload.get("run_id"), origin=self.origin)
+            return _reply(corr, True, result)
+        except PermissionError:
+            return _reply(corr, False, code="FORBIDDEN", message="Not allowed for this origin.")
         except (ValueError, TypeError, KeyError, OSError) as error:
             return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300])
 
@@ -148,6 +167,8 @@ class LocalApi:
         payload = request.get("payload", {})
         if not isinstance(payload, dict):
             return _reply(corr, False, code="BAD_REQUEST", message="payload must be an object.")
+        if self.only is not None and command not in self.only:
+            return _reply(corr, False, code="FORBIDDEN", message="Not available on this connection.")
         op, action = COMMANDS[command]
         try:
             authorize(self.origin, action)
@@ -171,6 +192,8 @@ class LocalApi:
                 response = _reply(corr, False, code="BAD_REQUEST", message="plan.view needs spec (object) and project_root (string).")
             else:
                 response = _reply(corr, True, dag_view.dag_view(spec, root))
+        elif command.startswith("approval."):
+            response = self._approval(corr, command, payload)
         elif command == "review.view":
             run_id = payload.get("run_id")
             if not isinstance(run_id, str) or not re.fullmatch(r"run-\d{14}-[0-9a-f]{12}", run_id):
@@ -195,13 +218,21 @@ class LocalApi:
         return response
 
 
-def serve(ctx, stdin, stdout, environ):
+HUMAN_COMMANDS = frozenset({"hello", "engine.manifest", "review.view", "approval.decide", "approval.apply"})
+
+
+def serve(ctx, stdin, stdout, environ, human=False):
     """Line-delimited loop over the parent's own pipes: only the process that spawned us can talk to us.
 
     The token arrives in RESPECTED_IPC_TOKEN (never argv) and is dropped from the environment so children cannot inherit it.
+    `human` is the native presence connection: the shell starts a second engine for it and never hands it to the renderer.
+    An orchestrated process (RESPECTED_ORCH_CHILD) is never a human, whatever it asks for.
     """
     token = environ.pop("RESPECTED_IPC_TOKEN", "")
-    api = LocalApi(ctx, token, journal=Journal(ctx.state_dir / "events.log"))
+    if human:
+        api = LocalApi(ctx, token, origin=effective_origin(Origin.HUMAN, environ), only=HUMAN_COMMANDS)
+    else:
+        api = LocalApi(ctx, token, journal=Journal(ctx.state_dir / "events.log"))
     for line in stdin:
         if line.strip():
             stdout.write(json.dumps(api.handle_raw(line.encode("utf-8")), ensure_ascii=True) + "\n")

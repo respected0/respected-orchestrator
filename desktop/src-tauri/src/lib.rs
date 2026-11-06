@@ -1,3 +1,4 @@
+pub mod approval;
 pub mod engine_connector;
 
 use engine_connector::{ConnectError, Connection, Status};
@@ -31,6 +32,26 @@ fn engine_status(state: tauri::State<Mutex<Option<Connection>>>) -> Result<Statu
     Ok(status)
 }
 
+/// The renderer may only *ask* to apply a run. The decision is made in a native dialog the WebView cannot reach, and the
+/// answer comes back as data (never the token, never a handle to the human connection).
+#[tauri::command]
+async fn request_apply(run_id: String, state: tauri::State<'_, Mutex<Option<approval::Pair>>>, gate: tauri::State<'_, approval::Gate>) -> Result<serde_json::Value, String> {
+    let mut slot = state.try_lock().map_err(|_| "Another approval is in progress.".to_string())?;
+    if slot.is_none() {
+        let launch = engine_connector::discover(
+            std::env::var_os("RESPECTED_APP_DIR").map(PathBuf::from),
+            std::env::var_os("LOCALAPPDATA").map(PathBuf::from),
+        ).map_err(|e| format!("{e:?}"))?;
+        *slot = Some(approval::Pair::connect(&launch).map_err(|e| format!("{e:?}"))?);
+    }
+    #[cfg(windows)]
+    let result = approval::request_apply(&run_id, slot.as_mut().unwrap(), &approval::NativeDialog, &gate);
+    #[cfg(not(windows))]
+    let result: Result<serde_json::Value, approval::ApprovalError> = { let _ = (&run_id, &gate); Err(approval::ApprovalError::Engine("Native approval is only available on Windows.".into())) };
+    if matches!(result, Err(approval::ApprovalError::Transport(_))) { *slot = None; }
+    result.map_err(|e| format!("{e:?}"))
+}
+
 /// Closing the window is only held back to tell the user that active runs keep going; it never stops them.
 pub fn must_ask(active_runs: usize, already_confirmed: bool) -> bool { active_runs > 0 && !already_confirmed }
 
@@ -58,6 +79,8 @@ pub fn run() {
     tauri::Builder::default()
         .manage(Mutex::new(None::<Connection>))
         .manage(CloseConfirmed::default())
+        .manage(Mutex::new(None::<approval::Pair>))
+        .manage(approval::Gate::default())
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 let active = window.state::<Mutex<Option<Connection>>>().lock().unwrap()
@@ -68,7 +91,7 @@ pub fn run() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![engine_status, confirm_close])
+        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply])
         .plugin(
             tauri::plugin::Builder::<tauri::Wry, ()>::new("navigation-guard")
                 .on_navigation(|_, url| navigation_allowed(url))

@@ -1028,7 +1028,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-05.02 — Gerçek kullanıcı onayı için native authority
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/approval.py`, IPC `approval.*`, `_ipc --human`, Rust `approval.rs` + `request_apply`; `tests/engine/test_approval.py` (14 OK), `cargo test --lib` (15 OK); kanıt `docs/evidence/KANIT_LOG.md` B3-05.02.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-00.03`, `B3-01.02`.
 - **Mimari / değişecek alan:** IPC’den ayrı native/user-presence path; renderer ve worker’ın kendi kendine tetikleyemeyeceği sınır.

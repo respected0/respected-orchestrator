@@ -137,10 +137,10 @@ def main(argv=None):
     if argv[:1] == ["_openrouter"]:  # read-only provider worker: touches no data root beyond the key vault
         from .engine import openrouter_worker
         return openrouter_worker.main(argv[1:])
-    if argv == ["_ipc"]:  # the desktop shell's engine connector: line-delimited local IPC on the parent's own pipes
+    if argv in (["_ipc"], ["_ipc", "--human"]):  # the desktop shell's engine connector: line-delimited local IPC on the parent's own pipes
         from .engine import local_api
         try:
-            return local_api.serve(EngineContext(default_data_root()), sys.stdin, sys.stdout, os.environ)
+            return local_api.serve(EngineContext(default_data_root()), sys.stdin, sys.stdout, os.environ, human=argv[1:] == ["--human"])
         except ValueError as error:
             print(json.dumps({"error": {"code": "IPC_TOKEN", "message": str(error), "hint": "Start it from the desktop app."}}))
             return 2
