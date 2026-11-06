@@ -1044,9 +1044,8 @@ def artifact_data(ctx, run_id, name):
     return {"name": name, "data_url": f"data:{kind};base64,{base64.b64encode(path.read_bytes()).decode('ascii')}"}
 
 
-def inspect_task(ctx, run_id):
-    directory = ctx.run_dir(run_id)
-    request = load_signed(ctx, directory / "request.json")
+def effective_status(ctx, directory):
+    """The one place a run's status is decided (CLI and desktop read model share it): a dead supervisor means interrupted."""
     status = load_signed(ctx, directory / "status.json")
     if status["status"] == "running" and not lanes._pid_is_alive(status.get("pid", -1)):
         status = {**status, "status": "interrupted", "reason": "supervisor_exited"}
@@ -1054,6 +1053,13 @@ def inspect_task(ctx, run_id):
         supervisor = load_signed(ctx, directory / "supervisor.json")
         if not lanes._pid_is_alive(supervisor.get("pid", -1)):
             status = {**status, "status": "interrupted", "reason": "supervisor_exited"}
+    return status
+
+
+def inspect_task(ctx, run_id):
+    directory = ctx.run_dir(run_id)
+    request = load_signed(ctx, directory / "request.json")
+    status = effective_status(ctx, directory)
     logs = {}
     for path in sorted(directory.glob("*.log")):
         path = safe_path(path)

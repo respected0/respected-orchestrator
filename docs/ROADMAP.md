@@ -960,7 +960,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-04.01 — Project/Run read model + filtreler
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/read_model.py`, IPC `runs.list`/`projects.list`, `tests/engine/test_read_model.py` (9 OK); kanıt `docs/evidence/KANIT_LOG.md` B3-04.01.
 - **Öncelik / boyut:** P0 / M
 - **Bağımlılıklar:** `B3-01.03`, `B3-02.02`.
 - **Mimari / değişecek alan:** Motor veri şemasından read-only DTO: project, run, stage, agent, status, dependency, evidence reference.

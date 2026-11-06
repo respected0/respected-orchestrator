@@ -10,6 +10,7 @@ import re
 
 from ..interfaces import rpp
 from .authority import Action, Origin, authorize
+from . import read_model
 from .journal import Journal
 from .lanes import _pid_is_alive
 from .supervisor import Supervisor
@@ -34,6 +35,8 @@ COMMANDS = {
     "events.snapshot": (None, Action.READ),
     "events.since": (None, Action.READ),
     "runs.active": (None, Action.READ),
+    "runs.list": (None, Action.READ),
+    "projects.list": (None, Action.READ),
 }
 ERRORS = ("BAD_REQUEST", "UNSUPPORTED_VERSION", "UNAUTHENTICATED", "UNKNOWN_COMMAND", "FORBIDDEN",
           "PAYLOAD_TOO_LARGE", "REPLAY_CONFLICT", "ENGINE_ERROR")
@@ -62,6 +65,20 @@ class LocalApi:
         except (ValueError, RecursionError):
             return _reply(None, False, code="BAD_REQUEST", message="Request is not valid JSON.")
         return self.handle(request)
+
+    def _board(self, corr, command, payload):
+        """Read-only board pages from the engine's own files; malformed filters are refused, never guessed."""
+        states, query, order = payload.get("states"), payload.get("query"), payload.get("order", "newest")
+        cursor, limit = payload.get("cursor"), payload.get("limit", 50)
+        if (states is not None and not (isinstance(states, list) and all(isinstance(x, str) for x in states)))                 or (query is not None and not isinstance(query, str)) or order not in ("newest", "oldest")                 or (cursor is not None and not isinstance(cursor, str)) or type(limit) is not int:
+            return _reply(corr, False, code="BAD_REQUEST", message="Bad filter, order, cursor or limit.")
+        try:
+            if command == "runs.list":
+                return _reply(corr, True, read_model.runs_page(self.ctx, states=states, query=query, newest_first=order == "newest",
+                                                               cursor=cursor, limit=limit))
+            return _reply(corr, True, read_model.projects_page(self.ctx, cursor=cursor, limit=limit))
+        except ValueError as error:
+            return _reply(corr, False, code="BAD_REQUEST", message=str(error))
 
     def _events(self, corr, command, payload):
         if self.journal is None:
@@ -107,6 +124,8 @@ class LocalApi:
         if command == "runs.active":
             claims = Supervisor(self.ctx).claims()
             response = _reply(corr, True, {"runs": {run: pid for run, pid in claims.items() if _pid_is_alive(int(pid))}})
+        elif command in ("runs.list", "projects.list"):
+            response = self._board(corr, command, payload)
         elif command.startswith("events."):
             response = self._events(corr, command, payload)
         elif op is None:
