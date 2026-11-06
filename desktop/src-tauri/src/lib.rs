@@ -3,7 +3,6 @@ pub mod preview;
 pub mod engine_connector;
 
 use engine_connector::{ConnectError, Connection, Status};
-use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use tauri::{Emitter, Manager};
@@ -23,10 +22,7 @@ fn engine_status(state: tauri::State<Mutex<Option<Connection>>>) -> Result<Statu
             Err(_) => *slot = None, // engine went away: drop it and reconnect below
         }
     }
-    let launch = engine_connector::discover(
-        std::env::var_os("RESPECTED_APP_DIR").map(PathBuf::from),
-        std::env::var_os("LOCALAPPDATA").map(PathBuf::from),
-    ).map_err(problem)?;
+    let launch = engine_connector::discover_env().map_err(problem)?;
     let mut c = Connection::connect(&launch).map_err(problem)?;
     let status = c.status().map_err(problem)?;
     *slot = Some(c);
@@ -39,10 +35,7 @@ fn engine_status(state: tauri::State<Mutex<Option<Connection>>>) -> Result<Statu
 async fn request_apply(run_id: String, state: tauri::State<'_, Mutex<Option<approval::Pair>>>, gate: tauri::State<'_, approval::Gate>) -> Result<serde_json::Value, String> {
     let mut slot = state.try_lock().map_err(|_| "Another approval is in progress.".to_string())?;
     if slot.is_none() {
-        let launch = engine_connector::discover(
-            std::env::var_os("RESPECTED_APP_DIR").map(PathBuf::from),
-            std::env::var_os("LOCALAPPDATA").map(PathBuf::from),
-        ).map_err(|e| format!("{e:?}"))?;
+        let launch = engine_connector::discover_env().map_err(|e| format!("{e:?}"))?;
         *slot = Some(approval::Pair::connect(&launch).map_err(|e| format!("{e:?}"))?);
     }
     #[cfg(windows)]
@@ -60,10 +53,7 @@ fn capability_inventory(project_root: Option<String>, state: tauri::State<Mutex<
     let problem = |error: ConnectError| EngineProblem { hint: error.hint(), error };
     let mut slot = state.lock().unwrap();
     if slot.is_none() {
-        let launch = engine_connector::discover(
-            std::env::var_os("RESPECTED_APP_DIR").map(PathBuf::from),
-            std::env::var_os("LOCALAPPDATA").map(PathBuf::from),
-        ).map_err(problem)?;
+        let launch = engine_connector::discover_env().map_err(problem)?;
         *slot = Some(Connection::connect(&launch).map_err(problem)?);
     }
     match slot.as_mut().unwrap().inventory(project_root) {
@@ -82,10 +72,7 @@ async fn preview_open<R: tauri::Runtime>(url: String, app: tauri::AppHandle<R>, 
     let settings = {
         let mut slot = state.lock().unwrap();
         if slot.is_none() {
-            let launch = engine_connector::discover(
-                std::env::var_os("RESPECTED_APP_DIR").map(PathBuf::from),
-                std::env::var_os("LOCALAPPDATA").map(PathBuf::from),
-            ).map_err(|e| format!("{e:?}"))?;
+            let launch = engine_connector::discover_env().map_err(|e| format!("{e:?}"))?;
             *slot = Some(Connection::connect(&launch).map_err(|e| format!("{e:?}"))?);
         }
         match slot.as_mut().unwrap().settings_readback() {

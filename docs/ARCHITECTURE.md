@@ -14,6 +14,12 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   `distribution.json` ile doğrulayıp kurulumu `app\.respected\install.json` olarak kaydeder. `manifest`'in `install_state`
   değeri bu kayıttan ve dosyaların şimdiki hash'inden gelir; Hub ve ürün "kurulu" ile "onarım gerekli" konusunda aynı şeyi
   söyler.
+- Masaüstü kabuğu (`respected-orchestrator-desktop.exe`) motorla **tek pakettir** (ADR-025): `build_dist.py --desktop <exe>` onu motor
+  başlatıcısının yanına, klasör köküne koyar ve `distribution.json`'a hem `files` içinde (sha256) hem de isteğe bağlı üst düzey
+  `desktop` anahtarıyla yazar; `schema_version` 1 kalır. `build_dist.py --audit` bildirimi klasörle karşılaştırır (eksik, fazla,
+  karma uyuşmazlığı, adlandırılmış ama karmasız kabuk). Kabuk motoru önce `RESPECTED_APP_DIR` (verilmişse yalnız orası), sonra kendi
+  klasöründe, sonra `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app` altında arar ve başlatıcının karmasını `distribution.json`
+  ile eşleştirmeden çalıştırmaz (kurulu klasörlerde bildirim zorunlu). Onarım kurucuyu yeniden çalıştırmaktır; kabuk dosya yazmaz.
 - Motor kendini her zaman `context.engine_command` ile yeniden başlatır: donmuşsa exe, kaynaktan
   `python -m respected_orchestrator`. Ayrık görev, proje ve kampanya denetleyicileri
   bu yoldan geçer. Her alt süreç `engine/winproc` üzerinden açılır.

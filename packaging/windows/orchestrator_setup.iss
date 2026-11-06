@@ -61,6 +61,12 @@ turkish.ReadyLabel2b=Kuruluma başlamak için Kur düğmesine tıklayın.
 [Files]
 Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+; ADR-025: the desktop shell sits next to the engine launcher. A Start menu entry exists only when this build ships it.
+#ifexist StageDir + "\respected-orchestrator-desktop.exe"
+[Icons]
+Name: "{autoprograms}\Respected Orchestrator"; Filename: "{app}\respected-orchestrator-desktop.exe"; WorkingDir: "{app}"
+#endif
+
 [UninstallRun]
 ; the product takes back its MCP registrations and removes its install record (and with /PURGE=1 or a yes its settings and runs)
 Filename: "{app}\respected-orchestrator.exe"; Parameters: "{code:UninstallArgs}"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveProduct"

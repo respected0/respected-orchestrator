@@ -34,10 +34,10 @@ pub enum ConnectError {
 impl ConnectError {
     pub fn hint(&self) -> &'static str {
         match self {
-            ConnectError::NotInstalled(_) | ConnectError::BrokenInstall(_) => "Run the Respected Orchestrator installer again (repair).",
-            ConnectError::WrongOwner(_) => "Refused: the program is not Respected Orchestrator's engine.",
-            ConnectError::VersionMismatch(_) => "Update the app and the engine to the same release.",
-            ConnectError::Disconnected(_) => "The engine stopped; reconnect.",
+            ConnectError::NotInstalled(_) | ConnectError::BrokenInstall(_) => "Respected Orchestrator kurucusunu yeniden çalıştırın (Onar).",
+            ConnectError::WrongOwner(_) => "Reddedildi: bu program Respected Orchestrator'ın motoru değil.",
+            ConnectError::VersionMismatch(_) => "Uygulamayı ve motoru aynı sürüme güncelleyin.",
+            ConnectError::Disconnected(_) => "Motor durdu; yeniden bağlanmayı deneyin.",
         }
     }
 }
@@ -48,16 +48,64 @@ pub struct Status {
     pub healthy: bool,
 }
 
-/// Installed engine: `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app\respected-orchestrator.exe` (PRODUCT_CONTRACT §2).
-/// `RESPECTED_APP_DIR` is the contract's test/dev override for the program folder.
-pub fn discover(app_dir: Option<PathBuf>, local_app_data: Option<PathBuf>) -> Result<Launch, ConnectError> {
-    let dir = app_dir.or_else(|| local_app_data.map(|p| p.join("Respected").join("RespectedOrchestrator").join("app")));
-    let exe = dir.map(|d| d.join("respected-orchestrator.exe"));
-    match exe {
-        Some(p) if p.is_file() => Ok(Launch { program: p, args: vec!["_ipc".into()], env: vec![] }),
-        Some(p) => Err(ConnectError::NotInstalled(p.display().to_string())),
-        None => Err(ConnectError::NotInstalled("no program folder".into())),
+/// The engine launcher's file name inside an install folder (ADR-025).
+pub const LAUNCHER: &str = "respected-orchestrator.exe";
+
+fn sha256_hex(path: &std::path::Path) -> std::io::Result<String> {
+    use sha2::{Digest, Sha256};
+    let mut file = std::fs::File::open(path)?;
+    let mut hasher = Sha256::new();
+    std::io::copy(&mut file, &mut hasher)?;
+    Ok(hasher.finalize().iter().map(|b| format!("{b:02x}")).collect())
+}
+
+/// The launcher must be exactly the file the package manifest recorded, before it is ever started (ADR-025).
+/// `dev_override`: the contract's RESPECTED_APP_DIR test/dev folder may have no manifest; an installed folder must.
+pub fn verify_launcher(dir: &std::path::Path, dev_override: bool) -> Result<(), ConnectError> {
+    let broken = |m: String| ConnectError::BrokenInstall(m);
+    let manifest = dir.join("distribution.json");
+    if !manifest.is_file() {
+        return if dev_override { Ok(()) } else { Err(broken("distribution.json is missing from the install folder".into())) };
     }
+    let text = std::fs::read_to_string(&manifest).map_err(|e| broken(format!("distribution.json unreadable: {e}")))?;
+    let doc: Value = serde_json::from_str(&text).map_err(|_| broken("distribution.json is not valid JSON".into()))?;
+    let expected = doc["files"][LAUNCHER].as_str().ok_or_else(|| broken("the launcher is not listed in distribution.json".into()))?;
+    let actual = sha256_hex(&dir.join(LAUNCHER)).map_err(|e| broken(format!("the launcher cannot be read: {e}")))?;
+    if !actual.eq_ignore_ascii_case(expected) {
+        return Err(broken("the engine launcher does not match distribution.json".into()));
+    }
+    Ok(())
+}
+
+/// Installed engine, searched in this order: `RESPECTED_APP_DIR` (the contract's test/dev override; when set it is the only place looked at),
+/// the folder this program itself lives in, then `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app` (PRODUCT_CONTRACT section 2).
+/// The launcher is hash-checked against `distribution.json` before it is returned.
+pub fn discover(app_dir: Option<PathBuf>, exe_dir: Option<PathBuf>, local_app_data: Option<PathBuf>) -> Result<Launch, ConnectError> {
+    let candidates: Vec<(PathBuf, bool)> = match app_dir {
+        Some(dir) => vec![(dir, true)],
+        None => exe_dir.into_iter().map(|d| (d, false))
+            .chain(local_app_data.map(|p| (p.join("Respected").join("RespectedOrchestrator").join("app"), false))).collect(),
+    };
+    let mut first_missing: Option<PathBuf> = None;
+    for (dir, dev_override) in candidates {
+        let exe = dir.join(LAUNCHER);
+        if !exe.is_file() {
+            first_missing.get_or_insert(exe);
+            continue;
+        }
+        verify_launcher(&dir, dev_override)?;
+        return Ok(Launch { program: exe, args: vec!["_ipc".into()], env: vec![] });
+    }
+    Err(ConnectError::NotInstalled(first_missing.map(|p| p.display().to_string()).unwrap_or_else(|| "no program folder".into())))
+}
+
+/// `discover` with the real environment: the override, this program's own folder, the per-user install folder.
+pub fn discover_env() -> Result<Launch, ConnectError> {
+    discover(
+        std::env::var_os("RESPECTED_APP_DIR").map(PathBuf::from),
+        std::env::current_exe().ok().and_then(|p| p.parent().map(PathBuf::from)),
+        std::env::var_os("LOCALAPPDATA").map(PathBuf::from),
+    )
 }
 
 impl Launch {
@@ -184,9 +232,68 @@ mod tests {
     #[test]
     fn missing_engine_is_not_installed() {
         let dir = std::env::temp_dir().join("orch-no-engine");
-        assert!(matches!(discover(Some(dir), None), Err(ConnectError::NotInstalled(_))));
-        assert!(matches!(discover(None, None), Err(ConnectError::NotInstalled(_))));
+        assert!(matches!(discover(Some(dir), None, None), Err(ConnectError::NotInstalled(_))));
+        assert!(matches!(discover(None, None, None), Err(ConnectError::NotInstalled(_))));
         assert!(matches!(Connection::connect(&Launch { program: "definitely-not-an-engine.exe".into(), args: vec![], env: vec![] }), Err(ConnectError::NotInstalled(_))));
+    }
+
+    fn scratch(name: &str) -> PathBuf {
+        let d = std::env::temp_dir().join(format!("orch-pkg-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    /// A folder shaped like an install: a launcher file and a manifest that lists its real hash.
+    fn install(dir: &std::path::Path, launcher: &[u8], manifest: bool) {
+        std::fs::write(dir.join(LAUNCHER), launcher).unwrap();
+        if manifest {
+            let h = sha256_hex(&dir.join(LAUNCHER)).unwrap();
+            std::fs::write(dir.join("distribution.json"), json!({"schema_version": 1, "files": {LAUNCHER: h}}).to_string()).unwrap();
+        }
+    }
+
+    #[test]
+    fn a_matching_manifest_lets_the_launcher_through_and_any_change_stops_it_before_it_runs() {
+        let d = scratch("verify");
+        install(&d, b"engine v1", true);
+        assert!(discover(None, Some(d.clone()), None).is_ok());
+        std::fs::write(d.join(LAUNCHER), b"engine v1 + implant").unwrap(); // tampered after packaging
+        assert!(matches!(discover(None, Some(d.clone()), None), Err(ConnectError::BrokenInstall(m)) if m.contains("does not match")));
+        assert!(matches!(discover(Some(d.clone()), None, None), Err(ConnectError::BrokenInstall(_))), "a dev override is checked too when a manifest exists");
+        std::fs::remove_dir_all(&d).ok();
+    }
+
+    #[test]
+    fn missing_or_broken_manifests_fail_closed_for_installed_folders_only() {
+        let d = scratch("manifest");
+        install(&d, b"engine", false);
+        assert!(matches!(discover(None, Some(d.clone()), None), Err(ConnectError::BrokenInstall(m)) if m.contains("missing")));
+        assert!(discover(Some(d.clone()), None, None).is_ok(), "the dev override may have no manifest");
+        for bad in ["not json at all", "{}", "{\"files\": {}}", "{\"files\": {\"respected-orchestrator.exe\": 5}}", "[]", "{\"files\": {\"other.exe\": \"00\"}}"] {
+            std::fs::write(d.join("distribution.json"), bad).unwrap();
+            assert!(matches!(discover(None, Some(d.clone()), None), Err(ConnectError::BrokenInstall(_))), "{bad}");
+        }
+        std::fs::remove_dir_all(&d).ok();
+    }
+
+    #[test]
+    fn the_engine_next_to_the_shell_wins_and_the_explicit_override_is_exclusive() {
+        let (own, per_user, other) = (scratch("own"), scratch("peruser"), scratch("override"));
+        install(&own, b"own engine", true);
+        let app = per_user.join("Respected").join("RespectedOrchestrator").join("app");
+        std::fs::create_dir_all(&app).unwrap();
+        install(&app, b"per-user engine", true);
+        let chosen = discover(None, Some(own.clone()), Some(per_user.clone())).unwrap();
+        assert_eq!(chosen.program, own.join(LAUNCHER));
+        let fallback = discover(None, Some(scratch("empty")), Some(per_user.clone())).unwrap();
+        assert_eq!(fallback.program, app.join(LAUNCHER));
+        // an override that points at nothing is NotInstalled; it never falls back to a real install
+        assert!(matches!(discover(Some(other.clone()), Some(own.clone()), Some(per_user.clone())), Err(ConnectError::NotInstalled(_))));
+        // a tampered engine next to the shell is an error, not a silent fallback to another copy
+        std::fs::write(own.join(LAUNCHER), b"tampered").unwrap();
+        assert!(matches!(discover(None, Some(own.clone()), Some(per_user.clone())), Err(ConnectError::BrokenInstall(_))));
+        for d in [own, per_user, other] { std::fs::remove_dir_all(&d).ok(); }
     }
 
     #[test]

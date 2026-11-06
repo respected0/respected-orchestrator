@@ -1212,7 +1212,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-09.01 — Desktop+engine paket sözleşmesi
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — ADR-025, `build_dist.py --desktop/--audit`, kabuk motoru kendi yanında bulur ve başlatıcı karmasını doğrular; `test_desktop_package` 9 OK + `cargo test` 26+1 + gerçek pencere smoke (`docs/evidence/b3-09-01-package-smoke.md`); kanıt `docs/evidence/KANIT_LOG.md` B3-09.01. **Not:** gerçek kurucu çalıştırılmadı, kurucu yalnız derlendi.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-01.03`, `B3-00.04`.
 - **Mimari / değişecek alan:** Mevcut PyInstaller engine distribution.json ve Inno installer, desktop bundle; strateji ADR ile seçilir.
