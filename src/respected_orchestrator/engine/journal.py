@@ -97,18 +97,25 @@ class Journal:
         self._seen.add((operation_id, event_type))
         return record
 
-    def replay(self, after=0, limit=None):
-        out = []
+    def scan(self, after=0):
+        """Trusted records with seq > after, one at a time (no list is built); stops at the first corrupt line."""
+        if not self.path.exists():
+            return
         with open(self.path, "rb") as f:
             for line in f:
                 try:
                     record = _decode(line)
                 except (ValueError, TypeError):
-                    break  # corrupt from here on: return the trusted prefix only
+                    return  # corrupt from here on: the trusted prefix only
                 if record["seq"] > after:
-                    out.append(record)
-                    if limit and len(out) >= limit:
-                        break
+                    yield record
+
+    def replay(self, after=0, limit=None):
+        out = []
+        for record in self.scan(after):
+            out.append(record)
+            if limit and len(out) >= limit:
+                break
         return out
 
     def archive(self, to_path):

@@ -1074,7 +1074,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-06.01 — Event timeline ve arama/filtre
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/activity.py`, `Journal.scan`, IPC `activity.list`; `tests/engine/test_activity.py` (10 OK, 10k olay); kanıt `docs/evidence/KANIT_LOG.md` B3-06.01.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B3-02.03`, `B3-04.01`.
 - **Mimari / değişecek alan:** Sürümlü type event’lerden activity read model.

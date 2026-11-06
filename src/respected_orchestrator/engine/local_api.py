@@ -10,7 +10,7 @@ import re
 
 from ..interfaces import rpp
 from .authority import Action, Origin, authorize, effective_origin
-from . import approval, read_model, review_model
+from . import activity, approval, read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control
 from .journal import Journal
 from .lanes import _pid_is_alive
@@ -46,6 +46,7 @@ COMMANDS = {
     "project.cancel": (None, Action.TASK),
     "project.resume": (None, Action.TASK),
     "review.view": (None, Action.READ),
+    "activity.list": (None, Action.READ),
     "approval.open": (None, Action.TASK),
     "approval.decide": (None, Action.PRIVILEGED),
     "approval.apply": (None, Action.PRIVILEGED),
@@ -194,6 +195,17 @@ class LocalApi:
                 response = _reply(corr, True, dag_view.dag_view(spec, root))
         elif command.startswith("approval."):
             response = self._approval(corr, command, payload)
+        elif command == "activity.list":
+            if self.journal is None:
+                response = _reply(corr, False, code="ENGINE_ERROR", message="No event journal.")
+            else:
+                try:
+                    response = _reply(corr, True, activity.timeline(
+                        self.journal, cursor=payload.get("cursor", 0), limit=payload.get("limit", 50), run=payload.get("run"),
+                        op=payload.get("op"), stages=payload.get("stages"), types=payload.get("types"),
+                        agent=payload.get("agent"), query=payload.get("query")))
+                except (ValueError, TypeError) as error:
+                    response = _reply(corr, False, code="BAD_REQUEST", message=str(error)[:200])
         elif command == "review.view":
             run_id = payload.get("run_id")
             if not isinstance(run_id, str) or not re.fullmatch(r"run-\d{14}-[0-9a-f]{12}", run_id):
