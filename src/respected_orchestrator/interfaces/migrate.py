@@ -73,7 +73,10 @@ def migrate_data(data_root: Path, *, current=CURRENT, steps=STEPS) -> list[str]:
         path = Path(data_root) / name
         if not path.is_file():
             continue
-        original = path.read_bytes()
+        try:
+            original = path.read_bytes()
+        except OSError as error:
+            raise MigrationError(f"{name} okunamadı ({error.strerror or error}); veri dosyasına dokunulmadı") from error
         try:
             document = json.loads(original)
         except ValueError as error:
@@ -93,8 +96,11 @@ def migrate_data(data_root: Path, *, current=CURRENT, steps=STEPS) -> list[str]:
             document = steps[(name, step)](document)
             document["schema_version"] = step + 1
         backup = path.with_name(f"{name}.v{version}.bak")
-        if not backup.exists():
-            backup.write_bytes(original)
-        atomic_write_json(path, document)
+        try:
+            if not backup.exists():
+                backup.write_bytes(original)
+            atomic_write_json(path, document)  # temp file + replace: the original stays whole until the new one is complete
+        except OSError as error:  # read-only folder or file, full disk, a locked file...
+            raise MigrationError(f"{name} yazılamadı ({error.strerror or error}); özgün dosya olduğu gibi duruyor") from error
         moved.append(name)
     return moved

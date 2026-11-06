@@ -1223,7 +1223,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-09.02 — Beta.1/2 veri fixture ve migration
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `migrate.py` OSError sarmalama, `upgrade_proof.py` Beta.2 uyarlaması, `migration_report.py`; gerçek yükseltme kanıtı beta.1 (29 OK) ve beta.2 (26 OK, 3 N/A), `test_migration_faults` 13 OK (gerçek süreç ölümü, salt-okunur, ACL, eşzamanlı) + mutasyon 6/6; rapor `docs/evidence/b3-09-02-migration-report.md`, kanıt `docs/evidence/KANIT_LOG.md` B3-09.02.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-09.01`, `B3-02.02`.
 - **Mimari / değişecek alan:** settings schema STEPS ve gerçek releases fixture; append-only event store migrate.

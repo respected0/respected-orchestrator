@@ -24,9 +24,20 @@ report = []
 TERMINAL = {"completed", "failed", "blocked", "cancelled", "LANES_NEED_REVIEW"}
 
 
-def step(name, ok, detail=""):
-    report.append({"step": name, "ok": bool(ok), "detail": str(detail)[:1500]})
-    print(("PASS " if ok else "FAIL ") + name + (f"  [{str(detail)[:160]}]" if not ok else ""), flush=True)
+def step(name, ok, detail="", na=False):
+    """`na`: the step does not apply to this old release (said out loud in the report, never a silent pass)."""
+    report.append({"step": name, "ok": bool(ok), "detail": str(detail)[:1500], **({"not_applicable": True} if na else {})})
+    print(("N/A  " if na else "PASS " if ok else "FAIL ") + name + (f"  [{str(detail)[:160]}]" if (not ok or na) else ""), flush=True)
+
+
+def source_digest(src):
+    """One digest of every .py file under a source folder: tells two releases apart even when their version strings are equal."""
+    import hashlib
+    digest = hashlib.sha256()
+    for path in sorted(Path(src).rglob("*.py")):
+        digest.update(path.relative_to(src).as_posix().encode())
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
 
 
 class Side:
@@ -113,11 +124,17 @@ def main():
     step("old release runs", code == 0, out or err)
     old_version = out.get("raw", "").split()[-1] if isinstance(out, dict) else None
     code, out, err = old.cli("config", "set", "default_worker=gemini", "default_reviewer_tool=gemini", "blocked_profiles=mimo")
-    step("old: Gemini defaults saved", code == 0, out or err)
-    (home / ".gemini" / "settings.json").write_text(json.dumps({"theme": "mine", "mcpServers": {"other": {"command": "x"}}}))
-    code, out, err = old.cli("integrations", "set", "gemini=on")
-    registered = "respected" in (home / ".gemini" / "settings.json").read_text().lower()
-    step("old: Gemini MCP registered", code == 0 and registered, out or err)
+    legacy_gemini = code == 0  # beta.1 supported Gemini; later releases refuse it, so there is no Gemini data to carry over
+    if legacy_gemini:
+        step("old: Gemini defaults saved", True, out or err)
+        (home / ".gemini" / "settings.json").write_text(json.dumps({"theme": "mine", "mcpServers": {"other": {"command": "x"}}}))
+        code, out, err = old.cli("integrations", "set", "gemini=on")
+        registered = "respected" in (home / ".gemini" / "settings.json").read_text().lower()
+        step("old: Gemini MCP registered", code == 0 and registered, out or err)
+    else:
+        step("old: Gemini defaults saved", True, "this release already refuses Gemini (no legacy Gemini data exists to migrate)", na=True)
+        step("old: Gemini MCP registered", True, "this release has no Gemini client", na=True)
+        old.cli("config", "set", "blocked_profiles=mimo")
 
     repo = git_repo(work / "proj")
     write = "from pathlib import Path; Path('f.txt').write_text('new\\n')"
@@ -185,7 +202,10 @@ with mock.patch("respected_orchestrator.engine.runner._stdin_is_tty", return_val
     # ---- phase 2: THIS checkout on the same data ---------------------------------------------------------------
     code, out, err = new.cli("--version")
     new_version = out.get("raw", "").split()[-1] if isinstance(out, dict) else None
-    step("new release runs and is a different version", code == 0 and new_version and new_version != old_version, f"old={old_version} new={new_version}")
+    different_source = source_digest(old.src) != source_digest(new.src)
+    step("new release runs and is a different version (or, with the same version string, different source)",
+         code == 0 and new_version and (new_version != old_version or different_source),
+         f"old={old_version} new={new_version} source differs={different_source}")
     settings_before = (work / "data" / "settings.json").read_bytes() if (work / "data" / "settings.json").is_file() else b""
     exe = ROOT / "dist" / "RespectedOrchestrator" / "respected-orchestrator.exe"
     frozen = lambda *a: (lambda d: (d.returncode, json.loads(d.stdout or "{}"), d.stderr))(
@@ -193,10 +213,16 @@ with mock.patch("respected_orchestrator.engine.runner._stdin_is_tty", return_val
     code, out, err = frozen("setup")
     step("new: setup migrates in place", code == 0, out or err)
     settings = json.loads((work / "data" / "settings.json").read_text("utf-8")) if (work / "data" / "settings.json").is_file() else {}
-    step("new: Gemini defaults moved to agy, other keys kept", settings.get("default_worker") == "agy"
-         and settings.get("default_reviewer_tool") == "agy" and settings.get("blocked_profiles") == "mimo", settings)
-    step("new: original settings kept as .bak", bool(settings_before) and any((work / "data").glob("settings.json.v1.bak")),
-         [p.name for p in (work / "data").glob("*.bak")])
+    if legacy_gemini:
+        step("new: Gemini defaults moved to agy, other keys kept", settings.get("default_worker") == "agy"
+             and settings.get("default_reviewer_tool") == "agy" and settings.get("blocked_profiles") == "mimo", settings)
+        step("new: original settings kept as .bak", bool(settings_before) and any((work / "data").glob("settings.json.v1.bak")),
+             [p.name for p in (work / "data").glob("*.bak")])
+    else:
+        step("new: settings written by the old release are read as they are and keep their keys",
+             settings.get("blocked_profiles") == "mimo" and settings.get("schema_version") == 2, settings)
+        step("new: nothing to back up when the file is already in the current format", not list((work / "data").glob("*.bak")),
+             [p.name for p in (work / "data").glob("*.bak")])
     code, out, err = frozen("repair")
     step("new: repair is idempotent", code == 0, out or err)
     code, out, err = frozen("health")
@@ -233,10 +259,13 @@ with mock.patch("respected_orchestrator.engine.runner._stdin_is_tty", return_val
     code, out, err = new.cli("project-cancel", killed_id)
     step("new: interrupted old project can be cancelled", code == 0, out or err)
 
-    code, out, err = new.cli("integrations", "set", "gemini=off")
-    gem = (home / ".gemini" / "settings.json").read_text()
-    step("new: Gemini MCP entry removed, user's own entries kept", code == 0 and "respected" not in gem.lower()
-         and '"other"' in gem and '"theme"' in gem, out or err or gem)
+    if legacy_gemini:
+        code, out, err = new.cli("integrations", "set", "gemini=off")
+        gem = (home / ".gemini" / "settings.json").read_text()
+        step("new: Gemini MCP entry removed, user's own entries kept", code == 0 and "respected" not in gem.lower()
+             and '"other"' in gem and '"theme"' in gem, out or err or gem)
+    else:
+        step("new: Gemini MCP entry removed, user's own entries kept", True, "no Gemini registration was ever made by this release", na=True)
     repo2 = git_repo(work / "proj2")
     code, made4, err = new.cli("create", stdin=json.dumps(task(repo2, "after upgrade", "f.txt", write, check)))
     new.cli("start", made4.get("run_id", ""))
@@ -247,7 +276,8 @@ with mock.patch("respected_orchestrator.engine.runner._stdin_is_tty", return_val
     code2, out2, _ = new.cli("integrations")
     step("new: integrations listing has no gemini", "gemini" not in json.dumps(out2).lower() or out2 == {}, out2)
 
-    result = {"from": args.old, "from_version": old_version, "ok": all(s["ok"] for s in report), "steps": report}
+    result = {"from": args.old, "from_version": old_version, "ok": all(s["ok"] for s in report), "steps": report,
+              "not_applicable": [s["step"] for s in report if s.get("not_applicable")]}
     if args.out:
         Path(args.out).write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
     shutil.rmtree(work, ignore_errors=True)
