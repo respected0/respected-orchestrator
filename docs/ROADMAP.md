@@ -835,7 +835,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-02.01 — Mevcut ayrık kontrolcüleri denetleyen supervisor
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/supervisor.py` + `tests/engine/test_supervisor.py`; `KANIT_LOG.md` §B3-02.01 (bağlama ve gerçek 2-GUI testi sonraki görevlerde).
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-01.03`.
 - **Mimari / değişecek alan:** Yeni supervisor yalnız orchestration ownership; mevcut campaign-run/project-resume kodu tek gerçek kaynak kalır.
