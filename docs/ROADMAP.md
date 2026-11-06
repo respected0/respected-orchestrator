@@ -982,7 +982,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-04.03 — Taslak düzenleme ve sunucu tarafı revalidate
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `workflows/plan_draft.py`, IPC `plan.create/edit/start`; `tests/workflows/test_plan_draft.py` (10 OK); kanıt `docs/evidence/KANIT_LOG.md` B3-04.03.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-04.02`, `B3-00.03`.
 - **Mimari / değişecek alan:** Plan revision/hash ve mevcut coordinator validator; UI local yalnız preview.

@@ -11,7 +11,7 @@ import re
 from ..interfaces import rpp
 from .authority import Action, Origin, authorize
 from . import read_model
-from ..workflows import dag_view
+from ..workflows import dag_view, plan_draft
 from .journal import Journal
 from .lanes import _pid_is_alive
 from .supervisor import Supervisor
@@ -39,6 +39,9 @@ COMMANDS = {
     "runs.list": (None, Action.READ),
     "projects.list": (None, Action.READ),
     "plan.view": (None, Action.READ),
+    "plan.create": (None, Action.TASK),
+    "plan.edit": (None, Action.TASK),
+    "plan.start": (None, Action.TASK),
 }
 ERRORS = ("BAD_REQUEST", "UNSUPPORTED_VERSION", "UNAUTHENTICATED", "UNKNOWN_COMMAND", "FORBIDDEN",
           "PAYLOAD_TOO_LARGE", "REPLAY_CONFLICT", "ENGINE_ERROR")
@@ -67,6 +70,24 @@ class LocalApi:
         except (ValueError, RecursionError):
             return _reply(None, False, code="BAD_REQUEST", message="Request is not valid JSON.")
         return self.handle(request)
+
+    def _plan(self, corr, command, payload):
+        """Draft editing and the separate start action. Every rule is enforced by plan_draft from the stored draft."""
+        try:
+            if command == "plan.create":
+                result = plan_draft.create_draft(self.ctx, payload.get("spec"), payload.get("project_root"))
+            elif command == "plan.edit":
+                result = plan_draft.edit_draft(self.ctx, payload.get("draft_id"), payload.get("revision"), payload.get("edits"))
+            else:
+                if self.origin not in (Origin.HUMAN, Origin.RENDERER):  # MCP and orchestrated processes edit nothing into a running plan
+                    return _reply(corr, False, code="FORBIDDEN", message="Only the operator may start a plan.")
+                result = plan_draft.start_draft(self.ctx, payload.get("draft_id"), payload.get("revision"), payload.get("confirm_hash"),
+                                                origin=self.origin)
+            return _reply(corr, True, result)
+        except PermissionError:
+            return _reply(corr, False, code="FORBIDDEN", message="Not allowed for this origin.")
+        except (ValueError, TypeError, KeyError) as error:
+            return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300])
 
     def _board(self, corr, command, payload):
         """Read-only board pages from the engine's own files; malformed filters are refused, never guessed."""
@@ -126,6 +147,8 @@ class LocalApi:
         if command == "runs.active":
             claims = Supervisor(self.ctx).claims()
             response = _reply(corr, True, {"runs": {run: pid for run, pid in claims.items() if _pid_is_alive(int(pid))}})
+        elif command in ("plan.create", "plan.edit", "plan.start"):
+            response = self._plan(corr, command, payload)
         elif command == "plan.view":
             spec, root = payload.get("spec"), payload.get("project_root")
             if not isinstance(spec, dict) or not isinstance(root, str) or not root:
