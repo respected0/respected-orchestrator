@@ -1,0 +1,10 @@
+Gerçek CLI uyumluluk defteri — 6 Kasım 2026, bu makine, yalnız --version/--help/auth-status probeleri (sırsız ortam, model çağrısı yok)
+'verified' = oturum açık ve sohbet bayrağı CLI'nin kendi yardımında var; gerçek model oturumu DEĞİLDİR.
+
+agent        status       reason
+codex        verified     logged in and the chat flag is present in the CLI's own help  [codex-cli 0.160.1]
+claude       verified     logged in and the chat flag is present in the CLI's own help  [2.1.318 (Claude Code)]
+cursor       verified     logged in and the chat flag is present in the CLI's own help  [2026.10.22-27dcf5f]
+opencode     configured   stored credentials found; their validity cannot be checked without a model call  [opencode v2.2.3]
+antigravity  installed    auth_unknown: login state could not be read  [1.5.0]
+custom       configured   user-defined command: nothing is probed or assumed

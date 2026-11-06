@@ -10,7 +10,7 @@ import re
 
 from ..interfaces import rpp
 from .authority import Action, Origin, authorize, effective_origin
-from . import activity, approval, artifact_view, read_model, review_model
+from . import activity, agent_discovery, approval, artifact_view, read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control
 from .journal import Journal
 from .lanes import _pid_is_alive
@@ -47,6 +47,7 @@ COMMANDS = {
     "project.resume": (None, Action.TASK),
     "review.view": (None, Action.READ),
     "activity.list": (None, Action.READ),
+    "agents.discover": (None, Action.READ),
     "artifact.list": (None, Action.READ),
     "artifact.read": (None, Action.READ),
     "approval.open": (None, Action.TASK),
@@ -217,6 +218,17 @@ class LocalApi:
                                                                           payload.get("length", artifact_view.MAX_CHUNK), journal=self.journal))
             except (ValueError, TypeError, OSError) as error:
                 response = _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:200])
+        elif command == "agents.discover":
+            agent = payload.get("agent")
+            try:
+                if agent is None:
+                    response = _reply(corr, True, {"agents": agent_discovery.discover_all()})
+                elif isinstance(agent, str):
+                    response = _reply(corr, True, {"agents": {agent: agent_discovery.discover(agent)}})
+                else:
+                    raise ValueError("agent must be a string")
+            except ValueError as error:
+                response = _reply(corr, False, code="BAD_REQUEST", message=str(error)[:200])
         elif command == "review.view":
             run_id = payload.get("run_id")
             if not isinstance(run_id, str) or not re.fullmatch(r"run-\d{14}-[0-9a-f]{12}", run_id):

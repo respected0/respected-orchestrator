@@ -1120,7 +1120,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-07.01 — CLI binary/sürüm/auth keşfi
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/agent_discovery.py`, IPC `agents.discover`, gerçek defter `docs/evidence/agent-compat-ledger-2026-11-06.txt`; `tests/engine/test_agent_discovery.py` (18 OK) + mutasyon 5/5; kanıt `docs/evidence/KANIT_LOG.md` B3-07.01.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B3-01.03`.
 - **Mimari / değişecek alan:** Salt-okunur CLI probe ve allowlisted executable discovery.

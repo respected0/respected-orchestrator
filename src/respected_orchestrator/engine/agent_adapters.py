@@ -67,7 +67,7 @@ ADAPTERS = {
         # stored credentials are not proof they are valid, so a hit only means "configured"
         "auth": (["auth", "list"], r"stored"),
     },
-    "antigravity": {"binaries": ["antigravity"], "verified_version": None, "caps": {}, "auth": None},
+    "antigravity": {"binaries": ["agy", "antigravity"], "verified_version": None, "caps": {}, "auth": None},
     "custom": {"binaries": [], "verified_version": None, "caps": {}, "auth": None},  # nothing is assumed about user commands
 }
 
