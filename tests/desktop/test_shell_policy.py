@@ -35,14 +35,18 @@ class ShellPolicyTests(unittest.TestCase):
         capabilities = list((SRC / "capabilities").glob("*.json"))
         self.assertEqual(len(capabilities), 1)
 
-    def test_exactly_three_shell_commands_and_no_plugins(self):
+    def test_exactly_four_shell_commands_and_no_plugins(self):
         lib = (SRC / "src" / "lib.rs").read_text(encoding="utf-8")
-        self.assertEqual(re.findall(r"generate_handler!\[([^\]]*)\]", lib), ["engine_status, confirm_close, request_apply"])
-        self.assertEqual(lib.count("#[tauri::command]"), 3)
+        self.assertEqual(re.findall(r"generate_handler!\[([^\]]*)\]", lib), ["engine_status, confirm_close, request_apply, capability_inventory"])
+        self.assertEqual(lib.count("#[tauri::command]"), 4)
         # B3-05.02: the renderer may only name a run to ask about. No token, decision or binding can be passed in.
         signature = re.search(r"async fn request_apply\(([^)]*)\)", lib).group(1)
         self.assertTrue(signature.startswith("run_id: String,"))
         self.assertNotRegex(signature, r"token|decision|binding|challenge")
+        # B3-08.03: the inventory command is read-only data: at most a project folder in, no approvals, no write verbs.
+        inventory = re.search(r"fn capability_inventory\(([^)]*)\)", lib).group(1)
+        self.assertTrue(inventory.startswith("project_root: Option<String>,"))
+        self.assertNotRegex(inventory, r"approval|token|decision|trust")
         toml = (SRC / "Cargo.toml").read_text(encoding="utf-8")
         self.assertNotRegex(toml, r"tauri-plugin-(shell|fs|http|opener|process)")
 

@@ -52,6 +52,25 @@ async fn request_apply(run_id: String, state: tauri::State<'_, Mutex<Option<appr
     result.map_err(|e| format!("{e:?}"))
 }
 
+/// Read-only inventory of the MCP servers and skills the installed agent clients already have. The renderer may name at most a
+/// project folder; the engine validates it, never runs or contacts anything, and returns redacted data.
+#[tauri::command]
+fn capability_inventory(project_root: Option<String>, state: tauri::State<Mutex<Option<Connection>>>) -> Result<serde_json::Value, EngineProblem> {
+    let problem = |error: ConnectError| EngineProblem { hint: error.hint(), error };
+    let mut slot = state.lock().unwrap();
+    if slot.is_none() {
+        let launch = engine_connector::discover(
+            std::env::var_os("RESPECTED_APP_DIR").map(PathBuf::from),
+            std::env::var_os("LOCALAPPDATA").map(PathBuf::from),
+        ).map_err(problem)?;
+        *slot = Some(Connection::connect(&launch).map_err(problem)?);
+    }
+    match slot.as_mut().unwrap().inventory(project_root) {
+        Ok(v) => Ok(v),
+        Err(e) => { *slot = None; Err(problem(e)) }
+    }
+}
+
 /// Closing the window is only held back to tell the user that active runs keep going; it never stops them.
 pub fn must_ask(active_runs: usize, already_confirmed: bool) -> bool { active_runs > 0 && !already_confirmed }
 
@@ -91,7 +110,7 @@ pub fn run() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply])
+        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, capability_inventory])
         .plugin(
             tauri::plugin::Builder::<tauri::Wry, ()>::new("navigation-guard")
                 .on_navigation(|_, url| navigation_allowed(url))

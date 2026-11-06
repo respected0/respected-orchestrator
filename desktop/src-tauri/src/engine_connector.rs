@@ -141,6 +141,12 @@ impl Connection {
         Ok(v["result"]["runs"].as_object().map(|m| m.len()).unwrap_or(0))
     }
 
+    /// Read-only MCP/skill inventory (B3-08). Nothing is started, installed or enabled by asking; the engine's whole reply is returned as data.
+    pub fn inventory(&mut self, project_root: Option<String>) -> Result<Value, ConnectError> {
+        let payload = match project_root { Some(p) => json!({"project_root": p}), None => json!({}) };
+        self.raw("capabilities.inventory", payload)
+    }
+
     pub fn kill(&mut self) { let _ = self.child.kill(); let _ = self.child.wait(); }
 }
 
@@ -192,6 +198,35 @@ mod tests {
     #[test]
     fn other_ipc_version_is_refused() {
         assert!(matches!(Connection::connect(&fake("2", PRODUCT_ID)), Err(ConnectError::VersionMismatch(_))));
+    }
+
+    #[test]
+    fn inventory_comes_from_the_engine_as_data_and_changes_nothing() {
+        let home = std::env::temp_dir().join(format!("orch-inv-home-{}", std::process::id()));
+        std::fs::create_dir_all(home.join(".codex")).unwrap();
+        let config = home.join(".codex").join("config.toml");
+        std::fs::write(&config, "[mcp_servers.demo]
+command = \"definitely-not-installed-xyz\"
+[mcp_servers.demo.env]
+TOKEN = \"sk-SHOULDNEVERAPPEAR123456\"
+").unwrap();
+        let before = std::fs::read(&config).unwrap();
+        let mut launch = real();
+        launch.env.push(("USERPROFILE".into(), home.display().to_string()));
+        launch.env.push(("HOME".into(), home.display().to_string()));
+        let mut c = Connection::connect(&launch).expect("connect");
+        let reply = c.inventory(None).expect("inventory");
+        assert_eq!(reply["ok"], true, "{reply}");
+        let caps = reply["result"]["capabilities"].as_array().unwrap();
+        assert_eq!(caps.len(), 1);
+        assert_eq!(caps[0]["name"], "demo");
+        assert_eq!(caps[0]["status"]["installed"]["state"], false);
+        assert_eq!(caps[0]["status"]["verified"]["state"], false);
+        assert_eq!(caps[0]["status"]["trusted"]["state"], false);
+        assert!(!reply.to_string().contains("SHOULDNEVERAPPEAR"));
+        assert_eq!(std::fs::read(&config).unwrap(), before);
+        assert_eq!(c.inventory(Some("relative/dir".into())).unwrap()["error"]["code"], "BAD_REQUEST");
+        std::fs::remove_dir_all(&home).ok();
     }
 
     #[test]

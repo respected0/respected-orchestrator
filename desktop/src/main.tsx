@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { ROUTES, type EngineState, type RouteId, closeDecision, nextRoute, routeFromHash, screenView } from './shell';
+import { Capabilities } from './Capabilities';
 import './style.css';
 
 function useEngine(): EngineState {
@@ -69,11 +70,16 @@ function App() {
           <h1 id="title">{title}</h1>
           {view.kind === 'loading' && <p role="status">{view.text}</p>}
           {view.kind === 'error' && <div role="alert"><p>{view.text}</p><p>{view.hint}</p></div>}
-          {view.kind === 'empty' && <p>{view.text}</p>}
+          {view.kind === 'empty' && route === 'capabilities' && <Capabilities />}
+          {view.kind === 'empty' && route !== 'capabilities' && <p>{view.text}</p>}
         </main>
       </div>
     </>
   );
 }
 
-createRoot(document.getElementById('root')!).render(<App />);
+// `?mock` only exists in development builds; the dynamic import is removed from production bundles.
+(async () => {
+  if (import.meta.env.DEV && new URLSearchParams(location.search).has('mock')) await import('./dev-mock');
+  createRoot(document.getElementById('root')!).render(<App />);
+})();

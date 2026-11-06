@@ -1188,7 +1188,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-08.03 — Envanter ekranı ve offline e2e
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `desktop/src/inventory.ts`, `Capabilities.tsx`, Tauri `capability_inventory`; `npm run check` 21 OK, `cargo test --lib` 16 OK, tarayıcıda gerçek veriyle ekran; `tests/engine/offline_inventory_proof.py` (kaynak: ağ/süreç kancası + negatif kontrol, paketli exe izleme); kanıt `docs/evidence/KANIT_LOG.md` B3-08.03.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B3-08.02`, `B3-01.04`.
 - **Mimari / değişecek alan:** UI read-only inventory; installation, activation and execution bu sürümde yok.

@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ROUTES, nextRoute, routeFromHash, screenView } from '../src/shell.ts';
 
-test('five routes exist, every one has an understandable empty text', () => {
-  assert.deepEqual(ROUTES.map((r) => r.id), ['projects', 'runs', 'reviews', 'agents', 'settings']);
+test('six routes exist, every one has an understandable empty text', () => {
+  assert.deepEqual(ROUTES.map((r) => r.id), ['projects', 'runs', 'reviews', 'agents', 'capabilities', 'settings']);
   for (const r of ROUTES) assert.ok(r.empty.length > 10);
 });
 
