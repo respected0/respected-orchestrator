@@ -2822,3 +2822,14 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - Yarıda kalan proje: `tests/tools/upgrade_proof.py` beta.1'in kendi kodunun yazdığı, ikinci aşaması çalışırken sert öldürülmüş (`os._exit`) bir proje üretir. beta.2: `project-status` okur (`running`, yanlışlıkla `completed` değil); `project-resume` **insan onayı ister** (`checkpoint_missing`, `project-approve` etkileşimli terminalde) ve kendiliğinden sürdürmez — beta.1'in doğrulanmış sürdürme noktası yoktur; `project-cancel` çalışır. Bu tasarım gereğidir (otomatik sürdürme yok), hata değil.
 - Kanıt: `docs/evidence/poc/upgrade_beta1_to_beta2.json` (29 adım, hepsi PASS).
 - Kalan risk: güncelleme sırasında çalışan proje/kampanya durdurulur; beta.1'de başlayan proje beta.2'de elle `project-approve` ister. Kanıt yayın commit'i için, kurucu o commit'ten derlenip `--version`/`health` ile bir kez bakılarak yinelenmeli.
+
+## B3-00.01 — Beta.3 sürüm bazı ve değişmez ilke matrisi (6 Kasım 2026)
+
+- Kapsam: ROADMAP §4.1'deki 8 değişmez ilke mevcut testlere eşlendi (`docs/adr/ADR-021-desktop-boundary-baseline.md`); 4 boşluk (G-1..G-4) sahibi görevle kayıtlı. Baz commit `ec9e599`.
+- Değişen dosyalar: `docs/adr/ADR-021-desktop-boundary-baseline.md` (yeni), `tests/engine/test_review_apply_invariants.py` (I-02: apply sonrası HEAD değişmez), ROADMAP kutusu.
+- Doğrulama (Windows 11, normal kullanıcı, Python 3.13):
+  - `python -m unittest tests.engine.test_review_apply_invariants` → 13 test OK (yeni assertion dahil).
+  - `python docs/evidence/poc/doc01_check.py` → `PASS ADR: 21 karar kaydı`, `RESULT PASS 2026-11-06`.
+  - Tam suite `python -m unittest discover -s tests -t .` → 661 test, 797 sn, **errors=2, skipped=2**. İki hata aynı testin (test + temizlik) kaydıdır: `EngineTests.test_supervisor_crash_kills_owned_descendants`, `supervisor.log` WinError 32. Tek başına ve değişiklik stash'lenmişken tekrar koşuldu: ikisi de OK. Neden: suite sürerken aynı makinede başka testler paralel koşturuldu (yük kaynaklı yarış); kök neden ayrıca araştırılmadı.
+  - Skip'ler: biri `test_live_context_mode_search_when_installed` (CONTEXT_MODE_SERVER gerekir, isteğe bağlı canlı yoklama); ikincisi izole edilmedi. AppContainer dosyaları (`test_sandbox`, `test_worker_policy` vb.) ayrı koşuda 0 skip.
+- Kalan risk: tam suite yeşil bir temiz koşu olarak kaydedilmedi (yukarıdaki yarış); G-1..G-4 açık; ikinci skip'in nedeni bilinmiyor.

@@ -183,8 +183,12 @@ class LegitimateReviewApplyTests(CodingFixture):
         self.assertEqual(execute_task(self.ctx, run_id)["status"], "completed")
         verified = check_result(self.ctx, run_id)
         self.assertEqual(verified["status"], "verified")
+        head_before = subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.repo, capture_output=True, text=True, check=True).stdout
         applied = apply_task(self.ctx, run_id)
         self.assertEqual(applied["status"], "applied")
+        # ROADMAP invariant I-02: apply never commits or merges on its own.
+        head_after = subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.repo, capture_output=True, text=True, check=True).stdout
+        self.assertEqual(head_before, head_after)
         self.assertEqual((self.repo / "calculator.py").read_text(encoding="utf8"), "value = 1\n")
         marker = load_signed(self.ctx, self.ctx.run_dir(run_id) / "applied.json")
         self.assertEqual(marker["patch_sha256"], load_signed(self.ctx, self.ctx.run_dir(run_id) / "result.json")["patch_sha256"])

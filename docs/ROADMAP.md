@@ -721,7 +721,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-00.01 — Mevcut sınırları ve sürüm bazını dondur
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — baz `ec9e599`; ADR-021 + `KANIT_LOG.md` §B3-00.01 (kanıt commit'i `git log` içinde).
 - **Öncelik / boyut:** P0 / S
 - **Bağımlılıklar:** Yok (G0 önkoşulları geçerli).
 - **Mimari / değişecek alan:** Mevcut ARCHITECTURE/PRODUCT_CONTRACT/ROADMAP ve KANIT_LOG; kod eşlemesi raporlanır.
