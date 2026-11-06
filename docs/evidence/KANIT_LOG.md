@@ -2923,3 +2923,11 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - Test: `python -m unittest tests.engine.test_agent_adapters -v` → 9 OK (8 sahte-yoklama senaryosu: yanlış mod bildirimi, ikili yok, sürüm düşürme, giriş gerekli, yoklama zaman aşımı, PTY asla usable, custom/antigravity iddiasız; 1 canlı test kurulu CLI'lerde chat'in `advertised_missing` olmadığını doğrular).
 - Canlı koşu (salt-okunur `--version/--help/auth status`): codex 0.160.1, claude 2.1.318, cursor 2026.10.22-27dcf5f, opencode 2.2.3 hepsi bulundu ve giriş ok; chat dördünde de `verified`; antigravity ikilisi yok → `unsupported`. Tablo `docs/AGENT_ADAPTER_MATRIX.md`.
 - Kalan risk: `verified` yalnızca bayrak varlığını kanıtlar; gerçek oturum akışı B3-03.03'te. interrupt/usage/send_input (claude hariç) `source`. Cursor sürüm tabanı sabitlenmedi. Giriş durumu çıktısındaki e-posta vb. kimlik alanları matrise yazılmaz.
+
+## B3-03.02 — ConPTY + AppContainer fizibilite kapısı (6 Kasım 2026)
+
+- Kapsam: gerçek ConPTY'ye bağlı AppContainer süreci denendi (`tests/engine/conpty_experiment.py`, yalnız test; üretim `spawn` değişmedi). Karar: `ADR-024` — koşullu GO; `agent_adapters` matrisinde `pty` üretim broker'ı gelene kadar `unsupported`.
+- Test: `python -m unittest tests.engine.test_conpty_feasibility -v` → 10 OK (dış dosya okuma/yazma reddi, ağ varsayılan kapalı [loopback sunucu bağlantı görmedi], torun süreç kum havuzunda, boyut değişikliği, 1 MiB çıktı, terminal kaçış dizileri ham gelir, broker girdisi çocuğa ulaşır, ham modda 0x03 okunur, cooked modda SIGINT gelmez + sert durdurma çalışır, çıktı yalnız PTY kanalından). Hiçbiri skip değil.
+- Gerçek bulgular (deneyde ölçüldü): (1) `STARTF_USESTDHANDLES` olmadan çocuk çıktısını üst sürecin yönlendirilmiş stdout dosyasına yazdı; null std handle ile kapandı (üst süreç stdout'u boş, çıktı PTY'de). (2) Ctrl-C sinyali AppContainer içindeki cooked süreçte teslim edilmiyor (20 sn); ham modlu süreç 0x03'ü girdi olarak okuyor.
+- Birlikte koşan belge/ek testler: `tests.docs.*` + `tests.engine.test_agent_adapters` ile 23 test OK.
+- Kalan risk: ağ-açık PTY ve gerçek ajan CLI'sinin PTY içinde çalışması denenmedi; Job Object+PTY denenmedi; Ctrl-C sınırının nedeni (AppContainer mı ConPTY mi) ayrıştırılmadı; deney kodu üretim yoluna henüz taşınmadı.

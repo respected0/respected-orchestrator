@@ -32,3 +32,5 @@ Kabul edildi (6 Kasım 2026). Görev: B3-00.04. Sözleşme metni **değiştirilm
 - `docs/PRODUCT_CONTRACT.md` giriş, §2–§5 (erişim: 2026-11-06).
 - [ADR-021](ADR-021-desktop-boundary-baseline.md), [ADR-022](ADR-022-command-authority-matrix.md).
 - [Kanıt kaydı](../evidence/KANIT_LOG.md) §B3-00.04 (erişim: 2026-11-06).
+
+**Güncelleme (6 Kasım 2026):** Yukarıdaki sözleşme kopyası sürüklenmesi giderildi: Brain'deki güncel metin Hub ve Orchestrator'a kopyalandı, üç `md5` eşit, Hub `common.conformance.test_product_contract` 9 OK. Eski bulgu yukarıda tarihçe olarak kalır.

@@ -903,7 +903,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-03.02 — ConPTY ve sandbox uyumluluğu feasibility gate
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — karar `docs/adr/ADR-024-conpty-appcontainer-go-no-go.md` (koşullu GO), kapı testleri `tests/engine/test_conpty_feasibility.py` (10 OK); kanıt `docs/evidence/KANIT_LOG.md` B3-03.02.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-03.01`, `B3-02.01`.
 - **Mimari / değişecek alan:** Controlled PTY broker, existing AppContainer launcher; Windows API ve izin modeli test edilecek.
