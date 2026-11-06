@@ -2916,3 +2916,10 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - Tam paket: `python -m unittest discover -s tests -t .` → 705 test OK, skipped=2 (Cursor CLI kurulu değil; `CONTEXT_MODE_SERVER` istenen canlı yoklama). Önceki 2 hata (yük altında kırılan `test_supervisor_crash_kills_owned_descendants`) bekleme süresi 3→20 sn ile giderildi.
 - PRODUCT_CONTRACT.md: Brain'deki güncel metin Hub ve Orchestrator'a kopyalandı, üç md5 eşit; Hub `common.conformance.test_product_contract` 9 OK.
 - Kalan risk: kapatma testindeki "çalıştırma" gerçek bir görev değil, claims dosyasına yazılmış canlı pid'dir (supervisor henüz runner'a bağlı değil, B3-04/05). Paketli motor sürümü kaynak pyproject'ini (0.1.0b2) yansıtır; Beta.3 sürüm yükseltmesi B3-09'da.
+
+## B3-03.01 — Ajan destek/yetenek matrisi (6 Kasım 2026)
+
+- Kapsam: `engine/agent_adapters.py` (codex, claude, cursor, opencode, antigravity, custom × chat/pty/send_input/interrupt/resume/usage/auth/approval); her yetenek `verified | source | advertised_missing | unsupported`. `verified` = bayrak kurulu CLI'nin kendi `--help` çıktısında bulundu (bir model oturumu değildir); PTY hiçbir ajanda açık değil. `usable` = verified + ikili var + giriş ok.
+- Test: `python -m unittest tests.engine.test_agent_adapters -v` → 9 OK (8 sahte-yoklama senaryosu: yanlış mod bildirimi, ikili yok, sürüm düşürme, giriş gerekli, yoklama zaman aşımı, PTY asla usable, custom/antigravity iddiasız; 1 canlı test kurulu CLI'lerde chat'in `advertised_missing` olmadığını doğrular).
+- Canlı koşu (salt-okunur `--version/--help/auth status`): codex 0.160.1, claude 2.1.318, cursor 2026.10.22-27dcf5f, opencode 2.2.3 hepsi bulundu ve giriş ok; chat dördünde de `verified`; antigravity ikilisi yok → `unsupported`. Tablo `docs/AGENT_ADAPTER_MATRIX.md`.
+- Kalan risk: `verified` yalnızca bayrak varlığını kanıtlar; gerçek oturum akışı B3-03.03'te. interrupt/usage/send_input (claude hariç) `source`. Cursor sürüm tabanı sabitlenmedi. Giriş durumu çıktısındaki e-posta vb. kimlik alanları matrise yazılmaz.

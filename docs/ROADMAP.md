@@ -892,7 +892,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-03.01 — Destek/yetenek matrisi ve protokol tasarımı
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/agent_adapters.py`, `tests/engine/test_agent_adapters.py` (9 OK), `docs/AGENT_ADAPTER_MATRIX.md`; kanıt `docs/evidence/KANIT_LOG.md` B3-03.01.
 - **Öncelik / boyut:** P0 / M
 - **Bağımlılıklar:** `B3-00.02`, `B3-01.02`.
 - **Mimari / değişecek alan:** AgentAdapter interface: chat, pty, send_input, interrupt, resume, usage, auth, approval; her araca yetenek bayrakları.
