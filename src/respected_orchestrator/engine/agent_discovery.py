@@ -56,7 +56,7 @@ class Probe:
 
 def _result(agent, status, reason, row=None, path=None):
     return {"agent": agent, "status": status, "reason": reason, "path": path, "version": (row or {}).get("version"),
-            "auth": (row or {}).get("auth", "unknown"), "proof": "help flags and status commands only; no model session was run",
+            "auth": (row or {}).get("auth", "unknown"), "version_state": (row or {}).get("version_state", "unknown"), "proof": "help flags and status commands only; no model session was run",
             "chat": ((row or {}).get("caps") or {}).get("chat", {}).get("status", "unsupported")}
 
 

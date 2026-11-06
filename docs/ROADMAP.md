@@ -1131,7 +1131,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-07.02 — Role, tool, profile ayrımı ve düzenleme
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `workflows/role_editor.py`, IPC `roles.view/plan_edit` (yazmaz, fark + aday ayar); `tests/workflows/test_role_editor.py` (16 OK) + mutasyon 6/6; kanıt `docs/evidence/KANIT_LOG.md` B3-07.02.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B3-07.01`, `B3-00.03`.
 - **Mimari / değişecek alan:** Existing role resolver; UI profile editor; transparent explicit/default/auto precedence.

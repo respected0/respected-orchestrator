@@ -94,7 +94,7 @@ class LocalApiTests(unittest.TestCase):
             LocalApi(self.api.ctx, "short")
 
     def test_typescript_contract_matches_python(self):
-        ts_cmds = re.findall(r"'([a-z.]+)'", TS[TS.index("COMMANDS"):TS.index("export type Command")])
+        ts_cmds = re.findall(r"'([a-z._]+)'", TS[TS.index("COMMANDS"):TS.index("export type Command")])
         ts_errs = re.findall(r"'([A-Z_]+)'", TS[TS.index("ERROR_CODES"):TS.index("export type ErrorCode")])
         self.assertEqual(sorted(ts_cmds), sorted(local_api.COMMANDS))
         self.assertEqual(sorted(ts_errs), sorted(ERRORS))

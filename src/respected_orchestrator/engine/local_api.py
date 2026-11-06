@@ -11,7 +11,8 @@ import re
 from ..interfaces import rpp
 from .authority import Action, Origin, authorize, effective_origin
 from . import activity, agent_discovery, approval, artifact_view, read_model, review_model
-from ..workflows import dag_view, plan_draft, project_control
+from ..workflows import dag_view, plan_draft, project_control, role_editor, roles
+from .runner import SUPPORTED_AGENTS, tool_available
 from .journal import Journal
 from .lanes import _pid_is_alive
 from .supervisor import Supervisor
@@ -48,6 +49,8 @@ COMMANDS = {
     "review.view": (None, Action.READ),
     "activity.list": (None, Action.READ),
     "agents.discover": (None, Action.READ),
+    "roles.view": (None, Action.READ),
+    "roles.plan_edit": (None, Action.READ),
     "artifact.list": (None, Action.READ),
     "artifact.read": (None, Action.READ),
     "approval.open": (None, Action.TASK),
@@ -229,6 +232,17 @@ class LocalApi:
                     raise ValueError("agent must be a string")
             except ValueError as error:
                 response = _reply(corr, False, code="BAD_REQUEST", message=str(error)[:200])
+        elif command in ("roles.view", "roles.plan_edit"):
+            try:
+                settings, tools = roles.read_settings(self.ctx.data_root), list(SUPPORTED_AGENTS)
+                found = agent_discovery.discover_all() if payload.get("discover") is True else None
+                if command == "roles.view":
+                    result = role_editor.view(settings, tools, discovery=found, available=tool_available)
+                else:
+                    result = role_editor.plan_edit(settings, payload.get("edits"), tools, discovery=found)
+                response = _reply(corr, True, result)
+            except (ValueError, TypeError) as error:
+                response = _reply(corr, False, code="BAD_REQUEST", message=str(error)[:300])
         elif command == "review.view":
             run_id = payload.get("run_id")
             if not isinstance(run_id, str) or not re.fullmatch(r"run-\d{14}-[0-9a-f]{12}", run_id):
