@@ -10,6 +10,7 @@ type Internals = { invoke: (cmd: string, args?: unknown) => Promise<unknown>; tr
   invoke: async (cmd: string) => {
     if (cmd === 'engine_status') return { version: 'mock-fixture', healthy: true };
     if (cmd === 'capability_inventory') return fixture;
+    if (cmd === 'preview_open') throw 'Yerel önizleme kapalı. Ayarlardan açılmadıkça hiçbir sayfa gösterilmez.';
     if (cmd.startsWith('plugin:event|')) return 0;
     throw { error: { kind: 'MockUnsupported' }, hint: `mock has no ${cmd}` };
   },

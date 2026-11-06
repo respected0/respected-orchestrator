@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Main window: no shell, filesystem, http or opener access; only the shell's own two commands and event listening",
+  "description": "Main window: no shell, filesystem, http or opener access; only the shell's own commands (listed one by one) and event listening",
   "windows": ["main"],
-  "permissions": ["core:event:allow-listen", "core:event:allow-unlisten"]
+  "permissions": ["core:event:allow-listen", "core:event:allow-unlisten", "allow-engine-status", "allow-confirm-close", "allow-request-apply", "allow-capability-inventory", "allow-preview-open"]
 }

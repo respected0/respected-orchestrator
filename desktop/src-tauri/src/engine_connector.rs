@@ -147,6 +147,11 @@ impl Connection {
         self.raw("capabilities.inventory", payload)
     }
 
+    /// The stored settings as the engine reports them (single source for feature flags such as the local preview).
+    pub fn settings_readback(&mut self) -> Result<Value, ConnectError> {
+        self.raw("settings.readback", json!({}))
+    }
+
     pub fn kill(&mut self) { let _ = self.child.kill(); let _ = self.child.wait(); }
 }
 

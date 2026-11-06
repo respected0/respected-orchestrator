@@ -1,4 +1,5 @@
 pub mod approval;
+pub mod preview;
 pub mod engine_connector;
 
 use engine_connector::{ConnectError, Connection, Status};
@@ -71,6 +72,48 @@ fn capability_inventory(project_root: Option<String>, state: tauri::State<Mutex<
     }
 }
 
+static PREVIEW_GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Opens one untrusted local page (B3-06.03). Refused unless the user turned the preview on in the engine settings and listed the port.
+/// The page gets its own window label with no capability (no IPC), an incognito profile (no shared cookies or storage), same-origin-only
+/// navigation, and is closed after ten minutes. The renderer only supplies the address; every rule is applied here.
+#[tauri::command]
+async fn preview_open<R: tauri::Runtime>(url: String, app: tauri::AppHandle<R>, state: tauri::State<'_, Mutex<Option<Connection>>>) -> Result<String, String> {
+    let settings = {
+        let mut slot = state.lock().unwrap();
+        if slot.is_none() {
+            let launch = engine_connector::discover(
+                std::env::var_os("RESPECTED_APP_DIR").map(PathBuf::from),
+                std::env::var_os("LOCALAPPDATA").map(PathBuf::from),
+            ).map_err(|e| format!("{e:?}"))?;
+            *slot = Some(Connection::connect(&launch).map_err(|e| format!("{e:?}"))?);
+        }
+        match slot.as_mut().unwrap().settings_readback() {
+            Ok(reply) => preview::settings_from_reply(&reply),
+            Err(_) => { *slot = None; preview::Settings { enabled: false, ports: vec![] } }
+        }
+    };
+    let parsed = preview::check_url(&url, &settings).map_err(|d| d.message())?;
+    if let Some(old) = app.get_webview_window("preview") { let _ = old.destroy(); }
+    let origin = parsed.clone();
+    tauri::WebviewWindowBuilder::new(&app, "preview", tauri::WebviewUrl::External(parsed.clone()))
+        .title("Önizleme (güvenilmeyen içerik)")
+        .inner_size(1000.0, 700.0)
+        .incognito(true)
+        .on_navigation(move |next| preview::same_origin(&origin, next))
+        .build()
+        .map_err(|e| format!("pencere açılamadı: {e}"))?;
+    let generation = PREVIEW_GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_secs(preview::OPEN_SECONDS));
+        if PREVIEW_GENERATION.load(Ordering::SeqCst) == generation {
+            if let Some(w) = handle.get_webview_window("preview") { let _ = w.destroy(); }
+        }
+    });
+    Ok(parsed.to_string())
+}
+
 /// Closing the window is only held back to tell the user that active runs keep going; it never stops them.
 pub fn must_ask(active_runs: usize, already_confirmed: bool) -> bool { active_runs > 0 && !already_confirmed }
 
@@ -79,7 +122,7 @@ struct CloseConfirmed(AtomicBool);
 
 /// Second and last renderer command: the user confirmed closing while runs are active.
 #[tauri::command]
-fn confirm_close(window: tauri::Window, confirmed: tauri::State<CloseConfirmed>) {
+fn confirm_close<R: tauri::Runtime>(window: tauri::Window<R>, confirmed: tauri::State<CloseConfirmed>) {
     confirmed.0.store(true, Ordering::SeqCst);
     let _ = window.close();
 }
@@ -94,14 +137,23 @@ pub fn navigation_allowed(url: &Url) -> bool {
     }
 }
 
-pub fn run() {
-    tauri::Builder::default()
+/// The preview window is untrusted content on a loopback origin: the app-wide guard lets it through, its own per-window rule
+/// (`preview::same_origin`) then keeps it on the origin that was opened. Every other window keeps the bundled-origin rule.
+pub fn navigation_allowed_for(label: &str, url: &Url) -> bool {
+    label == "preview" || navigation_allowed(url)
+}
+
+/// Everything except the navigation-guard plugin, generic over the runtime so an integration test can run the real command list
+/// and the real capabilities on a mock runtime.
+pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
+    builder
         .manage(Mutex::new(None::<Connection>))
         .manage(CloseConfirmed::default())
         .manage(Mutex::new(None::<approval::Pair>))
         .manage(approval::Gate::default())
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() != "main" { return; }
                 let active = window.state::<Mutex<Option<Connection>>>().lock().unwrap()
                     .as_mut().and_then(|c| c.active_runs().ok()).unwrap_or(0);
                 if must_ask(active, window.state::<CloseConfirmed>().0.load(Ordering::SeqCst)) {
@@ -110,10 +162,14 @@ pub fn run() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, capability_inventory])
+        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, capability_inventory, preview_open])
+}
+
+pub fn run() {
+    configure(tauri::Builder::default())
         .plugin(
             tauri::plugin::Builder::<tauri::Wry, ()>::new("navigation-guard")
-                .on_navigation(|_, url| navigation_allowed(url))
+                .on_navigation(|webview, url| navigation_allowed_for(webview.label(), url))
                 .build(),
         )
         .run(tauri::generate_context!())
@@ -131,6 +187,16 @@ mod tests {
         assert!(!must_ask(0, false));
         assert!(must_ask(2, false));
         assert!(!must_ask(2, true));
+    }
+
+    #[test]
+    fn only_the_preview_window_may_load_a_loopback_page_and_every_other_window_keeps_the_bundled_rule() {
+        let local: Url = "http://127.0.0.1:5173/".parse().unwrap();
+        assert!(navigation_allowed_for("preview", &local));
+        for label in ["main", "other", "preview2", "", "Preview"] {
+            assert!(!navigation_allowed_for(label, &local), "{label}");
+        }
+        assert!(navigation_allowed_for("main", &"tauri://localhost/index.html".parse().unwrap()));
     }
 
     #[test]

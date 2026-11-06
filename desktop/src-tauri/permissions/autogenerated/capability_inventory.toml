@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-capability-inventory"
+description = "Enables the capability_inventory command without any pre-configured scope."
+commands.allow = ["capability_inventory"]
+
+[[permission]]
+identifier = "deny-capability-inventory"
+description = "Denies the capability_inventory command without any pre-configured scope."
+commands.deny = ["capability_inventory"]

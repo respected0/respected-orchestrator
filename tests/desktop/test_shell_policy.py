@@ -35,10 +35,10 @@ class ShellPolicyTests(unittest.TestCase):
         capabilities = list((SRC / "capabilities").glob("*.json"))
         self.assertEqual(len(capabilities), 1)
 
-    def test_exactly_four_shell_commands_and_no_plugins(self):
+    def test_exactly_five_shell_commands_each_granted_to_the_main_window_only(self):
         lib = (SRC / "src" / "lib.rs").read_text(encoding="utf-8")
-        self.assertEqual(re.findall(r"generate_handler!\[([^\]]*)\]", lib), ["engine_status, confirm_close, request_apply, capability_inventory"])
-        self.assertEqual(lib.count("#[tauri::command]"), 4)
+        self.assertEqual(re.findall(r"generate_handler!\[([^\]]*)\]", lib), ["engine_status, confirm_close, request_apply, capability_inventory, preview_open"])
+        self.assertEqual(lib.count("#[tauri::command]"), 5)
         # B3-05.02: the renderer may only name a run to ask about. No token, decision or binding can be passed in.
         signature = re.search(r"async fn request_apply\(([^)]*)\)", lib).group(1)
         self.assertTrue(signature.startswith("run_id: String,"))
@@ -47,6 +47,18 @@ class ShellPolicyTests(unittest.TestCase):
         inventory = re.search(r"fn capability_inventory\(([^)]*)\)", lib).group(1)
         self.assertTrue(inventory.startswith("project_root: Option<String>,"))
         self.assertNotRegex(inventory, r"approval|token|decision|trust")
+        # B3-06.03: the preview command takes an address and nothing else from the renderer; every command is listed in build.rs and
+        # granted by name to the window "main" (not to "*"), so a window without a capability has no commands even for a local origin.
+        preview = re.search(r"async fn preview_open<R: tauri::Runtime>\(([^)]*)\)", lib).group(1)
+        self.assertTrue(preview.startswith("url: String,"))
+        self.assertNotRegex(preview, r"port|enable|setting")
+        names = ["engine_status", "confirm_close", "request_apply", "capability_inventory", "preview_open"]
+        build = (SRC / "build.rs").read_text(encoding="utf-8")
+        for name in names:
+            self.assertIn(f'"{name}"', build)
+        capability = json.loads(next((SRC / "capabilities").glob("*.json")).read_text(encoding="utf-8"))
+        self.assertEqual(capability["windows"], ["main"])
+        self.assertEqual({p for p in capability["permissions"] if p.startswith("allow-")}, {"allow-" + n.replace("_", "-") for n in names})
         toml = (SRC / "Cargo.toml").read_text(encoding="utf-8")
         self.assertNotRegex(toml, r"tauri-plugin-(shell|fs|http|opener|process)")
 

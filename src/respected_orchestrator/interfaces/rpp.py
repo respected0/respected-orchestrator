@@ -42,6 +42,10 @@ def _settings_fields():
          "help": "Gözden geçiren aracın profil adı; boş: aracın varsayılanı."},
         {"key": "default_timeout_seconds", "type": "integer", "label": "Görev zaman aşımı (saniye)", "default": 900, "secret": False,
          "min": 60, "max": 3600, "help": "Bir görevin en uzun çalışma süresi."},
+        {"key": "preview_enabled", "type": "boolean", "label": "Yerel önizleme", "default": False, "secret": False,
+         "help": "Kapalı gelir. Açıksa yalnızca aşağıdaki portlardaki yerel (127.0.0.1) sayfalar, ayrı ve yetkisiz bir pencerede gösterilir."},
+        {"key": "preview_ports", "type": "string", "label": "Önizleme portları", "default": "", "secret": False,
+         "help": "Virgülle ayrılmış en çok 8 port (1024-65535). Listede olmayan port açılmaz."},
         *roles.settings_fields(list(runner.SUPPORTED_AGENTS)),
         *memory.settings_fields(),
     ]
@@ -120,6 +124,20 @@ def _memory_cross_errors(ctx, settings):
     return [{"key": "memory_enabled", "message": "requires a memory command and a memory token"}]
 
 
+def preview_ports_error(text):
+    """None when `text` is empty or a comma list of at most 8 distinct ports in 1024-65535. The shell applies the same rule again."""
+    if not text.strip():
+        return None
+    parts = [part.strip() for part in text.split(",")]
+    if len(parts) > 8:
+        return "at most 8 ports"
+    if not all(part.isascii() and part.isdigit() and 1024 <= int(part) <= 65535 for part in parts):
+        return "ports must be whole numbers from 1024 to 65535"
+    if len(set(int(part) for part in parts)) != len(parts):
+        return "a port is listed twice"
+    return None
+
+
 def validate_settings(settings, ctx=None):
     from ..workflows import roles
     from ..engine import runner
@@ -161,6 +179,8 @@ def validate_settings(settings, ctx=None):
             except roles.RoleError as error:
                 errors.append({"key": key, "message": error.message})
     errors += roles.validate_settings(settings, list(runner.SUPPORTED_AGENTS)) + memory.validate_settings(settings)
+    if isinstance(settings.get("preview_ports"), str) and preview_ports_error(settings["preview_ports"]):
+        errors.append({"key": "preview_ports", "message": preview_ports_error(settings["preview_ports"])})
     if ctx is not None and not errors:
         errors += _memory_cross_errors(ctx, settings)
     return errors

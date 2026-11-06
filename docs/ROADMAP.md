@@ -1096,7 +1096,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-06.03 — Güvenli local preview (isteğe bağlı)
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `preview.rs`, `preview_open`, `preview_enabled` (varsayılan kapalı) + `preview_ports`, AppManifest + ad ad izin; `cargo test` 23+1 (gerçek yetkilerle ACL testi), gerçek WebView2 + düşman sayfa koşusu `docs/evidence/b3-06-03-preview-e2e.md`, tam paket 909 OK; kanıt `docs/evidence/KANIT_LOG.md` B3-06.03. **Not:** sayfanın kendi ağ istekleri engellenmez (arayüzde yazılı).
 - **Öncelik / boyut:** P1 / L
 - **Bağımlılıklar:** `B3-06.02`.
 - **Mimari / değişecek alan:** Localhost preview policy / isolated webview; varsayılan kapalı; test kodundan gelen HTML güvensiz kabul edilir.
