@@ -1050,7 +1050,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-05.04 — Onay merkezi uçtan uca saldırı testi
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `tests/engine/test_approval_attacks.py` (19 senaryo; kaynak ve paketli exe 19/19, commit 9bf5935), rapor `docs/evidence/b3-05-04-attack-run.md`, kanıt `docs/evidence/KANIT_LOG.md` B3-05.04. **Not:** bağımlılık B3-03.04 henüz yapılmadı; oturum-müdahale saldırıları o kartta kanıtlanacak.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-05.03`, `B3-03.04`.
 - **Mimari / değişecek alan:** Desktop integration test harness, packaged executable ile normal kullanıcı güvenlik senaryoları.
