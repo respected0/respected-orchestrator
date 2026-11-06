@@ -76,7 +76,7 @@ class RejectedReviewApplyInvariantTests(CodingFixture):
             return result
 
         with mock.patch.object(lanes, "_git", side_effect=raced_git):
-            with self.assertRaises((lanes.LaneError, subprocess.CalledProcessError)):
+            with self.assertRaises((ValueError, lanes.LaneError, subprocess.CalledProcessError)):
                 apply_task(self.ctx, run_id)
         self.assert_no_apply(run_id, expected="raced source\n")
 

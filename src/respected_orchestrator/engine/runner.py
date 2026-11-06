@@ -1174,27 +1174,73 @@ def _stdin_is_tty():
     return sys.stdin is not None and sys.stdin.isatty()
 
 
+def _apply_failed(ctx, directory, run_id, reason, before, project):
+    """Signed record of a refused or failed apply, with proof of whether the project moved. Never raises."""
+    try:
+        after = source_fingerprint(project) if project is not None else None
+        save_signed(ctx, directory / "apply-failed.json",
+                    dict(run_id=run_id, reason=str(reason)[:500], source_fingerprint_before=before, source_fingerprint_after=after,
+                         project_changed=bool(before and after and before != after),
+                         failed_at=dt.datetime.now(dt.timezone.utc).isoformat()))
+    except (OSError, ValueError):
+        pass
+
+
 def apply_task(ctx, run_id, accepted_fingerprints=()):
-    """Apply a fully verified (and, if required, human-approved) patch to the project working tree. No commit."""
+    """Apply a fully verified (and, if required, human-approved) patch to the project working tree. No commit, no staging.
+
+    Exactly once: an exclusive claim is taken first, so two callers can never both write. The whole project state is
+    fingerprinted before and after the dry run; a change in between (even one that would still apply cleanly) is refused.
+    A failure leaves a signed `apply-failed.json` and releases the claim; a crash after the write keeps the claim, so the
+    patch is never applied a second time without a person looking at the project.
+    """
     if os.environ.get("RESPECTED_ORCH_CHILD") == "1":
         raise ValueError("Applying a patch must come from the master or operator, not from a worker")
     directory = ctx.run_dir(run_id)
     marker = directory / "applied.json"
     if marker.is_file():
         raise ValueError("Patch already applied")
-    verified = check_result(ctx, run_id, accepted_fingerprints=accepted_fingerprints)
-    request = load_signed(ctx, directory / "request.json")
-    project = validate_project(ctx, Path(request.get("apply_root") or request["project_root"]))
-    patch = Path(verified["patch"])
-    if patch.stat().st_size:
-        # --check first: a changed source (stale context) must fail before anything is written.
-        lanes._git(project, "apply", "--check", "--binary", "--whitespace=nowarn", str(patch))
-        lanes._git(project, "apply", "--binary", "--whitespace=nowarn", str(patch))
-    applied = dict(run_id=run_id, patch_sha256=load_signed(ctx, directory / "result.json")["patch_sha256"],
-                   changed_files=verified["changed_files"], source_fingerprint=source_fingerprint(project),
-                   applied_at=dt.datetime.now(dt.timezone.utc).isoformat())
-    save_signed(ctx, marker, applied)
-    return dict(applied, status="applied")
+    claim = safe_path(directory / "applying")
+    try:
+        os.close(os.open(claim, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600))
+    except FileExistsError:
+        raise ValueError("Apply already in progress or did not finish; inspect the project before trying again") from None
+    before, project, writing = None, None, False
+    try:
+        verified = check_result(ctx, run_id, accepted_fingerprints=accepted_fingerprints)
+        request = load_signed(ctx, directory / "request.json")
+        project = validate_project(ctx, Path(request.get("apply_root") or request["project_root"]))
+        patch = Path(verified["patch"])
+        if patch.stat().st_size:
+            from .review_model import parse_patch
+            for entry in parse_patch(patch.read_bytes().decode("utf8", errors="replace"), request.get("ownership") or (), request.get("forbidden") or ()):
+                if entry["problem"] or entry["symlink"]:
+                    raise ValueError(f"Patch touches {entry['path']} ({entry['problem'] or 'symbolic link'}); refusing to apply")
+            before = source_fingerprint(project)
+            # --check first: a changed source (stale context) must fail before anything is written.
+            lanes._git(project, "apply", "--check", "--binary", "--whitespace=nowarn", str(patch))
+            if source_fingerprint(project) != before:
+                raise ValueError("Project changed while the patch was being checked; nothing was written")
+            writing = True
+            lanes._git(project, "apply", "--binary", "--whitespace=nowarn", str(patch))
+            lanes._git(project, "apply", "--reverse", "--check", "--binary", "--whitespace=nowarn", str(patch))  # the whole patch is really there
+        after = source_fingerprint(project)
+        sha = load_signed(ctx, directory / "result.json")["patch_sha256"]
+        applied = dict(run_id=run_id, patch_sha256=sha, changed_files=verified["changed_files"], source_fingerprint=after,
+                       source_fingerprint_before=before, applied_at=dt.datetime.now(dt.timezone.utc).isoformat(),
+                       committed=False, staged=False,
+                       undo=f"git apply --reverse --binary \"{patch}\" (run in {project}); nothing was committed or staged")
+        save_signed(ctx, marker, applied)
+        return dict(applied, status="applied")
+    except BaseException as error:
+        _apply_failed(ctx, directory, run_id, error, before, project)
+        try:
+            untouched = not writing or source_fingerprint(project) == before  # git apply is all-or-nothing: unchanged means nothing landed
+        except (OSError, ValueError, subprocess.SubprocessError):
+            untouched = False
+        if untouched and not marker.is_file():
+            claim.unlink(missing_ok=True)  # the project is exactly as it was: a later try may succeed
+        raise
 
 
 def approve_maf_task(ctx, run_id):

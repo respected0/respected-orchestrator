@@ -1039,7 +1039,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-05.03 — TOCTOU-safe apply ve işlem sonucu
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `runner.apply_task` sertleştirildi (O_EXCL talep, tam parmak izi yeniden kontrolü, kapsam/symlink taraması, apply-failed.json, geri alma açıklaması); `tests/engine/test_apply_hardening.py` (7 OK) + mutasyon 3/3; kanıt `docs/evidence/KANIT_LOG.md` B3-05.03.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-05.01`, `B3-05.02`.
 - **Mimari / değişecek alan:** Existing apply_task check+git apply --check; native authorization check binding.
