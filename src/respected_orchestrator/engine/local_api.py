@@ -11,6 +11,7 @@ import re
 from ..interfaces import rpp
 from .authority import Action, Origin, authorize
 from . import read_model
+from ..workflows import dag_view
 from .journal import Journal
 from .lanes import _pid_is_alive
 from .supervisor import Supervisor
@@ -37,6 +38,7 @@ COMMANDS = {
     "runs.active": (None, Action.READ),
     "runs.list": (None, Action.READ),
     "projects.list": (None, Action.READ),
+    "plan.view": (None, Action.READ),
 }
 ERRORS = ("BAD_REQUEST", "UNSUPPORTED_VERSION", "UNAUTHENTICATED", "UNKNOWN_COMMAND", "FORBIDDEN",
           "PAYLOAD_TOO_LARGE", "REPLAY_CONFLICT", "ENGINE_ERROR")
@@ -124,6 +126,12 @@ class LocalApi:
         if command == "runs.active":
             claims = Supervisor(self.ctx).claims()
             response = _reply(corr, True, {"runs": {run: pid for run, pid in claims.items() if _pid_is_alive(int(pid))}})
+        elif command == "plan.view":
+            spec, root = payload.get("spec"), payload.get("project_root")
+            if not isinstance(spec, dict) or not isinstance(root, str) or not root:
+                response = _reply(corr, False, code="BAD_REQUEST", message="plan.view needs spec (object) and project_root (string).")
+            else:
+                response = _reply(corr, True, dag_view.dag_view(spec, root))
         elif command in ("runs.list", "projects.list"):
             response = self._board(corr, command, payload)
         elif command.startswith("events."):
