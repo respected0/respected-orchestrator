@@ -11,7 +11,7 @@ import re
 from ..interfaces import rpp
 from .authority import Action, Origin, authorize
 from . import read_model
-from ..workflows import dag_view, plan_draft
+from ..workflows import dag_view, plan_draft, project_control
 from .journal import Journal
 from .lanes import _pid_is_alive
 from .supervisor import Supervisor
@@ -42,6 +42,9 @@ COMMANDS = {
     "plan.create": (None, Action.TASK),
     "plan.edit": (None, Action.TASK),
     "plan.start": (None, Action.TASK),
+    "project.status": (None, Action.READ),
+    "project.cancel": (None, Action.TASK),
+    "project.resume": (None, Action.TASK),
 }
 ERRORS = ("BAD_REQUEST", "UNSUPPORTED_VERSION", "UNAUTHENTICATED", "UNKNOWN_COMMAND", "FORBIDDEN",
           "PAYLOAD_TOO_LARGE", "REPLAY_CONFLICT", "ENGINE_ERROR")
@@ -70,6 +73,16 @@ class LocalApi:
         except (ValueError, RecursionError):
             return _reply(None, False, code="BAD_REQUEST", message="Request is not valid JSON.")
         return self.handle(request)
+
+    def _project(self, corr, command, payload):
+        pid = payload.get("project_id")
+        try:
+            if command == "project.status":
+                return _reply(corr, True, project_control.status(self.ctx, pid))
+            action = project_control.cancel if command == "project.cancel" else project_control.resume
+            return _reply(corr, True, action(self.ctx, pid, corr))
+        except (ValueError, TypeError, KeyError, OSError) as error:
+            return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300])
 
     def _plan(self, corr, command, payload):
         """Draft editing and the separate start action. Every rule is enforced by plan_draft from the stored draft."""
@@ -147,6 +160,8 @@ class LocalApi:
         if command == "runs.active":
             claims = Supervisor(self.ctx).claims()
             response = _reply(corr, True, {"runs": {run: pid for run, pid in claims.items() if _pid_is_alive(int(pid))}})
+        elif command.startswith("project."):
+            response = self._project(corr, command, payload)
         elif command in ("plan.create", "plan.edit", "plan.start"):
             response = self._plan(corr, command, payload)
         elif command == "plan.view":

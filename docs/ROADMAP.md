@@ -993,7 +993,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-04.04 — Başlat, durdur, devam ettir ve durum açıklaması
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `workflows/project_control.py`, IPC `project.status/cancel/resume`; `tests/workflows/test_project_control.py` (9 OK) + gerçek ayrık süpervizörle e2e günlüğü; kanıt `docs/evidence/KANIT_LOG.md` B3-04.04.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-04.03`, `B3-02.04`.
 - **Mimari / değişecek alan:** Mevcut project-start/cancel/project-resume çağrılarını tipli IPC ile bağla.
