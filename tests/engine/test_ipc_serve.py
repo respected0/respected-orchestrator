@@ -26,6 +26,22 @@ class IpcServeTests(unittest.TestCase):
         self.assertEqual([r["ok"] for r in replies], [True, False])
         self.assertEqual(replies[1]["error"]["code"], "UNAUTHENTICATED")
 
+    def test_three_reopens_of_the_real_process_see_the_same_state_hash(self):
+        from respected_orchestrator.engine.journal import Journal
+        with tempfile.TemporaryDirectory() as data:
+            journal = Journal(Path(data) / "state" / "events.log")
+            for i in range(25):
+                journal.append(f"op-{i}", "step" if i % 2 else "done", run_id=f"run-{i % 3}")
+            env = dict(os.environ, PYTHONPATH=str(ROOT / "src"), RESPECTED_DATA_DIR=data, PYTHONUTF8="1", RESPECTED_IPC_TOKEN=TOKEN)
+            hashes = []
+            for n in range(3):
+                request = json.dumps(dict(ipc="1", id=f"reopen-{n:04d}", session=TOKEN, cmd="events.snapshot"))
+                proc = subprocess.run([sys.executable, "-m", "respected_orchestrator", "_ipc"], input=request + chr(10), capture_output=True, text=True, env=env, timeout=60)
+                reply = json.loads(proc.stdout)
+                self.assertEqual(reply["result"]["last_seq"], 25)
+                hashes.append(reply["result"]["state_hash"])
+            self.assertEqual(len(set(hashes)), 1)
+
     def test_missing_token_refuses_to_start(self):
         proc = self.run_engine([], token="")
         self.assertEqual(proc.returncode, 2)

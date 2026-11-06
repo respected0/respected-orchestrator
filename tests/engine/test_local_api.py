@@ -93,3 +93,56 @@ class LocalApiTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EventStreamTests(unittest.TestCase):
+    def setUp(self):
+        from respected_orchestrator.engine.journal import Journal
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name).resolve()
+        self.journal = Journal(self.root / "events.log")
+        self.api = LocalApi(EngineContext(self.root / "data"), TOKEN, journal=self.journal)
+        self.n = 0
+
+    def call(self, cmd, payload=None):
+        self.n += 1
+        return self.api.handle(dict(ipc="1", id=f"evt-{self.n:06d}", session=TOKEN, cmd=cmd, payload=payload or {}))
+
+    def test_pages_are_bounded_and_cover_a_burst_exactly_once(self):
+        for i in range(1200):
+            self.journal.append(f"o{i}", "step", run_id=f"r{i % 4}")
+        seen, after = [], 0
+        while True:
+            r = self.call("events.since", {"after": after, "limit": 100000})["result"]
+            self.assertLessEqual(len(r["events"]), local_api.MAX_EVENTS_PER_CALL)
+            self.assertFalse(r["gap"])
+            seen += [e["seq"] for e in r["events"]]
+            after = r["events"][-1]["seq"]
+            if not r["has_more"]:
+                break
+        self.assertEqual(seen, list(range(1, 1201)))
+
+    def test_reopening_three_times_reaches_the_same_state_hash(self):
+        for i in range(30):
+            self.journal.append(f"o{i}", "step" if i % 2 else "done", run_id=f"r{i % 3}")
+        hashes = {self.call("events.snapshot")["result"]["state_hash"] for _ in range(3)}
+        self.assertEqual(len(hashes), 1)
+        from respected_orchestrator.engine.journal import Journal
+        self.assertEqual(Journal(self.root / "events.log").snapshot()["state_hash"], hashes.pop())
+
+    def test_cursor_ahead_of_or_behind_a_rotated_journal_is_a_gap(self):
+        for i in range(5):
+            self.journal.append(f"o{i}", "step", run_id="r")
+        self.assertTrue(self.call("events.since", {"after": 99})["result"]["gap"])
+        self.journal.archive(self.root / "events.1")
+        self.journal.append("n1", "step", run_id="r")
+        self.assertTrue(self.call("events.since", {"after": 2})["result"]["gap"])  # events 3..5 live in the archive now
+        self.assertFalse(self.call("events.since", {"after": 5})["result"]["gap"])  # 6 is the rotation marker: next in line
+
+    def test_bad_cursor_and_missing_journal(self):
+        self.assertFalse(self.call("events.since", {"after": -1})["ok"])
+        self.assertFalse(self.call("events.since", {"after": "x"})["ok"])
+        self.assertFalse(self.call("events.since", {"after": True})["ok"])
+        bare = LocalApi(EngineContext(self.root / "d2"), TOKEN)
+        self.assertEqual(bare.handle(dict(ipc="1", id="evt-nojrnl", session=TOKEN, cmd="events.snapshot"))["error"]["code"], "ENGINE_ERROR")

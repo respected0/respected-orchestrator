@@ -4,6 +4,7 @@ One line per event: `<crc32 hex8> <json>`. seq is strictly increasing. A torn or
 good record; corruption in the middle stops replay there and is reported, never skipped silently. The same
 (operation_id, event_type) is stored once, so a retried producer is idempotent. Secrets are masked before writing.
 """
+import hashlib
 import json
 import os
 import re
@@ -116,3 +117,12 @@ class Journal:
         self._seen.clear()
         self.corrupt = False
         self.append(f"rotated-{self._seq}", "journal.rotated", payload={"archive": os.path.basename(str(to_path))})
+
+    def snapshot(self):
+        """Cheap state for a reconnecting UI: last event type per run + a hash of it, valid at last_seq."""
+        state = {}
+        for r in self.replay():
+            if r["run"]:
+                state[r["run"]] = {"seq": r["seq"], "type": r["type"]}
+        digest = hashlib.sha256(json.dumps(state, sort_keys=True).encode()).hexdigest()
+        return {"last_seq": self._seq, "state": state, "state_hash": digest}

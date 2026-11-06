@@ -10,9 +10,11 @@ import re
 
 from ..interfaces import rpp
 from .authority import Action, Origin, authorize
+from .journal import Journal
 
 IPC = "1"
 MAX_REQUEST_BYTES = 64 * 1024
+MAX_EVENTS_PER_CALL = 500
 _ID = re.compile(r"[A-Za-z0-9_-]{8,64}\Z")
 _CACHE_LIMIT = 256
 
@@ -27,6 +29,8 @@ COMMANDS = {
     "settings.apply": ("settings.apply", Action.SETTINGS),
     "evidence.view": ("evidence.view", Action.READ),
     "memory.status": ("memory.status", Action.READ),
+    "events.snapshot": (None, Action.READ),
+    "events.since": (None, Action.READ),
 }
 ERRORS = ("BAD_REQUEST", "UNSUPPORTED_VERSION", "UNAUTHENTICATED", "UNKNOWN_COMMAND", "FORBIDDEN",
           "PAYLOAD_TOO_LARGE", "REPLAY_CONFLICT", "ENGINE_ERROR")
@@ -38,10 +42,11 @@ def _reply(corr, ok, result=None, code=None, message=""):
 
 
 class LocalApi:
-    def __init__(self, ctx, token, origin=Origin.RENDERER):
+    def __init__(self, ctx, token, origin=Origin.RENDERER, journal=None):
         if not isinstance(token, str) or len(token) < 16:
             raise ValueError("session token must be at least 16 characters")
         self.ctx, self._token, self.origin = ctx, token, origin
+        self.journal = journal
         self._seen = {}  # id -> (request digest, response)
 
     def handle_raw(self, raw):
@@ -54,6 +59,21 @@ class LocalApi:
         except (ValueError, RecursionError):
             return _reply(None, False, code="BAD_REQUEST", message="Request is not valid JSON.")
         return self.handle(request)
+
+    def _events(self, corr, command, payload):
+        if self.journal is None:
+            return _reply(corr, False, code="ENGINE_ERROR", message="No event journal.")
+        if command == "events.snapshot":
+            return _reply(corr, True, self.journal.snapshot())
+        after, limit = payload.get("after", 0), payload.get("limit", MAX_EVENTS_PER_CALL)
+        if not all(isinstance(n, int) and not isinstance(n, bool) and n >= 0 for n in (after, limit)):
+            return _reply(corr, False, code="BAD_REQUEST", message="after and limit must be non-negative integers.")
+        limit = min(limit or MAX_EVENTS_PER_CALL, MAX_EVENTS_PER_CALL)  # bounded page: a slow consumer just pulls again
+        last = self.journal.last_seq
+        events = self.journal.replay(after=after, limit=limit)
+        # gap: the cursor is ahead of the journal (rotated/reset) or the first event is not the next one; the UI must resnapshot.
+        gap = after > last or (bool(events) and events[0]["seq"] != after + 1)
+        return _reply(corr, True, {"events": events, "last_seq": last, "gap": gap, "has_more": bool(events) and events[-1]["seq"] < last})
 
     def handle(self, request):
         corr = request.get("id") if isinstance(request, dict) else None
@@ -81,7 +101,9 @@ class LocalApi:
             if self._seen[corr][0] != digest:
                 return _reply(corr, False, code="REPLAY_CONFLICT", message="id was already used for a different request.")
             return self._seen[corr][1]
-        if op is None:
+        if command.startswith("events."):
+            response = self._events(corr, command, payload)
+        elif op is None:
             response = _reply(corr, True, {"ipc": IPC, "commands": sorted(COMMANDS), "max_request_bytes": MAX_REQUEST_BYTES})
         else:
             answer = rpp.handle_request({"rpp": rpp.RPP, "op": op, "operation_id": corr, "payload": payload}, self.ctx)
@@ -101,7 +123,7 @@ def serve(ctx, stdin, stdout, environ):
     The token arrives in RESPECTED_IPC_TOKEN (never argv) and is dropped from the environment so children cannot inherit it.
     """
     token = environ.pop("RESPECTED_IPC_TOKEN", "")
-    api = LocalApi(ctx, token)
+    api = LocalApi(ctx, token, journal=Journal(ctx.state_dir / "events.log"))
     for line in stdin:
         if line.strip():
             stdout.write(json.dumps(api.handle_raw(line.encode("utf-8")), ensure_ascii=True) + "\n")
