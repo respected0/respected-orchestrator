@@ -800,7 +800,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-01.03 — Engine connector ve health/version handshake
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine_connector.rs` + `_ipc` + testler; `KANIT_LOG.md` §B3-01.03 (olumlu paketli-motor E2E B3-09.01'e devredildi).
 - **Öncelik / boyut:** P0 / M
 - **Bağımlılıklar:** `B3-01.02`.
 - **Mimari / değişecek alan:** Var olan packaged engine exe, context.engine_command; proposed engine_connector.

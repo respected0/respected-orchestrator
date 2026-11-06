@@ -6,6 +6,7 @@ rpp, mcp. Own: integrations [set CLIENT=on|off...] registers this program as an 
 RESPECTED_DATA_DIR.
 """
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -136,6 +137,13 @@ def main(argv=None):
     if argv[:1] == ["_openrouter"]:  # read-only provider worker: touches no data root beyond the key vault
         from .engine import openrouter_worker
         return openrouter_worker.main(argv[1:])
+    if argv == ["_ipc"]:  # the desktop shell's engine connector: line-delimited local IPC on the parent's own pipes
+        from .engine import local_api
+        try:
+            return local_api.serve(EngineContext(default_data_root()), sys.stdin, sys.stdout, os.environ)
+        except ValueError as error:
+            print(json.dumps({"error": {"code": "IPC_TOKEN", "message": str(error), "hint": "Start it from the desktop app."}}))
+            return 2
     if argv[:1] == ["--version"]:
         print(f"respected-orchestrator {__version__}")
         return 0

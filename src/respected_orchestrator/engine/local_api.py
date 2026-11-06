@@ -93,3 +93,17 @@ class LocalApi:
             self._seen.pop(next(iter(self._seen)))
         self._seen[corr] = (digest, response)
         return response
+
+
+def serve(ctx, stdin, stdout, environ):
+    """Line-delimited loop over the parent's own pipes: only the process that spawned us can talk to us.
+
+    The token arrives in RESPECTED_IPC_TOKEN (never argv) and is dropped from the environment so children cannot inherit it.
+    """
+    token = environ.pop("RESPECTED_IPC_TOKEN", "")
+    api = LocalApi(ctx, token)
+    for line in stdin:
+        if line.strip():
+            stdout.write(json.dumps(api.handle_raw(line.encode("utf-8")), ensure_ascii=True) + "\n")
+            stdout.flush()
+    return 0
