@@ -184,3 +184,46 @@ Kanıt, test adı + çalışma tarihiyle birlikte sunulur; test adı belge cüml
 - **CI sınırı (FIX-01):** hosted runner yükseltilmiş olduğundan güvenlik kümesi iş içinde oluşturulan geçici standart kullanıcıyla koşar
   (`tests/tools/run_security_as_user.ps1`), sıfır skip ister ve commit SHA'lı manifest üretir (`run_security_ci.py`). Kapı mantığı birim
   testlidir; **hosted koşunun kendisi bu depoda henüz bir GitHub koşusuyla kanıtlanmadı** (ROADMAP FIX-01 açık madde).
+
+## 12. Masaüstü (Beta.3) tehdit modeli taslağı — B3-00.02
+
+Durum: **taslak/plan**. Bu bölümdeki hiçbir satır "Engellenir" değildir; masaüstü uygulaması henüz yoktur, durum
+her satırda **Planlı** yazılır ve ancak ilgili görev testiyle yükseltilir (§11 bakım kuralı). Varsayılan: **fail-closed**.
+
+### 12.1 Yeni güven sınırları
+
+| Kimlik | Sınır | Kural |
+|---|---|---|
+| B9 | Renderer (WebView, React) → Tauri native kabuk | Renderer güvenilmez girdidir; yalnızca tipli, izin listeli komut çağırır; dosya, süreç ve ağ yetkisi doğrudan yok |
+| B10 | Native kabuk → motor/supervisor (yerel servis) | Yerel kimlik doğrulamalı kanal (rastgele oturum belirteci, yalnızca loopback/named pipe); her komut yetki sınıfı taşır |
+| B11 | İşletim sistemi/başka uygulama → masaüstü (deep link, protokol, pano, sürükle-bırak) | Tüm girdi veri sayılır; eylem başlatamaz, yalnızca taslak üretebilir |
+| B12 | İnsan varlığı (human-presence authority) → onay/apply | Renderer, MCP, worker ve çocuk süreç bu sınırı üretemez; onay iki ayrı doğrulamayla (insan eylemi + patch digest) bağlanır (B3-00.03) |
+
+### 12.2 Negatif tehdit senaryoları (en az 12)
+
+| ID | Tehdit | Sahip | Engel katmanı | Beklenen sonuç | Durum | Test planı (görev) |
+|---|---|---|---|---|---|---|
+| D-01 | Renderer'dan `approve`/`apply` komutu taklidi | Renderer | B9, B12 | Native kabuk komutu yetki sınıfı yok diye reddeder; onay dosyası oluşmaz | Planlı | B3-05.02, B3-05.04 |
+| D-02 | IPC spoofing: başka yerel süreç IPC kanalına bağlanır | Yerel süreç | B10 | Oturum belirteci yoksa bağlantı reddedilir | Planlı | B3-01.02 |
+| D-03 | Localhost CSRF: tarayıcı sayfası yerel servise istek atar | Web sayfası | B10 | Origin/belirteç denetimi; yoksa 403, yan etki yok | Planlı | B3-01.03 |
+| D-04 | Deep link enjeksiyonu (`respected://…`) ile görev/onay başlatma | Başka uygulama | B11 | Link yalnızca taslak açar; yetkili eylem yok | Planlı | B3-01.04 |
+| D-05 | XSS: ajan çıktısı veya diff içeriği UI'de betik çalıştırır | Ajan çıktısı | B9 | Çıktı kaçışlanır, CSP betiği engeller | Planlı | B3-06.02 |
+| D-06 | Ele geçirilmiş renderer yetkisiz Tauri komutu çağırır | Renderer | B9 | Capability izin listesi dışı komut reddedilir | Planlı | B3-01.01 |
+| D-07 | Replay: eski onay/komut tekrar gönderilir | Ağ/süreç | B12 | Tek kullanımlık nonce; ikinci kullanım reddedilir | Planlı | B3-00.03, B3-05.04 |
+| D-08 | Yetki yükseltme: salt-okunur oturum `settings`/`privileged` komut çağırır | Renderer | B10 | Yetki sınıfı uyuşmazlığı → ret | Planlı | B3-00.03 |
+| D-09 | Onaydan sonra patch değişir (patch drift / TOCTOU) | Ajan/süreç | B12, B5 | Digest uyuşmazlığı → apply reddi, yazım yok | Planlı | B3-05.03 |
+| D-10 | Symlink/junction ile diff veya dosya inspector çalışma ağacı dışını okur | Worker çıktısı | B3, B9 | Kök dışı yol reddedilir | Planlı | B3-06.02 |
+| D-11 | Başka kullanıcı bağlamından/yükseltilmiş süreçten gelen komut | Yerel süreç | B10 | Kullanıcı kimliği/oturum eşleşmezse ret | Planlı | B3-02.03 |
+| D-12 | Pano/sürükle-bırak ile gizli anahtar sızdırma veya komut yapıştırma | Kullanıcı hatası/başka uygulama | B11 | Gizli değer redakte edilir; yapıştırılan metin çalıştırılmaz | Planlı | B3-03.05 |
+| D-13 | Terminal oturumu AppContainer dışında korumasız süreç açar | Renderer/ajan | B2, B9 | Oturum yalnızca sandbox yolundan açılır; kurulamazsa açılmaz | Planlı | B3-03.02 |
+
+### 12.3 Yetkili eylem tablosu (sahip, kayıt, ret durumu)
+
+| Eylem | Sahip | Kayıt | Reddedilme durumu |
+|---|---|---|---|
+| Okuma/durum | Renderer (salt okunur sınıf) | Denetim olayı | Belirteç yok → ret |
+| Görev başlat/iptal | İnsan oturumu | Olay günlüğü | Yetki sınıfı yok → ret |
+| Ayar değiştir | İnsan oturumu | Olay günlüğü | Sınıf uyuşmazlığı → ret |
+| Onay/apply | Yalnızca human-presence authority | `maf-approval.json` + olay | Renderer/MCP/worker → ret, dosya oluşmaz |
+
+Bu tablonun tamamlayıcısı B3-00.03'teki komut/yetki matrisidir.

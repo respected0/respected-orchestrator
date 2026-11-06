@@ -2833,3 +2833,9 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
   - Tam suite `python -m unittest discover -s tests -t .` → 661 test, 797 sn, **errors=2, skipped=2**. İki hata aynı testin (test + temizlik) kaydıdır: `EngineTests.test_supervisor_crash_kills_owned_descendants`, `supervisor.log` WinError 32. Tek başına ve değişiklik stash'lenmişken tekrar koşuldu: ikisi de OK. Neden: suite sürerken aynı makinede başka testler paralel koşturuldu (yük kaynaklı yarış); kök neden ayrıca araştırılmadı.
   - Skip'ler: biri `test_live_context_mode_search_when_installed` (CONTEXT_MODE_SERVER gerekir, isteğe bağlı canlı yoklama); ikincisi izole edilmedi. AppContainer dosyaları (`test_sandbox`, `test_worker_policy` vb.) ayrı koşuda 0 skip.
 - Kalan risk: tam suite yeşil bir temiz koşu olarak kaydedilmedi (yukarıdaki yarış); G-1..G-4 açık; ikinci skip'in nedeni bilinmiyor.
+
+## B3-00.02 — Masaüstü tehdit modeli ve güven sınırları (6 Kasım 2026)
+
+- Kapsam: `docs/THREAT_MODEL.md` §12: yeni sınırlar B9–B12, 13 negatif senaryo (D-01..D-13; IPC spoofing, localhost CSRF, deep link, XSS, renderer ele geçirme, replay, yetki yükseltme, symlink, patch drift, pano), yetkili eylem tablosu. Tüm satırlar **Planlı**; masaüstü uygulaması yok, koruma iddiası yok.
+- Test: `tests/docs/test_desktop_threat_model.py` (≥12 senaryo, her satırda sahip/katman/test planı görev kimliği, hiçbir satır testsiz "Engellenir" demez, renderer onay taklidi kapsanır). Çalıştırma: 3 test + `test_decision_records` OK; negatif kontrol: D-05 satırı "Engellenir" yapılınca test FAIL verdi, geri alındı.
+- Kalan risk: renderer taklit testi gerçek renderer olmadığından henüz yürütülemez (B3-05.04'te yürütülecek); senaryolar belge düzeyindedir.

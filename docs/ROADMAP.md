@@ -732,7 +732,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-00.02 — Desktop threat model ve trust boundary
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — THREAT_MODEL §12 + `tests/docs/test_desktop_threat_model.py`; `KANIT_LOG.md` §B3-00.02.
 - **Öncelik / boyut:** P0 / M
 - **Bağımlılıklar:** `B3-00.01`.
 - **Mimari / değişecek alan:** Yeni UI renderer / Tauri native shell / yerel servis / worker / MCP sınırlarını ayır.
