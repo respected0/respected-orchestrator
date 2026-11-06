@@ -96,6 +96,9 @@ def verify(agent, run=_run, which=shutil.which):
         row["caps"][cap] = {"status": GATED, "evidence": "PTY awaits the ConPTY+AppContainer gate (B3-03.02)" if cap == "pty" else unsupported}
     if path is None:
         return row
+    for cap in CAPABILITIES:  # found, but nothing is claimed for this capability: say that, not "binary not found"
+        if cap != "pty" and cap not in spec["caps"]:
+            row["caps"][cap]["evidence"] = "no adapter contract for this capability yet"
     code, text = run([path, "--version"])
     row["version"] = text.strip().splitlines()[0] if code == 0 and text.strip() else None
     floor, seen = spec["verified_version"], _parse(row["version"])

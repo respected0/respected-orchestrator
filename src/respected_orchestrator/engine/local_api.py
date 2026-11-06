@@ -10,7 +10,7 @@ import re
 
 from ..interfaces import rpp
 from .authority import Action, Origin, authorize, effective_origin
-from . import activity, agent_discovery, approval, artifact_view, read_model, review_model
+from . import activity, agent_discovery, capability_matrix, approval, artifact_view, read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control, role_editor, roles
 from .runner import SUPPORTED_AGENTS, tool_available
 from .journal import Journal
@@ -49,6 +49,7 @@ COMMANDS = {
     "review.view": (None, Action.READ),
     "activity.list": (None, Action.READ),
     "agents.discover": (None, Action.READ),
+    "capabilities.matrix": (None, Action.READ),
     "roles.view": (None, Action.READ),
     "roles.plan_edit": (None, Action.READ),
     "artifact.list": (None, Action.READ),
@@ -243,6 +244,8 @@ class LocalApi:
                 response = _reply(corr, True, result)
             except (ValueError, TypeError) as error:
                 response = _reply(corr, False, code="BAD_REQUEST", message=str(error)[:300])
+        elif command == "capabilities.matrix":
+            response = _reply(corr, True, capability_matrix.build())
         elif command == "review.view":
             run_id = payload.get("run_id")
             if not isinstance(run_id, str) or not re.fullmatch(r"run-\d{14}-[0-9a-f]{12}", run_id):

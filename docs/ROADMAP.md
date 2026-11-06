@@ -1142,7 +1142,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-07.03 — Canlı yetenek/uyumluluk matrisi
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/capability_matrix.py`, IPC `capabilities.matrix`, artefakt `docs/evidence/capability-matrix-2026-11-06.md`; `tests/engine/test_capability_matrix.py` (9 OK) + mutasyon 4/4; kanıt `docs/evidence/KANIT_LOG.md` B3-07.03.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B3-07.02`, `B3-03.01`.
 - **Mimari / değişecek alan:** Per-tool/agent per-version capability descriptors, verified timestamp.
