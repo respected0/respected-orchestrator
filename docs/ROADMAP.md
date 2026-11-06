@@ -846,7 +846,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-02.02 — Sürümlü event journal ve outbox
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/journal.py` + `tests/engine/test_journal.py`; `KANIT_LOG.md` §B3-02.02 (kısmi saklama yok, riskler orada).
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-02.01`.
 - **Mimari / değişecek alan:** Önerilen append-only local journal: seq, operation_id, run_id, event_type, payload version; mevcut imzalı evidence farklı kaynaktır.
