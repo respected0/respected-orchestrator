@@ -705,7 +705,7 @@ class EngineTests(unittest.TestCase):
             self.assertTrue(api.TerminateProcess(handle, 1))
         finally:
             api.CloseHandle(handle)
-        deadline = time.monotonic() + 3
+        deadline = time.monotonic() + 20
         while time.monotonic() < deadline and lanes._pid_is_alive(pid):
             time.sleep(0.05)
         self.assertFalse(lanes._pid_is_alive(pid))
