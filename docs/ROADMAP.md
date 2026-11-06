@@ -811,7 +811,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-01.04 — Temel navigation, erişilebilirlik ve hata durumları
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `desktop/src/shell.ts` + `tests/shell.test.ts` + UIA e2e; `KANIT_LOG.md` §B3-01.04 (kalan riskler orada).
 - **Öncelik / boyut:** P0 / M
 - **Bağımlılıklar:** `B3-01.03`.
 - **Mimari / değişecek alan:** Önerilen React shell ve tipli API read model.

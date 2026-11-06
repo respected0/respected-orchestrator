@@ -2875,3 +2875,10 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - E2E (gerçek release exe, UI Automation ile pencere metni): motor klasörü yok → "Motora bağlanılamadı (" + "Run the Respected Orchestrator installer again (repair)."; paketli **eski** beta.2 motoru (`dist/RespectedOrchestrator`, `_ipc` bilmez) → "Motora bağlanılamadı (" (hata çıkışı, GUI çökmedi).
 - Sürüm matrisi: ipc "1"↔"1" kabul; ipc "2" → `VersionMismatch`; ürün `respected-hub` → `WrongOwner`; beta.2 motoru → bağlanamaz.
 - Kalan risk: **olumlu uçtan uca (GUI + paketli motor "sağlıklı") gösterilemedi**, çünkü paketli motor `_ipc` içeren sürümle yeniden derlenmedi; olumlu yol yalnızca cargo testinde `python -m` ile kanıtlı → B3-09.01'de paketli motorla yinelenecek. Ekran görüntüsü alınmadı/okunmadı; metin UI Automation'dan.
+
+## B3-01.04 — Temel gezinme, erişilebilirlik ve hata durumları (6 Kasım 2026)
+
+- Kapsam: `desktop/src/shell.ts` (5 rota: Projeler, Çalıştırmalar, İncelemeler, Ajanlar, Ayarlar; `screenView` motor durumundan loading/error/empty türetir; hash yönlendirme; klavye sırası), `main.tsx` (ana gezinme `nav`, `main` + `h1`, atlama bağlantısı, `aria-current`, `role=status/alert`, odak halkası), `style.css` (açık/koyu tema `prefers-color-scheme`).
+- Test: `npm run check` (desktop/) → `tsc --noEmit` temiz + `node --test` 5/5 (boş kurulumda her rota anlaşılır boş durum; motor yok/sağlıksız hiçbir rotada başarı gibi görünmez; bilinmeyen/enjekte hash `projects`'e düşer; ok/Home/End sarmalı).
+- E2E (gerçek release exe, motor klasörü yok, UI Automation + SendKeys): bağlantılar `İçeriğe geç | Projeler | Çalıştırmalar | İncelemeler | Ajanlar | Ayarlar`; ekranda "Motor yok" ve "Motora bağlanılamadı (NotInstalled)."; Tab×3 sonrası odak `Çalıştırmalar`, ↓ ile `İncelemeler`'e geçti.
+- Kalan risk: yavaş motor (zaman aşımı/ilerleme) durumu ve kontrast/ekran okuyucu denemesi yapılmadı; bileşen düzeyinde (DOM) test yok, yalnızca saf mantık + UIA smoke; ekran görüntüsü seti/video üretilmedi (UIA metni kanıt). Rota ekranları iskelet; veri B3-04 ve sonrasında.

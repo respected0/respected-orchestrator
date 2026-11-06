@@ -1,0 +1,14 @@
+:root { color-scheme: light dark; --bg: #f6f7f9; --fg: #14181f; --panel: #ffffff; --line: #c9ced6; --accent: #0b5fff; }
+@media (prefers-color-scheme: dark) { :root { --bg: #161e29; --fg: #e8ecf2; --panel: #1d2735; --line: #34425a; --accent: #7fa8ff; } }
+* { box-sizing: border-box; }
+body { margin: 0; font: 15px/1.5 system-ui, 'Segoe UI', sans-serif; background: var(--bg); color: var(--fg); }
+header { display: flex; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.layout { display: flex; min-height: calc(100vh - 45px); }
+nav { display: flex; flex-direction: column; width: 200px; padding: 12px; gap: 4px; border-right: 1px solid var(--line); }
+nav a { padding: 8px 10px; border-radius: 6px; color: inherit; text-decoration: none; }
+nav a[aria-current='page'] { background: var(--accent); color: #fff; }
+a:focus-visible, main:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+main { flex: 1; padding: 20px 24px; }
+[role='alert'] { border-left: 4px solid #c62828; padding: 8px 12px; background: var(--panel); }
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: 8px; top: 8px; background: var(--panel); padding: 6px 10px; z-index: 1; }
