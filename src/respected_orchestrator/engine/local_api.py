@@ -6,10 +6,13 @@ token and is checked against the authority matrix, and every response carries th
 import hashlib
 import hmac
 import json
+import os
+from pathlib import Path
 import re
 
 from ..interfaces import rpp
 from .authority import Action, Origin, authorize, effective_origin
+from .capabilities import paths as capability_paths
 from . import activity, agent_discovery, capability_matrix, approval, artifact_view, read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control, role_editor, roles
 from .runner import SUPPORTED_AGENTS, tool_available
@@ -49,6 +52,7 @@ COMMANDS = {
     "review.view": (None, Action.READ),
     "activity.list": (None, Action.READ),
     "agents.discover": (None, Action.READ),
+    "capabilities.scan": (None, Action.READ),
     "capabilities.matrix": (None, Action.READ),
     "roles.view": (None, Action.READ),
     "roles.plan_edit": (None, Action.READ),
@@ -246,6 +250,13 @@ class LocalApi:
                 response = _reply(corr, False, code="BAD_REQUEST", message=str(error)[:300])
         elif command == "capabilities.matrix":
             response = _reply(corr, True, capability_matrix.build())
+        elif command == "capabilities.scan":
+            root = payload.get("project_root")
+            if root is not None and not (isinstance(root, str) and os.path.isabs(root) and os.path.isdir(root)):
+                response = _reply(corr, False, code="BAD_REQUEST", message="project_root must be an existing absolute directory.")
+            else:
+                home = os.environ.get("USERPROFILE") or os.environ.get("HOME") or str(Path.home())
+                response = _reply(corr, True, capability_paths.scan(home, root))
         elif command == "review.view":
             run_id = payload.get("run_id")
             if not isinstance(run_id, str) or not re.fullmatch(r"run-\d{14}-[0-9a-f]{12}", run_id):
