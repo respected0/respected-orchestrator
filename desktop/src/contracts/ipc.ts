@@ -5,7 +5,7 @@ export const MAX_REQUEST_BYTES = 65536;
 export const COMMANDS = [
   'hello', 'engine.manifest', 'engine.health', 'settings.schema', 'settings.readback',
   'settings.validate', 'settings.apply', 'evidence.view', 'memory.status',
-  'events.snapshot', 'events.since', 'runs.active', 'runs.list', 'projects.list', 'plan.view', 'plan.create', 'plan.edit', 'plan.start', 'project.status', 'project.cancel', 'project.resume',
+  'events.snapshot', 'events.since', 'runs.active', 'runs.list', 'projects.list', 'plan.view', 'plan.create', 'plan.edit', 'plan.start', 'project.status', 'project.cancel', 'project.resume', 'review.view',
 ] as const;
 export type Command = (typeof COMMANDS)[number];
 

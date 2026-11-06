@@ -10,6 +10,8 @@ import re
 import shutil
 import subprocess
 
+from . import winproc
+
 CAPABILITIES = ("chat", "pty", "send_input", "interrupt", "resume", "usage", "auth", "approval")
 GATED = "unsupported"  # explicit, not "unknown"
 
@@ -72,7 +74,7 @@ ADAPTERS = {
 
 def _run(argv, timeout=30):
     try:
-        done = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout,
+        done = winproc.run(argv, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout,
                               stdin=subprocess.DEVNULL, shell=False)
     except (OSError, subprocess.TimeoutExpired) as exc:
         return None, str(exc)

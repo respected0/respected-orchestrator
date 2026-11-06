@@ -10,7 +10,7 @@ import re
 
 from ..interfaces import rpp
 from .authority import Action, Origin, authorize
-from . import read_model
+from . import read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control
 from .journal import Journal
 from .lanes import _pid_is_alive
@@ -45,6 +45,7 @@ COMMANDS = {
     "project.status": (None, Action.READ),
     "project.cancel": (None, Action.TASK),
     "project.resume": (None, Action.TASK),
+    "review.view": (None, Action.READ),
 }
 ERRORS = ("BAD_REQUEST", "UNSUPPORTED_VERSION", "UNAUTHENTICATED", "UNKNOWN_COMMAND", "FORBIDDEN",
           "PAYLOAD_TOO_LARGE", "REPLAY_CONFLICT", "ENGINE_ERROR")
@@ -170,6 +171,12 @@ class LocalApi:
                 response = _reply(corr, False, code="BAD_REQUEST", message="plan.view needs spec (object) and project_root (string).")
             else:
                 response = _reply(corr, True, dag_view.dag_view(spec, root))
+        elif command == "review.view":
+            run_id = payload.get("run_id")
+            if not isinstance(run_id, str) or not re.fullmatch(r"run-\d{14}-[0-9a-f]{12}", run_id):
+                response = _reply(corr, False, code="BAD_REQUEST", message="review.view needs a valid run_id.")
+            else:
+                response = _reply(corr, True, review_model.review_dto(self.ctx, run_id))
         elif command in ("runs.list", "projects.list"):
             response = self._board(corr, command, payload)
         elif command.startswith("events."):

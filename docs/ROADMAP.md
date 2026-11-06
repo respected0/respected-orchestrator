@@ -1017,7 +1017,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-05.01 — Evidence/Diff/PR-CI read model
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/review_model.py`, IPC `review.view`; `tests/engine/test_review_model.py` (13 OK) + tam paket 774 test; kanıt `docs/evidence/KANIT_LOG.md` B3-05.01.
 - **Öncelik / boyut:** P0 / M
 - **Bağımlılıklar:** `B3-04.01`, `B3-01.02`.
 - **Mimari / değişecek alan:** Mevcut evidence/check API tek kaynak, diff read-only ve path-scope sanitization.
