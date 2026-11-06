@@ -68,9 +68,10 @@ başarısız olursa ya da ürün güncellemeden önce sağlıklıyken sonra sağ
 başarısız sayılır ve kurulu sürüm değişmez; başarılıysa yedek silinir. Kurucu bu durumda ve ürünün `setup` komutu
 başarısız olduğunda sıfırdan farklı bir çıkış koduyla (8) biter; kasa klasörü kullanılamıyorsa 7 ile. Hub ayrıca kurulu
 sürümü paketteki sürümle karşılaştırır. Veri biçimi
-değişirse her eski biçim için `STEPS` tablosuna bir adım eklenir ve **adımlar hiç silinmez**; her yayında o sürümün gerçek
+değişirse her eski biçim için `STEPS` tablosuna bir adım eklenir ve **adımlar hiç silinmez**; tablo yalnızca `SHIPPED` ile
+`CURRENT` arasındaki gerçek boşlukları içerir, ileriye dönük spekülatif adım taşımaz. Her yayında o sürümün gerçek
 veri dosyaları `tests/fixtures/releases/<sürüm>/` altına kopyalanır, CI hepsini en yeniye taşıyıp ikinci çalıştırmanın hiçbir
-şeyi değiştirmediğini doğrular. Katalog bir yayın için `min_from` taşıyabilir (yalnızca o sürümün ve üstünün üzerine doğrudan
+şeyi değiştirmediğini ve yayın klasöründe tanınmayan veri dosyası olmadığını doğrular. Katalog bir yayın için `min_from` taşıyabilir (yalnızca o sürümün ve üstünün üzerine doğrudan
 kurulur; Hub `UPDATE_PATH` ile reddeder, kişi önce o sürümü kurar) ve geri çekilen sürümleri `blocked` listesinde tutar
 (hiçbir Hub bunları önermez).
 
