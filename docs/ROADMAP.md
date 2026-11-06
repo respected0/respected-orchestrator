@@ -1085,7 +1085,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-06.02 — Dosya diff/çıktı/kanıt inspector
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/artifact_view.py`, IPC `artifact.list/read`; `tests/engine/test_artifact_view.py` (11 OK, 1 atlandı: symlink ayrıcalığı yok; junction denendi) + mutasyon; kanıt `docs/evidence/KANIT_LOG.md` B3-06.02.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B3-06.01`, `B3-05.01`.
 - **Mimari / değişecek alan:** Artifacts whitelist & path sandbox; bounded stream; command output redaction.

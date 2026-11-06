@@ -10,7 +10,7 @@ import re
 
 from ..interfaces import rpp
 from .authority import Action, Origin, authorize, effective_origin
-from . import activity, approval, read_model, review_model
+from . import activity, approval, artifact_view, read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control
 from .journal import Journal
 from .lanes import _pid_is_alive
@@ -47,6 +47,8 @@ COMMANDS = {
     "project.resume": (None, Action.TASK),
     "review.view": (None, Action.READ),
     "activity.list": (None, Action.READ),
+    "artifact.list": (None, Action.READ),
+    "artifact.read": (None, Action.READ),
     "approval.open": (None, Action.TASK),
     "approval.decide": (None, Action.PRIVILEGED),
     "approval.apply": (None, Action.PRIVILEGED),
@@ -206,6 +208,15 @@ class LocalApi:
                         agent=payload.get("agent"), query=payload.get("query")))
                 except (ValueError, TypeError) as error:
                     response = _reply(corr, False, code="BAD_REQUEST", message=str(error)[:200])
+        elif command in ("artifact.list", "artifact.read"):
+            try:
+                if command == "artifact.list":
+                    response = _reply(corr, True, artifact_view.list_artifacts(self.ctx, payload.get("run_id")))
+                else:
+                    response = _reply(corr, True, artifact_view.read_chunk(self.ctx, payload.get("run_id"), payload.get("name"), payload.get("offset", 0),
+                                                                          payload.get("length", artifact_view.MAX_CHUNK), journal=self.journal))
+            except (ValueError, TypeError, OSError) as error:
+                response = _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:200])
         elif command == "review.view":
             run_id = payload.get("run_id")
             if not isinstance(run_id, str) or not re.fullmatch(r"run-\d{14}-[0-9a-f]{12}", run_id):
