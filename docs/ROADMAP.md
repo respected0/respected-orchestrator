@@ -778,7 +778,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-01.01 — Tauri/React build ve güvenli başlangıç PoC
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `desktop/` + `tests/desktop/test_shell_policy.py` + cargo test + smoke; `KANIT_LOG.md` §B3-01.01 (kalan riskler orada).
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-00.02`.
 - **Mimari / değişecek alan:** Önerilen desktop/ Tauri 2 shell; üretim derlemesinde sabit allowlist, dış URL ve dosya erişim politikası.

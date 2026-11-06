@@ -2851,3 +2851,13 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - Kapsam: `docs/adr/ADR-023-desktop-product-contract.md`: GUI için sözleşme değişikliği gerekmez, hesap/çevrimiçi/başka uygulama koşulu yok, gelecekteki değişiklik kuralı. ADR-021 I-08 satırı düzeltildi (conformance testi Hub deposunda).
 - Doğrulama: `python docs/evidence/poc/doc01_check.py` RESULT PASS (23 ADR). Salt-okunur conformance koşusu (Hub deposu, hiçbir dosya değiştirilmedi): `common.conformance.test_product_contract.ProductContract.test_every_repo_carries_the_same_contract` → **FAILED** `2 != 1`; `diff` Brain kopyasının 71–74. satırlarda (BR-028) Hub/Orchestrator'dan ilerde olduğunu gösterir.
 - Kalan risk: **üç sözleşme kopyası bugün eşit değil** (başka depolarda; izinsiz değişiklik yapılmadı). Eşitleme sahibinin kararı gerekir; Beta.3 kararı bundan etkilenmez.
+
+## B3-01.01 — Tauri/React build ve güvenli başlangıç PoC (6 Kasım 2026)
+
+- Kapsam: `desktop/` (Tauri 2 + React 19 + TS, Vite 7): tek pencere `main`, kapalı CSP (`default-src 'self'`, uzak köken yok, `unsafe-*` yok, `object-src 'none'`), `withGlobalTauri=false`, boş capability izin listesi, özel invoke komutu ve eklenti yok, `on_navigation` koruması (yalnızca paketli köken; geliştirme sunucusu yalnızca debug derlemesinde ve 127.0.0.1:1430).
+- Doğrulama (Windows 11, yükseltilmemiş kullanıcı):
+  - `cargo test --lib` (desktop/src-tauri) → 1 test OK (`bundled_origin_only`: `https://example.com`, `file:///…`, `javascript:`, `about:blank`, `http://127.0.0.1:8080`, `http://tauri.localhost.evil.com` reddedildi).
+  - `python -m unittest tests.desktop.test_shell_policy` → 5 test OK (CSP, tek pencere, capability yasakları, invoke/eklenti yokluğu, navigation guard kaydı).
+  - `npx tauri build --no-bundle` → exit 0, `respected-orchestrator-desktop.exe` 8,7 MB.
+  - Smoke: exe başlatıldı, 6 sn sonra süreç canlı, `MainWindowTitle='Respected Orchestrator'`, pencere tutamacı var, `elevated=False`; süreç sonlandırıldı.
+- Kalan risk: pencere içeriğinin (React sayfası) görsel olarak yüklendiği ekran görüntüsüyle doğrulanmadı; navigation guard'ın canlı WebView'de gerçek bir yasak gezinmeyi engellediği Rust birim testiyle (URL kararı) kanıtlı, uçtan uca değil; "signed asset/integrity" tasarımı ve temiz makine testi B3-09'a kalır; kurucu dışı build.
