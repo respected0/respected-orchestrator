@@ -1177,7 +1177,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-08.02 — Manifest normalizasyonu ve durum ayrımı
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/capabilities/normalize.py`, IPC `capabilities.inventory`; `tests/engine/test_capability_normalize.py` (12 OK) + mutasyon 9/9; kanıt `docs/evidence/KANIT_LOG.md` B3-08.02.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B3-08.01`.
 - **Mimari / değişecek alan:** Normalized capability DTO: kind=skill/mcp, id, origin, scope, agent, declared permissions, digest, status.

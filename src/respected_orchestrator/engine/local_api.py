@@ -11,8 +11,9 @@ from pathlib import Path
 import re
 
 from ..interfaces import rpp
+from .evidence import load_signed
 from .authority import Action, Origin, authorize, effective_origin
-from .capabilities import paths as capability_paths
+from .capabilities import normalize as capability_normalize, paths as capability_paths
 from . import activity, agent_discovery, capability_matrix, approval, artifact_view, read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control, role_editor, roles
 from .runner import SUPPORTED_AGENTS, tool_available
@@ -53,6 +54,7 @@ COMMANDS = {
     "activity.list": (None, Action.READ),
     "agents.discover": (None, Action.READ),
     "capabilities.scan": (None, Action.READ),
+    "capabilities.inventory": (None, Action.READ),
     "capabilities.matrix": (None, Action.READ),
     "roles.view": (None, Action.READ),
     "roles.plan_edit": (None, Action.READ),
@@ -257,6 +259,21 @@ class LocalApi:
             else:
                 home = os.environ.get("USERPROFILE") or os.environ.get("HOME") or str(Path.home())
                 response = _reply(corr, True, capability_paths.scan(home, root))
+        elif command == "capabilities.inventory":
+            root = payload.get("project_root")
+            if root is not None and not (isinstance(root, str) and os.path.isabs(root) and os.path.isdir(root)):
+                response = _reply(corr, False, code="BAD_REQUEST", message="project_root must be an existing absolute directory.")
+            else:
+                home = os.environ.get("USERPROFILE") or os.environ.get("HOME") or str(Path.home())
+                approvals, error = [], None
+                approvals_file = self.ctx.data_root / "capability-approvals.json"
+                if approvals_file.is_file():
+                    try:
+                        approvals = load_signed(self.ctx, approvals_file).get("approvals", [])
+                    except (ValueError, OSError, AttributeError):
+                        error = "the approvals file failed verification and was ignored; nothing is trusted"
+                result = capability_normalize.build(home, root, approvals=approvals if isinstance(approvals, list) else [])
+                response = _reply(corr, True, {**result, "approvals_error": error})
         elif command == "review.view":
             run_id = payload.get("run_id")
             if not isinstance(run_id, str) or not re.fullmatch(r"run-\d{14}-[0-9a-f]{12}", run_id):

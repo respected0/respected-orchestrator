@@ -69,28 +69,53 @@ def _checked(root, path):
     return current, None
 
 
-def _read_config(path, fmt, key):
+def _load(path, fmt):
+    """(metadata, parsed document or None). Never returns values to callers outside this package except through `load_entries`."""
     if _SENSITIVE.search(path.name):
-        return {"state": "refused", "error_class": "sensitive_file"}
+        return {"state": "refused", "error_class": "sensitive_file"}, None
     size = path.stat().st_size
     if size > MAX_CONFIG_BYTES:
-        return {"state": "refused", "error_class": "too_large", "bytes": size}
+        return {"state": "refused", "error_class": "too_large", "bytes": size}, None
     raw = path.read_bytes()
     out = {"bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
     try:
         text = raw.decode("utf-8-sig")
     except UnicodeDecodeError:
-        return {**out, "state": "unreadable_content", "error_class": "bad_encoding"}
+        return {**out, "state": "unreadable_content", "error_class": "bad_encoding"}, None
     try:
         doc = json.loads(text) if fmt == "json" else tomllib.loads(text)
     except (ValueError, RecursionError) as error:
-        return {**out, "state": "unreadable_content", "error_class": "malformed_json" if fmt == "json" else "malformed_toml", "detail": str(error)[:120]}
+        return {**out, "state": "unreadable_content", "error_class": "malformed_json" if fmt == "json" else "malformed_toml", "detail": str(error)[:120]}, None
     if not isinstance(doc, dict):
-        return {**out, "state": "unreadable_content", "error_class": "unsupported_shape"}
+        return {**out, "state": "unreadable_content", "error_class": "unsupported_shape"}, None
+    return out, doc
+
+
+def _read_config(path, fmt, key):
+    out, doc = _load(path, fmt)
+    if doc is None:
+        return out
     section = doc.get(key) if key else None
     if section is not None and not isinstance(section, dict):
         return {**out, "state": "unreadable_content", "error_class": "unsupported_shape", "detail": f"{key} is not a table"}
     return {**out, "state": "ok", "top_level_keys": sorted(str(k) for k in doc)[:100], "entry_names": sorted(str(k) for k in (section or {}))[:200]}
+
+
+def load_entries(home, project=None):
+    """For the normalizer only: (matrix row, parsed document) for every readable config file, through the same link checks as `scan`."""
+    for row in matrix(home, project):
+        if row["path"] is None or row["format"] == "skill-dir":
+            continue
+        root = Path(project) if row["scope"] == "project" else Path(home)
+        try:
+            path, problem = _checked(root, row["path"])
+            if problem:
+                continue
+            meta, doc = _load(path, row["format"])
+        except (OSError, ValueError):
+            continue
+        if doc is not None:
+            yield row, meta, doc
 
 
 def _read_skills(directory):
