@@ -2861,3 +2861,9 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
   - `npx tauri build --no-bundle` → exit 0, `respected-orchestrator-desktop.exe` 8,7 MB.
   - Smoke: exe başlatıldı, 6 sn sonra süreç canlı, `MainWindowTitle='Respected Orchestrator'`, pencere tutamacı var, `elevated=False`; süreç sonlandırıldı.
 - Kalan risk: pencere içeriğinin (React sayfası) görsel olarak yüklendiği ekran görüntüsüyle doğrulanmadı; navigation guard'ın canlı WebView'de gerçek bir yasak gezinmeyi engellediği Rust birim testiyle (URL kararı) kanıtlı, uçtan uca değil; "signed asset/integrity" tasarımı ve temiz makine testi B3-09'a kalır; kurucu dışı build.
+
+## B3-01.02 — Tipli IPC şeması, istemci ve sunucu (6 Kasım 2026)
+
+- Kapsam: `engine/local_api.py` (RPP'yi sarar, değiştirmez): sürüm `ipc:"1"`, korelasyon `id`, oturum belirteci (sabit zamanlı karşılaştırma), 9 komutluk izin listesi, `authority.authorize` ile yetki sınıfı denetimi, 64 KiB sınırı, 8 hata kodu, aynı `id` için idempotent yanıt / farklı istek `REPLAY_CONFLICT`. TS sözleşmesi `desktop/src/contracts/ipc.ts`.
+- Test: `tests/engine/test_local_api.py` 9 test (bilinmeyen/izin listesi dışı komut `github.pr_create`, `maf-approve`, `apply` dahil reddi; yanlış/eksik belirteç; sürüm uyumsuzluğu; bozuk JSON, iç içe `[`×60000, aşırı büyük yük; replay; WORKER/MCP yetki reddi; 500 rastgele bozuk istek hiç istisna fırlatmadan hep `ok=false`; Python↔TS komut/hata listesi eşitliği). `unittest tests.engine.test_local_api tests.interfaces.test_rpp tests.desktop` → 28 test OK; `npm run build` (tsc) OK.
+- Kalan risk: taşıma katmanı (named pipe/loopback ve Tauri tarafı) yok; belirteç üretimi/dağıtımı ve gerçek istemci B3-01.03'te; replay önbelleği bellek içi, 256 girişli.

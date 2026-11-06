@@ -789,7 +789,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-01.02 — Tipli IPC şeması, istemci ve sunucu
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/local_api.py` + `tests/engine/test_local_api.py`; `KANIT_LOG.md` §B3-01.02.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-00.03`, `B3-01.01`.
 - **Mimari / değişecek alan:** Proposed desktop/contracts/ ve engine/local_api.py; mevcut RPP davranışını sarmala, değiştirme.
