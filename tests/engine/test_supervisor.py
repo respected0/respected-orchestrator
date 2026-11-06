@@ -24,6 +24,18 @@ print("owner", flush=True)
 time.sleep(float(sys.argv[2]))
 """
 SLEEPER = "import time; time.sleep(120)"
+WRITER = """
+import sys
+from pathlib import Path
+from respected_orchestrator.context import EngineContext
+from respected_orchestrator.engine.supervisor import Supervisor
+s = Supervisor(EngineContext(Path(sys.argv[1]))).acquire()
+print("owner", flush=True)
+i = 0
+while True:
+    i += 1
+    s.claim_run("run-%d" % (i % 7), 4000000 + i)
+"""
 
 
 def spawn(code, *args):
@@ -104,6 +116,17 @@ class SupervisorTests(unittest.TestCase):
                 again.claim_run("run-b", 4243)
             again.release_run("run-b")
             self.assertNotIn("run-b", again.claims())
+
+    def test_killing_the_supervisor_mid_write_never_leaves_a_torn_claims_file(self):
+        for _ in range(5):
+            writer = self.start(WRITER, str(self.data))
+            self.assertEqual(writer.stdout.readline().strip(), "owner")
+            time.sleep(0.4)
+            writer.kill()
+            writer.wait()
+            with sup.Supervisor(self.ctx) as s:
+                claims = s.claims()  # json.loads inside; a torn file would come back empty, a full one has all 7 slots
+                self.assertEqual(sorted(claims), [f"run-{i}" for i in range(7)])
 
 
 if __name__ == "__main__":

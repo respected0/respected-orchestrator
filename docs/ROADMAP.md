@@ -868,7 +868,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-02.04 — Resume ve shutdown davranışı
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — kapatma ayrımı + `runs.active` + modal + fault-injection testleri; `KANIT_LOG.md` §B3-02.04 (modal uçtan uca B3-09.01'e devredildi).
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-02.03`.
 - **Mimari / değişecek alan:** Mevcut RES-01/02 checkpoint / project-resume mekanizmasına bağlanır; yeni güvenliksiz resume yok.

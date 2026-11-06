@@ -38,3 +38,16 @@ export function nextRoute(current: RouteId, key: string): RouteId | null {
   const j = key === 'ArrowDown' ? (i + 1) % n : key === 'ArrowUp' ? (i + n - 1) % n : key === 'Home' ? 0 : key === 'End' ? n - 1 : -1;
   return j < 0 ? null : ROUTES[j].id;
 }
+
+/** Closing the window never stops work: runs are detached engine processes. With work active the user is told first. */
+export type CloseAction = 'close-window' | 'quit-app';
+export type CloseDecision = { allow: true } | { allow: false; message: string; confirm: string; cancel: string };
+export function closeDecision(_action: CloseAction, activeRuns: number): CloseDecision {
+  if (activeRuns <= 0) return { allow: true };
+  return {
+    allow: false,
+    message: `${activeRuns} çalıştırma sürüyor. Pencereyi kapatmak bunları durdurmaz; arka planda devam ederler.`,
+    confirm: 'Yine de kapat',
+    cancel: 'Açık kal',
+  };
+}

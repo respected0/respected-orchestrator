@@ -121,6 +121,12 @@ impl Connection {
         Ok(Status { version: self.version.clone(), healthy: h["result"]["status"] == "healthy" })
     }
 
+    /// Number of runs a live worker still holds (read-only; closing the window never touches them).
+    pub fn active_runs(&mut self) -> Result<usize, ConnectError> {
+        let v = self.call("runs.active")?;
+        Ok(v["result"]["runs"].as_object().map(|m| m.len()).unwrap_or(0))
+    }
+
     pub fn kill(&mut self) { let _ = self.child.kill(); let _ = self.child.wait(); }
 }
 

@@ -35,10 +35,10 @@ class ShellPolicyTests(unittest.TestCase):
         capabilities = list((SRC / "capabilities").glob("*.json"))
         self.assertEqual(len(capabilities), 1)
 
-    def test_exactly_one_read_only_command_and_no_plugins(self):
+    def test_exactly_two_shell_commands_and_no_plugins(self):
         lib = (SRC / "src" / "lib.rs").read_text(encoding="utf-8")
-        self.assertEqual(re.findall(r"generate_handler!\[([^\]]*)\]", lib), ["engine_status"])
-        self.assertEqual(lib.count("#[tauri::command]"), 1)
+        self.assertEqual(re.findall(r"generate_handler!\[([^\]]*)\]", lib), ["engine_status, confirm_close"])
+        self.assertEqual(lib.count("#[tauri::command]"), 2)
         toml = (SRC / "Cargo.toml").read_text(encoding="utf-8")
         self.assertNotRegex(toml, r"tauri-plugin-(shell|fs|http|opener|process)")
 

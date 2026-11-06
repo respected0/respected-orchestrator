@@ -79,6 +79,16 @@ class LocalApiTests(unittest.TestCase):
             self.assertFalse(response["ok"])
             self.assertEqual(set(response), {"ipc", "id", "ok", "result", "error"})
 
+    def test_runs_active_lists_only_live_workers(self):
+        import subprocess, sys
+        from respected_orchestrator.engine.supervisor import Supervisor
+        worker = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+        self.addCleanup(lambda: (worker.kill(), worker.wait()))
+        with Supervisor(self.api.ctx) as s:
+            s.claim_run("run-live", worker.pid)
+            s.claim_run("run-dead", 99999999)
+        self.assertEqual(self.call("runs.active")["result"]["runs"], {"run-live": worker.pid})
+
     def test_short_token_refused(self):
         with self.assertRaises(ValueError):
             LocalApi(self.api.ctx, "short")
@@ -146,3 +156,4 @@ class EventStreamTests(unittest.TestCase):
         self.assertFalse(self.call("events.since", {"after": True})["ok"])
         bare = LocalApi(EngineContext(self.root / "d2"), TOKEN)
         self.assertEqual(bare.handle(dict(ipc="1", id="evt-nojrnl", session=TOKEN, cmd="events.snapshot"))["error"]["code"], "ENGINE_ERROR")
+

@@ -12,3 +12,5 @@ main { flex: 1; padding: 20px 24px; }
 [role='alert'] { border-left: 4px solid #c62828; padding: 8px 12px; background: var(--panel); }
 .skip { position: absolute; left: -999px; }
 .skip:focus { left: 8px; top: 8px; background: var(--panel); padding: 6px 10px; z-index: 1; }
+.modal { position: fixed; inset: 30% 25% auto; z-index: 2; padding: 16px; background: var(--panel); border: 2px solid var(--accent); border-radius: 8px; }
+.modal button { margin-right: 8px; padding: 6px 12px; }

@@ -11,6 +11,8 @@ import re
 from ..interfaces import rpp
 from .authority import Action, Origin, authorize
 from .journal import Journal
+from .lanes import _pid_is_alive
+from .supervisor import Supervisor
 
 IPC = "1"
 MAX_REQUEST_BYTES = 64 * 1024
@@ -31,6 +33,7 @@ COMMANDS = {
     "memory.status": ("memory.status", Action.READ),
     "events.snapshot": (None, Action.READ),
     "events.since": (None, Action.READ),
+    "runs.active": (None, Action.READ),
 }
 ERRORS = ("BAD_REQUEST", "UNSUPPORTED_VERSION", "UNAUTHENTICATED", "UNKNOWN_COMMAND", "FORBIDDEN",
           "PAYLOAD_TOO_LARGE", "REPLAY_CONFLICT", "ENGINE_ERROR")
@@ -101,7 +104,10 @@ class LocalApi:
             if self._seen[corr][0] != digest:
                 return _reply(corr, False, code="REPLAY_CONFLICT", message="id was already used for a different request.")
             return self._seen[corr][1]
-        if command.startswith("events."):
+        if command == "runs.active":
+            claims = Supervisor(self.ctx).claims()
+            response = _reply(corr, True, {"runs": {run: pid for run, pid in claims.items() if _pid_is_alive(int(pid))}})
+        elif command.startswith("events."):
             response = self._events(corr, command, payload)
         elif op is None:
             response = _reply(corr, True, {"ipc": IPC, "commands": sorted(COMMANDS), "max_request_bytes": MAX_REQUEST_BYTES})

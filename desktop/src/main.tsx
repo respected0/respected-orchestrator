@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { invoke } from '@tauri-apps/api/core';
-import { ROUTES, type EngineState, type RouteId, nextRoute, routeFromHash, screenView } from './shell';
+import { listen } from '@tauri-apps/api/event';
+import { ROUTES, type EngineState, type RouteId, closeDecision, nextRoute, routeFromHash, screenView } from './shell';
 import './style.css';
 
 function useEngine(): EngineState {
@@ -17,6 +18,12 @@ function useEngine(): EngineState {
 
 function App() {
   const engine = useEngine();
+  const [blocked, setBlocked] = useState<number | null>(null);
+  useEffect(() => {
+    const un = listen<number>('close-blocked', (e) => setBlocked(e.payload));
+    return () => { un.then((f) => f()); };
+  }, []);
+  const decision = blocked === null ? null : closeDecision('close-window', blocked);
   const [route, setRoute] = useState<RouteId>(routeFromHash(location.hash));
   const links = useRef<Record<string, HTMLAnchorElement | null>>({});
   useEffect(() => {
@@ -29,6 +36,13 @@ function App() {
   const badge = engine.phase === 'ready' ? `Motor ${engine.version}` : engine.phase === 'loading' ? 'Motor aranıyor…' : 'Motor yok';
   return (
     <>
+      {decision && !decision.allow && (
+        <div role="alertdialog" aria-modal="true" aria-labelledby="close-msg" className="modal">
+          <p id="close-msg">{decision.message}</p>
+          <button autoFocus onClick={() => setBlocked(null)}>{decision.cancel}</button>
+          <button onClick={() => invoke('confirm_close')}>{decision.confirm}</button>
+        </div>
+      )}
       <a className="skip" href="#content">İçeriğe geç</a>
       <header>
         <strong>Respected Orchestrator</strong>

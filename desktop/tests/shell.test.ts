@@ -31,3 +31,12 @@ test('keyboard navigation wraps and supports Home/End', () => {
   assert.equal(nextRoute('runs', 'End'), 'settings');
   assert.equal(nextRoute('runs', 'a'), null);
 });
+
+import { closeDecision } from '../src/shell.ts';
+
+test('closing is free when idle and informs (never kills) when runs are active', () => {
+  assert.deepEqual(closeDecision('close-window', 0), { allow: true });
+  const d = closeDecision('quit-app', 2);
+  assert.equal(d.allow, false);
+  if (!d.allow) assert.match(d.message, /durdurmaz/);
+});
