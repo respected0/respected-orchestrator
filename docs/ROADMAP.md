@@ -1234,7 +1234,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-09.03 — Aktif görev varken update/rollback tasarımı
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — ADR-026, `engine/maintenance.py` + CLI `maintenance`, giriş noktası korumaları, kurucu betiği (derlendi, çalıştırılmadı), `runs.active` gerçek canlılık düzeltmesi; `test_maintenance` 14 + `test_update_window_script` 6, tam paket 945; hata enjekteli kanıt `docs/evidence/b3-09-03-update-fault-injection.md`, `docs/evidence/KANIT_LOG.md` B3-09.03. **Not:** gerçek kurucu çalıştırılmadı; kısmi kurulum/rollback yeniden sınanmadı.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-09.02`, `B3-02.04`.
 - **Mimari / değişecek alan:** Supervisor version handshake; packaging repair/update rollback; active work handles.

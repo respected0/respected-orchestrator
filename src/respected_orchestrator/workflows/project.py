@@ -15,6 +15,7 @@ import sys
 import time
 from uuid import uuid4
 
+from .. import __version__
 from ..engine import lanes, sandbox
 from ..engine.budget import MAX_BUDGET, UNKNOWN_STEP_TOKENS_DEFAULT
 from . import campaign, checkpoint, roles
@@ -383,11 +384,13 @@ def _spawn(ctx, project_id, directory, spec):
     engine = campaign._snapshot_engine(ctx, spec["engine_source"])
     command = engine_command("--data-root", str(ctx.data_root), "project-run", project_id)
     pid = lanes._spawn_detached(command, engine, directory / "supervisor.log", env=campaign._engine_env(engine))
-    save_signed(ctx, directory / "supervisor.json", dict(project_id=project_id, pid=pid, engine=str(engine)))
+    save_signed(ctx, directory / "supervisor.json", dict(project_id=project_id, pid=pid, engine=str(engine), engine_version=__version__))
     return pid
 
 
 def start_project(ctx, request):
+    from ..engine import maintenance
+    maintenance.refuse_if_active(ctx, "proje başlatma")
     project_id, directory = create_project(ctx, request)
     return dict(project_id=project_id, status="started", pid=_spawn(ctx, project_id, directory, load_signed(ctx, directory / "project.json")["spec"]))
 
@@ -398,6 +401,8 @@ def _supervisor_alive(ctx, directory):
 
 
 def resume_project(ctx, project_id):
+    from ..engine import maintenance
+    maintenance.refuse_if_active(ctx, "proje devam ettirme")
     directory = project_dir(ctx, project_id)
     state = load_signed(ctx, directory / "project.json")
     if state["status"] in _TERMINAL:

@@ -236,6 +236,50 @@ begin
   end;
 end;
 
+{ ---- update window (ADR-026) ----
+  Before the program files are replaced the installed program is told to stop accepting new work (`maintenance begin`), and running
+  work gets two minutes to finish (`maintenance drain`). Work that is still running is never killed unasked: a silent update is
+  postponed (nothing changes), an interactive one asks. A program that predates the command (beta.2) keeps the previous behaviour.
+  The window closes after the update (or the rollback) and also closes by itself after 30 minutes. }
+procedure EndUpdateWindow;
+var
+  Code: Integer;
+  Output: TExecOutput;
+begin
+  if FileExists(ProgramExe()) then
+    if not ExecAndCaptureOutput(ProgramExe(), 'maintenance end', '', SW_HIDE, ewWaitUntilTerminated, Code, Output) then
+      Log('maintenance end could not run');
+end;
+
+function DrainRunningWork(): String;
+var
+  Code: Integer;
+  Output: TExecOutput;
+  Waiting: String;
+begin
+  Result := '';
+  if not FileExists(ProgramExe()) then Exit;  // a first install has nothing running
+  if not ExecAndCaptureOutput(ProgramExe(), 'maintenance begin --ttl 1800 --reason update', '', SW_HIDE, ewWaitUntilTerminated, Code, Output) or (Code <> 0) then begin
+    Log('maintenance begin is not available in the installed version (exit code ' + IntToStr(Code) + '): the previous behaviour applies');
+    Exit;
+  end;
+  if ExecAndCaptureOutput(ProgramExe(), 'maintenance drain --seconds 120', '', SW_HIDE, ewWaitUntilTerminated, Code, Output) and (Code = 0) then Exit;
+  if Code <> 3 then begin
+    Log('maintenance drain gave exit code ' + IntToStr(Code) + ' (not "work still running"): continuing');
+    Exit;
+  end;
+  Waiting := 'Çalışan görevler bitmedi.';
+  if WizardSilent then begin
+    EndUpdateWindow;
+    Result := ProductName + ' güncellenemedi: ' + Waiting + ' Hiçbir şey değiştirilmedi; görevler bitince yeniden deneyin.';
+    Exit;
+  end;
+  if SuppressibleMsgBox(Waiting + #13#10#13#10 + 'Güncelleme şimdi yapılırsa bu görevler durdurulur ve "yarıda kaldı" olarak işaretlenir; otomatik uygulanmazlar, sonra siz karar verirsiniz.' + #13#10#13#10 + 'Yine de güncellensin mi?', mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDNO then begin
+    EndUpdateWindow;
+    Result := 'Güncelleme sizin isteğinizle ertelendi; hiçbir şey değiştirilmedi.';
+  end;
+end;
+
 // the value of `config get <key>`, whose output is {"<key>": <value>} (one line or one member per line)
 function CurrentSetting(Key: String): String;
 var
@@ -331,6 +375,7 @@ begin
     RaiseException(ProductName + ' ' + Reason + ' Önceki sürüm geri yüklenemedi; kopyası şurada duruyor: ' + UpdateBackup());
   if PreviousVersion <> '' then RegWriteStringValue(HKCU, UninstallKey, 'DisplayVersion', PreviousVersion);
   CommitUpdate;
+  EndUpdateWindow;  // the restored program closes the window it opened
   Log(ProductName + ' ' + Reason + ' Önceki sürüm geri yüklendi.');
   SuppressibleMsgBox(ProductName + ' ' + Reason + #13#10 + 'Önceki sürüm geri yüklendi; ayarlarınız ve verileriniz değişmedi.', mbError, MB_OK, IDOK);
   InstallFailed := True;  // DeinitializeSetup turns this into a non-zero exit code
@@ -339,12 +384,15 @@ end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
-  Result := '';
+  Result := DrainRunningWork();
+  if Result <> '' then Exit;
   StopRunningProduct;
   // a first install killed while it wrote its uninstaller leaves an empty unins000.dat: Inno would number the new pair unins001 beside it
   if not Maintenance then DelTree(ExpandConstant('{app}\unins*.*'), False, True, False);
-  if not BackUpForUpdate() then
+  if not BackUpForUpdate() then begin
+    EndUpdateWindow;
     Result := ProductName + ' güncellenmeden önce yedeği alınamadı (disk dolu ya da dosyalar kullanımda olabilir); hiçbir şey değiştirilmedi.';
+  end;
 end;
 
 // unattended through the Hub: `Setup.exe /VERYSILENT /HUB=1`
@@ -530,6 +578,7 @@ begin
       ApplyMemoryChoice;
     end;
   end;
+  EndUpdateWindow;  // the new program accepts work again
   if SwitchSettings() <> '' then
     if not RunProduct('config set' + ConfigArgs(SwitchSettings()), Output) then
       RaiseException(ProductName + ' kuruldu ama /SET ayarları uygulanamadı.');

@@ -11,6 +11,7 @@ import sys
 import threading
 from uuid import uuid4
 
+from .. import __version__
 from ..engine import lanes
 from ..engine import winproc
 from ..context import FROZEN, EngineContext, engine_command, safe_path
@@ -138,12 +139,14 @@ def create_campaign(ctx, request):
 
 
 def start_campaign(ctx, request):
+    from ..engine import maintenance
+    maintenance.refuse_if_active(ctx, "kampanya başlatma")
     campaign_id, directory = create_campaign(ctx, request)
     engine = _snapshot_engine(ctx)
     command = engine_command("--data-root", str(ctx.data_root),
                "campaign-run", campaign_id)
     pid = lanes._spawn_detached(command, engine, directory / "supervisor.log", env=_engine_env(engine))
-    save_signed(ctx, directory / "supervisor.json", dict(campaign_id=campaign_id, pid=pid, engine=str(engine)))
+    save_signed(ctx, directory / "supervisor.json", dict(campaign_id=campaign_id, pid=pid, engine=str(engine), engine_version=__version__))
     return dict(campaign_id=campaign_id, status="started", pid=pid)
 
 

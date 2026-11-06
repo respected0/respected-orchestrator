@@ -520,6 +520,8 @@ def _memory_policy(request, settings, root):
 
 
 def create_task(ctx: EngineContext, request: dict, *, settings: dict | None = None, history=None, main_root=None) -> dict:
+    from . import maintenance
+    maintenance.refuse_if_active(ctx, "yeni görev")
     if not isinstance(request, dict):
         raise ValueError("Task request must be a JSON object")
     project = validate_project(ctx, Path(request.get("project_root", "")))
@@ -990,6 +992,8 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
 
 
 def start_task(ctx, run_id):
+    from . import maintenance
+    maintenance.refuse_if_active(ctx, "görev başlatma")
     directory = ctx.run_dir(run_id)
     load_signed(ctx, directory / "request.json")
     if load_signed(ctx, directory / "status.json")["status"] != "queued":
@@ -1194,6 +1198,8 @@ def apply_task(ctx, run_id, accepted_fingerprints=()):
     A failure leaves a signed `apply-failed.json` and releases the claim; a crash after the write keeps the claim, so the
     patch is never applied a second time without a person looking at the project.
     """
+    from . import maintenance
+    maintenance.refuse_if_active(ctx, "yama uygulama")
     if os.environ.get("RESPECTED_ORCH_CHILD") == "1":
         raise ValueError("Applying a patch must come from the master or operator, not from a worker")
     directory = ctx.run_dir(run_id)

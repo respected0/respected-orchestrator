@@ -14,6 +14,7 @@ from ..interfaces import rpp
 from .evidence import load_signed
 from .authority import Action, Origin, authorize, effective_origin
 from .capabilities import normalize as capability_normalize, paths as capability_paths
+from . import maintenance
 from . import activity, agent_discovery, capability_matrix, approval, artifact_view, read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control, role_editor, roles
 from .runner import SUPPORTED_AGENTS, tool_available
@@ -194,8 +195,7 @@ class LocalApi:
                 return _reply(corr, False, code="REPLAY_CONFLICT", message="id was already used for a different request.")
             return self._seen[corr][1]
         if command == "runs.active":
-            claims = Supervisor(self.ctx).claims()
-            response = _reply(corr, True, {"runs": {run: pid for run, pid in claims.items() if _pid_is_alive(int(pid))}})
+            response = _reply(corr, True, {"runs": maintenance.run_pids(self.ctx)})  # real liveness, not only supervisor claims
         elif command.startswith("project."):
             response = self._project(corr, command, payload)
         elif command in ("plan.create", "plan.edit", "plan.start"):

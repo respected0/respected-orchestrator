@@ -42,4 +42,5 @@ kurulmamalı, iki ayrı güncellenmemeli, iki ayrı kayıt tutmamalı.
 
 ## Kaynaklar
 
-- `packaging/build_dist.py`, `packaging/windows/orchestrator_setup.iss`, `docs/PRODUCT_CONTRACT.md` §2 ve §8, `desktop/src-tauri/src/engine_connector.rs`.
+- `packaging/build_dist.py`, `packaging/windows/orchestrator_setup.iss`, `docs/PRODUCT_CONTRACT.md` §2 ve §8, `desktop/src-tauri/src/engine_connector.rs` (erişim: 2026-11-07).
+- Kanıt: `docs/evidence/b3-09-01-package-smoke.md`, `docs/evidence/KANIT_LOG.md` B3-09.01 (erişim: 2026-11-07).
