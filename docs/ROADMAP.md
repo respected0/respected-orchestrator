@@ -754,7 +754,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-00.04 — Ürün sözleşmesi ve uyumluluk karar kaydı
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — ADR-023 + conformance raporu (`KANIT_LOG.md` §B3-00.04; üç kopya sürüklenmesi bulgusu kayıtlı).
 - **Öncelik / boyut:** P0 / S
 - **Bağımlılıklar:** `B3-00.03`.
 - **Mimari / değişecek alan:** PRODUCT_CONTRACT üç-kopya ve conformance kuralıyla uyumlu değişiklik planı (bu iş başka ürün geliştirmesi değildir).

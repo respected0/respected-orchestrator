@@ -31,7 +31,7 @@ Baz: depo commit `ec9e599` (main), sürüm beta.2.
 | I-05 | Keşif ≠ doğrulanmış kullanılabilirlik ≠ güven ≠ etkinleştirme; otomatik kurulum yok | Yok (envanter henüz yok) | **Boşluk G-3:** B3-08.02 durum ayrımını testle başlatmalı |
 | I-06 | Bilinmeyen maliyet/token `unknown`, asla 0 | `tests/engine/test_pricing.py::test_unknown_model_is_never_zero`, `::test_missing_usage_is_unknown_not_zero` | Var |
 | I-07 | Veri şeması değişirse sürümlü migration + gerçek eski fixture + rollback | `tests/interfaces/test_migrate.py` (eski sürüm taşıma, bozuk adım sıfır yazım, daha yeni veri reddi), `tests/workflows/test_checkpoint.py`; kurucu geri alma kanıtı `docs/evidence/poc/upgrade_beta1_to_beta2.json` | Var; yeni şema eklendiğinde geçerli |
-| I-08 | `PRODUCT_CONTRACT.md` kopya/conformance etkisi planlanır; başka ürün koduna dokunulmaz | `docs/PRODUCT_CONTRACT.md` (3 kopya kuralı) | **Boşluk G-4:** bu depoda kopya eşitliğini denetleyen test bulunamadı → B3-00.04 |
+| I-08 | `PRODUCT_CONTRACT.md` kopya/conformance etkisi planlanır; başka ürün koduna dokunulmaz | `respected-hub/common/conformance/test_product_contract.py` (üç kopyanın aynılığı dahil) | Test Hub deposundadır (G-4 ilk yazımda yanlıştı: bu depoda yok, Hub'da var). **Bugün üç kopya aynı değil** → ADR-023 |
 
 ### Beta.2 kapılarının gerçek durumu (belgeden değil kanıt kaydından)
 

@@ -2845,3 +2845,9 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - Kapsam: `engine/authority.py` (saf politika: 5 köken × 4 yetki sınıfı, `effective_origin`, `Grant`/`check_grant`) ve `docs/adr/ADR-022-command-authority-matrix.md`. Henüz hiçbir yola bağlanmadı; CLI/MCP/runner davranışı değişmedi.
 - Test: `tests/engine/test_authority.py` (tam matris 20 hücre; yalnızca HUMAN ayrıcalıklı; `RESPECTED_ORCH_CHILD=1` HUMAN iddiasını CHILD'a düşürür; yanlış kapsam/run/patch reddi ve ret'in nonce'u tüketmemesi; tekrar oynatma reddi). Çalıştırma: `tests.engine.test_authority tests.engine.test_security_gate tests.docs tests.interfaces.test_human_approval_contract` → 19 test OK; `doc01_check.py` RESULT PASS (22 ADR).
 - Kalan risk: politika henüz zorlanmıyor (B3-05.02'de bağlanacak); nonce deposu bellek içi; kabuk kimliği/imzası yok (kimlik doğrulama iddiası yok).
+
+## B3-00.04 — Ürün sözleşmesi ve uyumluluk karar kaydı (6 Kasım 2026)
+
+- Kapsam: `docs/adr/ADR-023-desktop-product-contract.md`: GUI için sözleşme değişikliği gerekmez, hesap/çevrimiçi/başka uygulama koşulu yok, gelecekteki değişiklik kuralı. ADR-021 I-08 satırı düzeltildi (conformance testi Hub deposunda).
+- Doğrulama: `python docs/evidence/poc/doc01_check.py` RESULT PASS (23 ADR). Salt-okunur conformance koşusu (Hub deposu, hiçbir dosya değiştirilmedi): `common.conformance.test_product_contract.ProductContract.test_every_repo_carries_the_same_contract` → **FAILED** `2 != 1`; `diff` Brain kopyasının 71–74. satırlarda (BR-028) Hub/Orchestrator'dan ilerde olduğunu gösterir.
+- Kalan risk: **üç sözleşme kopyası bugün eşit değil** (başka depolarda; izinsiz değişiklik yapılmadı). Eşitleme sahibinin kararı gerekir; Beta.3 kararı bundan etkilenmez.
