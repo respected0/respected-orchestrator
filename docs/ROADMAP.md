@@ -743,7 +743,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-00.03 — Komut/yetki matrisi ve onay otoritesi sözleşmesi
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — ADR-022 + `engine/authority.py` + `tests/engine/test_authority.py`; `KANIT_LOG.md` §B3-00.03.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-00.02`.
 - **Mimari / değişecek alan:** Mevcut check/apply ve maf-approve davranışını koruyan ayrı human-presence authority protokolü taslağı.

@@ -2839,3 +2839,9 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - Kapsam: `docs/THREAT_MODEL.md` §12: yeni sınırlar B9–B12, 13 negatif senaryo (D-01..D-13; IPC spoofing, localhost CSRF, deep link, XSS, renderer ele geçirme, replay, yetki yükseltme, symlink, patch drift, pano), yetkili eylem tablosu. Tüm satırlar **Planlı**; masaüstü uygulaması yok, koruma iddiası yok.
 - Test: `tests/docs/test_desktop_threat_model.py` (≥12 senaryo, her satırda sahip/katman/test planı görev kimliği, hiçbir satır testsiz "Engellenir" demez, renderer onay taklidi kapsanır). Çalıştırma: 3 test + `test_decision_records` OK; negatif kontrol: D-05 satırı "Engellenir" yapılınca test FAIL verdi, geri alındı.
 - Kalan risk: renderer taklit testi gerçek renderer olmadığından henüz yürütülemez (B3-05.04'te yürütülecek); senaryolar belge düzeyindedir.
+
+## B3-00.03 — Komut/yetki matrisi ve onay otoritesi sözleşmesi (6 Kasım 2026)
+
+- Kapsam: `engine/authority.py` (saf politika: 5 köken × 4 yetki sınıfı, `effective_origin`, `Grant`/`check_grant`) ve `docs/adr/ADR-022-command-authority-matrix.md`. Henüz hiçbir yola bağlanmadı; CLI/MCP/runner davranışı değişmedi.
+- Test: `tests/engine/test_authority.py` (tam matris 20 hücre; yalnızca HUMAN ayrıcalıklı; `RESPECTED_ORCH_CHILD=1` HUMAN iddiasını CHILD'a düşürür; yanlış kapsam/run/patch reddi ve ret'in nonce'u tüketmemesi; tekrar oynatma reddi). Çalıştırma: `tests.engine.test_authority tests.engine.test_security_gate tests.docs tests.interfaces.test_human_approval_contract` → 19 test OK; `doc01_check.py` RESULT PASS (22 ADR).
+- Kalan risk: politika henüz zorlanmıyor (B3-05.02'de bağlanacak); nonce deposu bellek içi; kabuk kimliği/imzası yok (kimlik doğrulama iddiası yok).
