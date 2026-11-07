@@ -104,7 +104,7 @@ class InstallationTests(unittest.TestCase):
 
 
 class MemoryLinkTests(unittest.TestCase):
-    """`memory connect` without the Hub: a fake Brain answers memory.grant/revoke over its rpp command."""
+    """`memory connect` standalone: a fake Brain answers memory.grant/revoke over its rpp command."""
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

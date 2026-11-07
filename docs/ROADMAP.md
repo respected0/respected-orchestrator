@@ -283,6 +283,10 @@ Fazlar tek bir katı DAG değildir; her görevdeki `Bağımlılıklar` alanı ge
 
 ---
 
+> **Karar 2026-11-07 — Hub kaldırıldı.** Orchestrator bağımsız bir üründür: kurucuda Hub yolu, katalog, sürüm anahtarı/kasası ve güncelleyici yoktur.
+> Güncelleme, GitHub sürümündeki yeni kurucuyu çalıştırmaktır (`packaging/release.py` kurucuyu, `SHA256SUMS.txt` ve `gh` komutlarını hazırlar; `--yes` olmadan yüklemez).
+> Brain hafıza özelliği ve RPP (Brain'in ve `github-*` komutlarının protokolü) kalır. Bu nedenle aşağıda geçen "Hub ile" ifadeleri tarihsel bağlamdır; Hub'a bağımlı yeni görev açılmaz.
+
 ## 4. Değişmez ilkeler, güvenlik sabitleri ve tamamlanma tanımı
 
 ### 4.1 Değişmez ilkeler ve güvenlik sabitleri

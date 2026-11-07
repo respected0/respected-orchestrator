@@ -1,7 +1,7 @@
 """respected-orchestrator command line: the shared product commands (docs/PRODUCT_CONTRACT.md) and the engine's own.
 
 Shared: --version, setup, repair, uninstall [--purge], config [get KEY | set KEY=VALUE...], health, memory connect|disconnect|status,
-rpp, mcp. Own: integrations [set CLIENT=on|off...] registers this program as an MCP server in AI clients (what the Hub's screen does). Output is JSON; errors are {"error": {code, message, hint}}; exit codes 0 ok, 1 failed, 2 usage.
+rpp, mcp. Own: integrations [set CLIENT=on|off...] registers this program as an MCP server in AI clients. Output is JSON; errors are {"error": {code, message, hint}}; exit codes 0 ok, 1 failed, 2 usage.
 `--data-root` is the engine's own handle for the child processes it starts (each campaign lane has its own root); people use
 RESPECTED_DATA_DIR.
 """
@@ -174,7 +174,7 @@ def main(argv=None):
     if argv[:1] == ["--version"]:
         print(f"respected-orchestrator {__version__}")
         return 0
-    if argv == ["rpp"]:  # what the Hub asks on every refresh: answered without loading the argument parser, the engine and the roles
+    if argv == ["rpp"]:  # what the desktop app asks on every refresh: answered without loading the argument parser, the engine and the roles
         from .interfaces import rpp
         return rpp.run(EngineContext(default_data_root()))
     import argparse

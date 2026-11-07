@@ -1,4 +1,4 @@
-"""Connecting to Brain's memory without the Hub: Brain grants, the Orchestrator stores the grant.
+"""Connecting to Brain's memory: Brain grants, the Orchestrator stores the grant.
 
 `connect` asks the installed Brain (its own `rpp` server at its standard place) for a grant and writes the
 Orchestrator's memory settings through the same code as `config set`; `disconnect` revokes it and clears them.

@@ -12,7 +12,7 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   temiz bir CI derlemesiyle aynı içeriği taşır. `_selfcheck` her modülü içe aktarır ve eksik olanda başarısız olur.
 - Kurucu (`packaging/windows/orchestrator_setup.iss`) programı `app\` altına yazar ve `setup` çalıştırır; `setup` dosyaları
   `distribution.json` ile doğrulayıp kurulumu `app\.respected\install.json` olarak kaydeder. `manifest`'in `install_state`
-  değeri bu kayıttan ve dosyaların şimdiki hash'inden gelir; Hub ve ürün "kurulu" ile "onarım gerekli" konusunda aynı şeyi
+  değeri bu kayıttan ve dosyaların şimdiki hash'inden gelir; masaüstü uygulaması ve CLI "kurulu" ile "onarım gerekli" konusunda aynı şeyi
   söyler.
 - Masaüstü kabuğu (`respected-orchestrator-desktop.exe`) motorla **tek pakettir** (ADR-025): `build_dist.py --desktop <exe>` onu motor
   başlatıcısının yanına, klasör köküne koyar ve `distribution.json`'a hem `files` içinde (sha256) hem de isteğe bağlı üst düzey
@@ -334,7 +334,7 @@ Her rol için öncelik:
    profil, daha düşük ortalama belirteç, havuz sırası. Her aday için 3'ten az kayıt varsa bu bir ölçüm değildir: ilk uygun
    aday alınır ve `basis: pool_order` olarak kaydedilir. Görev zorluğu ve fiyat modellenmez.
 
-Belirtilmeyen `deep_reviewer` `reviewer`'dır. Çözülen atamalar ve kaynakları (`explicit` / `hub_default` / `auto`) imzalı
+Belirtilmeyen `deep_reviewer` `reviewer`'dır. Çözülen atamalar ve kaynakları (`explicit` / `configured_default` / `auto`) imzalı
 istekte `role_assignments` olarak saklanır.
 
 - Açık seçim asla sessizce değiştirilmez: kullanılamayan atama `ROLE_UNAVAILABLE`'dır; yalnızca atamanın kendi
@@ -428,10 +428,10 @@ testler `tests/workflows/test_roles.py`.
 
 ## 6. MCP sunucusu ve izinler
 
-`respected-orchestrator mcp [--allow-auto-apply] [--allow-privileged]`, Hub'ın kullandığı motor işlevleri üzerinde
-standart kütüphaneyle yazılmış bir stdio MCP sunucusudur; Hub gerekmez, başlattığı çalışmalar Hub'da görünür. Araçlar:
+`respected-orchestrator mcp [--allow-auto-apply] [--allow-privileged]`, masaüstü uygulamasının kullandığı motor işlevleri üzerinde
+standart kütüphaneyle yazılmış bir stdio MCP sunucusudur; başka bir ürün gerekmez, başlattığı çalışmalar masaüstü uygulamasında görünür. Araçlar:
 `orchestrator_status`, `_plan`, `_task_start`, `_project_start`, `_list`, `_progress`, `_evidence`, `_resume`, `_cancel`,
-`_apply`, `_memory_note`. `integrations set İSTEMCİ=on` (ya da Hub'ın paneli) AI aracının ayarına kurulu programı
+`_apply`, `_memory_note`. `integrations set İSTEMCİ=on` (ya da masaüstü uygulamasının paneli) AI aracının ayarına kurulu programı
 gösteren bir girdi ekler: `respected-orchestrator.exe mcp`. Başka girdiler korunur; kapatınca ve kaldırınca yalnızca kendi
 girdisi kalkar (elle değiştirilmiş olsa da); kayıtta olmayan aynı adlı bir girdiye ve elle değiştirilmiş bir girdinin yeniden
 yazılmasına izin verilmez.
@@ -444,7 +444,7 @@ Sunucu, istem enjeksiyonuna uğramış olabilecek bir modelin isteğini alır. B
 `orchestrator_task_start` ve `orchestrator_project_start` şunları reddeder:
 
 - `worker: "custom"`, herhangi bir `command`, `apply_root`, `engine_source` — sunucu `--allow-privileged` ile
-  kaydedilmedikçe. `--allow-auto-apply` yalnızca `auto_apply` reddini kaldırır. Hub ikisini de hiç vermez.
+  kaydedilmedikçe. `--allow-auto-apply` yalnızca `auto_apply` reddini kaldırır. Masaüstü uygulaması ikisini de hiç vermez.
 - Kişinin önceden onaylamadığı doğrulama ve `verify` komutları: `mcp_acceptance_allow` ayarındaki öneklerden biriyle
   kelimesi kelimesine başlamayan komut geçmez. Varsayılan liste boştur. Onaylı komutlar da doğrulama kum havuzunda çalışır.
 - İzin atlayan bayraklar (bölüm 2).
@@ -561,7 +561,7 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
 - **Kanıt görünümü (UX-01/UX-02):** `interfaces/evidence_view.view` imzalı `request/status/result` kayıtlarını
   yalnızca okur; patch SHA'sı ve proje parmak izi değişmişse `stale`, imza geçersizse hata üretir. Görünüm
   redakte edilir, ortam secret'ları çağrı anında maskelenir ve maliyet bilinmiyorsa `unknown` kalır. RPP
-  `evidence.view` ile CLI `evidence <run_id>` aynı JSON'u döndürür; hiçbir yazma yapılmaz. Hub çalışma kanıtını bu API'den (`evidence`, salt-okunur izin listesi) okur; şema 2 `delivery` (taslak PR + son CI) ekler, v1 alanları aynıdır (FIX-03C).
+  `evidence.view` ile CLI `evidence <run_id>` aynı JSON'u döndürür; hiçbir yazma yapılmaz. Masaüstü uygulaması çalışma kanıtını bu API'den (`evidence`, salt-okunur izin listesi) okur; şema 2 `delivery` (taslak PR + son CI) ekler, v1 alanları aynıdır (FIX-03C).
 - **İnsan onayı (UX-03):** Decision Center yeni onay yetkisi açmaz. `maf-approve` yalnızca etkileşimli TTY'de,
   patch SHA'sına, proje parmak izine ve onay anındaki git HEAD'ine bağlı olarak çalışır; MCP/agent onayı, replay,
   ekran drift'i, eski sonuç ve review sonrası değişen HEAD reddedilir.

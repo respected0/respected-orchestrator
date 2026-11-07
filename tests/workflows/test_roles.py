@@ -19,14 +19,14 @@ def resolve(settings=None, requested=None, needed=("implementer",), up=("codex",
 
 
 class ResolutionTests(unittest.TestCase):
-    def test_explicit_beats_hub_default_beats_auto_and_every_model_fits_every_role(self):
+    def test_explicit_beats_configured_default_beats_auto_and_every_model_fits_every_role(self):
         settings = {"default_reviewer_profile": "hubmodel",
                     "default_roles": json.dumps({"planner": {"tool": "claude", "profile": "p1"}}),
                     "auto_assign": True, "auto_pool": json.dumps([{"tool": "codex", "profile": "poolmodel"}])}
         got = resolve(settings, {"reviewer": {"tool": "claude", "profile": "mine"}},
                       ["implementer", "reviewer", "planner", "tester"])
         self.assertEqual((got["reviewer"]["profile"], got["reviewer"]["source"]), ("mine", "explicit"))
-        self.assertEqual(got["planner"]["source"], "hub_default")
+        self.assertEqual(got["planner"]["source"], "configured_default")
         self.assertEqual((got["tester"]["profile"], got["tester"]["source"]), ("poolmodel", "auto"))
         same = {role: {"tool": "claude", "profile": "one"} for role in ("implementer", "reviewer", "debugger", "coordinator")}
         got = resolve({}, same, list(same))
@@ -55,9 +55,9 @@ class ResolutionTests(unittest.TestCase):
         self.assertIn("cannot do debugger work", [e["excluded"] for e in got["excluded"] if e["tool"] == "custom"][0])
 
     def test_a_configured_role_with_the_tools_own_model_is_an_assignment(self):
-        hub = {"default_roles": json.dumps({"reviewer": {"tool": "claude", "profile": ""}})}
-        got = resolve(hub, {}, ["implementer", "reviewer"])["reviewer"]
-        self.assertEqual((got["tool"], got["profile"], got["source"]), ("claude", "", "hub_default"))
+        settings = {"default_roles": json.dumps({"reviewer": {"tool": "claude", "profile": ""}})}
+        got = resolve(settings, {}, ["implementer", "reviewer"])["reviewer"]
+        self.assertEqual((got["tool"], got["profile"], got["source"]), ("claude", "", "configured_default"))
         with self.assertRaises(roles.RoleError):  # the legacy single-profile key still means "unset" when empty
             resolve({"default_reviewer_profile": ""}, {}, ["implementer", "reviewer"])
 
@@ -171,14 +171,14 @@ class MasterRoleTests(unittest.TestCase):
     def test_final_master_comes_from_the_master_role_unless_a_command_is_given(self):
         from respected_orchestrator.workflows import campaign
         from respected_orchestrator.engine import runner
-        hub = {"default_roles": json.dumps({"master": {"tool": "claude", "profile": "m1"}})}
+        settings = {"default_roles": json.dumps({"master": {"tool": "claude", "profile": "m1"}})}
         with mock.patch.object(runner, "get_cli_command", return_value=["tool"]), \
                 mock.patch.object(campaign, "tool_available", lambda t: True):
-            self.assertEqual(campaign._final_command({}, hub)[:3], ["tool", "--model", "m1"])
-            self.assertEqual(campaign._final_command({"master": {"tool": "claude", "profile": "m2"}}, hub)[2], "m2")
-            self.assertEqual(campaign._final_command({"command": ["x", "{prompt}"]}, hub), ["x", "{prompt}"])
+            self.assertEqual(campaign._final_command({}, settings)[:3], ["tool", "--model", "m1"])
+            self.assertEqual(campaign._final_command({"master": {"tool": "claude", "profile": "m2"}}, settings)[2], "m2")
+            self.assertEqual(campaign._final_command({"command": ["x", "{prompt}"]}, settings), ["x", "{prompt}"])
             with self.assertRaises(roles.RoleError):
-                campaign._final_command({"command": ["x"], "master": "m"}, hub)
+                campaign._final_command({"command": ["x"], "master": "m"}, settings)
         self.assertEqual(campaign._final_command({}, {}), ["claude", "-p", "{prompt}"])
 
 
@@ -204,11 +204,11 @@ class TaskIntegrationTests(unittest.TestCase):
     def task(self, **extra):
         return inspect_task(self.ctx, create_task(self.ctx, self.request(**extra))["run_id"])["request"]
 
-    def test_hub_defaults_apply_and_the_prompt_overrides_them(self):
+    def test_configured_defaults_apply_and_the_prompt_overrides_them(self):
         (self.ctx.data_root / "settings.json").write_text(json.dumps(
             {"default_reviewer_profile": "hubrev", "default_reviewer_tool": "claude"}), encoding="utf8")
         got = self.task()
-        self.assertEqual(got["role_assignments"]["reviewer"]["source"], "hub_default")
+        self.assertEqual(got["role_assignments"]["reviewer"]["source"], "configured_default")
         self.assertEqual((got["workflow"]["reviewer_tool"], got["workflow"]["reviewer_profile"]), ("claude", "hubrev"))
         got = self.task(workflow={"reviewer_profile": "mine"})
         self.assertEqual(got["role_assignments"]["reviewer"]["source"], "explicit")

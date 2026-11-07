@@ -3,7 +3,7 @@
     python packaging/build_dist.py [--output DIR] [--desktop EXE]   ->   DIR/RespectedOrchestrator/{respected-orchestrator.exe, [respected-orchestrator-desktop.exe], app/, distribution.json}
 
 PyInstaller onedir build of the private JSON entry point (RPP, MCP, task/campaign/project commands); distribution.json
-lists every file with its sha256 so the installer (the Hub) and the product's own install record can verify the copy.
+lists every file with its sha256 so the installer and the product's own install record can verify the copy.
 Windows only for now; build on the platform you ship.
 """
 from __future__ import annotations

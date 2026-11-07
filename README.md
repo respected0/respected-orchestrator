@@ -41,7 +41,7 @@ flowchart LR
 
 `check` şunları denetler: **kapsam**, **doğrulama komutları**, **imzalı kanıt** ve **yamanın güncelliği**.
 
-Brain, not kasası, Hub ya da sürekli çalışan bir servis gerektirmez; Brain hafızası isteğe bağlıdır.
+Brain ya da sürekli çalışan bir servis gerektirmez; Brain hafızası isteğe bağlıdır.
 
 ## Özellikler
 
@@ -52,17 +52,14 @@ Brain, not kasası, Hub ya da sürekli çalışan bir servis gerektirmez; Brain 
 | **Denetim** | Kapsam, doğrulama komutları, imzalı kanıt, yamanın güncelliği |
 | **Onay sizde** | Hiçbir sonuç kendiliğinden uygulanmaz; bekleyen, başarısız, bayat ya da kurcalanmış sonuç `check`'ten geçmez |
 | **Kampanyalar ve projeler** | Çok adımlı işler için MAF iş akışı, bağımlılık (DAG) tabanlı scheduler ve paralel hatlar, planlayıcı, `coordinator` ve `tester` rolleri, iki sonucu güvenle birleştirme (`integrate`), çökme sonrası kontrollü devam (`project-resume`) |
-| **Her model her role** | Rol ataması açık seçim, Hub varsayılanı ve ölçülmüş geçmişe dayalı otomatik öneri sırasıyla çözülür; açık seçim sessizce değiştirilmez |
+| **Her model her role** | Rol ataması açık seçim, ayarlardaki varsayılan ve ölçülmüş geçmişe dayalı otomatik öneri sırasıyla çözülür; açık seçim sessizce değiştirilmez |
 | **AI araçlarına MCP** | Orchestrator, AI araçlarına MCP sunucusu olarak kaydedilebilir |
 | **Brain hafızası (isteğe bağlı)** | Brain kuruluysa ve izin verirseniz hafızadan okur, kalıcı kararları Brain'e not olarak bırakır |
 
 ## Kurulum
 
 `RespectedOrchestrator-Windows-Setup.exe` kullanıcı başına kurulur, **yönetici izni istemez, Python gerektirmez**. Bilgisayarda **Git** ve
-görevleri yapacak bir AI aracının komut satırı (oturumu açık) olmalıdır. Kurucu iki yol sunar:
-
-- **Respected Hub ile devam et:** Hub'ı kurar ve Orchestrator'ı Hub'da açar.
-- **Yalnızca Orchestrator**
+görevleri yapacak bir AI aracının komut satırı (oturumu açık) olmalıdır. Güncelleme: yeni sürümün kurucusunu çalıştırın.
 
 Kurucuyu yeniden çalıştırmak onarır/günceller, ayarları değiştirir ya da kaldırır. Adım adım: [Kullanım rehberi](docs/USAGE.md).
 
@@ -129,8 +126,7 @@ $env:RESPECTED_DATA_DIR = "$env:TEMP\orch-dev"; python -m respected_orchestrator
 | [PRIVACY.md](PRIVACY.md) | Hangi veri nerede durur, neresi dışarı çıkar |
 | [FOOTPRINT.md](docs/FOOTPRINT.md) | Ne yaparsanız nerede ne oluşur: kurulum, AI araçları, kaldırma |
 
-Ekosistemin diğer ürünleri: [Respected Hub](https://github.com/respected0/respected-hub) ·
-[Respected Brain](https://github.com/respected0/respected-brain).
+İsteğe bağlı eş ürün: [Respected Brain](https://github.com/respected0/respected-brain).
 
 ## Destek
 

@@ -22,9 +22,9 @@ class HealthWizardTests(unittest.TestCase):
     def test_wrong_permission(self):
         self.assertEqual(self.guide(data_root_writable=True)["steps"][0]["action"], "data_root_permissions")
 
-    def test_hub_absent_core_still_works(self):
-        got = health_wizard.guide([check("git_available", True)], "/data", hub_installed=False)
-        self.assertEqual((got["hub_required"], got["hub_installed"]), (False, False))
+    def test_core_needs_no_other_product(self):
+        got = health_wizard.guide([check("git_available", True)], "/data")
+        self.assertNotIn("hub_required", got)
 
     def test_uninstall_keeps_data_unless_purged(self):
         got = self.guide()

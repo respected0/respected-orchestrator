@@ -1,6 +1,6 @@
-"""Vendor-neutral MCP (stdio) front for the Orchestrator engine; standard library only, no Hub needed.
+"""Vendor-neutral MCP (stdio) front for the Orchestrator engine; standard library only.
 
-Reuses the engine functions the Hub/CLI use. Safety: the engine's own approvals stay in force (MAF human approval needs a
+Reuses the engine functions the CLI uses. Safety: the engine's own approvals stay in force (MAF human approval needs a
 terminal and is never exposed), apply needs the verified patch digest, and a process that is itself orchestrated (worker,
 master or MCP-started supervisor) sees no tools, so delegation cannot recurse.
 """
@@ -31,7 +31,7 @@ def _schema(**properties):
 
 
 _ID = {"type": "string", "description": "run-*, proj-* or camp-* identity"}
-_FREE = {"type": "object", "description": "Same JSON the Hub/CLI accepts for this operation", "additionalProperties": True}
+_FREE = {"type": "object", "description": "Same JSON the CLI accepts for this operation", "additionalProperties": True}
 _STRINGS = {"type": "array", "items": {"type": "string"}}
 _TASK = {"type": "object", "additionalProperties": True, "required": ["project_root", "task", "ownership"], "properties": {
     "project_root": {"type": "string"}, "task": {"type": "string"}, "kind": {"enum": ["read", "write"]}, "worker": {"type": "string"},
@@ -54,7 +54,7 @@ TOOLS = {
     "orchestrator_resume": ("Resume an interrupted project, or retry a failed/interrupted task (bounded retry budget).", _schema(id=_ID), False),
     "orchestrator_cancel": ("Request cancellation of a run or project.", _schema(id=_ID), False),
     "orchestrator_memory_note": ("Save one reusable note (decision, convention, finding; not task history) to the user's Brain inbox. Works only if the "
-                                 "user enabled memory writes in the Hub; the note is a new file the user can revert. Same title+body is idempotent.",
+                                 "user enabled memory writes; the note is a new file the user can revert. Same title+body is idempotent.",
                                  {"type": "object", "properties": {"title": {"type": "string"}, "body": {"type": "string"}, "tags": _STRINGS},
                                   "required": ["title", "body"], "additionalProperties": False}, False),
     "orchestrator_apply": ("Apply a verified patch to the real project tree (no commit). Needs patch_sha256 copied from orchestrator_evidence; "

@@ -1,7 +1,5 @@
 ﻿Respected Orchestrator: bilgisayarınızda neler olur
 
-Bu bilgiler Respected Hub'ın Kütüphane sayfasında da aynen görünür.
-
 KURULUMDA NELER OLUR
 
   - Program: %LOCALAPPDATA%\Respected\RespectedOrchestrator\app. Yönetici izni ve Python gerekmez. Windows Ayarlar › Uygulamalar listesinde bir giriş.

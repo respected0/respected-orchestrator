@@ -326,7 +326,7 @@ def _workflow(value):
         raise ValueError("max_corrections is not supported; use max_fix_rounds")
     max_fix_rounds = value.get("max_fix_rounds", 2)
     deep_review = value.get("deep_review", "never")
-    reviewer_profile = _profile_field(value.get("reviewer_profile"))  # None = unassigned here: Hub default / auto / error later
+    reviewer_profile = _profile_field(value.get("reviewer_profile"))  # None = unassigned here: configured default / auto / error later
     deep_review_profile = _profile_field(value.get("deep_review_profile"))
     reviewer_tool = _tool_field(value.get("reviewer_tool"))
     deep_review_tool = _tool_field(value.get("deep_review_tool"))
@@ -509,10 +509,10 @@ def _memory_policy(request, settings, root):
         raise ValueError("memory.query must be 1..200 characters")
     ready = memory.configured(settings, root)
     if use is True and not ready:
-        raise ValueError("memory requested but Brain access is not enabled: " + hint("Hub'da Orchestrator → Brain bağlantısını açın", "respected-orchestrator memory connect"))
+        raise ValueError("memory requested but Brain access is not enabled: " + hint("respected-orchestrator memory connect"))
     if use is not None:
         policy = {"use": use, "source": "explicit"}
-    else:  # enabling memory in the Hub is a permission, not a default: every task opts in with memory.use
+    else:  # enabling memory is a permission, not a default: every task opts in with memory.use
         policy = {"use": False, "source": "off"}
     if query is not None:
         policy["query"] = query
@@ -548,7 +548,7 @@ def create_task(ctx: EngineContext, request: dict, *, settings: dict | None = No
     if not isinstance(request.get("worker_profile", ""), str) or len(request.get("worker_profile", "")) > 100:
         raise ValueError("Worker profile must be a bounded string")
     workflow = _workflow(request.get("workflow", {}))
-    # Role assignment: explicit task prompt > Hub defaults (settings.json) > automatic recommendation (opt-in).
+    # Role assignment: explicit task prompt > configured defaults (settings.json) > automatic recommendation (opt-in).
     memory_settings = roles.read_settings(settings_root(ctx, main_root)) if settings is None else settings
     settings = roles.read_settings(ctx.data_root) if settings is None else settings
     memory_policy = _memory_policy(request, memory_settings, settings_root(ctx, main_root))
@@ -694,7 +694,7 @@ def _memory_context(ctx, directory, request):
     try:
         root = settings_root(ctx)
         query = request["memory_policy"].get("query") or memory.query_from_task(request["task"])
-        # re-checks configuration now, so a Hub disable or revoke also stops tasks queued earlier
+        # re-checks configuration now, so a disable or revoke also stops tasks queued earlier
         result = memory.recall_for_task(roles.read_settings(root), root, query)
         items = result.get("results") or []
         evidence = {"status": result.get("status"), "count": result.get("count", 0),

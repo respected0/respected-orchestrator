@@ -2,7 +2,7 @@
 
 Roles (implementer, reviewer, planner, ...) name a job. A profile names a model/provider configuration. A tool names
 the CLI that executes it. No code here (or anywhere that calls it) may tie a model to a role: every profile is eligible
-for every role. Priority: explicit task assignment > Hub-configured default > automatic recommendation (opt-in).
+for every role. Priority: explicit task assignment > configured default > automatic recommendation (opt-in).
 An explicit assignment is never replaced silently; an unusable one is an error unless it lists its own fallbacks."""
 import json
 import re
@@ -15,7 +15,7 @@ from ..context import safe_path
 from ..hints import hint
 
 ROLE_RE = re.compile(r"[a-z][a-z0-9_]{0,39}\Z")
-SOURCES = ("explicit", "hub_default", "auto")
+SOURCES = ("explicit", "configured_default", "auto")
 DEFAULT_TOOL = "codex"
 DEFAULT_BLOCKED = "mimo"  # a user-editable deny list for whole profiles, never a model-to-role rule
 
@@ -27,7 +27,7 @@ class RoleError(ValueError):
 
 
 def settings_fields(tools: list[str]) -> list[dict[str, Any]]:
-    """Hub-visible settings owned by role assignment (appended to the RPP settings schema)."""
+    """Settings owned by role assignment (appended to the RPP settings schema)."""
     return [
         {"key": "default_reviewer_tool", "type": "enum", "label": "Varsayılan gözden geçirici", "default": DEFAULT_TOOL,
          "secret": False, "enum": tools, "help": "Yapılan işi gözden geçiren AI aracı."},
@@ -137,8 +137,8 @@ def validate_settings(settings: Mapping[str, Any], tools: list[str]) -> list[dic
     return errors
 
 
-def _hub_defaults(settings: Mapping[str, Any], tools: list[str]) -> dict[str, dict[str, Any]]:
-    """Role -> assignment configured in the Hub. The simple default_worker/default_reviewer settings map to implementer/reviewer; default_roles wins."""
+def _configured_defaults(settings: Mapping[str, Any], tools: list[str]) -> dict[str, dict[str, Any]]:
+    """Role -> assignment configured in settings. The simple default_worker/default_reviewer settings map to implementer/reviewer; default_roles wins."""
     defaults = {
         "implementer": {"tool": settings.get("default_worker") or DEFAULT_TOOL,
                         "profile": settings.get("default_worker_profile") or "", "fallbacks": []},
@@ -224,20 +224,20 @@ def resolve(settings: Mapping[str, Any], requested: Mapping[str, Any], needed: l
     Tool availability is enforced only for `check_roles` (None = all): a reviewer's CLI is checked when its review is
     about to run, not when the task is created. Blocked profiles are always refused."""
     explicit = {role: normalize(role, value, tools=tools) for role, value in requested.items()}
-    defaults = _hub_defaults(settings, tools)
+    defaults = _configured_defaults(settings, tools)
     auto = bool(settings.get("auto_assign"))
     pool = [normalize("reviewer", item, tools=tools) for item in _json_setting(settings, "auto_pool", list)]
     resolved: dict[str, dict[str, Any]] = {}
     missing: list[str] = []
     for role in dict.fromkeys([*needed, *optional, *explicit]):
         asked = explicit.get(role)
-        hub = defaults.get(role)
-        fallback_tool = (hub or {}).get("tool") or settings.get("default_reviewer_tool" if "review" in role else "default_worker") or DEFAULT_TOOL
+        cfg = defaults.get(role)
+        fallback_tool = (cfg or {}).get("tool") or settings.get("default_reviewer_tool" if "review" in role else "default_worker") or DEFAULT_TOOL
         if asked is not None:  # explicit: a partial assignment is completed only with a tool default, never another model
             chosen = {"tool": asked["tool"] or fallback_tool, "profile": asked["profile"] or "",
                       "fallbacks": asked["fallbacks"], "source": asked.get("source", "explicit")}
-        elif hub is not None and (hub["profile"] or role == "implementer" or hub.get("configured")):
-            chosen = {**{k: v for k, v in hub.items() if k != "configured"}, "tool": hub["tool"] or fallback_tool, "profile": hub["profile"] or "", "source": "hub_default"}
+        elif cfg is not None and (cfg["profile"] or role == "implementer" or cfg.get("configured")):
+            chosen = {**{k: v for k, v in cfg.items() if k != "configured"}, "tool": cfg["tool"] or fallback_tool, "profile": cfg["profile"] or "", "source": "configured_default"}
         else:
             chosen = None
         if chosen is None and auto and role not in explicit:
@@ -263,7 +263,7 @@ def resolve(settings: Mapping[str, Any], requested: Mapping[str, Any], needed: l
         resolved[role] = {k: v for k, v in chosen.items() if k != "fallbacks" or v}
     if missing:
         raise RoleError("ROLE_UNASSIGNED", "No assignment for role(s): " + ", ".join(missing),
-                        "Assign them in the task or enable auto_assign with an auto_pool. " + hint("Varsayılanları Hub'da belirleyin", "respected-orchestrator config set default_worker=<araç>"))
+                        "Assign them in the task or enable auto_assign with an auto_pool. " + hint("respected-orchestrator config set default_worker=<araç>"))
     return resolved
 
 

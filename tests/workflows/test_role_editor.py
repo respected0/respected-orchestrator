@@ -75,7 +75,7 @@ class ViewTests(unittest.TestCase):
         self.assertEqual(reviewer["assignment"]["tool"], "claude")  # the user's choice stays
         self.assertEqual(reviewer["suggestion"]["tool"], "codex")
         self.assertFalse(reviewer["suggestion"]["applied"])
-        self.assertEqual(reviewer["assignment"]["source"], "hub_default")  # never "auto"
+        self.assertEqual(reviewer["assignment"]["source"], "configured_default")  # never "auto"
         self.assertEqual(self.row(v, "planner")["assignment"], None)  # a suggestion does not fill an empty role either
         self.assertIsNotNone(self.row(v, "planner")["suggestion"])
 
@@ -147,7 +147,7 @@ class PlanEditTests(unittest.TestCase):
         out = self.edit([{"op": "set", "role": "planner", "assignment": {"tool": "claude", "profile": "plan"}}], s)
         candidate = {**s, **out["candidate_settings"]}
         run = lambda requested: roles.resolve(candidate, requested, ["implementer", "reviewer", "planner"], tools=TOOLS, available=ALL)
-        self.assertEqual(run({})["planner"]["source"], "hub_default")          # the saved edit, not the auto pool
+        self.assertEqual(run({})["planner"]["source"], "configured_default")          # the saved edit, not the auto pool
         self.assertEqual(run({})["reviewer"]["profile"], "opus")               # untouched role unchanged
         self.assertEqual(run({"planner": {"tool": "codex"}})["planner"]["source"], "explicit")  # the task request still wins
         self.assertNotEqual(run({})["planner"]["tool"], "codex")               # no suggestion replaced the user's choice

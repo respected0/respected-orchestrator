@@ -93,7 +93,7 @@ class CodingFixture(unittest.TestCase):
         subprocess.run(["git", "add", "."], cwd=self.repo, capture_output=True, check=True)
         subprocess.run(["git", "commit", "-m", "baseline"], cwd=self.repo, capture_output=True, check=True)
         self.ctx = EngineContext(self.root / "data")
-        (self.root / "data").mkdir()  # Hub-configured default reviewer (priority 2) for fixtures that state none
+        (self.root / "data").mkdir()  # Configured default reviewer (priority 2) for fixtures that state none
         (self.root / "data" / "settings.json").write_text('{"default_reviewer_profile": "deepseek"}', encoding="utf8")
         patcher = mock.patch("respected_orchestrator.engine.runner._stdin_is_tty", return_value=True)
         patcher.start()

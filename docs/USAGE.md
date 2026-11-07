@@ -13,19 +13,17 @@ Kurulumdan kaldırmaya kadar kişinin yapacağı her şey. Komutların tam liste
   (anahtar stdin'den okunur, komut satırına yazılmaz), ağ erişimini
   `RESPECTED_PROVIDER_NETWORK=allow` ve `RESPECTED_PROVIDER_CODE_GATE=1` ile açın, rolün aracını `openrouter`, profilini model adı
   (`provider-models --free` ücretsiz modelleri listeler; 429 gelirse çalışan en çok iki kez bekleyip yeniden dener) yapın.
-- Python gerekmez. Brain ve Hub isteğe bağlıdır.
+- Python gerekmez. Brain isteğe bağlıdır.
 
 ## 2. Kurulum
 
-`RespectedOrchestrator-Windows-Setup.exe` kullanıcı başına kurulur, yönetici izni istemez. İlk sayfada iki yol vardır:
+`RespectedOrchestrator-Windows-Setup.exe` kullanıcı başına kurulur, yönetici izni istemez. Kurucu sırayla sorar:
 
-- **Respected Hub ile devam et (önerilen):** kurucu Hub'ı indirip kurar ve Orchestrator'ı Hub'ın kurulum sayfasında açar.
-- **Yalnızca Orchestrator:** kurucu sırayla sorar:
   - **Varsayılan çalışan:** görevleri hangi AI aracının yapacağı. Her görevde ayrıca seçilebilir.
   - **Brain hafızası:** görevler Brain kasanızdaki notlardan kısa parçalar okuyabilsin mi; isterseniz ayrıca
     yeniden kullanılabilir notları Brain'in gelen kutusuna yazabilsin mi. Brain kurulu olmalıdır.
 
-Kurucu, kurmadan önce "bilgisayarınızda neler olur" sayfasını gösterir: kurulumda, kullanırken, güncellemede ve kaldırmada neler yazıldığı, değiştiği ve silindiği. Aynı bilgi Hub'ın Kütüphane sayfasındaki ürün kartında da vardır (`packaging/windows/orchestrator_info.txt`).
+Kurucu, kurmadan önce "bilgisayarınızda neler olur" sayfasını gösterir: kurulumda, kullanırken, güncellemede ve kaldırmada neler yazıldığı, değiştiği ve silindiği. Aynı bilgi `packaging/windows/orchestrator_info.txt` dosyasındadır.
 
 Kurucu programı `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app` altına yazar ve ürünün `setup` komutunu çalıştırır.
 Ayarlar ve görev çalışmaları `...\RespectedOrchestrator\data` altındadır. Yüklü uygulamalar girdisini kurucu yazar.
@@ -51,8 +49,8 @@ $exe = "$env:LOCALAPPDATA\Respected\RespectedOrchestrator\app\respected-orchestr
 Ürün kuruluyken kurucu tek bir sayfa gösterir:
 
 - **Onar / Güncelle:** program dosyaları bu kurucudaki sürümle yenilenir, ardından `repair` kaydı doğrular. Ayarlar ve
-  görev çalışmaları korunur. **Güncelleme budur:** yeni sürümün kurucusunu çalıştırmak (sessiz: `/VERYSILENT`). Hub
-  güncellemeyi kendisi önerir ve aynı kurucuyu çalıştırır.
+  görev çalışmaları korunur. **Güncelleme budur:** yeni sürümün kurucusunu çalıştırmak (sessiz: `/VERYSILENT`). Yeni kurucuyu
+  GitHub sürüm sayfasından indirirsiniz; ürün kendiliğinden güncellenmez.
 - **Ayarları değiştir:** varsayılan çalışan ve hafıza sayfaları mevcut değerlerle açılır; kaydetmek `config set` ve
   `memory connect` ile aynıdır.
 - **Kaldır:** bölüm 9.
@@ -117,7 +115,7 @@ başlatamaz ve apply edemez. Açık atama kullanılamıyorsa sessizce başka pro
 hattı sınırlı eşzamanlılıkla (`max_parallel`, varsayılan `min(4, hat sayısı)`) yürütür; aynı proje kökünde ownership
 çakışan hatları sıraya alır ve sonunda bir son inceleme yaptırır. `campaign-cancel ID` bekleyen/çalışan hatları iptal eder
 ve son master'ı başlatmaz. Durumu `campaign-status ID` / `project-status ID`, listeyi `campaign-list`, projeyi durdurmayı
-`project-cancel ID` verir. Bir görevin kanıt paketindeki çıktıyı (örneğin yamayı) `artifact RUN_ID` okur. Hub'ın konuştuğu protokol
+`project-cancel ID` verir. Bir görevin kanıt paketindeki çıktıyı (örneğin yamayı) `artifact RUN_ID` okur. Masaüstü uygulamasının konuştuğu protokol
 `rpp` komutudur; elle kullanılmaz. `campaign-run` ve `project-run` denetleyicilerin giriş noktalarıdır. Biçimler: [COMMANDS.md](COMMANDS.md#projeler-ve-kampanyalar).
 
 İki ayrı doğrulanmış sonucu birlikte denemek için `integrate` kullanın. Komut gerçek projede değil, geçici bir detached
@@ -140,9 +138,9 @@ değişirse yeniden onay gerekir. Onay yalnızca etkileşimli terminalden alın�
 reddedilir. Resume onayı `auto_apply=false` aşamasının apply yetkisini genişletmez. Kaynakla çakışan eski patch
 `stale patch` olarak bloke edilir ve zorla uygulanmaz.
 
-## 5. Hub'dan kullanım
+## 5. Masaüstü uygulaması
 
-Hub → Orchestrator çalışma alanı:
+Orchestrator masaüstü uygulaması:
 
 | Sekme | Ne var |
 |---|---|
@@ -153,8 +151,8 @@ Hub → Orchestrator çalışma alanı:
 | Görevler | **Yeni görev** formu (proje, görev, çalışan, iş türü, izin verilen ve yasak yollar, doğrulama komutları, süre), görev listesi, loglar, sonuç/yama; Başlat, Durdur, Yeniden dene, Sonucu doğrula |
 | Ayarlar | Ayarlar formu, "Brain hafıza erişimi", "AI araçlarından kullan (MCP)" |
 
-Hub'da yama uygulama düğmesi yoktur; doğrulanan yamayı `apply RUN_ID` komutuyla ya da bir AI aracından
-`orchestrator_apply` ile uygularsınız. Görevler Hub kapansa da sürer; Hub yeniden açılınca durumu motordan okur.
+Uygulamada yama uygulama düğmesi yoktur; doğrulanan yamayı `apply RUN_ID` komutuyla ya da bir AI aracından
+`orchestrator_apply` ile uygularsınız. Görevler uygulama kapansa da sürer; yeniden açılınca durumu motordan okur.
 
 ## 6. AI aracından MCP ile kullanım
 
@@ -167,7 +165,7 @@ yaptır, sonucu doğrula" diyebilirsiniz.
 & $exe integrations set codex=off                 # kaydı kaldır
 ```
 
-İstemciler: `claude-code`, `claude-desktop`, `codex`, `cursor`, `windsurf`, `opencode`. Aynı işi Hub'da Orchestrator →
+İstemciler: `claude-code`, `claude-desktop`, `codex`, `cursor`, `windsurf`, `opencode`. Aynı işi masaüstü uygulamasında
 Ayarlar → "AI araçlarından kullan (MCP)" yapar (önce ne ekleneceğini gösterir). Ürün yalnızca kendi girdisini ekler ve kaldırır;
 aracın ve sizin diğer ayarlarınız korunur. Kayıttan sonra AI aracını yeniden başlatın.
 
@@ -208,7 +206,7 @@ Brain kuruluysa görevler kasanızdaki ilgili notlardan kısa parçalar alabilir
 & $exe memory disconnect        # izni iptal eder
 ```
 
-Hub'da aynı iş Orchestrator → Ayarlar → "Brain hafıza erişimi"dir. Bağlantı bir **izindir**, varsayılan değil:
+Masaüstü uygulamasında aynı iş Ayarlar → "Brain hafıza erişimi"dir. Bağlantı bir **izindir**, varsayılan değil:
 bir görev hafızayı ancak istekte `"memory": {"use": true}` derse kullanır; isteğe bağlı `"query"` arama metnini belirler,
 yoksa görevin ayırt edici kelimeleri kullanılır. En fazla yaklaşık 3000 karakter, güvenilmeyen veri olarak işaretlenmiş
 şekilde görev metnine eklenir. Hafıza erişilemezse görev hafızasız çalışır.
@@ -244,8 +242,7 @@ yalnızca `memory connect` ile yazılır. Rollerin nasıl seçildiği: [ARCHITEC
 
 ## 9. Kaldırma
 
-Kaldırma yolları: Windows **Yüklü uygulamalar** → Respected Orchestrator → Kaldır; kurucu → Kaldır; Hub → Orchestrator →
-Kaldır; sessiz `unins000.exe /VERYSILENT [/PURGE=1]`. Kaldırıcı "Ayarlar ve çalışma verileri de silinsin mi?" diye sorar
+Kaldırma yolları: Windows **Yüklü uygulamalar** → Respected Orchestrator → Kaldır; kurucu → Kaldır; sessiz `unins000.exe /VERYSILENT [/PURGE=1]`. Kaldırıcı "Ayarlar ve çalışma verileri de silinsin mi?" diye sorar
 (varsayılan Hayır) ve ürünün `uninstall [--purge]` komutunu çalıştırır.
 
 | Ne | Kaldırınca |
@@ -266,7 +263,7 @@ Brain hafıza bağlantısı varsa önce `memory disconnect` ile kapatmak izni Br
 | `ROLE_UNAVAILABLE` | Seçilen aracın komut satırı bulunamadı ya da profil `blocked_profiles`'ta; `status` hangi araçların bulunduğunu gösterir |
 | `ROLE_UNASSIGNED` | Gözden geçirici gibi gerekli bir rol için atama yok; `default_reviewer_tool` ya da istekte `workflow` verin |
 | `ROLE_CONFLICT` | Aynı role iki farklı değer verilmiş (ör. `worker` ve `roles.implementer`) |
-| Görev `failed`, `WORKER_FAILED` | Çalışanın çıktısı başarılı bir sonuç bildirmedi; `inspect` ve Hub'daki loglar. Kota ya da oturum hatası ayrıca belirtilir |
+| Görev `failed`, `WORKER_FAILED` | Çalışanın çıktısı başarılı bir sonuç bildirmedi; `inspect` ve uygulamadaki loglar. Kota ya da oturum hatası ayrıca belirtilir |
 | `timed_out` | `timeout_seconds` ya da `default_timeout_seconds` artırın |
 | Başka bir görev çalışırken yeni görev bekliyor | Aynı veri kökünde aynı anda tek görev çalışır; sıradaki görev kendi süresi içinde sıraya girer (`cancel` ile vazgeçilir) |
 | Codex görevi `failed`; çalışan "erişim engellendi" diyor | Codex'in kum havuzu kullanıcı profilinizdeki programları (örneğin `AppData\Local\Programs` altındaki Python) çalıştıramaz; doğrulama komutunda sistem ya da `Program Files` altındaki bir programı kullanın. Doğrulamayı motor ayrıca kendi belirteciyle yapar |
@@ -290,7 +287,7 @@ respected-orchestrator evidence run-2026-11-03-abc
 Görünüm patch SHA'sı, değişen dosyalar, check sonuçları, reviewer/test bilgisi ve riskleri redakte ederek
 gösterir; maliyet bilinmiyorsa `unknown` yazar. Kanıt imzası bozuksa veya patch/proje değişmişse görünüm
 `stale`/hata döner, sessizce başarı göstermez. Onay yalnızca etkileşimli terminalde `maf-approve` ile alınır;
-Hub Decision Center ve MCP bu sınırı genişletmez. `health` çıktısındaki `wizard` alanı ilk görevi ve sonraki
+Masaüstü uygulaması ve MCP bu sınırı genişletmez. `health` çıktısındaki `wizard` alanı ilk görevi ve sonraki
 adımı anlatır.
 
 ## 12. GitHub teslimatı

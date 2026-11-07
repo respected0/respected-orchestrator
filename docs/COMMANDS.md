@@ -37,8 +37,8 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 | `integrations set İSTEMCİ=on\|off [...]` | Kendini AI araçlarına MCP sunucusu olarak kaydeder ya da kaydı kaldırır. İstemciler: `claude-code`, `claude-desktop`, `codex`, `cursor`, `windsurf`, `opencode`. Girdi kurulu programı gösterir (`respected-orchestrator.exe mcp`); başka girdiler korunur. OpenCode girdisi `~/.config/opencode/opencode.json` içindeki `mcp.servers` altına yazılır ve geri alma önceki dosyayı byte düzeyinde geri yükler. |
 | `provider-key set\|status\|clear` | OpenRouter anahtarı: `set` anahtarı stdin'den okur ve Windows DPAPI ile şifreli saklar (ekrana ya da dosyaya düz metin yazılmaz), `status` yalnızca saklı olup olmadığını söyler, `clear` siler. |
 | `provider-models [--free]` | OpenRouter'ın herkese açık model listesi (anahtar gerekmez, ağ kapısı yine açık olmalı); `--free` yalnızca bütün fiyatları 0 olan modelleri gösterir. |
-| `mcp [--allow-auto-apply] [--allow-privileged]` | AI araçları için stdio MCP sunucusu. İki bayrak da MCP üzerinden normalde reddedilen işlemleri açar ([ARCHITECTURE.md](ARCHITECTURE.md#6-mcp-sunucusu-ve-izinler)); Hub ve `integrations` hiçbirini vermez. |
-| `rpp` | stdin'den bir RPP isteği okur, stdout'a bir yanıt yazar. Hub bunu kullanır. |
+| `mcp [--allow-auto-apply] [--allow-privileged]` | AI araçları için stdio MCP sunucusu. İki bayrak da MCP üzerinden normalde reddedilen işlemleri açar ([ARCHITECTURE.md](ARCHITECTURE.md#6-mcp-sunucusu-ve-izinler)); Masaüstü uygulaması ve `integrations` hiçbirini vermez. |
+| `rpp` | stdin'den bir RPP isteği okur, stdout'a bir yanıt yazar. Masaüstü uygulaması ve Brain bunu kullanır. |
 
 **RPP işlemleri** (protokol sürümü `"1"`): `manifest`, `health`, `settings.schema|validate|apply|readback`,
 `integrations.plan|apply|rollback`, `memory.connect|disconnect|status`, `evidence.view`,
@@ -53,7 +53,7 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 | Komut | Girdi | Ne yapar |
 |---|---|---|
 | `create` | stdin: görev isteği | Görevi doğrular, rolleri çözer, imzalı isteği saklar; `run_id` döner. Başlatmaz. |
-| `start RUN_ID` | | Ayrık bir denetleyici başlatır; Hub ya da terminal kapansa da sürer. Aynı veri kökünde aynı anda tek görev çalışır; sonradan başlatılan görev kendi süresi içinde sıraya girer. |
+| `start RUN_ID` | | Ayrık bir denetleyici başlatır; Uygulama ya da terminal kapansa da sürer. Aynı veri kökünde aynı anda tek görev çalışır; sonradan başlatılan görev kendi süresi içinde sıraya girer. |
 | `list` | | Görevler, en yenisi önce. |
 | `inspect RUN_ID` | | Durum, aşamalar, değişiklikler, kullanım. |
 | `artifact RUN_ID` | stdin: `{"name": "..."}` | Görevin kanıt paketindeki adı verilen çıktıyı (örneğin yama) okur; yalnızca okur. |

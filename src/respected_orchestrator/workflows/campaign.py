@@ -36,7 +36,7 @@ def _now():
 
 
 def _final_command(final, settings):
-    """Explicit command wins; else the `master` role (task `final.master` or Hub default_roles.master); else claude."""
+    """Explicit command wins; else the `master` role (task `final.master` or settings default_roles.master); else claude."""
     if "command" in final:
         if "master" in final:
             raise roles.RoleError("ROLE_CONFLICT", "final has both command and master", "State the final master once.")

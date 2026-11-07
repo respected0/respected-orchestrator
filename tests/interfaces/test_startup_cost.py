@@ -1,4 +1,4 @@
-"""Every Hub call starts the program once, so what an RPP manifest call imports is its cost."""
+"""Every desktop call starts the program once, so what an RPP manifest call imports is its cost."""
 
 import json
 import os

@@ -1,4 +1,4 @@
-"""REL-03: first-run health wizard shared by the CLI health output and the Hub (both read the same schema)."""
+"""REL-03: first-run health wizard shared by the CLI health output and the desktop app (both read the same schema)."""
 import sys
 from pathlib import Path
 
@@ -14,11 +14,11 @@ _ACTIONS = {
 
 
 def sample_task():
-    """A read-only first task: it never writes, never runs a worker, and needs no Hub."""
+    """A read-only first task: it never writes, never runs a worker, ."""
     return {"mode": "read", "writes": False, "prompt": "Repo kökündeki dosyaları listele ve hiçbir şeyi değiştirme."}
 
 
-def guide(checks, data_root=None, hub_installed=False):
+def guide(checks, data_root=None):
     steps = []
     for check in checks:
         if check.get("ok"):
@@ -26,7 +26,7 @@ def guide(checks, data_root=None, hub_installed=False):
         action, help_text, command = _ACTIONS.get(check.get("name"), ("inspect", "Kontrolü inceleyin.", "respected-orchestrator health"))
         steps.append({"check": check.get("name"), "action": action, "help": help_text, "command": command})
     locations = {"data": str(data_root)} if data_root else {}
-    return {"hub_required": False, "hub_installed": bool(hub_installed), "steps": steps,
+    return {"steps": steps,
             "sample_task": sample_task(), "data_locations": locations,
             "uninstall": {"keeps_data": True, "purge_flag": "--purge"}}
 

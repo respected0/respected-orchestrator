@@ -161,7 +161,7 @@ class TaskTests(Base):
     def git(self, *args):
         subprocess.run(["git", *args], cwd=self.repo, capture_output=True, check=True)
 
-    def hub(self, mode="ok", enabled=True):
+    def settings_on(self, mode="ok", enabled=True):
         self.ctx.data_root.mkdir(parents=True, exist_ok=True)
         settings = {"memory_enabled": enabled, "memory_command": self.command(mode)}
         (self.ctx.data_root / "settings.json").write_text(json.dumps(settings), encoding="utf-8")
@@ -186,7 +186,7 @@ class TaskTests(Base):
         self.assertEqual(self.policy(self.create(settings={}, memory={"use": False})),
                          {"use": False, "source": "explicit"})
         self.assertEqual(self.policy(self.create(settings={})), {"use": False, "source": "off"})
-        settings = self.hub()
+        settings = self.settings_on()
         self.assertEqual(self.policy(self.create(settings=settings)), {"use": False, "source": "off"})  # permission, not default
         self.assertEqual(self.policy(self.create(settings=settings, memory={"use": False})),
                          {"use": False, "source": "explicit"})
@@ -194,7 +194,7 @@ class TaskTests(Base):
                          {"use": True, "source": "explicit", "query": "alpha beta"})
 
     def test_a_lane_context_uses_the_main_root_for_the_token_at_creation(self):
-        settings = self.hub()
+        settings = self.settings_on()
         lane_ctx = EngineContext(self.root / "data" / "campaigns" / "camp-x" / "lanes" / "lane")  # holds neither settings nor token
         request = dict(project_root=str(self.repo), task="fixture task", worker="custom", kind="write", ownership=["owned.txt"], forbidden=[],
                        command=[sys.executable, "-c", "pass"], acceptance=[[sys.executable, "-c", "pass"]], timeout_seconds=30,
@@ -206,7 +206,7 @@ class TaskTests(Base):
         self.assertEqual(policy, {"use": True, "source": "explicit"})
 
     def test_policy_rejects_bad_requests(self):
-        settings = self.hub()
+        settings = self.settings_on()
         for bad in ({"bogus": 1}, {"use": "yes"}, {"query": ""}, {"query": "x" * 201}, "text"):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 self.create(settings=settings, memory=bad)
@@ -217,7 +217,7 @@ class TaskTests(Base):
         return result, self.ctx.run_dir(created["run_id"])
 
     def test_context_reaches_brief_and_evidence_is_clean(self):
-        self.hub()
+        self.settings_on()
         result, directory = self.run_task(memory={"use": True})
         self.assertEqual(result["status"], "completed", result)
         self.assertEqual(result["memory"], {"status": "ok", "count": 3})
@@ -241,7 +241,7 @@ class TaskTests(Base):
     def test_failing_child_never_fails_the_task(self):
         for mode, status in (("denied", "denied"), ("crash", "error")):
             with self.subTest(mode=mode):
-                self.hub(mode)
+                self.settings_on(mode)
                 result, directory = self.run_task(memory={"use": True})
                 self.assertEqual(result["status"], "completed", result)
                 self.assertEqual(result["memory"]["status"], status)
@@ -249,9 +249,9 @@ class TaskTests(Base):
                 self.assertEqual(load_signed(self.ctx, directory / "memory-context.json")["status"], status)
 
     def test_disabled_after_creation_runs_without_memory(self):
-        settings = self.hub()
+        settings = self.settings_on()
         created = self.create(settings=settings, memory={"use": True})
-        self.hub(enabled=False)
+        self.settings_on(enabled=False)
         result = runner.execute_task(self.ctx, created["run_id"])
         directory = self.ctx.run_dir(created["run_id"])
         self.assertEqual(result["status"], "completed", result)
@@ -260,16 +260,16 @@ class TaskTests(Base):
         self.assertFalse(self.side.exists())
 
     def test_enabling_memory_is_a_permission_not_a_default(self):
-        self.hub()
+        self.settings_on()
         with mock.patch.object(memory, "winproc", mock.Mock(run=mock.Mock())) as brain:
-            result, directory = self.run_task()  # the Hub enabled memory, the task did not opt in
+            result, directory = self.run_task()  # memory was enabled, the task did not opt in
             brain.run.assert_not_called()
         self.assertEqual(result["status"], "completed", result)
         self.assertNotIn("memory", result)
         self.assertFalse(self.side.exists())
 
     def test_prompt_injection_notes_stay_in_the_untrusted_data_block(self):
-        self.hub("inject")
+        self.settings_on("inject")
         result, directory = self.run_task(memory={"use": True})
         self.assertEqual(result["status"], "completed", result)
         brief = (directory / "brief.md").read_text("utf-8")

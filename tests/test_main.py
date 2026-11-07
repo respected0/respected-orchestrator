@@ -105,7 +105,7 @@ class MainTests(unittest.TestCase):
             self.assertFalse(record.exists())
             self.assertTrue((app / "respected-orchestrator.exe").is_file())  # the folder belongs to whoever installed it
 
-    def test_integrations_register_this_program_in_an_ai_client_without_the_hub(self):
+    def test_integrations_register_this_program_in_an_ai_client_standalone(self):
         home = Path(tempfile.mkdtemp())
         self.addCleanup(lambda: __import__("shutil").rmtree(home, ignore_errors=True))
         (home / ".claude.json").write_text(json.dumps({"mcpServers": {"other": {"command": "x"}}}), encoding="utf-8")

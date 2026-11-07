@@ -42,7 +42,7 @@ def _settings_without_gemini(document: dict) -> dict:
                                   ("default_reviewer_tool", "default_reviewer_profile")):
         if document.get(tool_key) == REMOVED_TOOL:
             document[tool_key], document[profile_key] = REPLACEMENT_TOOL, ""
-    for key in ("default_roles", "auto_pool"):  # JSON text (as the Hub stores it) or an already parsed value
+    for key in ("default_roles", "auto_pool"):  # JSON text (as older versions stored it) or an already parsed value
         raw = document.get(key)
         try:
             parsed = json.loads(raw) if isinstance(raw, str) and raw.strip() else raw

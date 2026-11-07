@@ -1,9 +1,9 @@
-; Respected Orchestrator - per-user Windows installer (no administrator rights); works without the Hub.
+; Respected Orchestrator - per-user Windows installer (no administrator rights); stands alone.
 ; Built by packaging/build_installer.py. The installer owns the program files in {app}; the product's own commands own
 ; everything else: `setup` (install record, data folder), `repair`, `config`, `memory connect`, `uninstall` (docs/PRODUCT_CONTRACT.md).
-; Shared with the Brain installer: the install-path page, the Hub download, the maintenance page, /SET= and /PURGE=1.
+; Pages: maintenance (repair/update, settings, uninstall), worker, Brain memory; /SET= and /PURGE=1 for silent installs.
 #ifndef AppVersion
-  #define AppVersion "0.1.0b2"
+  #define AppVersion "0.1.0b3"
 #endif
 #ifndef StageDir
   #define StageDir "..\..\dist\RespectedOrchestrator"
@@ -85,22 +85,17 @@ const
   ProductName = 'Orchestrator';
   ProductExe = 'respected-orchestrator.exe';
   ProductFolder = 'RespectedOrchestrator';
-  HubProductId = 'orchestrator';
   InstallRecord = 'app\.respected\install.json';  // the product's own install record, relative to its folder
   UninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{8E2B4D7A-61C3-4F09-A5D8-3B9E17C2F640}_is1';
-  HubSetupName = 'RespectedHub-Setup.exe';  // local file name only; the release asset carries a version
-  HubReleasesPage = 'https://github.com/respected0/respected-hub/releases';
-  HubReleaseApi = 'https://api.github.com/repos/respected0/respected-hub/releases';
   Workers = 'codex,claude,antigravity,agy,cursor';
 
 var
-  ChoicePage, MaintenancePage, WorkerPage, MemoryPage: TWizardPage;
-  DownloadPage: TDownloadWizardPage;
+  MaintenancePage, WorkerPage, MemoryPage: TWizardPage;
   Maintenance, SettingsMode, Leaving, PurgeData: Boolean;
 
-{ ---- shared with the Brain installer ---- }
+{ ---- command line and product helpers ---- }
 
-// /NAME=value command-line switches (silent installs, the Hub, tests)
+// /NAME=value command-line switches (silent installs, tests)
 function CommandValue(Name: String; Default: String): String;
 var
   I: Integer;
@@ -152,74 +147,6 @@ end;
 function IsInstalled(): Boolean;
 begin
   Result := FileExists(ProgramExe()) and FileExists(ExpandConstant('{localappdata}\Respected\' + ProductFolder + '\' + InstallRecord));
-end;
-
-function HubExe(): String;
-begin
-  Result := ExpandConstant('{localappdata}\Respected\RespectedHub\app\respected-hub.exe');
-end;
-
-function OnDownloadProgress(const Url, FileName: String; const Progress, ProgressMax: Int64): Boolean;
-begin
-  Result := True;
-end;
-
-// the Hub installer is named after its version: take the Setup.exe asset of the newest Hub release
-function HubDownloadUrl(): String;
-var
-  Json: AnsiString;
-  Text: String;
-  First, Last: Integer;
-begin
-  Result := CommandValue('HUBURL', '');
-  if Result <> '' then Exit;
-  DownloadTemporaryFile(HubReleaseApi, 'hub-latest.json', '', @OnDownloadProgress);
-  LoadStringFromFile(ExpandConstant('{tmp}\hub-latest.json'), Json);
-  Text := String(Json);
-  Last := Pos('-Windows-x64-Setup.exe"', Text);
-  if Last = 0 then RaiseException('Hub kurucusu sürüm listesinde yok');
-  Last := Last + 21;
-  First := Last;
-  while (First > 1) and (Text[First - 1] <> '"') do First := First - 1;
-  Result := Copy(Text, First, Last - First + 1);
-end;
-
-function FetchHubSetup(): Boolean;
-begin
-  Result := False;
-  try
-    if WizardSilent then
-      DownloadTemporaryFile(HubDownloadUrl(), HubSetupName, '', @OnDownloadProgress)
-    else begin
-      DownloadPage.Clear;
-      DownloadPage.Add(HubDownloadUrl(), HubSetupName, '');
-      DownloadPage.Show;
-      try
-        DownloadPage.Download;
-      finally
-        DownloadPage.Hide;
-      end;
-    end;
-    Result := True;
-  except
-    Log('Hub indirilemedi: ' + GetExceptionMessage);
-  end;
-end;
-
-// get the newest Hub when it is missing, install it, then open it on this product's install page
-procedure ContinueWithHub;
-var
-  Code: Integer;
-begin
-  if not FileExists(HubExe()) then
-    if FetchHubSetup() then
-      Exec(ExpandConstant('{tmp}\' + HubSetupName), '/SILENT /NORESTART /SUPPRESSMSGBOXES', '', SW_SHOWNORMAL, ewWaitUntilTerminated, Code);
-  if FileExists(HubExe()) then
-    Exec(HubExe(), '--install=' + HubProductId, '', SW_SHOWNORMAL, ewNoWait, Code)
-  else if not WizardSilent then begin
-    ShellExec('open', HubReleasesPage, '', '', SW_SHOWNORMAL, ewNoWait, Code);
-    MsgBox('Respected Hub indirilip kurulamadı. Açılan sayfadan Hub kurucusunu (Setup.exe) indirip çalıştırın; Hub, ' + ProductName + ' ürününü sizin için kuracak.', mbInformation, MB_OK);
-  end;
 end;
 
 // runs one of the product's own commands; Output gets its standard output lines
@@ -395,16 +322,6 @@ begin
   end;
 end;
 
-// unattended through the Hub: `Setup.exe /VERYSILENT /HUB=1`
-function InitializeSetup(): Boolean;
-begin
-  Result := True;
-  if WizardSilent and (CommandValue('HUB', '') <> '') then begin
-    ContinueWithHub;
-    Result := False;
-  end;
-end;
-
 function UninstallerPath(): String;
 begin
   Result := '';
@@ -413,14 +330,10 @@ end;
 
 procedure CreateSharedPages;
 begin
-  ChoicePage := NewCardPage(0, wpWelcome, 'Kurulum yolu', 'İkisi de aynı ürünü kurar; fark, güncellemeleri ve ayarları nereden yöneteceğinizdir.', False);
-  AddCard(ChoicePage, 0, #$E80F, 'Respected Hub ile devam et (önerilen)', 'Kurulum, güncelleme ve ayarlar görsel arayüzden yönetilir.', True);
-  AddCard(ChoicePage, 0, #$E756, 'Yalnızca ' + ProductName, 'Hub olmadan; ayarlar bu kurucudan ya da komutlarla değiştirilir.', False);
-  MaintenancePage := NewCardPage(1, ChoicePage.ID, ProductName + ' kurulu', 'Ayarlarınız ve not kasanız her seçenekte korunur.', False);
+  MaintenancePage := NewCardPage(1, wpWelcome, ProductName + ' kurulu', 'Ayarlarınız ve not kasanız her seçenekte korunur.', False);
   AddCard(MaintenancePage, 1, #$E895, 'Onar / Güncelle', 'Programı bu kurucudaki sürümle (v{#AppVersion}) yeniler.', True);
   AddCard(MaintenancePage, 1, #$E713, 'Ayarları değiştir', 'Programa dokunmadan ayarları yeniden seçersiniz.', False);
   AddCard(MaintenancePage, 1, #$E74D, 'Kaldır', 'Programı kaldırır; size sorarak ayarları ve verileri de siler.', False);
-  DownloadPage := CreateDownloadPage('Hub indiriliyor', 'En güncel Respected Hub kurucusu indiriliyor...', @OnDownloadProgress);
 end;
 
 { ---- Orchestrator's own questions ---- }
@@ -494,8 +407,7 @@ end;
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
   Result := False;
-  if PageID = ChoicePage.ID then Result := WizardSilent or Maintenance
-  else if PageID = MaintenancePage.ID then Result := WizardSilent or not Maintenance
+  if PageID = MaintenancePage.ID then Result := WizardSilent or not Maintenance
   else if (PageID = WorkerPage.ID) or (PageID = MemoryPage.ID) then Result := Maintenance and not SettingsMode
   else if PageID = wpInfoAfter then Result := not Maintenance;
 end;
@@ -518,11 +430,7 @@ var
 begin
   Result := True;
   if WizardSilent then Exit;
-  if (CurPageID = ChoicePage.ID) and (CardSelectedIndex(0) = 0) then begin
-    ContinueWithHub;
-    Result := False;
-    Leave;
-  end else if (CurPageID = MaintenancePage.ID) and (CardSelectedIndex(1) = 1) then begin
+  if (CurPageID = MaintenancePage.ID) and (CardSelectedIndex(1) = 1) then begin
     SettingsMode := True;
     LoadCurrentSettings;
   end else if (CurPageID = MaintenancePage.ID) and (CardSelectedIndex(1) = 2) then begin

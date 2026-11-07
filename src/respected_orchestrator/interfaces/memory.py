@@ -80,7 +80,7 @@ def token_set(data_root):
 
 
 def settings_fields():
-    # set by `memory connect` (or the Hub through memory.connect), never typed by hand: hidden from forms
+    # set by `memory connect`, never typed by hand: hidden from forms
     help_text = "respected-orchestrator memory connect ile ayarlanır."
     return [
         {"key": "memory_enabled", "type": "boolean", "label": "Brain hafızası bağlı", "default": False,

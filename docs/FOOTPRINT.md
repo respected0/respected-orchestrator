@@ -23,13 +23,12 @@ Orchestrator **AI araçlarına hook, kural metni ya da beceri yazmaz**. Tek bağ
 
 Kurucu sayfaları ve varsayılanları:
 
-- **Kurulum yolu:** "Respected Hub ile devam et" (önerilen) ya da "Yalnızca Orchestrator".
 - **Varsayılan çalışan:** Codex, Claude, Antigravity, Cursor, OpenCode gibi hangi AI aracının görev yapacağı; ilki seçili gelir.
   Araç bilgisayarınızda kurulu olmalıdır; kurucu aracı **kurmaz**.
 - **Brain hafızası:** "Brain hafızasını oku" ve "Gelen kutusuna not yazabilsin"; ikisi de **varsayılan kapalı**. Brain kurulu
   olmalıdır.
 
-Kurucu **MCP sayfası sormaz**; AI araçlarına bağlantı kurulumdan sonra Hub'dan (Orchestrator → Ayarlar) ya da komutla yapılır.
+Kurucu **MCP sayfası sormaz**; AI araçlarına bağlantı kurulumdan sonra masaüstü uygulamasından (Ayarlar) ya da komutla yapılır.
 
 Kurulum sırasında:
 
@@ -45,7 +44,7 @@ Kurulum sırasında:
 
 ## 3. AI araçlarına bağlama (MCP)
 
-Hub'da **Orchestrator → Ayarlar** ya da `respected-orchestrator integrations set <araç>=on`. Kayıt, aracın ayar dosyasında
+Masaüstü uygulamasında **Ayarlar** ya da `respected-orchestrator integrations set <araç>=on`. Kayıt, aracın ayar dosyasında
 `respected-orchestrator` adlı bir sunucudur ve `respected-orchestrator.exe mcp` komutunu çalıştırır. Sunucuyu araç gerektiğinde
 kendi başlatır (stdio); arka planda sürekli çalışan bir şey yoktur.
 
@@ -87,14 +86,14 @@ Kapatınca (`memory disconnect`) token ve izin kaydı kaldırılır.
 
 ## 5. Görev çalıştırınca ne oluşur
 
-Bir görevi başlattığınızda (Hub, komut ya da AI aracı üzerinden):
+Bir görevi başlattığınızda (masaüstü uygulaması, komut ya da AI aracı üzerinden):
 
 | Ne | Nerede | Not |
 |---|---|---|
 | **Yalıtılmış çalışma ağacı** | `data\workspaces\<görev-adı>` | Projenin bir kopyası; çalışan AI aracı **burada** çalışır |
 | **Git dalı** | Projenin deposunda `orchestrator/<görev-adı>` | `git worktree add -b ... HEAD` ile açılır |
 | Çalışma ağacı kaydı | Projenin `.git\worktrees\<görev-adı>` klasörü | Git'in kendi kaydı |
-| Görev durumu, günlükler | `data\` altında her çalışma için `process.json`, `stdout.log`, `stderr.log`, `events.jsonl`, `lane.json`, `baseline.json` | Hub ve komutlar buradan okur |
+| Görev durumu, günlükler | `data\` altında her çalışma için `process.json`, `stdout.log`, `stderr.log`, `events.jsonl`, `lane.json`, `baseline.json` | Masaüstü uygulaması ve komutlar buradan okur |
 | Kanıt ve imza | `data\.engine-key` (ilk görevde), kanıt dosyaları | Kanıt bu anahtarla imzalanır; anahtar kullanıcıya özel ACL ile korunur |
 | Çok görevli iş (kampanya) | `data\campaigns\<kimlik>\` | Her hat kendi veri köküne sahiptir |
 | Kum havuzu | Veri klasörüne **reddetme ACL'i**; her çalıştırmada geçici bir AppContainer profili | İlk kullanımda bir PowerShell ACL kurulumu (yaklaşık 1 sn); çalışan AppContainer içinde, doğrulama komutları kısıtlı belirteçle çalışır; profil kapanışta silinir |
@@ -133,7 +132,7 @@ bildirebilir. Doğrulamayı motor ayrıca, kendi kısıtlı belirteciyle yapar. 
 |---|---|
 | Program klasörü, "Yüklü uygulamalar" kaydı, kurulum kaydı | **Silinir** |
 | AI araçlarındaki MCP girdileri | Orchestrator'ın yazdığı girdiler **silinir** (elle değiştirilmiş olsalar da; bölüm 3) |
-| Brain'e verdiğiniz hafıza izni | Kaldırma bunu **iptal etmez**; Brain'de iz kalmaması için kaldırmadan önce `memory disconnect` (ya da Hub'da Ayarlar'dan kapatın) |
+| Brain'e verdiğiniz hafıza izni | Kaldırma bunu **iptal etmez**; Brain'de iz kalmaması için kaldırmadan önce `memory disconnect` (ya da masaüstü uygulamasında Ayarlar'dan kapatın) |
 | Ayarlar, görev geçmişi, kanıtlar, çalışma ağaçları (`data`) | **Kalır**; "çalışma verileri de silinsin" ya da `uninstall --purge` ile silinir |
 | **Projeleriniz ve Git depolarınız** | **Dokunulmaz.** Biten görevlerin dalı ve çalışma ağacı zaten silindi; yalnızca zorla öldürülen bir görevin kalıntısı varsa `git worktree prune` temizler |
 

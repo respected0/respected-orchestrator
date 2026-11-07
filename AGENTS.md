@@ -1,8 +1,8 @@
 # Respected Orchestrator deposu: çalışma kuralları
 
 Bu, bağımsız Respected Orchestrator kaynağıdır. Belgeler: `README.md` (giriş), `docs/USAGE.md` (kullanım), `docs/COMMANDS.md` (komutlar ve istek biçimleri),
-`docs/ARCHITECTURE.md` (bağlayıcı kurallar ve güvenlik sınırları). Üç ürünün ortak sözleşmesi `docs/PRODUCT_CONTRACT.md` dosyasındadır ve
-Hub deposundaki `common/conformance/` ile ölçülür (üç depo yan yana).
+`docs/ARCHITECTURE.md` (bağlayıcı kurallar ve güvenlik sınırları). Ürün sözleşmesi `docs/PRODUCT_CONTRACT.md` dosyasındadır ve `tests/interfaces/test_product_contract.py` ile ölçülür.
+Orchestrator bağımsız bir üründür; Hub'a bağımlılığı yoktur.
 
 ## Yasaklar
 

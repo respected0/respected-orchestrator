@@ -1,7 +1,7 @@
 # Respected Orchestrator tehdit modeli ve yetki matrisi
 
 Durum: SEC-01 · 30 Ekim 2026 (son güncelleme 4 Kasım 2026, CUR-01) · Windows beta
-Kapsam: motor, worker süreçleri, doğrulama kum havuzu, sonuç/onay zinciri, MCP ve Hub sınırı.
+Kapsam: motor, worker süreçleri, doğrulama kum havuzu, sonuç/onay zinciri, MCP ve masaüstü uygulaması sınırı.
 Bağlayıcı mimari: [ARCHITECTURE.md](ARCHITECTURE.md). Bu belge yeni bir güvenlik özelliği vaat etmez; bugün
 uygulanan sınırları, uygulanmayanları ve sıradaki işlerin hedeflerini ayırır.
 
@@ -35,13 +35,13 @@ kaydedilir. Motorun kendi sınırı, worker'ı Windows AppContainer içinde baş
 
 | Kimlik | Sınır | Bugünkü durum |
 |---|---|---|
-| B1 | İnsan/kullanıcı → CLI, Hub, MCP | CLI ve MCP girdileri şema ve izin denetiminden geçer; MCP ayrıcalıklı anahtarları varsayılan reddeder |
+| B1 | İnsan/kullanıcı → CLI, masaüstü uygulaması, MCP | CLI ve MCP girdileri şema ve izin denetiminden geçer; MCP ayrıcalıklı anahtarları varsayılan reddeder |
 | B2 | Motor → worker CLI süreci | **Windows'ta AppContainer (SEC-03/SEC-04, test):** varsayılan olarak yalnızca görevin çalışma ağacı ve geçici kökü yazılabilir, ağ kapalıdır, veri kökü ve kullanıcı profili okunamaz; kum havuzu kurulamazsa worker başlamaz. Codex ayrıca kendi `workspace-write` kum havuzunu ister; Claude/Cursor kendi izin modellerini korur; `custom` keyfi komuttur ve aynı AppContainer politikasından geçer. Windows dışında worker başlatılmaz |
 | B2a | Cursor çalışanı → ağ/kimlik bilgisi | Ağ yalnızca operatör anahtarı `RESPECTED_CURSOR_NETWORK=allow` ile açılır (modelden kontrol edilemez); yalnızca `auth.json` izole HOME'a kopyalanır, kanıta/log'a yazılmaz, çalışma sonunda silinir. Açık risk: açık ağda çalışan süreç kopyalanan token'ı kullanabilir/sızdırabilir (OpenCode ile aynı sınıf). Cursor AppContainer içinde çalışır (boru shim'i, ARCHITECTURE.md, CUR-01); shim yalnız alt süreç borularının adını `LOCAL\` altına alır, izin sınırını genişletmez |
 | B3 | Worker çıktısı → kapsam ve yama doğrulaması | Çalışma ağacındaki değişiklikler sonradan denetlenir; ağaç dışına yazım AppContainer tarafından işletim sistemi düzeyinde engellenir (B2), yama denetimi buna ek bir katmandır |
 | B4 | Worker'ın yazdığı kabul/verify kodu → motor yürütmesi | Windows'ta worker ile aynı AppContainer yolu, ağ varsayılan kapalı (ADR-018, FIX-04); kurulamazsa verify çalışmaz |
 | B5 | Motor → gerçek proje ağacı (`apply`) | Yalnızca doğrulanmış, taze, imzalı ve gerekliyse insan onaylı yama; `git apply --check` sonrası yazım |
-| B6 | Motor → MCP/Hub | MCP, motorun kendi onaylarını üretemez; `maf-approve` MCP'de yoktur |
+| B6 | Motor → MCP/masaüstü uygulaması | MCP, motorun kendi onaylarını üretemez; `maf-approve` MCP'de yoktur |
 | B7 | Motor → Brain | Kod bağımlılığı yok; yalnızca `rpp` ve izinli `memory.write` |
 | B8 | Motor → alt süreçler | Windows job object; timeout/iptal/supervisor çöküşünde ağaç öldürülür |
 
@@ -50,7 +50,7 @@ kısıtlı belirteç yolu kaldırıldı. Fark yalnızca politikadadır: verify y
 
 ## 4. Yetki matrisi
 
-| Eylem | Operatör | MAF Master | Worker | Reviewer | Kabul/verify kodu | MCP istemcisi | Hub |
+| Eylem | Operatör | MAF Master | Worker | Reviewer | Kabul/verify kodu | MCP istemcisi | Masaüstü uygulaması |
 |---|---|---|---|---|---|---|---|
 | Proje çalışma ağacını değiştirme | Evet | Hayır | Evet (yalnızca kendi lane'i) | Hayır | Hayır | Görev başlatma ile | Görev başlatma ile |
 | Gerçek proje ağacına `apply` | Evet | Hayır | Hayır | Hayır | Hayır | Koşullu: doğrulanmış `patch_sha256` ve yetki | Bugün düğme yok |
@@ -95,7 +95,7 @@ ilgili dosyada; **Kısmi** = bazı koşullarda korur; **Yok** = bugün motor eng
 | S-22 | MCP istemcisi yanlış/eski `patch_sha256` ile `apply` çağırır | MCP istemcisi | B5 + B6 | Red | **Engellenir (test)** | `tests/interfaces/test_mcp_server.py` |
 | S-23 | Worker, worktree dışına işaret eden symlink içeren yama üretir | Worker | B3/B5 yama güvenliği | Red | **Engellenir (test)**; `120000`/`160000` indeks modu güvensiz sayılır, kapsam ve export reddeder, apply çakışma döner | `test_worker_security.py::test_symlink_mode_patch_is_rejected_before_export_or_apply`; `test_frozen_security.py::test_frozen_engine_rejects_a_symlink_mode_patch_staged_without_symlink_privilege`; `engine/lanes.py` |
 | S-24 | Kabul kodu ağ üzerinden dışarı veri sızdırır | Kabul kodu | B4 ağ | Varsayılan kapalı | **Engellenir (test, Windows)**; verify AppContainer'da ağ kapalı: IP, DNS, loopback ve alt süreç çıkışı reddedilir. Ağ istisnası yalnızca operatörün `RESPECTED_VERIFY_NETWORK_TASKS` ile adını verdiği görevde, hep-ya-hiç, kanıtta `network: allow`. AppContainer kurulamazsa verify çalışmaz | `tests/engine/test_sandbox.py` (ADR-018, FIX-04) |
-| S-25 | Hub/MCP üzerinden insan onayı sahte bir düğmeyle verilir | Hub/MCP | B5/B6 | Yalnızca gerçek TTY oturumu | **Engellenir (test)** | `test_maf_coding.py`; MCP araç listesinde `maf-approve` yok |
+| S-25 | Masaüstü uygulaması/MCP üzerinden insan onayı sahte bir düğmeyle verilir | Masaüstü uygulaması/MCP | B5/B6 | Yalnızca gerçek TTY oturumu | **Engellenir (test)** | `test_maf_coding.py`; MCP araç listesinde `maf-approve` yok |
 ## 6. Windows kullanıcı ve yönetici kararı
 
 | Çalışma bağlamı | Karar | Gerekçe | Bugünkü uygulama |
@@ -123,7 +123,7 @@ Aşağıdaki tablo, ürünün güvenlik iddialarını tek yerde toplar. "Yok" sa
 | Sırlar her yoldan temizlenir | **Kısmi** | Ad tabanlı ortam temizliği; dosya sistemi ve profil kapsanmaz |
 | Aynı veri kökünde tek görev çalışır | **Var** | Kilit; ARCHITECTURE §2 |
 | Yükseltilmiş yönetici desteklenir | **Yok** | Bölüm 6; aktif başlangıç reddi `test_worker_policy.py` ile testli |
-| Hub/MCP insan onayı üretemez | **Var** | MCP araçlarında `maf-approve` yok; `orchestrator_apply` digest ister |
+| Masaüstü uygulaması/MCP insan onayı üretemez | **Var** | MCP araçlarında `maf-approve` yok; `orchestrator_apply` digest ister |
 
 Bu tabloda "Yok" ya da "Kısmi" olan bir satır, tamamlanmış bir güvenlik özelliği gibi sunulmamalıdır. SEC-01'in
 "0 açıklanmamış güvenlik vaadi" kriteri bu tabloyla karşılanır.

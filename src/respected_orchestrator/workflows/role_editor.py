@@ -75,7 +75,7 @@ def _warnings(role, assignment, settings, tools, discovery, resolved_peers):
 
 def view(settings, tools, *, discovery=None, available=None, history=None):
     configured = _configured(settings)
-    defaults = roles._hub_defaults(settings, tools)
+    defaults = roles._configured_defaults(settings, tools)
     names = list(dict.fromkeys([*STANDARD_ROLES, *configured]))
     peers = {r: {k: v for k, v in a.items() if k != "configured"} for r, a in defaults.items()}
     rows = []
@@ -85,7 +85,7 @@ def view(settings, tools, *, discovery=None, available=None, history=None):
         if assignment is not None:
             clean = {k: v for k, v in assignment.items() if k != "configured"}
             row["assignment"] = {"tool": clean.get("tool"), "profile": clean.get("profile") or "", "fallbacks": clean.get("fallbacks", []),
-                                 "source": "hub_default"}
+                                 "source": "configured_default"}
             row["warnings"] = _warnings(role, clean, settings, tools, discovery, peers)
         if settings.get("auto_assign") and available is not None:
             pool = [roles.normalize("reviewer", item, tools=tools) for item in roles._json_setting(settings, "auto_pool", list)]
@@ -94,7 +94,7 @@ def view(settings, tools, *, discovery=None, available=None, history=None):
             row["suggestion"] = suggestion and {**suggestion, "applied": False, "note": "a suggestion; it changes nothing until you set it"}
         rows.append(row)
     return {"roles": rows, "auto_assign": bool(settings.get("auto_assign")), "require_independent_review": bool(settings.get("require_independent_review")),
-            "precedence": ["task request (explicit)", "configured default (hub_default)", "auto suggestion (auto)"]}
+            "precedence": ["task request (explicit)", "configured default (configured_default)", "auto suggestion (auto)"]}
 
 
 def plan_edit(settings, edits, tools, *, discovery=None):
@@ -143,7 +143,7 @@ def plan_edit(settings, edits, tools, *, discovery=None):
     warnings = []
     if not errors:
         try:
-            resolved = {r: {k: v for k, v in a.items() if k != "configured"} for r, a in roles._hub_defaults(candidate, tools).items()}
+            resolved = {r: {k: v for k, v in a.items() if k != "configured"} for r, a in roles._configured_defaults(candidate, tools).items()}
             for role, entry in resolved.items():
                 if role in {d["role"] for d in diff}:
                     warnings += [{**w, "role": role} for w in _warnings(role, entry, candidate, tools, discovery, resolved)]

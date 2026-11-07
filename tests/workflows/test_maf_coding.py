@@ -33,7 +33,7 @@ class MafCodingTaskTest(unittest.TestCase):
         subprocess.run(["git", "commit", "-m", "fixture baseline"], cwd=self.repo,
                        capture_output=True, check=True)
         self.ctx = EngineContext(self.root / "data")
-        # Hub-configured default (priority 2): fixtures that state no reviewer get this one.
+        # Configured default (priority 2): fixtures that state no reviewer get this one.
         (self.root / "data").mkdir()
         (self.root / "data" / "settings.json").write_text(json.dumps({"default_reviewer_profile": "deepseek"}), encoding="utf8")
         patcher = mock.patch("respected_orchestrator.engine.runner._stdin_is_tty", return_value=True)
