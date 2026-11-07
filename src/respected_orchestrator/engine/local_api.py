@@ -14,7 +14,7 @@ from ..interfaces import rpp
 from .evidence import load_signed
 from .authority import Action, Origin, authorize, effective_origin
 from .capabilities import normalize as capability_normalize, paths as capability_paths
-from . import maintenance
+from . import maintenance, session_control
 from . import activity, agent_discovery, capability_matrix, approval, artifact_view, read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control, role_editor, roles
 from .runner import SUPPORTED_AGENTS, tool_available
@@ -64,6 +64,12 @@ COMMANDS = {
     "approval.open": (None, Action.TASK),
     "approval.decide": (None, Action.PRIVILEGED),
     "approval.apply": (None, Action.PRIVILEGED),
+    "sessions.list": (None, Action.READ),
+    "session.send": (None, Action.TASK),
+    "session.retry": (None, Action.TASK),
+    "session.interrupt": (None, Action.TASK),
+    "session.cancel": (None, Action.TASK),
+    "session.resume": (None, Action.TASK),
 }
 ERRORS = ("BAD_REQUEST", "UNSUPPORTED_VERSION", "UNAUTHENTICATED", "UNKNOWN_COMMAND", "FORBIDDEN",
           "PAYLOAD_TOO_LARGE", "REPLAY_CONFLICT", "ENGINE_ERROR")
@@ -82,6 +88,7 @@ class LocalApi:
         self.journal = journal
         self.only = only  # a connection that may use just these commands (the native approval pipe)
         self._seen = {}  # id -> (request digest, response)
+        self.sessions = session_control.SessionController()
 
     def handle_raw(self, raw):
         if isinstance(raw, str):
@@ -117,6 +124,21 @@ class LocalApi:
         except PermissionError:
             return _reply(corr, False, code="FORBIDDEN", message="Not allowed for this origin.")
         except (ValueError, TypeError, KeyError, OSError) as error:
+            return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300])
+
+    def _session(self, corr, command, payload):
+        """Session commands; the controller checks the authority class again and never has an approve path."""
+        pid, sid = payload.get("project_id"), payload.get("session_id")
+        try:
+            if command == "sessions.list":
+                return _reply(corr, True, {"sessions": self.sessions.view(self.origin, pid)})
+            name = command.split(".", 1)[1]
+            args = (self.origin, sid, pid) + ((payload.get("text"),) if name == "send" else ())
+            result = getattr(self.sessions, name)(*args)
+            return _reply(corr, True, result)
+        except PermissionError:
+            return _reply(corr, False, code="FORBIDDEN", message="Not allowed for this origin.")
+        except (ValueError, TypeError, KeyError, OSError, RuntimeError) as error:
             return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300])
 
     def _plan(self, corr, command, payload):
@@ -208,6 +230,8 @@ class LocalApi:
                 response = _reply(corr, True, dag_view.dag_view(spec, root))
         elif command.startswith("approval."):
             response = self._approval(corr, command, payload)
+        elif command.startswith("session"):
+            response = self._session(corr, command, payload)
         elif command == "activity.list":
             if self.journal is None:
                 response = _reply(corr, False, code="ENGINE_ERROR", message="No event journal.")
