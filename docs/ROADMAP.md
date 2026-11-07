@@ -246,11 +246,11 @@ Fazlar tek bir katı DAG değildir; her görevdeki `Bağımlılıklar` alanı ge
 
 | Özgün açık madde | Durum | Yeni planda karşılandığı görevler |
 |---|---|---|
-| Kurucuyu Authenticode ile imzalamak | Açık (`[ ]`); üretim sertifikası yok. `REL-01` hattı self-signed test sertifikasıyla kanıtlıdır, üretim imzalı yayın yoktur | `B3-09.04`, `B3-GATE-06`, `B9-06.01`, `V1-02.01` |
-| macOS / Linux doğrulanmadı; POSIX'te anahtar için OS kum havuzu yok | Açık (`[ ]`); `ADR-008`: yalnız Windows GA, Linux 7 fixture `blocked` (no-go), macOS koşulmadı (no-go) | `B6-10.01`, `B6-10.02`, `B9-03.01` |
+| Kurucuyu Authenticode ile imzalamak | Ertelendi (deferred, kullanıcı kararı: betadan sonra); üretim sertifikası yok. `REL-01` hattı self-signed test sertifikasıyla kanıtlıdır, üretim imzalı yayın yoktur | `B3-09.04`, `B3-GATE-06`, `B9-06.01`, `V1-02.01` |
+| macOS / Linux doğrulanmadı; POSIX'te anahtar için OS kum havuzu yok | Ertelendi (deferred, Beta.3 yalnız Windows); `ADR-008`: yalnız Windows GA, Linux 7 fixture `blocked` (no-go), macOS koşulmadı (no-go) | `B6-10.01`, `B6-10.02`, `B9-03.01` |
 
-- [ ] Kurucuyu Authenticode ile imzalamak (SmartScreen uyarısı). Kod imzalama sertifikası gerekir; yok.
-- [ ] macOS / Linux: kod yolları var, doğrulanmadı; POSIX'te anahtar için işletim sistemi kum havuzu yok. Bu geliştirme makinesi Windows.
+- **[deferred]** Kurucuyu Authenticode ile imzalamak (SmartScreen uyarısı): üretim sertifikası yok; kullanıcı kararı (7 Kasım 2026): imza betadan sonra, ilk kararlı sürümde yapılır (`B9-06.01`, `V1-02.01`). Beta.3 imzasız yayınlanır ve bu açıkça belirtilir.
+- **[deferred]** macOS / Linux: kod yolları var, doğrulanmadı; Beta.3 yalnız Windows (`ADR-008`); platform eşdeğerliği `B6-10`, `B9-03.01`.
 
 ### 3.2 Tamamlanmış Beta.1/Beta.2 çalışmaları — yeniden planlanmaz
 
@@ -3398,13 +3398,13 @@ Her beta sürümünün ayrı bir kapısı vardır. Kapı maddeleri `[ ]` olarak 
 
 ### 15.1 Beta.3 yayın kapısı (zorunlu)
 
-- [ ] **B3-GATE-01 — Bağımsız ürün:** Yalnız Orchestrator kurulmuş normal Windows kullanıcısı; kurulum → proje → plan → worker → check → onay → apply; başka uygulama/hesap yok.
-- [ ] **B3-GATE-02 — Güvenlik:** Worker ve doğrulama sandbox güvenlik koşuları normal kullanıcıda skip=0; renderer/MCP/worker üzerinden insan onayı taklidi = 0 başarılı saldırı.
-- [ ] **B3-GATE-03 — Kalıcılık:** UI öldür / aç; aktif run kaybolmaz; event cursor doğru; sonradan yanlış veya ikinci apply olmaz.
-- [ ] **B3-GATE-04 — Interaktif ajan:** En az bir gerçek CLI üzerinde desteklenen mod kanıtlı; unsupported modlar kapalı; hiçbir PTY sandbox fallback yapmaz.
-- [ ] **B3-GATE-05 — DAG:** Geçersiz/kapsam çakışmalı planla worker=0; geçerli plan kullanıcı eylemi olmadan başlamaz.
-- [ ] **B3-GATE-06 — Paket ve veri:** beta.1 ve beta.2 gerçek fixture migration/rollback; install integrity; yanlış sürümde fail-closed; Authenticode yayın politikası belgeli.
-- [ ] **B3-GATE-07 — Kanıt:** Her release artefaktı test ortamı, SHA, koşu zamanı, atlanan test sayısı, geçerli paket digest ile ilişkilendirilmiş.
+- **[deferred]** **B3-GATE-01 — Bağımsız ürün:** Yalnız Orchestrator kurulmuş normal Windows kullanıcısı; kurulum → proje → plan → worker → check → onay → apply; başka uygulama/hesap yok. **Durum: deferred (kullanıcı kararı, 7 Kasım 2026):** temiz, tek-uygulamalı kullanıcıda uçtan uca kurulum denemesi Beta.3'ün engeli değildir; ilk kararlı sürüm (v1.0) öncesindeki kapsamlı testlere (`V1-GATE`, `B9-04`) bırakıldı. Bu makinede gerçek kurucu çalıştırılmadı (aynı AppId gerçek kurulumu etkiler); yalnız derlendi ve SHA-256'sı kaydedildi.
+- [x] **B3-GATE-02 — Güvenlik:** Worker ve doğrulama sandbox güvenlik koşuları normal kullanıcıda skip=0; renderer/MCP/worker üzerinden insan onayı taklidi = 0 başarılı saldırı. **Kanıt (7 Kasım 2026):** kaynak commit `23415e4`, temiz ağaç, yükseltilmemiş oturum: `appcontainer_worker_matrix`, `gui_apply_negatives`, `intervention_negatives`, `security_matrix` kapıları geçti, P0 gruplarında skip=0; renderer/MCP/worker/oturum akışı üzerinden insan onayı taklidi testleri 0 başarılı saldırı (`docs/evidence/release-manifest-beta3.json`).
+- [x] **B3-GATE-03 — Kalıcılık:** UI öldür / aç; aktif run kaybolmaz; event cursor doğru; sonradan yanlış veya ikinci apply olmaz. **Kanıt (7 Kasım 2026):** `23415e4` üzerinde tam suite (1039 test, 0 hata): supervisor/journal/events/maintenance testleri (süreç ölürse run kaybolmaz, event cursor, ikinci apply yok). **Sınır:** GUI'yi gerçekten kapat-aç e2e'si önceki commit'te koşuldu (KANIT_LOG "B3-02 ek kanıt"), bu commit'te yeniden koşulmadı.
+- [x] **B3-GATE-04 — Interaktif ajan:** En az bir gerçek CLI üzerinde desteklenen mod kanıtlı; unsupported modlar kapalı; hiçbir PTY sandbox fallback yapmaz. **Kanıt (7 Kasım 2026):** gerçek CLI olarak `opencode` (ücretsiz model, canlı fixture + canlı oturum + gerçek WebView2 denemesi); codex/claude/cursor/antigravity/custom açıkça `Unsupported`; PTY hiç yok, sandbox fallback'i yok. **Sınır (bilinen risk):** sohbet oturumu sandbox dışında çalışır, bu yüzden **varsayılan kapalıdır** ve yalnız `RESPECTED_CHAT_UNSANDBOXED=allow` ile açılır; çözümü Beta.5 `B5-01.01` / karar D25. (KANIT_LOG "B3-03 tamamlama turu")
+- [x] **B3-GATE-05 — DAG:** Geçersiz/kapsam çakışmalı planla worker=0; geçerli plan kullanıcı eylemi olmadan başlamaz. **Kanıt (7 Kasım 2026):** `23415e4` tam suite: geçersiz veya kapsam çakışmalı plan worker başlatmaz, geçerli plan yalnız ayrı `plan.start` eylemiyle başlar (B3-04.03/04.04 testleri, KANIT_LOG).
+- [x] **B3-GATE-06 — Paket ve veri:** beta.1 ve beta.2 gerçek fixture migration/rollback; install integrity; yanlış sürümde fail-closed; Authenticode yayın politikası belgeli. **Kanıt (7 Kasım 2026):** beta.1 ve beta.2 gerçek git-etiketi fixture'larıyla yükseltme + geri alma kanıtı (B3-09.02, `tests/tools/upgrade_proof.py`); kurucu bütünlüğü ve yanlış sürümde fail-closed (B3-09.01/09.03); `update_and_migration` ve `installer_and_hash` kapıları `23415e4` üzerinde geçti. Authenticode politikası belgeli (ARCHITECTURE §10, `release_signature`, `SIGNING-01`): **Beta.3 imzasız yayınlanır**, üretim imzası kullanıcı kararıyla betadan sonraya ertelendi.
+- [x] **B3-GATE-07 — Kanıt:** Her release artefaktı test ortamı, SHA, koşu zamanı, atlanan test sayısı, geçerli paket digest ile ilişkilendirilmiş. **Kanıt (7 Kasım 2026):** `docs/evidence/release-manifest-beta3.json`: kaynak SHA `23415e4`, ortam, koşu zamanı, atlanan test listesi (6), kurucu SHA-256, imza durumu `unsigned`; `release_gate.py verify` yalnız o commit'te tutarlı der.
 
 ### 15.2 Beta.4 yayın kapısı (zorunlu/koşullu)
 
