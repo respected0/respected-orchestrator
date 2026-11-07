@@ -1825,6 +1825,13 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 - **Test senaryoları:** Gerçek Claude/Codex/OpenCode CLI sürümleriyle farklı yetenekleri dene; prompt injection, geçmiş arama, yanlış run-id ve 1 MB çıktı negatifleri.
 - **Ölçülebilir kabul:** En az 3 doğrulanmış CLI sürümüyle capability matrix; unsupported eylem düğmesi yok; yanlış oturuma giriş sıfır.
 - **Tamamlanma kanıtı:** Gerçek session kayıtları, version matrix ve auth saldırı raporu.
+- **Devralınan açık sorunlar (Beta.3 B3-03 tamamlama turunda bulundu, 7 Kasım 2026; ayrıntı `KANIT_LOG.md` "B3-03 tamamlama turu"):** bu kart bunları çözmeden "parity" sayılmaz; karar: sohbet oturumları o zamana dek **varsayılan kapalı** kalır (`RESPECTED_CHAT_UNSANDBOXED=allow` operatör anahtarı).
+  1. **Sandbox içinde oturum yok:** `opencode run` AppContainer içinde çalışmıyor (varsayılan modda servis portu 28894 çakışır, `--standalone` modunda çıktısız zaman aşımı; neden doğrulanmadı, loopback engeli tahmin). Seçenekler: `opencode acp` (işçilerin kullandığı stdio yolu) üzerinden sohbet, AppContainer loopback muafiyeti, ya da başka bir yalıtım. Çözülünce anahtar kalkar ve THREAT_MODEL D-13 "Kısmen"den çıkar.
+  2. **Reddetme listesi opencode'a güvenir:** `shell/bash/edit/write/patch/webfetch/websearch/task` reddi tek model ve tek istemle canlı doğrulandı; araç adları sürümle değişir (bu sürümde `shell`). Sürüm matrisi ve prompt-injection saldırı seti gerekir; okuma araçları açık olduğundan proje içeriği sağlayıcıya gider (gizli dosya dışlama kararı yok).
+  3. **opencode davranışı sürüme bağlı:** paylaşılan arka plan servisi çağıranın `cwd`/ortamını yok sayar, proje klasörü `PWD`'den alınır, `--standalone` gerekir (2.2.3'te gözlendi). Sürüm yükselince yeniden doğrulanmalı.
+  4. **Yalnız opencode eşlenmiş:** codex/claude/cursor akışları yakalanmadı; `ask_user` yalnız etkileşimsiz iptal olarak görüldü, cevaplanabilir soru akışı yok.
+  5. **Oturum belleği süreç içi:** motor yeniden başlarsa oturum listesi boşalır; kalıcı oturum ve yeniden bağlanma yok.
+  6. **Görsel doğrulama eksik:** gerçek WebView2'de yalnız DOM/metin doğrulandı; erişilebilirlik ve görsel inceleme yapılmadı.
 
 #### B5-01.02 — Split pane, geçmiş arama ve kesintisiz yeniden bağlanma
 
@@ -1836,6 +1843,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 - **Test senaryoları:** 10k satır scrollback, Unicode/ANSI escape, slow renderer, kapat-aç ve forced GUI crash.
 - **Ölçülebilir kabul:** 3 kez kapanıp açılmada mesaj kaybı/çifte komut sıfır; uzun çıktıda UI bloklanmaz; AppContainer bypass yok.
 - **Tamamlanma kanıtı:** Reconnection videosu, event hash karşılaştırması ve performans ölçümü.
+- **Devralınan açık sorun (Beta.3):** gerçek PTY oturumu için aracı katman (PTY broker) yok (ADR-024 koşullu GO); "süreç broker dışında shell açamaz" kanıtlanmadı ve bölmeler `pty` doğrulanana dek kapalı. Bu kart broker'ı ve AppContainer negatif testlerini getirmeden bölme açılmaz.
 
 ### B5-02 — Workspace, Git ve arama deneyimi [P0]
 
@@ -4093,3 +4101,4 @@ Kaynak belgelerde açıklanmayan veya "ADR/PoC/spike ile karar verilecek" denen 
 | D22 | Veri geçişinde desteklenecek en eski sürüm aralığı | `B3-09.02`, `B9-04.01` | Fixture seti |
 | D23 | Skill/MCP önerisinde yerel arama/skor yöntemi (deterministik kurallar; LLM opsiyonel) ve test veri kümesi | `B4-03.01/.02` | Kural/ölçüt belgesi |
 | D24 | B5-00.01'de rakip yeteneklerinin shipped/beta/planned/paid ayrımı (bu belge yapmaz) | `B5-00.01` | Tarihli matris |
+| D25 | Sohbet oturumu AppContainer içinde nasıl çalışacak (`opencode acp`, loopback muafiyeti veya başka yalıtım)? Çözülene dek oturumlar varsayılan kapalı | `B5-01.01` | Spike + go/no-go ADR (Beta.5); no-go ise oturumlar yalnız operatör anahtarıyla, belgelenmiş risk olarak kalır |
