@@ -1301,7 +1301,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-01.01 — Görev sınıflandırma ve risk şeması
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/task_classifier.py` (`classify`); `tests/engine/test_task_classifier.py` (6 test, karar tablosu 15 satır); kanıt `docs/evidence/KANIT_LOG.md` B4-01.01.
 - **Öncelik / boyut:** P0 / M
 - **Bağımlılıklar:** `B3-04.03`.
 - **Mimari / değişecek alan:** Yeni TaskClassifier deterministic features: changed scope, verification risk, deps, expected file types.
@@ -1312,7 +1312,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-01.02 — Politika temelli aday seçimi ve bütçe
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `workflows/routing_policy.py` (`suggest`); `tests/workflows/test_routing_policy.py` (11 test); kanıt `docs/evidence/KANIT_LOG.md` B4-01.02.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B4-01.01`, `B3-07.03`.
 - **Mimari / değişecek alan:** Mevcut role resolver üstünde RoutingPolicy; verified capabilities + track_record + pricing katalog.
@@ -1323,7 +1323,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-01.03 — Shadow mode ve geri alınabilir active routing
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [ ] **Kısmen** — `routing_policy.decide/record`, ayar `routing_mode`; `tests/workflows/test_routing_policy.py` (15 test); `B4-04.01` bağımlılığı yok ve çözümleyiciye bağlı değil, bu yüzden işaretlenmedi; kanıt `docs/evidence/KANIT_LOG.md` B4-01.03.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B4-01.02`, `B4-04.01`.
 - **Mimari / değişecek alan:** Routing suggestion, actual execution’dan ayrı yazılır; opt-in ve kill switch.
@@ -1334,7 +1334,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-01.04 — Gerçek ajan benchmark ile routing güveni
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [ ] **Kısmen** — analiz tarafı hazır: `workflows/routing_confidence.py` (`problems`, `evaluate`, `gate`, `routing_history`); `tests/workflows/test_routing_confidence.py` (8 test); kanıt `docs/evidence/KANIT_LOG.md` B4-01.04. **Geçerli gerçek benchmark yok:** 7 Kasım 2026 denemesi (ücretsiz `opencode/deepseek-v4.1-flash-free`) 26. koşuda kota nedeniyle durdu (`stopped_quota`, `docs/evidence/b4-01-04-bench-opencode-deepseek-INVALID.json`); kota yenilenince yeniden koşulmalı. Bu yüzden işaretlenmedi ve B4-GATE-01 açık.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B4-01.03`, `B4-04.02`.
 - **Mimari / değişecek alan:** Beta.2 gerçek agent benchmark’ından task/model/version/commit metadata; synthetic eval ayrı tutulur.
@@ -1358,7 +1358,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-02.01 — Agent/team/profile sürümlü veri sözleşmesi
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `workflows/team_profiles.py` (şema 1: `validate_member/team`, `migrate`, `from_settings`, `load/save`, `snapshot`, `new_session`, `requested`, `check`); `tests/workflows/test_team_profiles.py` (10 test); kanıt `docs/evidence/KANIT_LOG.md` B4-02.01. Not: koşular henüz `snapshot`'ı kaydetmiyor ve CLI/ayar yüzü yok (kanıtta sınırlar).
 - **Öncelik / boyut:** P0 / M
 - **Bağımlılıklar:** `B3-07.02`, `B3-09.02`.
 - **Mimari / değişecek alan:** Team profile schema: role, tool, profile, default budget, allowed capability, display identity; no raw secrets.
@@ -1485,7 +1485,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-04.01 — UsageEvent şeması ve provider adapters
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/usage_event.py` (`make`, `from_engine_usage`, `from_chat_event`, `dedupe`, `totals`); `tests/engine/test_usage_event.py` (10 test); kanıt `docs/evidence/KANIT_LOG.md` B4-04.01. Not: olaylar henüz çalışma akışında üretilmiyor (aşağıdaki sınırlar).
 - **Öncelik / boyut:** P0 / M
 - **Bağımlılıklar:** `B3-02.02`, `B3-07.03`.
 - **Mimari / değişecek alan:** Usage event input/output/cache read/write, usage status, CLI/session source, model version, timestamp.
@@ -1496,7 +1496,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-04.02 — Cost/quality ledger ve benchmark korelasyonu
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [ ] **Kısmen** — `engine/cost_ledger.py` (`snapshot`, `run_record`, `report`, `diff`); `engine/ledger_source.py` (gerçek imzalı kanıttan besler); `tests/engine/test_cost_ledger.py` (11) + `test_ledger_source.py` (5); kanıt `docs/evidence/KANIT_LOG.md` B4-04.02. CLI komutu `ledger` (`docs/COMMANDS.md`). Gerçek benchmark korelasyonu yok, masaüstü arayüzünde gösterim yok; bu yüzden işaretlenmedi.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B4-04.01`.
 - **Mimari / değişecek alan:** Price catalog snapshot + accepted task KPI + actual eval provenance.

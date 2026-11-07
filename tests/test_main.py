@@ -33,6 +33,17 @@ class MainTests(unittest.TestCase):
         code, text = call(*self.root, "roles", stdin='{"roles": {}, "needed": ["implementer"]}')
         self.assertIn("assignments", json.loads(text))
 
+    def test_ledger_is_read_only_and_honest_without_a_catalog(self):
+        code, text = call(*self.root, "ledger")
+        report = json.loads(text)
+        self.assertEqual((code, report["groups"]), (0, {}))
+        self.assertEqual(report["schema"], 1)
+        code, text = call(*self.root, "ledger", stdin='{"billing": {"codex": "free"}}')
+        self.assertEqual(code, 1)
+        self.assertIn("billing", json.loads(text)["error"]["message"])
+        for bad in ('{"limit": 0}', '{"catalog": [1]}', '{"surprise": 1}', '{"catalog": [{"model": "m"}], "at": "x"}'):
+            self.assertEqual(call(*self.root, "ledger", stdin=bad)[0], 1, bad)
+
     def test_run_commands_need_exactly_one_identity(self):
         code, text = call(*self.root, "inspect")
         self.assertEqual(code, 1)

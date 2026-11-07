@@ -101,7 +101,7 @@ class RppTests(unittest.TestCase):
         fields = {field["key"]: field for field in self.call("settings.schema")["result"]["fields"]}
         self.assertEqual(set(fields), {"default_worker", "default_worker_profile",
                                        "default_reviewer_profile", "default_timeout_seconds", "default_reviewer_tool",
-                                       "default_roles", "auto_assign", "auto_pool", "require_independent_review",
+                                       "default_roles", "auto_assign", "auto_pool", "routing_mode", "require_independent_review",
                                        "blocked_profiles", "mcp_acceptance_allow", "memory_enabled", "memory_command",
                                        "memory_grant_id", "memory_token", "memory_write", "preview_enabled", "preview_ports"})
         for key in ("memory_enabled", "memory_command", "memory_grant_id", "memory_token"):

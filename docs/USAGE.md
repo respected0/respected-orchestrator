@@ -233,6 +233,7 @@ altına yeni bir not olarak yazar; görev geçmişi yazılmaz.
 | `default_roles` | Varsayılan rol atamaları, JSON (ör. `{"planner": {"tool": "claude"}}`) | boş |
 | `auto_assign` | Atama yoksa geçmiş başarıya göre araç önerilsin | `false` |
 | `auto_pool` | Otomatik atama adayları, JSON liste | boş |
+| `routing_mode` | Akıllı yönlendirme: `off`, `shadow` (yalnız öneri kaydı), `active` | `shadow` |
 | `require_independent_review` | Gözden geçiren, işi yapandan farklı olmalı | `false` |
 | `mcp_acceptance_allow` | MCP ile verilen görevlerde izin verilen doğrulama komutu önekleri, JSON | boş |
 | `blocked_profiles` | Hiçbir rolde kullanılmayacak profiller, virgülle | `mimo` |

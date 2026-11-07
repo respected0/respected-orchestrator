@@ -182,7 +182,7 @@ def main(argv=None):
     from .workflows import roles
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=default_data_root(), help=argparse.SUPPRESS)
-    parser.add_argument("command", choices=["maintenance", "status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", "github-ci-ingest", "github-ci-poll", "provider-key", "provider-models", *SHARED, "_selfcheck"])
+    parser.add_argument("command", choices=["maintenance", "status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "ledger", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", "github-ci-ingest", "github-ci-poll", "provider-key", "provider-models", *SHARED, "_selfcheck"])
     parser.add_argument("args", nargs=argparse.REMAINDER)
     try:
         args = parser.parse_args(argv)
@@ -256,6 +256,11 @@ def main(argv=None):
                 roles.read_settings(ctx.data_root), request.get("roles", {}), request.get("needed", ["implementer"]),
                 tools=list(runner.SUPPORTED_AGENTS), available=runner.tool_available,
                 history=lambda: runner._track_record(ctx)))
+        elif args.command == "ledger":  # read-only cost/quality report over this installation's signed runs; stdin optional
+            import datetime as dt
+            from .engine import ledger_source
+            raw = sys.stdin.buffer.read().decode("utf-8-sig").strip()
+            payload = ledger_source.from_request(ctx.data_root, json.loads(raw) if raw else {}, dt.datetime.now(dt.timezone.utc).isoformat())
         elif args.command == "plan":  # planner role: draft a project spec (never started); stdin {goal, project_root, ...}
             from .workflows.planner import plan
             payload = plan(ctx, _stdin_json())
