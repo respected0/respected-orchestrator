@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from ..context import EngineContext
-from . import cost_ledger, usage_event
+from . import cost_ledger, failures, usage_event
 from .evidence import load_signed
 from .track_record import _roots
 
@@ -45,11 +45,14 @@ def runs(data_root: Path, *, billing: Mapping[str, str] = {}, limit: int = 400) 
                         events.append(_event(entry.get("usage"), tool=rtool, run_id=directory.name, step=f"review-{index}", at=at,
                                              model=entry.get("profile"), billing=billing))
                 seconds = result.get("duration_seconds")
-                out.append(cost_ledger.run_record(
+                record = (cost_ledger.run_record(
                     run_id=directory.name, task_class=str(request.get("kind") or "unknown"), accepted=done,
                     elapsed_seconds=seconds if isinstance(seconds, (int, float)) and not isinstance(seconds, bool) else None,
                     fix_rounds=None,  # not recorded per run; MAF rounds are not summed here
                     worker_violations=1 if status.get("reason") == "scope_violation" else 0, events=events))
+                record["agent"], record["project"] = tool, request.get("project_root")  # extra facts for the read model; the ledger itself ignores them
+                record["failure_class"] = None if done else failures.describe(status.get("reason"), status.get("provider_status")).get("failure_class")
+                out.append(record)
             except (OSError, ValueError, KeyError, TypeError, AttributeError):
                 continue  # unsigned, tampered or partial evidence is not counted
     return out
@@ -80,3 +83,28 @@ def from_request(data_root: Path, request: Any, now: str) -> dict[str, Any]:
         return report(data_root, catalog, request.get("at") or now, billing=billing, task_class=task_class, limit=limit)
     except (KeyError, TypeError) as error:  # a price entry missing a field or a non-ISO date
         raise ValueError(f"invalid price catalog or date: {error}") from error
+
+
+def from_bench(bench: Any, *, billing: Mapping[str, str] = {}) -> list[dict[str, Any]]:
+    """Ledger rows from a benchmark report (`tests/evals/bench.py`), one class per arm (`bench:direct`, `bench:orchestrated`), labelled with the
+    report's own provenance (kind real|synthetic, agent@version:commit). A benchmark records total tokens only, never the input/output split,
+    so its usage is built as unknown and cost is honestly "uncomputable": the ledger links quality evidence to the run set, it does not invent a price."""
+    if not isinstance(bench, Mapping) or bench.get("schema") != "respected.eval.bench.v1" or not isinstance(bench.get("runs"), list):
+        raise ValueError("not a benchmark report")
+    agent = bench.get("agent") if isinstance(bench.get("agent"), Mapping) else {}
+    manifest = f"{agent.get('name')}@{agent.get('version')}:{str(bench.get('commit'))[:12]}"
+    kind = "real" if bench.get("kind") == "real" else "synthetic"
+    out = []
+    for index, run in enumerate(bench["runs"]):
+        if not isinstance(run, Mapping) or run.get("arm") not in ("direct", "orchestrated"):
+            continue
+        seconds = run.get("duration_seconds")
+        event = usage_event.from_engine_usage(None, tool=str(agent.get("name") or "unknown"), run_id=f"bench-{index}", step="worker", at="", model=agent.get("model"),
+                                              billing=billing.get(str(agent.get("name")), "unknown"))
+        violations = (1 if run.get("security_violation") is True else 0) if run["arm"] == "orchestrated" and run.get("security_violation") is not None else None
+        record = cost_ledger.run_record(run_id=f"bench-{run.get('task_id')}-{run['arm']}-{run.get('repeat')}", task_class=f"bench:{run['arm']}", accepted=run.get("status") == "passed",
+                                        elapsed_seconds=seconds if isinstance(seconds, (int, float)) and not isinstance(seconds, bool) else None, fix_rounds=None,
+                                        worker_violations=violations, events=[event], eval_kind=kind, eval_manifest=manifest)
+        record["agent"], record["project"], record["failure_class"] = agent.get("name"), None, None
+        out.append(record)
+    return out

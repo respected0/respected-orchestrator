@@ -553,10 +553,15 @@ def create_task(ctx: EngineContext, request: dict, *, settings: dict | None = No
     settings = roles.read_settings(ctx.data_root) if settings is None else settings
     memory_policy = _memory_policy(request, memory_settings, settings_root(ctx, main_root))
     # A reviewer is only required when the MAF workflow runs (it re-checks and fails before any paid work).
-    assigned = roles.resolve(settings, _explicit_roles(request, workflow), ["implementer"], optional=["reviewer", "tester", "debugger"],
+    from ..workflows import run_hooks, team_commands  # Beta.4 connectors; imported here because they import this package's siblings
+    explicit_roles, profile_ref = run_hooks.apply_profile(ctx, request, _explicit_roles(request, workflow), workflow, settings, list(SUPPORTED_AGENTS))
+    assigned = roles.resolve(settings, explicit_roles, ["implementer"], optional=["reviewer", "tester", "debugger"],
                              tools=list(SUPPORTED_AGENTS), available=tool_available, check_roles={"implementer", "tester"},
                              history=history or (lambda: _track_record(ctx)))
     assigned = _keep_sources(assigned, request.get("role_assignments"))
+    handoff_ref = team_commands.link(ctx, request)
+    routing = run_hooks.route(ctx, settings, request, assigned, list(SUPPORTED_AGENTS), tool_available,
+                              history or (lambda: _track_record(ctx)), ownership, acceptance)
     reviewer = assigned.get("reviewer")
     if assigned.get("tester") and not acceptance:
         raise ValueError("A tester assignment requires at least one acceptance command")
@@ -633,6 +638,12 @@ def create_task(ctx: EngineContext, request: dict, *, settings: dict | None = No
                    inherited_patch_run_id=inherited_patch_run_id,
                    inherited_patch_sha256=inherited_patch_sha256, fix_evidence=fix_evidence,
                    apply_root=apply_root, memory_policy=memory_policy)
+    if profile_ref is not None:
+        payload["profile_ref"] = profile_ref  # frozen snapshot + this run's own session id; later profile edits never touch it
+    if routing is not None:
+        payload["routing"] = routing
+    if handoff_ref is not None:
+        payload["handoff_ref"] = handoff_ref  # which verified handoff this run continues; the next handoff chains from it
     save_signed(ctx, directory / "request.json", payload)
     save_signed(ctx, directory / "status.json", {"run_id": run_id, "status": "queued"})
     return {"run_id": run_id, "status": "queued"}
@@ -1284,15 +1295,17 @@ def approve_maf_task(ctx, run_id):
     return approval
 
 
-def retry_task(ctx, run_id):
+def retry_task(ctx, run_id, *, operator_resume=False):
     inspected = inspect_task(ctx, run_id)
     request = inspected["request"]
     if inspected["status"] not in {"failed", "timed_out", "cancelled", "interrupted"}:
         raise ValueError("Only unsuccessful terminal tasks can be retried")
     if request["retry_depth"] >= 2:
         raise ValueError("Retry budget exhausted (three total attempts)")
-    if inspected.get("retryable") is False:
+    if inspected.get("retryable") is False and not operator_resume:  # only operator.act (a person, in the native dialog) passes operator_resume
         raise ValueError(f"Failure class '{inspected.get('failure_class', 'unknown')}' requires manual resolution")
+    from ..workflows import run_hooks
+    run_hooks.retry_guard(ctx, run_id, request, inspected, inspect_task, operator_resume=operator_resume)  # the recovery table has the last word before anything is claimed
     claim = safe_path(ctx.run_dir(run_id) / '.retry-claim')
     try:
         descriptor = os.open(claim, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)

@@ -44,6 +44,25 @@ class MainTests(unittest.TestCase):
         for bad in ('{"limit": 0}', '{"catalog": [1]}', '{"surprise": 1}', '{"catalog": [{"model": "m"}], "at": "x"}'):
             self.assertEqual(call(*self.root, "ledger", stdin=bad)[0], 1, bad)
 
+    def test_team_handoff_inbox_and_operator_commands(self):
+        code, text = call(*self.root, "team")
+        team = json.loads(text)
+        self.assertEqual((code, team["schema"], team["id"]), (0, 1, "default"))  # derived from the role settings, nothing written
+        self.assertFalse((Path(self.root[1]) / "teams.json").exists())
+        members = [{"id": "implementer", "role": "implementer", "assignment": {"tool": "codex", "profile": "m"}}]
+        code, text = call(*self.root, "team", stdin=json.dumps({"team": {"schema": 1, "id": "core", "name": "Core", "members": members}}))
+        self.assertEqual((code, json.loads(text)["members"][0]["rev"]), (0, 1))
+        code, text = call(*self.root, "team", stdin=json.dumps({"team": {"schema": 1, "id": "core", "members": [{"id": "xx", "role": "boss"}]}}))
+        self.assertEqual(code, 1)
+        self.assertIn("BAD_ROLE", json.loads(text)["error"]["message"])
+        self.assertEqual(call(*self.root, "inbox", "implementer")[0], 0)
+        self.assertEqual(call(*self.root, "inbox", "ghost")[0], 1)
+        self.assertEqual(call(*self.root, "inbox")[0], 2)  # usage error
+        self.assertEqual(call(*self.root, "handoff", stdin="{}")[0], 1)
+        self.assertEqual(call(*self.root, "escalation", "run-nope")[0], 1)
+        code, text = call(*self.root, "operator", "run-x", "retry", "0" * 64)  # no terminal in the test: never a human
+        self.assertEqual(code, 1)
+
     def test_run_commands_need_exactly_one_identity(self):
         code, text = call(*self.root, "inspect")
         self.assertEqual(code, 1)

@@ -1323,7 +1323,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-01.03 — Shadow mode ve geri alınabilir active routing
 
-- [ ] **Kısmen** — `routing_policy.decide/record`, ayar `routing_mode`; `tests/workflows/test_routing_policy.py` (15 test); `B4-04.01` bağımlılığı yok ve çözümleyiciye bağlı değil, bu yüzden işaretlenmedi; kanıt `docs/evidence/KANIT_LOG.md` B4-01.03.
+- [x] **Tamamlandı** — `workflows/routing_policy.decide/record`, `workflows/run_hooks.route` (`create_task` otomatik seçilen roller için çağırır), ayar `routing_mode` (shadow varsayılan, `off` kill switch, `active` opt-in); `tests/workflows/test_routing_policy.py` (15) + `tests/engine/test_run_wiring.py` (13); kanıt `docs/evidence/KANIT_LOG.md` B4-01.03. Açık/yapılandırılmış rol hiçbir modda değişmez.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B4-01.02`, `B4-04.01`.
 - **Mimari / değişecek alan:** Routing suggestion, actual execution’dan ayrı yazılır; opt-in ve kill switch.
@@ -1334,7 +1334,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-01.04 — Gerçek ajan benchmark ile routing güveni
 
-- [ ] **Kısmen** — analiz tarafı hazır: `workflows/routing_confidence.py` (`problems`, `evaluate`, `gate`, `routing_history`); `tests/workflows/test_routing_confidence.py` (8 test); kanıt `docs/evidence/KANIT_LOG.md` B4-01.04. **Geçerli gerçek benchmark yok:** 7 Kasım 2026 denemesi (ücretsiz `opencode/deepseek-v4.1-flash-free`) 26. koşuda kota nedeniyle durdu (`stopped_quota`, `docs/evidence/b4-01-04-bench-opencode-deepseek-INVALID.json`); kota yenilenince yeniden koşulmalı. Bu yüzden işaretlenmedi ve B4-GATE-01 açık.
+- [ ] **Kısmen** — analiz tarafı hazır: `workflows/routing_confidence.py`; `tests/workflows/test_routing_confidence.py` (8); kanıt `docs/evidence/KANIT_LOG.md` B4-01.04. **Geçerli gerçek benchmark yok:** ücretsiz kotalar tükendi — `deepseek-v4.1-flash-free` 26. koşuda durdu (`docs/evidence/b4-01-04-bench-opencode-deepseek-INVALID.json`), sonraki denemede ilk çağrıda durdu; `glm-5.3-flash-free` ve `flint-40b-free` ilk çağrıda kota verdi; `nemotron-3.5-lightning-free` bir deneme çağrısından sonra kota verdi. Kota yenilenince `python -m tests.evals.bench run ... --confirm-free` ile 60 koşu gerekir; B4-GATE-01 açık.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B4-01.03`, `B4-04.02`.
 - **Mimari / değişecek alan:** Beta.2 gerçek agent benchmark’ından task/model/version/commit metadata; synthetic eval ayrı tutulur.
@@ -1358,7 +1358,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-02.01 — Agent/team/profile sürümlü veri sözleşmesi
 
-- [x] **Tamamlandı** — `workflows/team_profiles.py` (şema 1: `validate_member/team`, `migrate`, `from_settings`, `load/save`, `snapshot`, `new_session`, `requested`, `check`); `tests/workflows/test_team_profiles.py` (10 test); kanıt `docs/evidence/KANIT_LOG.md` B4-02.01. Not: koşular henüz `snapshot`'ı kaydetmiyor ve CLI/ayar yüzü yok (kanıtta sınırlar).
+- [x] **Tamamlandı** — `workflows/team_profiles.py` (şema 1) + `workflows/run_hooks.apply_profile` (`create_task` isteği `profile` alanı → açık atama, koşu `profile_ref` = dondurulmuş özet + kendi `ss-…` oturum kimliği); `tests/workflows/test_team_profiles.py` (10) + `tests/engine/test_run_wiring.py`; kanıt `docs/evidence/KANIT_LOG.md` B4-02.01.
 - **Öncelik / boyut:** P0 / M
 - **Bağımlılıklar:** `B3-07.02`, `B3-09.02`.
 - **Mimari / değişecek alan:** Team profile schema: role, tool, profile, default budget, allowed capability, display identity; no raw secrets.
@@ -1369,7 +1369,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-02.02 — Handoff message envelope ve mailbox
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `workflows/handoff.py` + `workflows/team_commands.py` (CLI `handoff`, `inbox`; gönderen koşunun kendi kaydından gelir); `tests/workflows/test_handoff.py` (9) + `tests/workflows/test_team_commands.py` (9); kanıt `docs/evidence/KANIT_LOG.md` B4-02.02.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B4-02.01`, `B3-02.02`.
 - **Mimari / değişecek alan:** Handoff event: from/to, scope, evidence refs, retry budget, reason, next_action; source bounded/signed.
@@ -1380,7 +1380,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-02.03 — Loop-limited takım koordinasyonu
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `workflows/team_loop.py`, `team_commands.post` içinde çağrılır (imzalı `parent` bağlarıyla zincir; `escalate` olayı `handoff.escalated`); `tests/workflows/test_team_loop.py` (10) + `test_team_commands.py`; kanıt `docs/evidence/KANIT_LOG.md` B4-02.03. Not: çalışan işçileri fiilen durdurmaz; durdurulacak oturumları döndürür.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B4-02.02`, `B4-08.01`.
 - **Mimari / değişecek alan:** Mevcut DAG/MAF ve scheduler üzerinden hop/round budgets, ownership conflict check.
@@ -1391,7 +1391,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-02.04 — Takım görünümü ve görev geçmişi
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `workflows/team_view.py`, IPC `team.view`, masaüstü ekranı **Takım** (`desktop/src/Beta4Screens.tsx`, `beta4.ts`); `tests/engine/test_beta4_views.py`, `desktop/tests/beta4.test.ts` (gerçek motor yanıtıyla sözleşme testi), gerçek tarayıcı bölmesinde doğrulandı; kanıt `docs/evidence/KANIT_LOG.md` B4-02.04.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B4-02.03`, `B3-06.01`.
 - **Mimari / değişecek alan:** Desktop team overview and shared thread as projection of events, not second DB.
@@ -1415,7 +1415,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-03.01 — CompatibilityResolver & agent support registry
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/capabilities/compatibility.py` (`resolve`, `resolve_all`, `clients`); `tests/engine/test_capability_compatibility.py` (11 test); kanıt `docs/evidence/KANIT_LOG.md` B4-03.01. Not: yalnız depoda doğrulanabilen bilgi (taşıma biçimi: yalnız `stdio` onaylı); sürüm denetimi yok.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-08.02`, `B3-07.03`.
 - **Mimari / değişecek alan:** Deterministic capability ontology + agent/version support matrix.
@@ -1426,7 +1426,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-03.02 — Görev bazlı öneri ve gerekçe
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/capabilities/recommendation.py` (`recommend`, `categories`); `tests/engine/test_capability_recommendation.py` (9 test, sıfır yan etki denetimi dahil); kanıt `docs/evidence/KANIT_LOG.md` B4-03.02. Not: kural tabanlı; LLM sıralaması yok; görev kategorisi küçük sabit sözlükle.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B4-03.01`, `B4-01.01`.
 - **Mimari / değişecek alan:** Rule-based recommender; LLM candidate ranking sadece opsiyonel ve asla auth kaynağı değil.
@@ -1437,7 +1437,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-03.03 — PermissionInspector ve risk kartları
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/capabilities/permissions.py` (`inspect`); `tests/engine/test_capability_permissions.py` (9 test); kanıt `docs/evidence/KANIT_LOG.md` B4-03.03.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B4-03.01`, `B3-00.02`.
 - **Mimari / değişecek alan:** Önerilen/kurulu yeteneklerin declared permissions ile gerçek policy gate bağları.
@@ -1448,7 +1448,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-03.04 — Onaylı ActivationPlan ve execution gate
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/capabilities/activation.py` (`propose`, `approve`, `consume`); `tests/engine/test_capability_activation.py` (9 test); kanıt `docs/evidence/KANIT_LOG.md` B4-03.04. Not: yalnız karar verir, config dosyasına yazan kod yok; yerel uygulamada onay iletişim kutusu bağlı değil.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B4-03.02`, `B4-03.03`, `B3-05.02`.
 - **Mimari / değişecek alan:** Plan = desired changes diff + scopes + hashes; current capability_manifest fail-closed gate remains final.
@@ -1459,7 +1459,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-03.05 — Capability recommender UI + user feedback
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — IPC `capabilities.recommend`, masaüstü ekranı **Yetenek önerileri** (görmezden gelme var, etkinleştirme düğmesi bilerek yok); `desktop/tests/beta4.test.ts`, `tests/engine/test_beta4_views.py`; kanıt `docs/evidence/KANIT_LOG.md` B4-03.05. Not: etkinleştirme arayüzü yok (yerel onay iletişim kutusu köprüsü kurulmadı); plan yalnız motor katmanında.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B4-03.04`, `B3-08.03`.
 - **Mimari / değişecek alan:** Desktop capability recommendations read from engine; no mandatory cloud/marketplace.
@@ -1496,7 +1496,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-04.02 — Cost/quality ledger ve benchmark korelasyonu
 
-- [ ] **Kısmen** — `engine/cost_ledger.py` (`snapshot`, `run_record`, `report`, `diff`); `engine/ledger_source.py` (gerçek imzalı kanıttan besler); `tests/engine/test_cost_ledger.py` (11) + `test_ledger_source.py` (5); kanıt `docs/evidence/KANIT_LOG.md` B4-04.02. CLI komutu `ledger` (`docs/COMMANDS.md`). Gerçek benchmark korelasyonu yok, masaüstü arayüzünde gösterim yok; bu yüzden işaretlenmedi.
+- [x] **Tamamlandı** — `engine/cost_ledger.py`, `engine/ledger_source.py` (`runs`, `from_bench`, `report`), CLI `ledger`; `tests/engine/test_cost_ledger.py` (11), `test_ledger_source.py` (8); kanıt `docs/evidence/KANIT_LOG.md` B4-04.02. Not: benchmark girdi/çıktı ayrımı tutmadığından benchmark satırlarının maliyeti `uncomputable` (bilinmiyor) kalır.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B4-04.01`.
 - **Mimari / değişecek alan:** Price catalog snapshot + accepted task KPI + actual eval provenance.
@@ -1507,7 +1507,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-04.03 — Bütçe/başarı dashboard ve uyarılar
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/analytics.py`, IPC `analytics.summary`, ekran **Bütçe ve başarı**, ayar `usage_collection`/`budget_weighted_tokens`; `tests/engine/test_beta4_views.py` (14), `desktop/tests/beta4.test.ts`; kanıt `docs/evidence/KANIT_LOG.md` B4-04.03. Fiyat kataloğu olmadığından tahmini maliyet 'hesaplanmadı'.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B4-04.02`, `B3-06.01`.
 - **Mimari / değişecek alan:** Privacy-first local read models; optional quota event & warning.
@@ -1531,7 +1531,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-05.01 — Repo context map ve içerik invalidation
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/context_map.py`; `tests/engine/test_context_map.py` (9; gerçek symlink testi bu makinede ayrıcalık olmadığından atlanır, bağlantı denetimi sahte `is_symlink` ile ayrıca sınanır); kanıt `docs/evidence/KANIT_LOG.md` B4-05.01.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B3-04.01`.
 - **Mimari / değişecek alan:** Read-only project symbol/file inventory via local tools, scoped to allowed paths.
@@ -1542,7 +1542,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-05.02 — Bounded context preparation ve evidence refs
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/context_prep.py`; `tests/engine/test_context_prep.py` (9); kanıt `docs/evidence/KANIT_LOG.md` B4-05.02. Not: ajan istemine henüz yalnızca kıyaslama kolunda (`bench.py --context-prep`) bağlı.
 - **Öncelik / boyut:** P1 / L
 - **Bağımlılıklar:** `B4-05.01`, `B4-02.02`.
 - **Mimari / değişecek alan:** Prompt builder summarizes/ranks only allowlisted excerpts; original evidence digest refs kept.
@@ -1553,7 +1553,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-05.03 — A/B token/başarı deneyleri
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [ ] **Kısmen** — `workflows/context_ab.py` (`shadow_sizes`, `compare`, `manifest`), `tests/evals/bench.py --context-prep`; `tests/workflows/test_context_ab.py` (6); kanıt `docs/evidence/KANIT_LOG.md` B4-05.03. **Gerçek A/B koşulamadı:** denenen ücretsiz modellerin kotası bitik (aşağıda), bu yüzden kazanım iddiası yok (`no_claim`).
 - **Öncelik / boyut:** P1 / L
 - **Bağımlılıklar:** `B4-05.02`, `B4-04.02`, `B4-01.04`.
 - **Mimari / değişecek alan:** Direct baseline, new context prep via same agent/version/fixture/environment.
@@ -1577,7 +1577,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-06.01 — Mikrofon izinleri ve offline STT spike
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/voice.py` (`Session`, `probe_engines`, `command_engine`), başvuru motoru `packaging/voice/faster_whisper_stt.py` + `measure_stt.py`, ADR-027, ölçüm kanıtı `docs/evidence/b4-06-01-stt-measurement.json` (İngilizce WER %8,6; tepe bellek 692 MB; model dosya özetleri); `tests/engine/test_voice.py` (21). **Sınır:** Türkçe doğruluk ölçülemedi (Türkçe ses kaynağı yok); işletim sistemi mikrofon izni/yakalama arayüzü bağlı değil.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B3-01.04`.
 - **Mimari / değişecek alan:** OS mic permission, opt-in push-to-talk, local model adapter choice via feasibility test.
@@ -1588,7 +1588,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-06.02 — Editable task draft, vocabulary ve safety
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `voice.to_draft/confirm/require_confirmed`, proje sözlüğü düzeltmesi (tek harflik kayma uygulanır, iki harflik yakınlık öneridir), yüksek riskli sözcük işareti; GERÇEK motorla uçtan uca (oturum → motor → taslak → onay kapısı) `docs/evidence/b4-06-01-stt-measurement.json` `end_to_end`. Arayüz: `desktop/src/Voice.tsx` (Sesli görev ekranı) bas-konuş, düzenlenebilir taslak, vurgulu düzeltmeler, yüksek riskli sözcük uyarısı, açık onay adımı; onaylı metin yalnız kopyalanır, hiçbir şey başlatmaz; IPC: `engine/voice_api.py` `voice.*`, `tests/engine/test_voice_api.py` (9), `desktop/tests/voicedraft.test.ts`; gerçek motorla IPC üzerinden uçtan uca `docs/evidence/b4-06-voice-ipc-e2e.json`. **Sınır:** Türkçe doğruluk ölçülemedi (makinede Türkçe ses kaynağı yok; dil `tr` motora iletilir ama ölçüm yok).
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B4-06.01`, `B3-04.03`.
 - **Mimari / değişecek alan:** Voice-to-text only into task draft; UI edit/review step mandatory.
@@ -1599,7 +1599,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-06.03 — Ses gizlilik/performans release kapısı
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — gizlilik negatif testleri (diske/ağa yazma yok, anlık kapatma, çökme, olay sızıntısı yok) ve kaynak ölçümü (60 sn ses: 0,019 sn, 1,9 MB) `tests/engine/test_voice.py`; kanıt `docs/evidence/KANIT_LOG.md` B4-06. Arayüz: mikrofon göstergesi (AÇIK/kapalı, süre, düzey), İptal (sesi at), taslağı sil, izin geri alınınca/mikrofon kapanınca anında atma (`Voice.tsx`, `voice.cancel`); yazarak giriş her zaman açık. **Sınır:** gerçek mikrofonla elle deneme yapılmadı (sahte medya akışıyla tarayıcıda doğrulandı).
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B4-06.02`.
 - **Mimari / değişecek alan:** Mic indicators, ephemeral buffers, deletion controls, no audio in evidence/checkpoint.
@@ -1623,7 +1623,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-07.01 — Kullanıcı denetimli ekran yakalama
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `engine/attachment.py` `CaptureSession`; `tests/engine/test_attachment.py` (22); `docs/adr/ADR-028-ekran-goruntusu-ve-model-aktarimi.md`. Yakalama = kişinin seçtiği dosya veya yapıştırdığı görüntü (arka planda ekran yakalama tasarım gereği yok; ADR-028). Arayüz `desktop/src/Screenshot.tsx`, IPC `engine/attachment_api.py` (`attachment.arm/part/stage`), `tests/engine/test_attachment_api.py` (13). **Sınır:** işletim sisteminin canlı ekran/pencere yakalama seçicisi yok; çoklu ekran/DPI alanları motorda var ama arayüz göndermiyor.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B3-01.04`, `B3-00.02`.
 - **Mimari / değişecek alan:** OS screenshot chooser, window/region selection, opt-in only, local temp storage.
@@ -1634,7 +1634,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-07.02 — Görsel önizleme, redaksiyon ve task attachment
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `attachment.inspect/attach` (PNG/JPEG, metaveri silme, önizleme özeti bağı), örnek `docs/evidence/b4-07-02-masked-sample.png`; `tests/engine/test_attachment.py`. Arayüzde sürükleyerek karartma, motorun temizlediği kopyanın önizlemesi (özet bağlı), önizleme + onay kutusu olmadan Ekle düğmesi kapalı (`attachdraft.ts` `canAttach`, `desktop/tests/attachdraft.test.ts`); ekleme yerel OS penceresinde onaylanır (`src-tauri/src/image_consent.rs`, 6 test).
 - **Öncelik / boyut:** P1 / L
 - **Bağımlılıklar:** `B4-07.01`, `B3-04.03`.
 - **Mimari / değişecek alan:** Attachment envelope MIME, digest, byte limit, allowed visibility; task payload opt-in.
@@ -1645,7 +1645,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-07.03 — Model transfer ve retention onayı
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `attachment.share/revoke/bytes_for_model/purge/sweep`; `tests/engine/test_attachment.py`. Paylaşma ve geri alma arayüzü (`Screenshot.tsx`), sağlayıcı adı ve 'bilgisayar dışına gider' uyarısıyla ayrı yerel OS onayı; geri alma ve silme düğmeleri. **Sınır:** görüntü ileten bir işçi bağdaştırıcısı olmadığından gerçek ağ denetimi yapılamadı; şu an hiçbir yol görüntüyü dışarı göndermez.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B4-07.02`, `B4-03.04`.
 - **Mimari / değişecek alan:** Trusted provider/worker permission and network boundaries; separate data-sharing decision.
@@ -1669,7 +1669,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-08.01 — Recovery decision table ve maksimum kaynak sınırı
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `workflows/recovery.py`; `runner.retry_task` `run_hooks.retry_guard` ile bu tabloyu çağırır; `tests/workflows/test_recovery.py` (12), `tests/engine/test_run_wiring.py`; kanıt `docs/evidence/KANIT_LOG.md` B4-08.01.
 - **Öncelik / boyut:** P0 / M
 - **Bağımlılıklar:** `B3-02.04`, `B4-04.01`.
 - **Mimari / değişecek alan:** Existing failure_class enum with deterministic recovery policy: retry/pause/stop/operator.
@@ -1680,7 +1680,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-08.02 — Operator escalation ve explainable recovery
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `workflows/operator.py` (`case`, `act`, `timeline`), CLI `escalation`, `operator`; `tests/workflows/test_operator.py` (11); kanıt `docs/evidence/KANIT_LOG.md` B4-08.02. Not: masaüstünde operatör düğmeleri yok; CLI insan terminali ister.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B4-08.01`, `B3-05.01`.
 - **Mimari / değişecek alan:** Event timeline and explicit operator action; recovery never automatic apply.
@@ -1691,7 +1691,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-08.03 — Fault-injection ve regresyon release suite
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `tests/faults/` (24 hata, 9 alan; `python -m tests.faults.matrix run`), kanıt `docs/evidence/b4-08-03-fault-matrix.json` (24/24, atlanan 0, sınırsız yeniden deneme 0, çift apply 0); kanıt `docs/evidence/KANIT_LOG.md` B4-08.03. Not: kanıt kirli ağaçta üretildi (`working_tree_dirty: true`); commit sonrası yeniden üretilmeli.
 - **Öncelik / boyut:** P1 / L
 - **Bağımlılıklar:** `B4-08.02`, `B4-02.03`.
 - **Mimari / değişecek alan:** Kill/failure injection harness, commit linked release evidence.
@@ -1715,7 +1715,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-09.01 — Tehdit modeli, kullanıcı araştırması ve Go/No-Go
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `docs/adr/ADR-029-uzak-gozlemci-arastirmasi.md` (tehdit modeli, maliyet/yarar, karar: uzak dinleyici NO-GO). Not: kullanıcı araştırması yapılmadı.
 - **Öncelik / boyut:** P2 / M
 - **Bağımlılıklar:** `B3-09.04`, `B4-04.03`.
 - **Mimari / değişecek alan:** Bambaşka kimlik/cihaz/pairing ve transport sınırı; local IPC dışına privilege taşıma.
@@ -1726,7 +1726,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-09.02 — Opt-in read-only remote observer prototipi
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `interfaces/observer.py` (eşleştirme, belirteç, iptal, salt okunur işleyici, yalnız döngü adresi); `tests/interfaces/test_observer.py` (14, iç saldırı testi); ADR-029. Not: bağımsız sızma testi ve TLS yok; hiçbir yer başlatmaz.
 - **Öncelik / boyut:** P2 / L
 - **Bağımlılıklar:** `B4-09.01`.
 - **Mimari / değişecek alan:** Izole gateway, authenticated pairing, TLS, short-lived tokens; default no network listener.
@@ -1737,7 +1737,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B4-09.03 — Genişleme karar kapısı: kontrol ve mobil
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — ADR-029 §B4-09.03: kontrol ve mobil NO-GO + backlog.
 - **Öncelik / boyut:** P2 / M
 - **Bağımlılıklar:** `B4-09.02`.
 - **Mimari / değişecek alan:** Ayrı sürüm önerisi; input/approval uzaktan aktarılması için farklı authority/consent tasarımı gerekir.
@@ -3413,12 +3413,12 @@ Her beta sürümünün ayrı bir kapısı vardır. Kapı maddeleri `[ ]` olarak 
 ### 15.2 Beta.4 yayın kapısı (zorunlu/koşullu)
 
 - [ ] **B4-GATE-01:** Smart routing için aynı model/sürüm/fixture/ortamda gerçek ajan benchmark raporu; unknown cost=unknown, kullanıcı explicit ataması korunuyor.
-- [ ] **B4-GATE-02:** Team handoff döngüleri, ownership ve limit saldırıları; max-hop exceeded → durdur/escalate, otomatik apply yok.
-- [ ] **B4-GATE-03:** Yerel skill/MCP uyumluluk + öneri, başka uygulama veya internet olmadan; keşif ve öneriden kaynaklanan otomatik dosya değişikliği/aktivasyon=0.
-- [ ] **B4-GATE-04:** Token/maliyet hesapları fixture tabanlı yeniden hesaplanabilir; bilinmeyen ölçüm 0 değil; kalite regression gate geçer.
-- [ ] **B4-GATE-05:** Yerel ses/görsel P1 özelliği etkinleştirildiyse kayıt/share için açık kullanıcı eylemi ve negatif gizlilik testleri geçer; etkin değilse UI bunu destekleniyor demez.
-- [ ] **B4-GATE-06:** Circuit breaker ve kurtarma: sınırsız retry=0, double apply=0, güvenlik fail-closed.
-- [ ] **B4-GATE-07:** B4-09 remote/mobile varsayılan kapalıdır; araştırma prototipi prod yetkilerine bağlanmaz; Beta.4 için bloke edici değildir.
+- [x] **B4-GATE-02:** Team handoff döngüleri, ownership ve limit saldırıları; max-hop exceeded → durdur/escalate, otomatik apply yok. **Kanıt (8 Kasım 2026):** `tests/faults` F07, F12, F13, F14 ve `test_team_commands` (gerçek koşular arasında 4. devir `escalate`, hiçbir şey teslim edilmez, apply eylemi yok).
+- [x] **B4-GATE-03:** Yerel skill/MCP uyumluluk + öneri, başka uygulama veya internet olmadan; keşif ve öneriden kaynaklanan otomatik dosya değişikliği/aktivasyon=0. **Kanıt (8 Kasım 2026):** `tests/faults` F04 (soket engelli: sınıflandırma, yönlendirme, envanter, uyumluluk, öneri, izin kartı, defter, etkinleştirme planı çalışır), `test_capability_recommendation` ve `test_capability_activation` sıfır yan etki denetimleri (dosya ağacı özeti değişmez).
+- [x] **B4-GATE-04:** Token/maliyet hesapları fixture tabanlı yeniden hesaplanabilir; bilinmeyen ölçüm 0 değil; kalite regression gate geçer. **Kanıt (8 Kasım 2026):** `cost_ledger` altın değerli testleri (elle hesaplanmış; bilinmeyen None, 0 değil), `tests/evals/report.regression_gate` mevcut ve geçiyor. Not: kalite gerileme kapısı sentetik karşılaştırma üzerinde; gerçek ajan raporu B4-GATE-01'e bağlı.
+- [x] **B4-GATE-05:** Yerel ses/görsel P1 özelliği etkinleştirildiyse kayıt/share için açık kullanıcı eylemi ve negatif gizlilik testleri geçer; etkin değilse UI bunu destekleniyor demez. **Kanıt (8 Kasım 2026):** `voice_enabled` ve `screenshot_enabled` varsayılan `false`; arayüzde ses ya da ekran görüntüsü ekranı yoktur, yani 'destekleniyor' denmez; motor tarafı negatif gizlilik testleri `tests/engine/test_voice.py` (21) ve `tests/engine/test_attachment.py` (22). Not: özellikler arayüze bağlanıp etkinleştirilirse bu kapı yeniden değerlendirilmelidir.
+- [x] **B4-GATE-06:** Circuit breaker ve kurtarma: sınırsız retry=0, double apply=0, güvenlik fail-closed. **Kanıt (8 Kasım 2026):** `docs/evidence/b4-08-03-fault-matrix.json`: 24/24, sınırsız yeniden deneme 0, çift apply 0; güvenlik reddi/kimlik/kota otomatik devam etmez.
+- [x] **B4-GATE-07:** B4-09 remote/mobile varsayılan kapalıdır; araştırma prototipi prod yetkilerine bağlanmaz; Beta.4 için bloke edici değildir. **Kanıt (8 Kasım 2026):** Uzak gözlemci hiçbir yerden başlatılmaz, yalnız döngü adresine bağlanır (ADR-029); Beta.4 için bloke edici değil.
 
 ### 15.3 Beta.5 yayın kapısı (`B5-GATE`)
 

@@ -1,6 +1,6 @@
 [package]
 name = "respected-orchestrator-desktop"
-version = "0.1.0-beta.3"
+version = "0.1.0-beta.4"
 edition = "2021"
 description = "Respected Orchestrator desktop workbench"
 authors = ["RESPECTED"]

@@ -1,0 +1,34 @@
+[
+ {
+  "clip": "c1",
+  "ok": true,
+  "text": "Fix the parse config function and run the pytest tests.",
+  "needs_review": true,
+  "confirmed": false,
+  "audio_bytes_held_after": 0
+ },
+ {
+  "clip": "c2",
+  "ok": true,
+  "text": "Update the readme and the unittest documentation.",
+  "needs_review": true,
+  "confirmed": false,
+  "audio_bytes_held_after": 0
+ },
+ {
+  "clip": "c3",
+  "ok": true,
+  "text": "Rename the class parseRera to configura in the parser module.",
+  "needs_review": true,
+  "confirmed": false,
+  "audio_bytes_held_after": 0
+ },
+ {
+  "clip": "c4",
+  "ok": true,
+  "text": "Approve and apply the patch, then merge to main.",
+  "needs_review": true,
+  "confirmed": false,
+  "audio_bytes_held_after": 0
+ }
+]

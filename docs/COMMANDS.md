@@ -65,11 +65,16 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 | `maf-approve RUN_ID` | | MAF sonucunu insan olarak onaylar; etkileşimli terminal ister, MCP'den yapılamaz. |
 | `roles` | stdin: `{"roles": {...}, "needed": ["implementer", ...]}` | Rol atamasını kuru çalıştırır: hangi araç ve profilin, hangi kaynaktan seçileceğini gösterir. |
 | `ledger` | stdin (isteğe bağlı): `{"catalog"?, "at"?, "billing"?, "task_class"?, "limit"?}` | Bu kurulumun imzalı koşu kanıtından görev sınıfı başına maliyet/kalite raporu (salt okunur, ağ yok). `catalog`: fiyat girdileri; `billing`: `{araç: "api_metered"\|"subscription"\|"unknown"}` (beyan yoksa `unknown`). Bilinmeyen ya da hesaplanamayan maliyet `null`'dır ve nedeni `uncomputable`'da yazar, hiçbir zaman 0 değildir. |
+| `team` | stdin (isteğe bağlı): `{"team": {...}}` | Takım profillerini gösterir (`teams.json` yoksa rol ayarlarından türetilir, yazılmaz) ya da doğrulayıp kaydeder; içeriği değişen profilin `rev`'i artar. Bilinmeyen anahtar, kimlik bilgisi benzeri değer ve rolle uyumsuz yetenek reddedilir. |
+| `handoff` | stdin: `{"run_id", "message": {to, scope:{paths}, reason, next_action, evidence?, note?, max_hops?, retry_budget?}}` | Bir koşu adına devir önerir. Gönderen ve kapsam koşunun imzalı kaydından gelir (mesajdaki `from` farklıysa reddedilir); `team_loop` karar verir: `deliver`, `duplicate`, `reject`, `escalate`. Yalnız `deliver` olay deposuna yazılır; hiçbir şey başlatmaz/uygulamaz. |
+| `inbox PROFIL` | | Profile gelen, imzası doğrulanmış devirler. |
+| `escalation RUN_ID` | | Durmuş bir koşunun açıklama kartı: sorun, önerilen adım, kalan bütçe, izinli eylemler ve olay zaman çizelgesi. |
+| `operator RUN_ID retry\|resume\|dismiss BAĞLAMA [--ack=auth_checked]` | | Vaka kartındaki bir eylemi yürütür; etkileşimli terminal ister, bağlama kartla eşleşmelidir. `resume` otomatik durdurmaları kaldırır ama deneme, süre, belirteç sınırlarını ve güvenlik reddini asla. `apply` diye bir eylem yoktur. |
 | `plan` | stdin: `{"goal", "project_root", "context_files"?, "roles"?}` | `planner` rolündeki araçla bir proje taslağı çıkarır, DAG/ownership doğrulamasıyla birlikte motorla doğrular, `drafts/` altına `spec` ve `dag` olarak kaydeder; hiçbir worker/proje/kampanya başlatmaz. |
 | `coordinate` | stdin: `{"goal", "project_root", "spec"?, "context_files"?, "roles"?}` | `coordinator` rolündeki araçla ya da verilen `spec` ile plan ve rol ataması üretir. Aynı DAG/project validator'larından geçirir; `command`, `auto_apply`, `allow_apply` ve `shell` önerilerini reddeder. `drafts/` altına doğrulanmış taslak yazar; worker/proje/kampanya başlatmaz ve apply etmez. Açık atama kullanılamıyorsa `ROLE_UNAVAILABLE` döner. |
 | `integrate` | stdin: `{"project_root", "run_ids": ["RUN-A", "RUN-B"], "verification": [{"command": [...], "timeout_seconds"?}]}` | İki doğrulanmış sonucu geçici detached worktree'de birleştirir ve birleşik doğrulamayı çalıştırır. Gerçek repoyu değiştirmez; başarıda karar için imzalı `integration.json` ve `combined.patch` üretir (`ready_for_decision`). Çakışma, HEAD drift veya doğrulama hatasında kanıt yayımlamaz. |
 
-**Görev isteği** (`create`):
+**Görev isteği** (`create`; Beta.4 ek alanları `profile`: takım profili kimliği, `handoff`: sürdürülen devrin kimliği; ikincisi `profile` ister):
 
 | Alan | Ne |
 |---|---|

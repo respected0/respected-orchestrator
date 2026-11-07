@@ -3,7 +3,7 @@
 ; everything else: `setup` (install record, data folder), `repair`, `config`, `memory connect`, `uninstall` (docs/PRODUCT_CONTRACT.md).
 ; Pages: maintenance (repair/update, settings, uninstall), worker, Brain memory; /SET= and /PURGE=1 for silent installs.
 #ifndef AppVersion
-  #define AppVersion "0.1.0b3"
+  #define AppVersion "0.1.0b4"
 #endif
 #ifndef StageDir
   #define StageDir "..\..\dist\RespectedOrchestrator"

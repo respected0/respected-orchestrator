@@ -1,0 +1,505 @@
+{
+  "schema": "respected.faults.matrix.v1",
+  "commit": "3a30f81a08afaf0fe2856613c9330fc18474e571",
+  "working_tree_dirty": true,
+  "seconds": 56.7,
+  "faults": 24,
+  "passed": 24,
+  "skipped_tests": 0,
+  "unbounded_retry": 0,
+  "double_apply": 0,
+  "results": [
+    {
+      "id": "F01",
+      "area": "breaker",
+      "fault": "a failure repeats forever, for every class, with and without an operator",
+      "must_hold": "retries are bounded; unbounded retry = 0",
+      "tests": [
+        {
+          "test": "tests.faults.test_direct.FaultTests.test_f01_no_loop_is_unbounded",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F02",
+      "area": "breaker",
+      "fault": "a policy denial is resumed by a person",
+      "must_hold": "stays a stop",
+      "tests": [
+        {
+          "test": "tests.faults.test_direct.FaultTests.test_f02_policy_denial_never_resumes",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F03",
+      "area": "breaker",
+      "fault": "same failure class trips the breaker, a person resumes, the cause is repaired",
+      "must_hold": "opens, passes only with a person, closes for a new class",
+      "tests": [
+        {
+          "test": "tests.faults.test_direct.FaultTests.test_f03_breaker_open_resume_close",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.workflows.test_recovery.RecoveryTests.test_per_class_caps_open_the_breaker",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F04",
+      "area": "network",
+      "fault": "the network is unusable",
+      "must_hold": "the whole decision layer still works (no socket opened)",
+      "tests": [
+        {
+          "test": "tests.faults.test_direct.FaultTests.test_f04_everything_works_offline",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F05",
+      "area": "half_written_state",
+      "fault": "teams.json is half written",
+      "must_hold": "an error, never a silent default",
+      "tests": [
+        {
+          "test": "tests.faults.test_direct.FaultTests.test_f05_half_written_team_file",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.workflows.test_team_profiles.ProfileTests.test_unreadable_file_is_an_error_not_a_default",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F06",
+      "area": "half_written_state",
+      "fault": "the event store ends in a torn record",
+      "must_hold": "earlier handoffs verify, posting continues",
+      "tests": [
+        {
+          "test": "tests.faults.test_direct.FaultTests.test_f06_torn_event_store_tail",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.engine.test_journal.JournalTests.test_torn_tail_is_cut_and_the_journal_keeps_working",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F07",
+      "area": "duplicate_action",
+      "fault": "the same handoff is delivered twice",
+      "must_hold": "stored once, loop decision says duplicate",
+      "tests": [
+        {
+          "test": "tests.faults.test_direct.FaultTests.test_f07_duplicate_handoff_is_one_event",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.workflows.test_team_loop.TeamLoopTests.test_duplicate_handoff_is_idempotent",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F08",
+      "area": "apply_safety",
+      "fault": "a recovery or handoff path tries to apply a patch",
+      "must_hold": "no apply action exists in the Beta.4 vocabularies",
+      "tests": [
+        {
+          "test": "tests.faults.test_direct.FaultTests.test_f08_no_apply_anywhere",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.workflows.test_operator.OperatorTests.test_policy_denial_has_no_way_forward_but_dismiss",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F09",
+      "area": "escalation",
+      "fault": "an operator approval is moved to another run or replayed",
+      "must_hold": "refused; only a human acts",
+      "tests": [
+        {
+          "test": "tests.faults.test_direct.FaultTests.test_f09_operator_binding_is_single_case",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.workflows.test_operator.OperatorTests.test_wrong_run_escalation",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.workflows.test_operator.OperatorTests.test_only_a_human_acts_and_nothing_else_may",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F10",
+      "area": "duplicate_action",
+      "fault": "an activation approval is replayed",
+      "must_hold": "ALREADY_USED",
+      "tests": [
+        {
+          "test": "tests.faults.test_direct.FaultTests.test_f10_activation_replay",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.engine.test_capability_activation.ActivationTests.test_happy_path_returns_writes_and_rollback_and_is_single_use",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F11",
+      "area": "tamper",
+      "fault": "run evidence is forged or unsigned",
+      "must_hold": "never reaches the ledger or the track record",
+      "tests": [
+        {
+          "test": "tests.faults.test_direct.FaultTests.test_f11_tampered_evidence_is_skipped_by_the_ledger",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.engine.test_track_record.TrackRecordTests.test_skips_running_custom_and_tampered_evidence",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F12",
+      "area": "tamper",
+      "fault": "a handoff carries forged evidence, a spoofed sender, wider scope",
+      "must_hold": "rejected with a stable code",
+      "tests": [
+        {
+          "test": "tests.workflows.test_handoff.HandoffTests.test_forged_or_missing_evidence",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.workflows.test_handoff.HandoffTests.test_spoofed_sender_and_unknown_actor",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.workflows.test_handoff.HandoffTests.test_scope_can_only_narrow",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F13",
+      "area": "escalation",
+      "fault": "two roles bounce work back and forth",
+      "must_hold": "max-hop exceeded -> escalate, nothing delivered, no apply",
+      "tests": [
+        {
+          "test": "tests.workflows.test_team_loop.TeamLoopTests.test_simulated_job_always_ends",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.workflows.test_team_commands.TeamCommandTests.test_hop_budget_escalates_records_an_event_and_delivers_nothing",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F14",
+      "area": "escalation",
+      "fault": "a quota failure is resumed after an auth failure",
+      "must_hold": "needs the person's acknowledgement",
+      "tests": [
+        {
+          "test": "tests.workflows.test_operator.OperatorTests.test_quota_resumed_without_auth_needs_an_acknowledgement",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F15",
+      "area": "tamper",
+      "fault": "a capability plan is edited after it was shown",
+      "must_hold": "TAMPERED",
+      "tests": [
+        {
+          "test": "tests.engine.test_capability_activation.ActivationTests.test_tampered_plan_is_rejected",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.engine.test_capability_activation.ActivationTests.test_stale_inventory_and_changed_target_file",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F16",
+      "area": "tamper",
+      "fault": "a manifest claims trust or carries undeclared fields",
+      "must_hold": "execution denied, trust unknown",
+      "tests": [
+        {
+          "test": "tests.engine.test_capability_permissions.PermissionTests.test_false_trusted_flag_inside_the_manifest_counts_for_nothing",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.engine.test_capability_permissions.PermissionTests.test_malicious_manifests_are_denied_with_the_gates_own_code",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F17",
+      "area": "process_residue",
+      "fault": "a worker spawns children, then times out or is cancelled",
+      "must_hold": "the whole tree is killed",
+      "tests": [
+        {
+          "test": "tests.engine.test_windows_processes.ProcessLifecycleTests.test_timeout_kills_the_whole_tree",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.engine.test_windows_processes.ProcessLifecycleTests.test_cancel_kills_the_whole_tree_promptly",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.engine.test_runner.EngineTests.test_timeout_kills_worker_descendants",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F18",
+      "area": "process_residue",
+      "fault": "the supervisor crashes mid-run",
+      "must_hold": "owned descendants are killed; the run is interrupted, never applied",
+      "tests": [
+        {
+          "test": "tests.engine.test_runner.EngineTests.test_supervisor_crash_kills_owned_descendants",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.engine.test_maintenance.RunningWorkTests.test_killing_a_running_run_the_hard_way_leaves_it_interrupted_and_never_applied",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F19",
+      "area": "half_written_state",
+      "fault": "a process is killed at every step of a project run",
+      "must_hold": "resumes once, no duplicate campaign, no second apply",
+      "tests": [
+        {
+          "test": "tests.workflows.test_project_resume.ProjectResumeTests.test_kill_after_apply_is_explained_by_the_signed_marker_without_reapplying",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.workflows.test_project_recovery.ProjectRecoveryTests.test_a_kill_mid_stage_resumes_without_a_duplicate_campaign_or_apply",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F20",
+      "area": "apply_safety",
+      "fault": "an approval token or decision is replayed",
+      "must_hold": "no second apply",
+      "tests": [
+        {
+          "test": "tests.engine.test_approval_attacks.ApprovalAttackTests.test_11_replayed_token_cannot_apply_twice",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.engine.test_approval_attacks.ApprovalAttackTests.test_10_replayed_decision_changes_nothing_a_second_time",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F21",
+      "area": "apply_safety",
+      "fault": "the project moves between check and apply",
+      "must_hold": "an apply race writes nothing",
+      "tests": [
+        {
+          "test": "tests.engine.test_review_apply_invariants.RejectedReviewApplyInvariantTests.test_04_apply_race_after_precheck_writes_nothing",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F22",
+      "area": "sandbox",
+      "fault": "an acceptance check or worker tries the network or reads the engine key",
+      "must_hold": "denied (AppContainer)",
+      "tests": [
+        {
+          "test": "tests.engine.test_sandbox.VerifyIsolationTest.test_ip_dns_loopback_and_child_process_egress_are_denied",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.engine.test_sandbox.VerifyIsolationTest.test_engine_key_and_data_root_are_unreachable_and_the_worktree_works",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F23",
+      "area": "duplicate_action",
+      "fault": "a run is retried twice",
+      "must_hold": "the second retry is refused; the recovery table has the last word",
+      "tests": [
+        {
+          "test": "tests.workflows.test_operator.OperatorTests.test_crash_loop_ends_at_the_attempt_limit_which_no_person_can_lift",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.engine.test_run_wiring.WiringTests.test_second_timeout_in_a_chain_is_stopped_by_the_recovery_table",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    },
+    {
+      "id": "F24",
+      "area": "half_written_state",
+      "fault": "a checkpoint or lock file is corrupt or half written",
+      "must_hold": "never resumed from, locks reclaimed only when dead",
+      "tests": [
+        {
+          "test": "tests.workflows.test_checkpoint.CheckpointTests.test_newer_schema_tamper_broken_json_and_missing_files_are_never_resumed",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        },
+        {
+          "test": "tests.engine.test_lanes.WriterLockTest.test_stale_writer_lock_of_a_dead_process_is_reclaimed",
+          "ok": true,
+          "skipped": 0,
+          "failures": 0
+        }
+      ],
+      "ok": true
+    }
+  ]
+}

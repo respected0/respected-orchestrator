@@ -48,7 +48,16 @@ impl ConnectError {
 /// The chat-session commands the renderer may relay. Nothing else goes through `session_call`, and there is no approve here:
 /// permission decisions stay in the native dialog (approval.rs).
 pub const SESSION_COMMANDS: [&str; 8] = ["sessions.list", "session.start", "session.events", "session.send", "session.retry", "session.interrupt", "session.cancel", "session.resume"];
-pub fn session_command_allowed(cmd: &str) -> bool { SESSION_COMMANDS.contains(&cmd) }
+/// Push-to-talk (B4-06): TASK-class commands relayed through `session_call` as well. No confirm/approve here; a voice draft is text only.
+pub const VOICE_COMMANDS: [&str; 4] = ["voice.start", "voice.feed", "voice.stop", "voice.cancel"];
+/// Screenshot attachment steps the renderer may take itself (B4-07). Commit, share and revoke are not here: they only exist on the native consent path.
+pub const ATTACH_COMMANDS: [&str; 5] = ["attachment.arm", "attachment.part", "attachment.stage", "attachment.cancel", "attachment.delete"];
+pub fn session_command_allowed(cmd: &str) -> bool { SESSION_COMMANDS.contains(&cmd) || VOICE_COMMANDS.contains(&cmd) || ATTACH_COMMANDS.contains(&cmd) }
+
+/// The read-only views of the Beta.4 screens (team, capability recommendations, budget). `read_call` relays only these; every one is a
+/// READ command in the engine, so nothing they return can start, approve, apply, enable or change anything.
+pub const READ_COMMANDS: [&str; 7] = ["team.view", "capabilities.recommend", "analytics.summary", "voice.status", "attachment.status", "attachment.preview", "attachment.list"];
+pub fn read_command_allowed(cmd: &str) -> bool { READ_COMMANDS.contains(&cmd) }
 #[derive(Debug, Serialize, PartialEq)]
 pub struct Status {
     pub version: String,
@@ -321,7 +330,14 @@ mod tests {
 
     #[test]
     fn only_the_listed_session_commands_are_relayed_and_none_can_approve() {
-        for cmd in SESSION_COMMANDS { assert!(session_command_allowed(cmd), "{cmd}"); }
+        for cmd in READ_COMMANDS { assert!(read_command_allowed(cmd), "{cmd}"); }
+        for cmd in ["approval.decide", "approval.apply", "plan.start", "settings.apply", "session.start", "team.save", "capabilities.activate", "", "team.view ", "TEAM.VIEW"] {
+            assert!(!read_command_allowed(cmd), "{cmd:?} must not be relayed by read_call");
+        }
+        assert!(READ_COMMANDS.iter().all(|c| !c.contains("approv") && !c.contains("apply") && !c.contains("start") && !c.contains("grant")));
+        for cmd in SESSION_COMMANDS.iter().chain(VOICE_COMMANDS.iter()).chain(ATTACH_COMMANDS.iter()) { assert!(session_command_allowed(cmd), "{cmd}"); }
+        assert!(VOICE_COMMANDS.iter().all(|c| !c.contains("confirm") && !c.contains("approv") && !c.contains("apply")) && !read_command_allowed("voice.start"));
+        for cmd in ["attachment.commit", "attachment.share", "attachment.revoke", "attachment.describe"] { assert!(!session_command_allowed(cmd) && !read_command_allowed(cmd), "{cmd} must not be relayed by the renderer paths"); }
         for cmd in ["approval.decide", "approval.apply", "approval.open", "session.approve", "session.grant", "settings.apply", "plan.start",
                     "hello", "", "session.send ", "Session.send", "session.", "sessions.approve"] {
             assert!(!session_command_allowed(cmd), "{cmd:?} must not be relayed");

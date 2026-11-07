@@ -10,7 +10,7 @@ class ReleaseScriptTest(unittest.TestCase):
         spec = importlib.util.spec_from_file_location("release_script", SCRIPT)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        self.assertEqual(module.check_versions(), "0.1.0-beta.3")
+        self.assertEqual(module.check_versions(), "0.1.0-beta.4")
 
 
 if __name__ == "__main__":

@@ -4,8 +4,13 @@ export const ROUTES = [
   { id: 'runs', label: 'Çalıştırmalar', empty: 'Henüz çalıştırma yok.' },
   { id: 'reviews', label: 'İncelemeler', empty: 'İncelenecek bir şey yok.' },
   { id: 'agents', label: 'Ajanlar', empty: 'Ajan bulunamadı. Kurulu yapay zekâ araçları burada listelenecek.' },
+  { id: 'team', label: 'Takım', empty: 'Takım bilgisi okunuyor.' },
   { id: 'sessions', label: 'Oturumlar', empty: 'Açık sohbet oturumu yok. Bir ajanla oturum başlatınca burada görünür.' },
   { id: 'capabilities', label: 'Yetenekler', empty: 'Kurulu istemcilerde MCP sunucusu veya beceri bulunamadı. Bulununca burada yalnızca okunur olarak listelenir.' },
+  { id: 'suggestions', label: 'Yetenek önerileri', empty: 'Bir görev yazın; bulunan yeteneklerden uygun olanlar burada, nedenleriyle önerilir.' },
+  { id: 'voice', label: 'Sesli görev', empty: 'Sesli görev taslağı ayarlarda kapalıdır; açılınca burada konuşarak taslak oluşturursunuz.' },
+  { id: 'screenshot', label: 'Ekran görüntüsü', empty: 'Ekran görüntüsü ekleme ayarlarda kapalıdır; açılınca burada görüntü seçip karartır ve göreve eklersiniz.' },
+  { id: 'usage', label: 'Bütçe ve başarı', empty: 'Kullanım okunuyor.' },
   { id: 'settings', label: 'Ayarlar', empty: 'Ayarlar sonraki sürümde bu ekrandan yönetilecek.' },
 ] as const;
 export type RouteId = (typeof ROUTES)[number]['id'];

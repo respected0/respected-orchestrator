@@ -1,5 +1,16 @@
 Respected Orchestrator, kodlama ajanlarını projenizde değil, yalıtılmış bir Git çalışma ağacında çalıştırır; sonucu denetler ve siz onaylamadan projenize hiçbir şey uygulamaz.
 
+beta.4'te neler değişti:
+
+- Akıllı yönlendirme: görev türü sınıflandırılır; hangi aracın hangi göreve uygun olduğu açık gerekçeyle önerilir. Sizin açıkça yaptığınız atama her zaman korunur, hiçbir şey sessizce değiştirilmez.
+- Takım profilleri ve devirler: roller, araçlar ve yetkiler tek yerde tanımlanır; ajanlar arası devirler sınırlıdır ve insana yükseltme kaydedilir. Yeni "Takım" ekranı yalnızca okunur.
+- Kullanım ve maliyet kaydı: ajanın bildirdiği kullanım ile tahmin ayrı tutulur; bilinmeyen değer sıfır sayılmaz. "Bütçe ve başarı" ekranı salt okunurdur.
+- Yetenek önerileri: göreve uygun, kurulu MCP sunucusu ve becerileri nedenleriyle önerir. Hiçbir şey kurmaz, açmaz veya çalıştırmaz.
+- Bağlam hazırlığı ve kurtarma: görev öncesi sınırlı bağlam özeti; yarıda kalan işler için sınıflandırılmış kurtarma vakaları ve operatör eylemleri.
+- Sesli görev taslağı (isteğe bağlı, varsayılan kapalı): bas-konuş ile konuşursunuz, ses yalnızca bellekte tutulur, diske yazılmaz ve sizin seçtiğiniz yerel bir konuşma tanıma programıyla metne çevrilir. Çıkan metin yalnızca bir taslaktır; okuyup onaylamadan hiçbir yere gitmez ve ses hiçbir zaman çalıştırma, onay veya uygulama komutu olmaz. Orchestrator konuşma modeli indirmez veya kurmaz.
+- Ekran görüntüsü ekleme (isteğe bağlı, varsayılan kapalı): seçtiğiniz veya yapıştırdığınız PNG/JPEG üstveriden arındırılır, gizlemek istediğiniz yerleri karartırsınız, önizlersiniz ve yalnızca henüz başlamamış bir çalıştırmaya, ayrı bir onay penceresiyle eklenir. Bir modelle paylaşmak ayrı, süreli bir onaydır; şu an hiçbir ajan görüntüyü dışarı göndermez.
+- Bilinen sınırlar: kurucu henüz Authenticode ile imzalı değildir, Windows SmartScreen uyarı gösterebilir. Ses ve ekran görüntüsü özellikleri gerçek mikrofon ve işletim sistemi onay penceresiyle elle denenmedi; Türkçe konuşma doğruluğu ölçülmedi. Akıllı yönlendirmenin kazanç iddiası için gerçek ajan karşılaştırması sonraki sürümlere kaldı. Sohbet oturumları deneyseldir ve varsayılan olarak kapalıdır.
+
 beta.3'te neler değişti:
 
 - Yeni masaüstü uygulaması: kurucuyla birlikte gelir, motoru kendi başlatır; çalışmaları, kanıtları, projeleri ve ayarları tek pencerede gösterir. Komut satırı aynen çalışmaya devam eder.

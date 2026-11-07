@@ -1,0 +1,175 @@
+{
+  "schema": "respected.voice.measurement.v1",
+  "date": "2026-11-08",
+  "engine": {
+    "program": "faster-whisper 1.2.1 (CTranslate2 4.8.5), CPU, int8, beam 1",
+    "adapter": "packaging/voice/faster_whisper_stt.py",
+    "model": "Systran/faster-whisper-small (MIT licence, free)",
+    "model_files": {
+      ".gitattributes": {
+        "bytes": 1477,
+        "sha256": "db7c0371f46f0840b8f25794c1e3321c9b5820a8cb6ba9694a46fc64b8fae5a6"
+      },
+      "config.json": {
+        "bytes": 2370,
+        "sha256": "b55496ac7940a7ae47d2c01eab40edfd8701feec1229d9cce3b40014383fb828"
+      },
+      "model.bin": {
+        "bytes": 483546902,
+        "sha256": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671"
+      },
+      "README.md": {
+        "bytes": 1998,
+        "sha256": "329373481008c7c38654aff8ecdcf0163c211557cc7ba8e2ef6f2f84b4f75ec8"
+      },
+      "tokenizer.json": {
+        "bytes": 2203239,
+        "sha256": "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab"
+      },
+      "vocabulary.txt": {
+        "bytes": 459861,
+        "sha256": "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913"
+      }
+    },
+    "offline_enforcement": "HF_HUB_OFFLINE=1, local_files_only=True, sockets disabled inside the adapter after imports"
+  },
+  "audio": "4 English sentences synthesised with Windows 'Microsoft Zira Desktop' (16 kHz mono 16-bit); no Turkish voice exists on this machine, so Turkish accuracy was NOT measured",
+  "conditions": "measured while the full unit-test suite ran on the same machine (CPU contention); numbers are an upper bound on latency",
+  "english": {
+    "mean_wer": 0.086,
+    "clips": [
+      {
+        "clip": "c1.wav",
+        "audio_seconds": 4.05,
+        "seconds": 7.49,
+        "real_time_factor": 1.85,
+        "wer": 0.1,
+        "expected": "Fix the parse config function and run the pytest tests.",
+        "heard": "Fix the parse config function and run the ptest tests"
+      },
+      {
+        "clip": "c2.wav",
+        "audio_seconds": 3.52,
+        "seconds": 5.3,
+        "real_time_factor": 1.51,
+        "wer": 0.143,
+        "expected": "Update the readme and the unittest documentation.",
+        "heard": "Update the readme and the unitist documentation."
+      },
+      {
+        "clip": "c3.wav",
+        "audio_seconds": 4.56,
+        "seconds": 5.7,
+        "real_time_factor": 1.25,
+        "wer": 0.1,
+        "expected": "Rename the class ParserError to ConfigError in the parser module.",
+        "heard": "Rename the class ParserError to configura in the parser module."
+      },
+      {
+        "clip": "c4.wav",
+        "audio_seconds": 3.64,
+        "seconds": 5.62,
+        "real_time_factor": 1.54,
+        "wer": 0.0,
+        "expected": "Approve and apply the patch, then merge to main.",
+        "heard": "Approve and apply the patch, then merge to main."
+      }
+    ]
+  },
+  "resources": {
+    "model_load_seconds": 2.63,
+    "peak_working_set_mb": 692.1,
+    "warm_inference": [
+      {
+        "clip": "c1",
+        "audio_seconds": 4.05,
+        "seconds": 6.56
+      },
+      {
+        "clip": "c2",
+        "audio_seconds": 3.52,
+        "seconds": 4.83
+      },
+      {
+        "clip": "c3",
+        "audio_seconds": 4.56,
+        "seconds": 5.99
+      },
+      {
+        "clip": "c4",
+        "audio_seconds": 3.64,
+        "seconds": 6.4
+      }
+    ]
+  },
+  "end_to_end": [
+    {
+      "clip": "c1",
+      "heard": "Fix the parse config function and run the ptest tests",
+      "draft": "Fix the parse config function and run the pytest tests",
+      "corrections": [
+        {
+          "heard": "ptest",
+          "replaced_with": "pytest",
+          "at": 42,
+          "applied": true,
+          "score": 0.909
+        }
+      ],
+      "high_stakes": [],
+      "gate_before_confirm": "UNCONFIRMED_DRAFT",
+      "confirmed_text": "Fix the parse config function and run the pytest tests",
+      "audio_bytes_held_after": 0
+    },
+    {
+      "clip": "c2",
+      "heard": "Update the readme and the unitist documentation.",
+      "draft": "Update the readme and the unitist documentation.",
+      "corrections": [
+        {
+          "heard": "unitist",
+          "replaced_with": "unittest",
+          "at": 26,
+          "applied": false,
+          "score": 0.8
+        }
+      ],
+      "high_stakes": [],
+      "gate_before_confirm": "UNCONFIRMED_DRAFT",
+      "confirmed_text": "Update the readme and the unitist documentation.",
+      "audio_bytes_held_after": 0
+    },
+    {
+      "clip": "c3",
+      "heard": "Rename the class ParserError to configura in the parser module.",
+      "draft": "Rename the class ParserError to configura in the parser module.",
+      "corrections": [
+        {
+          "heard": "Rename",
+          "replaced_with": "readme",
+          "at": 0,
+          "applied": false,
+          "score": 0.833
+        }
+      ],
+      "high_stakes": [],
+      "gate_before_confirm": "UNCONFIRMED_DRAFT",
+      "confirmed_text": "Rename the class ParserError to configura in the parser module.",
+      "audio_bytes_held_after": 0
+    },
+    {
+      "clip": "c4",
+      "heard": "Approve and apply the patch, then merge to main.",
+      "draft": "Approve and apply the patch, then merge to main.",
+      "corrections": [],
+      "high_stakes": [
+        "apply",
+        "approve",
+        "merge"
+      ],
+      "gate_before_confirm": "UNCONFIRMED_DRAFT",
+      "confirmed_text": "Approve and apply the patch, then merge to main.",
+      "audio_bytes_held_after": 0
+    }
+  ]
+}

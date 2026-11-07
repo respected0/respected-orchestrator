@@ -57,6 +57,26 @@ COMMANDS = {
     "capabilities.scan": (None, Action.READ),
     "capabilities.inventory": (None, Action.READ),
     "capabilities.matrix": (None, Action.READ),
+    "capabilities.recommend": (None, Action.READ),
+    "team.view": (None, Action.READ),
+    "analytics.summary": (None, Action.READ),
+    "voice.status": (None, Action.READ),
+    "voice.start": (None, Action.TASK),
+    "voice.feed": (None, Action.TASK),
+    "voice.stop": (None, Action.TASK),
+    "voice.cancel": (None, Action.TASK),
+    "attachment.status": (None, Action.READ),
+    "attachment.arm": (None, Action.TASK),
+    "attachment.part": (None, Action.TASK),
+    "attachment.stage": (None, Action.TASK),
+    "attachment.preview": (None, Action.READ),
+    "attachment.describe": (None, Action.READ),
+    "attachment.list": (None, Action.READ),
+    "attachment.cancel": (None, Action.TASK),
+    "attachment.delete": (None, Action.TASK),
+    "attachment.commit": (None, Action.PRIVILEGED),
+    "attachment.share": (None, Action.PRIVILEGED),
+    "attachment.revoke": (None, Action.PRIVILEGED),
     "roles.view": (None, Action.READ),
     "roles.plan_edit": (None, Action.READ),
     "artifact.list": (None, Action.READ),
@@ -90,6 +110,8 @@ class LocalApi:
         self.journal = journal
         self.only = only  # a connection that may use just these commands (the native approval pipe)
         self._seen = {}  # id -> (request digest, response)
+        self._voice_api = None
+        self._attach_api = None
         self.sessions = session_control.SessionController(unsandboxed=os.environ.get("RESPECTED_CHAT_UNSANDBOXED", "").strip().casefold() == "allow")
 
     def handle_raw(self, raw):
@@ -127,6 +149,60 @@ class LocalApi:
             return _reply(corr, False, code="FORBIDDEN", message="Not allowed for this origin.")
         except (ValueError, TypeError, KeyError, OSError) as error:
             return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300])
+
+    def _voice(self, corr, command, payload):
+        """Push-to-talk. Every refusal wipes the audio (voice.py); the answer is a draft that nothing consumes without a person's edit."""
+        from . import voice, voice_api
+        if self._voice_api is None:
+            self._voice_api = voice_api.VoiceApi(lambda: roles.read_settings(self.ctx.data_root))
+        api = self._voice_api
+        try:
+            if command == "voice.status":
+                return _reply(corr, True, api.status())
+            if command == "voice.start":
+                return _reply(corr, True, api.start(payload.get("permission")))
+            if command == "voice.feed":
+                return _reply(corr, True, api.feed(payload.get("token"), payload.get("chunk"), payload.get("permission")))
+            if command == "voice.stop":
+                return _reply(corr, True, api.stop(payload.get("token"), payload.get("language"), payload.get("vocabulary")))
+            return _reply(corr, True, api.cancel())
+        except voice.VoiceError as error:
+            return _reply(corr, False, code="ENGINE_ERROR", message=f"{error.code}: {error.message}"[:300])
+
+    def _attachment(self, corr, command, payload):
+        """Screenshot attachments. Commit/share/revoke exist only on the native presence connection (PRIVILEGED); everything else the renderer may do."""
+        from . import attachment, attachment_api
+        if self._attach_api is None:
+            self._attach_api = attachment_api.AttachApi(self.ctx, lambda: roles.read_settings(self.ctx.data_root))
+        api, name = self._attach_api, command.split(".", 1)[1]
+        try:
+            if name == "status":
+                result = api.status()
+            elif name == "arm":
+                result = api.arm(payload.get("permission"))
+            elif name == "part":
+                result = api.part(payload.get("token"), payload.get("seq"), payload.get("chunk"))
+            elif name == "stage":
+                result = api.stage(payload.get("token"), payload.get("monitor"), payload.get("dpi_scale"))
+            elif name == "preview":
+                result = api.preview(payload.get("stage_id"))
+            elif name == "describe":
+                result = api.describe(payload.get("stage_id"))
+            elif name == "list":
+                result = api.records(payload.get("run_id"))
+            elif name == "cancel":
+                result = api.cancel(payload.get("stage_id"))
+            elif name == "delete":
+                result = api.delete_run(payload.get("run_id"))
+            elif name == "commit":
+                result = attachment_api.commit(self.ctx, payload.get("stage_id"), payload.get("run_id"), payload.get("sha256"), payload.get("redacted_regions", 0), self.origin)
+            elif name == "share":
+                result = attachment_api.share(self.ctx, payload.get("run_id"), payload.get("attachment_id"), payload.get("provider"), self.origin)
+            else:
+                result = attachment_api.revoke(self.ctx, payload.get("run_id"), payload.get("attachment_id"), self.origin)
+            return _reply(corr, True, result)
+        except attachment.AttachError as error:
+            return _reply(corr, False, code="ENGINE_ERROR", message=f"{error.code}: {error.message}"[:300])
 
     def _session(self, corr, command, payload):
         """Session commands; the controller checks the authority class again and never has an approve path."""
@@ -199,6 +275,37 @@ class LocalApi:
         gap = after > last or (bool(events) and events[0]["seq"] != after + 1)
         return _reply(corr, True, {"events": events, "last_seq": last, "gap": gap, "has_more": bool(events) and events[-1]["seq"] < last})
 
+    def _beta4_read(self, corr, command, payload):
+        """Read-only views for the Beta.4 screens. Each one only reads this installation's own data and the client configs."""
+        try:
+            settings = roles.read_settings(self.ctx.data_root)
+            if command == "team.view":
+                from ..workflows import team_view
+                return _reply(corr, True, team_view.view(self.ctx, settings, list(SUPPORTED_AGENTS), tool_available))
+            if command == "analytics.summary":
+                from . import analytics
+                limit = payload.get("limit", 400)
+                if type(limit) is not int or not 1 <= limit <= 2000:
+                    raise ValueError("limit must be an integer from 1 to 2000")
+                return _reply(corr, True, analytics.summary(self.ctx, settings, limit=limit))
+            task, root, client = payload.get("task"), payload.get("project_root"), payload.get("target_client", "claude-code")
+            if not isinstance(task, str) or not 1 <= len(task) <= 2000 or not isinstance(client, str):
+                raise ValueError("capabilities.recommend needs task (1-2000 characters) and optionally target_client")
+            if root is not None and not (isinstance(root, str) and os.path.isabs(root) and os.path.isdir(root)):
+                raise ValueError("project_root must be an existing absolute directory.")
+            from .capabilities import recommendation
+            home = os.environ.get("USERPROFILE") or os.environ.get("HOME") or str(Path.home())
+            approvals_file = self.ctx.data_root / "capability-approvals.json"
+            try:
+                approvals = load_signed(self.ctx, approvals_file).get("approvals", []) if approvals_file.is_file() else []
+            except (ValueError, OSError, AttributeError):
+                approvals = []
+            inventory = capability_normalize.build(home, root, approvals=approvals if isinstance(approvals, list) else [])
+            risk = {"level": "unknown"}  # a sentence alone carries no scope or acceptance, so its risk is honestly unknown (and untrusted items stay blocked)
+            return _reply(corr, True, recommendation.recommend(task, risk, inventory, client, project=root))
+        except (ValueError, TypeError) as error:
+            return _reply(corr, False, code="BAD_REQUEST", message=str(error)[:300])
+
     def handle(self, request):
         corr = request.get("id") if isinstance(request, dict) else None
         corr = corr if isinstance(corr, str) and _ID.fullmatch(corr) else None
@@ -241,6 +348,12 @@ class LocalApi:
                 response = _reply(corr, True, dag_view.dag_view(spec, root))
         elif command.startswith("approval."):
             response = self._approval(corr, command, payload)
+        elif command.startswith("attachment."):
+            response = self._attachment(corr, command, payload)
+            if command == "attachment.preview":
+                return response  # up to 8 MB of image: never held in the replay cache
+        elif command.startswith("voice."):
+            response = self._voice(corr, command, payload)
         elif command.startswith("session"):
             response = self._session(corr, command, payload)
         elif command == "activity.list":
@@ -309,6 +422,8 @@ class LocalApi:
                         error = "the approvals file failed verification and was ignored; nothing is trusted"
                 result = capability_normalize.build(home, root, approvals=approvals if isinstance(approvals, list) else [])
                 response = _reply(corr, True, {**result, "approvals_error": error})
+        elif command in ("team.view", "analytics.summary", "capabilities.recommend"):
+            response = self._beta4_read(corr, command, payload)
         elif command == "review.view":
             run_id = payload.get("run_id")
             if not isinstance(run_id, str) or not re.fullmatch(r"run-\d{14}-[0-9a-f]{12}", run_id):
@@ -333,7 +448,7 @@ class LocalApi:
         return response
 
 
-HUMAN_COMMANDS = frozenset({"hello", "engine.manifest", "review.view", "approval.decide", "approval.apply"})
+HUMAN_COMMANDS = frozenset({"hello", "engine.manifest", "review.view", "approval.decide", "approval.apply", "attachment.commit", "attachment.share", "attachment.revoke"})
 
 
 def serve(ctx, stdin, stdout, environ, human=False):

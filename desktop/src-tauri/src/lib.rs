@@ -1,4 +1,5 @@
 pub mod approval;
+pub mod image_consent;
 pub mod preview;
 pub mod engine_connector;
 
@@ -46,6 +47,42 @@ async fn request_apply(run_id: String, state: tauri::State<'_, Mutex<Option<appr
     result.map_err(|e| format!("{e:?}"))
 }
 
+type PairSlot<'a> = tauri::State<'a, Mutex<Option<approval::Pair>>>;
+
+/// Runs one image-consent step on the pair of engine connections. The renderer names run/image ids and a provider; the dialog text is built
+/// from the engine's own records (image_consent.rs), in an OS dialog the WebView cannot reach.
+fn consent_step(state: &PairSlot<'_>, step: impl FnOnce(&mut approval::Pair) -> Result<serde_json::Value, image_consent::ConsentError>) -> Result<serde_json::Value, String> {
+    let mut slot = state.try_lock().map_err(|_| "Another confirmation is in progress.".to_string())?;
+    if slot.is_none() {
+        let launch = engine_connector::discover_env().map_err(|e| format!("{e:?}"))?;
+        *slot = Some(approval::Pair::connect(&launch).map_err(|e| format!("{e:?}"))?);
+    }
+    let result = step(slot.as_mut().unwrap());
+    if matches!(result, Err(image_consent::ConsentError::Transport(_))) { *slot = None; }
+    result.map_err(|e| format!("{e:?}"))
+}
+
+#[tauri::command]
+async fn attach_image(run_id: String, stage_id: String, sha256: String, regions: u64, state: PairSlot<'_>, gate: tauri::State<'_, approval::Gate>) -> Result<serde_json::Value, String> {
+    #[cfg(windows)]
+    return consent_step(&state, |pair| image_consent::request_attach(&run_id, &stage_id, &sha256, regions, pair, &approval::NativeDialog, &gate));
+    #[cfg(not(windows))]
+    { let _ = (&run_id, &stage_id, &sha256, regions, &state, &gate); Err("Native confirmation is only available on Windows.".into()) }
+}
+
+#[tauri::command]
+async fn share_image(run_id: String, attachment_id: String, provider: String, state: PairSlot<'_>, gate: tauri::State<'_, approval::Gate>) -> Result<serde_json::Value, String> {
+    #[cfg(windows)]
+    return consent_step(&state, |pair| image_consent::request_share(&run_id, &attachment_id, &provider, pair, &approval::NativeDialog, &gate));
+    #[cfg(not(windows))]
+    { let _ = (&run_id, &attachment_id, &provider, &state, &gate); Err("Native confirmation is only available on Windows.".into()) }
+}
+
+#[tauri::command]
+async fn revoke_image(run_id: String, attachment_id: String, state: PairSlot<'_>, gate: tauri::State<'_, approval::Gate>) -> Result<serde_json::Value, String> {
+    consent_step(&state, |pair| image_consent::request_revoke(&run_id, &attachment_id, pair, &gate))
+}
+
 /// Read-only inventory of the MCP servers and skills the installed agent clients already have. The renderer may name at most a
 /// project folder; the engine validates it, never runs or contacts anything, and returns redacted data.
 #[tauri::command]
@@ -68,6 +105,24 @@ fn capability_inventory(project_root: Option<String>, state: tauri::State<Mutex<
 fn session_call(cmd: String, payload: serde_json::Value, state: tauri::State<Mutex<Option<Connection>>>) -> Result<serde_json::Value, EngineProblem> {
     let problem = |error: ConnectError| EngineProblem { hint: error.hint(), error };
     if !engine_connector::session_command_allowed(&cmd) {
+        return Err(problem(ConnectError::Refused(cmd)));
+    }
+    let mut slot = state.lock().unwrap();
+    if slot.is_none() {
+        let launch = engine_connector::discover_env().map_err(problem)?;
+        *slot = Some(Connection::connect(&launch).map_err(problem)?);
+    }
+    match slot.as_mut().unwrap().raw(&cmd, payload) {
+        Ok(v) => Ok(v),
+        Err(e) => { *slot = None; Err(problem(e)) }
+    }
+}
+/// Relays one read-only Beta.4 view to the engine. The renderer names the command but only from `READ_COMMANDS`; the engine checks the
+/// origin again and these commands can only read.
+#[tauri::command]
+fn read_call(cmd: String, payload: serde_json::Value, state: tauri::State<Mutex<Option<Connection>>>) -> Result<serde_json::Value, EngineProblem> {
+    let problem = |error: ConnectError| EngineProblem { hint: error.hint(), error };
+    if !engine_connector::read_command_allowed(&cmd) {
         return Err(problem(ConnectError::Refused(cmd)));
     }
     let mut slot = state.lock().unwrap();
@@ -167,7 +222,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, capability_inventory, session_call, preview_open])
+        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, read_call, preview_open])
 }
 
 pub fn run() {

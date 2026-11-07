@@ -233,6 +233,11 @@ altına yeni bir not olarak yazar; görev geçmişi yazılmaz.
 | `default_roles` | Varsayılan rol atamaları, JSON (ör. `{"planner": {"tool": "claude"}}`) | boş |
 | `auto_assign` | Atama yoksa geçmiş başarıya göre araç önerilsin | `false` |
 | `auto_pool` | Otomatik atama adayları, JSON liste | boş |
+| `usage_collection` | Bütçe ve başarı ekranı yerel kayıtları okusun | `true` |
+| `budget_weighted_tokens` | İsteğe bağlı token bütçesi (0: yok) | `0` |
+| `voice_enabled` | Sesli görev taslağı (yalnız taslak metin; ses diske yazılmaz) | `false` |
+| `voice_engine_command` | Yerel konuşma tanıma programı, JSON liste | boş |
+| `screenshot_enabled` | Ekran görüntüsü ekleme (yakalama yalnız sizin başlattığınızda) | `false` |
 | `routing_mode` | Akıllı yönlendirme: `off`, `shadow` (yalnız öneri kaydı), `active` | `shadow` |
 | `require_independent_review` | Gözden geçiren, işi yapandan farklı olmalı | `false` |
 | `mcp_acceptance_allow` | MCP ile verilen görevlerde izin verilen doğrulama komutu önekleri, JSON | boş |

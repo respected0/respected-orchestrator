@@ -182,7 +182,7 @@ def main(argv=None):
     from .workflows import roles
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=default_data_root(), help=argparse.SUPPRESS)
-    parser.add_argument("command", choices=["maintenance", "status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "ledger", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", "github-ci-ingest", "github-ci-poll", "provider-key", "provider-models", *SHARED, "_selfcheck"])
+    parser.add_argument("command", choices=["maintenance", "status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "ledger", "team", "handoff", "inbox", "escalation", "operator", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", "github-ci-ingest", "github-ci-poll", "provider-key", "provider-models", *SHARED, "_selfcheck"])
     parser.add_argument("args", nargs=argparse.REMAINDER)
     try:
         args = parser.parse_args(argv)
@@ -261,6 +261,38 @@ def main(argv=None):
             from .engine import ledger_source
             raw = sys.stdin.buffer.read().decode("utf-8-sig").strip()
             payload = ledger_source.from_request(ctx.data_root, json.loads(raw) if raw else {}, dt.datetime.now(dt.timezone.utc).isoformat())
+        elif args.command in ("team", "handoff", "inbox"):  # team profiles and handoffs between runs (B4-02); stdin JSON except inbox PROFILE
+            from .workflows import team_commands
+            settings, tools = roles.read_settings(ctx.data_root), list(runner.SUPPORTED_AGENTS)
+            if args.command == "inbox":
+                if len(args.args) != 1:
+                    raise UsageError("Kullanım: inbox PROFIL_KIMLIĞI")
+                payload = team_commands.inbox(ctx, args.args[0], settings, tools)
+            elif args.command == "handoff":
+                payload = team_commands.post(ctx, _stdin_json(), settings, tools, runner.tool_available)
+            else:
+                raw = sys.stdin.buffer.read().decode("utf-8-sig").strip()
+                payload = team_commands.save(ctx, json.loads(raw), settings, tools) if raw else team_commands.show(ctx, settings, tools)
+        elif args.command in ("escalation", "operator"):  # why a run stopped and what a person may do (B4-08.02)
+            from .workflows import operator as operator_actions
+            if args.command == "escalation":
+                if len(args.args) != 1:
+                    raise UsageError("Kullanım: escalation RUN_KİMLİĞİ")
+                payload = {**operator_actions.case(ctx, args.args[0], inspect_run=runner.inspect_task),
+                           "timeline": operator_actions.timeline(ctx, args.args[0])}
+            else:  # operator RUN ACTION BINDING [--ack auth_checked]; needs a person at a terminal, like maf-approve
+                from .engine.authority import Origin, effective_origin
+                positional, ack = [a for a in args.args if not a.startswith("--")], tuple(a.split("=", 1)[1] for a in args.args if a.startswith("--ack="))
+                if len(positional) != 3:
+                    raise UsageError("Kullanım: operator RUN_KİMLİĞİ retry|resume|dismiss BAĞLAMA [--ack=auth_checked]")
+                origin = effective_origin(Origin.HUMAN if runner._stdin_is_tty() else Origin.CHILD, os.environ)
+                try:
+                    payload = operator_actions.act(ctx, positional[0], positional[1], positional[2], origin=origin, inspect_run=runner.inspect_task,
+                                                   retry=runner.retry_task, acknowledge=ack)
+                except PermissionError as error:
+                    if isinstance(error, operator_actions.OperatorError):
+                        raise ValueError(f"{error.code}: {error.message}") from error
+                    raise ValueError("Bu işlem bir insan gerektirir (etkileşimli terminal); işlem hiçbir şey yapmadı") from error
         elif args.command == "plan":  # planner role: draft a project spec (never started); stdin {goal, project_root, ...}
             from .workflows.planner import plan
             payload = plan(ctx, _stdin_json())

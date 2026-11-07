@@ -74,3 +74,36 @@ class LedgerSourceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BenchLinkTests(unittest.TestCase):
+    def report(self, **over):
+        from tests.workflows.test_routing_confidence import make
+        return make(direct_pass=20, orch_pass=27, tokens=None, **over)
+
+    def test_arms_become_task_classes_with_the_reports_provenance(self):
+        rows = ledger_source.from_bench(self.report())
+        self.assertEqual(len(rows), 60)
+        self.assertEqual({r["task_class"] for r in rows}, {"bench:direct", "bench:orchestrated"})
+        self.assertEqual({r["eval"]["kind"] for r in rows}, {"real"})
+        self.assertEqual(rows[0]["eval"]["manifest"], "claude@1:abc123")
+        snap = ledger_source.cost_ledger.snapshot([], "2026-11-08T00:00:00+00:00")
+        rep = ledger_source.cost_ledger.report(rows, snap)
+        direct, orch = rep["groups"]["bench:direct"], rep["groups"]["bench:orchestrated"]
+        self.assertEqual((direct["acceptance_rate"], orch["acceptance_rate"], direct["evidence"], orch["evidence"]), (0.6667, 0.9, "real", "real"))
+        self.assertEqual((direct["total_cost"], orch["total_cost"]), (None, None))  # a benchmark has no input/output split: cost is unknown, never zero
+        self.assertEqual(orch["uncomputable"], {"not_api_metered": 30})
+        self.assertEqual((orch["worker_violations"], direct["worker_violations"]), (0, None))  # direct arm violations are not measured
+
+    def test_synthetic_and_invalid_reports(self):
+        rows = ledger_source.from_bench(self.report(kind="harness-test"))
+        self.assertEqual({r["eval"]["kind"] for r in rows}, {"synthetic"})
+        for bad in (None, {}, {"schema": "respected.eval.compare.v1", "runs": []}, {"schema": "respected.eval.bench.v1", "runs": "x"}):
+            with self.assertRaises(ValueError):
+                ledger_source.from_bench(bad)
+        self.assertEqual(ledger_source.from_bench({"schema": "respected.eval.bench.v1", "runs": [{"arm": "weird"}, "x"]}), [])
+
+    def test_violations_count_only_for_the_orchestrated_arm(self):
+        rows = ledger_source.from_bench(self.report(violations=2))
+        orch = [r for r in rows if r["task_class"] == "bench:orchestrated"]
+        self.assertEqual(sum(r["worker_violations"] for r in orch), 2)

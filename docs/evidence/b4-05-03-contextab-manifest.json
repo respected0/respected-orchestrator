@@ -1,0 +1,36 @@
+{
+  "schema": "respected.eval.contextab.v1",
+  "agent": {
+    "name": "opencode",
+    "model": "opencode/deepseek-v4.1-flash-free",
+    "version": "opencode v2.2.3"
+  },
+  "commit": {
+    "baseline": "6b50a452d70f68be94da40bb565a860b56b4c02b",
+    "prepared": "6b50a452d70f68be94da40bb565a860b56b4c02b"
+  },
+  "task_ids": [
+    "RSP-001",
+    "RSP-002",
+    "RSP-003",
+    "RSP-004",
+    "RSP-005",
+    "RSP-006",
+    "RSP-007",
+    "RSP-008",
+    "RSP-009",
+    "RSP-010"
+  ],
+  "repeat": 3,
+  "timeout": 300.0,
+  "verdict": "no_claim",
+  "reasons": [
+    "baseline: status is 'stopped_quota'",
+    "baseline: fewer than 10 tasks x 3 repeats x 2 arms",
+    "prepared: status is 'stopped_quota'",
+    "prepared: fewer than 10 tasks x 3 repeats x 2 arms"
+  ],
+  "tokens": null,
+  "mode": "shadow",
+  "note": "No prepared-context report exists: every free model's quota is exhausted, so this manifest records the honest outcome (no claim). Re-run both arms when quota returns."
+}

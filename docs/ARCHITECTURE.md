@@ -354,6 +354,55 @@ bilgisi benzeri değer ve rol/araçla uyumsuz yetenek (ör. reviewer/qa için `w
 kaldırılan araç `check()` ile `tool_missing` raporlanır ve yerine başkası konmaz. `teams.json` yoksa takım mevcut rol ayarlarından
 türetilir (yazılmaz); bilinmeyen şema `UNSUPPORTED_SCHEMA`.
 
+**Devir mesajı ve posta kutusu (B4-02.02, henüz ajan akışına bağlı değil):** `workflows/handoff.py`. Bir ajanın devir önerisi
+güvenilmez girdidir: kapalı alan kümesi, küçük boyut (ham 8 KB, zarf 4 KB), gönderen motorun bildiği oturumdan alınır (mesajdaki
+`from` farklıysa `SPOOFED_SENDER`), alıcı takımda olmalı ve `next_action` alıcının rolüne uymalıdır, yol kapsamı yalnız göndericinin
+sahip olduklarının alt kümesi olabilir (`SCOPE_WIDENING`), kanıt referansları bu kurulumun imzalı `result.json` yama özetiyle
+doğrulanır (`FORGED_EVIDENCE`). Serbest `note` yalnız maskelenerek saklanan metindir, yorumlanmaz. Zarf `authority: none` taşır,
+yani yetki değil veridir; alıcının yetkisi kendi profilinden ve normal çözümleyiciden gelir. `post` zarfı imzalayıp olay deposuna
+(`events.log`, tür `handoff.posted`) ekler (aynı `operation_id` bir kez); `inbox` yalnız imzası doğrulananları döndürür, bozukları sayar.
+Hop/yeniden deneme sınırlarının uygulanması koordinatörün işidir (B4-02.03).
+
+**Çalışma yoluna bağlantılar (8 Kasım 2026, `workflows/run_hooks.py`, `workflows/team_commands.py`):** `create_task` isteği `profile` (takım profili kimliği)
+alabilir: profil, istek o rolü kendisi söylemedikçe **açık atama** olur (açık > profil), bütçesi şerit bütçesini yalnız düşürür, koşu kaydına dondurulmuş
+`profile_ref` (profil özeti + koşunun kendi oturum kimliği) yazılır; `handoff` bir doğrulanmış devri sürdürür (`handoff_ref`). Otomatik seçilen roller
+`routing_policy.decide`'dan geçer (`routing_mode`: shadow yalnız `routing-log.jsonl` yazar). `retry_task` her seferinde `recovery.decide`'ı çağırır
+(sınıf başına tavan zincirdeki önceki denemelerden sayılır; sınıflanamayan hata eski davranışı korur). Yeni komutlar: `team` (göster/kaydet), `handoff`
+(`{run_id, message}`: gönderen ve kapsam koşunun kendi imzalı kaydından gelir), `inbox PROFIL`, `escalation RUN` (vaka kartı + zaman çizelgesi),
+`operator RUN retry|resume|dismiss BAĞLAMA` (yalnız insan terminali; `resume` yalnız durdurmaları kaldırır, deneme/süre/belirteç sınırlarını ve `policy_denied`'ı
+asla), `ledger`. Masaüstü üç salt okunur görünüm gösterir (Takım, Yetenek önerileri, Bütçe ve başarı) ve yalnız sabit listedeki üç IPC komutunu
+(`team.view`, `capabilities.recommend`, `analytics.summary`) `read_call` ile iletir.
+
+**Bağlam, ses, ekran görüntüsü, uzak gözlemci (B4-05…09):** `engine/context_map.py` (Git'e bağlı önbellekli, salt okunur depo haritası), `engine/context_prep.py` (sınırlı,
+kaynak özetli, ayıklayıcı kritik kanıtı asla kırpmayan bağlam), `workflows/context_ab.py` (kazanım iddiası yalnız ölçülmüş verilerle); `engine/voice.py`
+(ses yalnız taslak metin; ADR-027); `engine/attachment.py` (yakalama/ekleme/model paylaşımı üç ayrı karar; ADR-028); `interfaces/observer.py` (salt okunur, döngü
+adresi, hiçbir yerden başlatılmaz; ADR-029).
+
+**Kurtarma kararı (B4-08.01, henüz yürütme yoluna bağlı değil):** `workflows/recovery.py` `decide(reason, provider_status, state, limits)`
+saf bir karar verir (`retry|pause|operator|stop`), kendisi hiçbir şey yapmaz. Sıra: önce kaynak sınırları (deneme ≤ 3 varsayılan/5
+tavan, devir, süre, belirteç; ölçülemeyen belirteç bütçesi `pause`), sonra `policy_denied` → `stop`, `auth` → `operator`,
+`quota` → `pause` (otomatik devam yok), yalnız test hatası/zaman aşımı/altyapı/bayat yama/düzeltme isteği sınıf başına tavanla
+`retry` olabilir, aynı sınıf tekrar ederse devre kesici `pause`; sınıflanamayan hata `operator`. Geçersiz sınır istisna fırlatır,
+sessizce varsayılana düşmez. `retry` her zaman sayılan bir denemedir, bu yüzden her döngü biter.
+**Takım döngüsü (B4-02.03, henüz koordinatöre bağlı değil):** `workflows/team_loop.py` `evaluate` doğrulanmış devri `deliver|duplicate|
+reject|escalate` diye sınıflar: aynı `operation_id` yinelenmez; hop bütçesi (zarf `max_hops` ile `max_handoffs`'ın küçüğü) ve yeniden
+çalışma bütçesi aşılınca `escalate` (insana) ve durdurulacak oturumlar döner; alıcı aracı yoksa, çalışan oturumla yol çakışırsa,
+bağımsız gözden geçirme isteniyorken gözden geçiren yazarla aynı araç/profildeyse, ya da aynı kenar yeni kanıt olmadan tekrarlanırsa
+`reject`. `apply` diye bir eylem yoktur.
+
+**Yetenek uyumluluğu, önerisi, izin kartı ve etkinleştirme planı (B4-03, henüz CLI/arayüze bağlı değil):** hepsi
+`engine/capabilities/` altında, çevrimdışı ve salt okunur; keşif kaydı (`normalize.build`) girdi olur. (1) `compatibility.resolve`
+her kayıt için `compatible|incompatible|unknown` ve nedenleri verir (istemci/tür desteği keşif matrisinden; yalnız `stdio` aktarımı
+onaylı; paket çalıştırıcıları ve diğer aktarımlar `unknown`; eksik program, yanlış proje `incompatible`); güveni okumaz. (2)
+`recommendation.recommend` görev metninden küçük bir sözlükle kategori çıkarır, yetenekleri yalnız AD ve yapısal gerçeklerle
+eşler; serbest metin açıklamaları asla eşleştirilmez ve talimat benzeri olanlar gösterilmez; her öneri `needs_approval: true`,
+yüksek/bilinmeyen riskte onaysızlar `blocked_by_risk`. (3) `permissions.inspect` risk kartı üretir (komut, ağ, sır, dosya, kök,
+genişlik) ve dört şeyi ayrı tutar: yürütme kapısı (`capability_manifest`, manifest + eşleşen onay kaydı), güven (yalnız onay kaydı;
+manifestin kendi `trust` iddiası sayılmaz), erişilebilirlik ve risk. (4) `activation.propose/approve/consume` değişikliği
+açıklar (proje bazlı, hedef yapılandırma dosyası proje içinde), yalnız HUMAN onaylar (`authority`), onay plana özetle bağlı, tek
+kullanımlık ve süreli; `consume` taze envanterle yeniden denetler (bayat/oynanmış/başka proje/başka plan) ve yalnız "yazılabilir"
+der. Hiçbiri dosya yazmaz; yürütme kapısı bağımsız ve son sözdür.
+
 **Kullanım olayı (B4-04.01, henüz çalışma akışına bağlı değil):** `engine/usage_event.py` her model çağrısı için tipli `UsageEvent`
 üretir (taze girdi, önbellek okuma/yazma, çıktı, akıl yürütme; her alan için `reported|derived|absent|invalid` kaynağı). Raporlanmayan
 değer `None`'dır, 0 değil; önbelleğin girdiye dahil olup olmadığı olayda `cache_semantics` olarak yazılır ve yalnız dahil olduğu bilinen

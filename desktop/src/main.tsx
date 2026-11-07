@@ -4,8 +4,11 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { ROUTES, type EngineState, type RouteId, closeDecision, nextRoute, routeFromHash, screenView } from './shell';
 import { Capabilities } from './Capabilities';
+import { Suggestions, Team, Usage } from './Beta4Screens';
 import { PreviewPanel } from './PreviewPanel';
 import { Sessions } from './Sessions';
+import { Voice } from './Voice';
+import { Screenshot } from './Screenshot';
 import './style.css';
 
 function useEngine(): EngineState {
@@ -74,7 +77,12 @@ function App() {
           {view.kind === 'error' && <div role="alert"><p>{view.text}</p><p>{view.hint}</p></div>}
           {view.kind === 'empty' && route === 'capabilities' && <Capabilities />}
           {view.kind === 'empty' && route === 'sessions' && <Sessions />}
-          {view.kind === 'empty' && route !== 'capabilities' && route !== 'sessions' && <p>{view.text}</p>}
+          {view.kind === 'empty' && route === 'team' && <Team />}
+          {view.kind === 'empty' && route === 'suggestions' && <Suggestions />}
+          {view.kind === 'empty' && route === 'usage' && <Usage />}
+          {view.kind === 'empty' && route === 'voice' && <Voice />}
+          {view.kind === 'empty' && route === 'screenshot' && <Screenshot />}
+          {view.kind === 'empty' && !['capabilities', 'sessions', 'team', 'suggestions', 'usage', 'voice', 'screenshot'].includes(route) && <p>{view.text}</p>}
           {view.kind === 'empty' && route === 'settings' && <PreviewPanel />}
         </main>
       </div>

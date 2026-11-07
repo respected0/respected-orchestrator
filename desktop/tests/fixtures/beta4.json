@@ -1,0 +1,290 @@
+{
+  "team": {
+    "ipc": "1",
+    "id": "fixture-0001",
+    "ok": true,
+    "result": {
+      "ok": true,
+      "team": {
+        "id": "core",
+        "name": "Çekirdek takım"
+      },
+      "members": [
+        {
+          "id": "lead",
+          "name": "Lider",
+          "role": "lead",
+          "rev": 1,
+          "tool": "claude",
+          "profile": "opus",
+          "capabilities": [
+            "read"
+          ],
+          "status": "ok",
+          "reason": null
+        },
+        {
+          "id": "implementer",
+          "name": "Geliştirici",
+          "role": "implementer",
+          "rev": 1,
+          "tool": "codex",
+          "profile": "gpt",
+          "capabilities": [
+            "read",
+            "test",
+            "write"
+          ],
+          "status": "tool_missing",
+          "reason": "tool 'codex' is not installed; nothing was substituted"
+        },
+        {
+          "id": "reviewer",
+          "name": "Gözden geçiren",
+          "role": "reviewer",
+          "rev": 1,
+          "tool": "claude",
+          "profile": "sonnet",
+          "capabilities": [
+            "read",
+            "review"
+          ],
+          "status": "ok",
+          "reason": null
+        }
+      ],
+      "history": [
+        {
+          "seq": 1,
+          "kind": "handoff",
+          "from": "Geliştirici",
+          "to": "Gözden geçiren",
+          "action": "review",
+          "reason": "needs_review",
+          "hop": 1,
+          "max_hops": 3,
+          "note": "testler geçti",
+          "handoff_id": "ho-32edf700e4811cf0",
+          "run": null
+        },
+        {
+          "seq": 2,
+          "kind": "escalated",
+          "run": "run-20261108000001-aaaaaaaaaaa1",
+          "detail": {
+            "reasons": [
+              "hop budget spent: hop is already beyond max_hops"
+            ],
+            "stop_sessions": []
+          }
+        }
+      ],
+      "rejected_records": 0,
+      "stale_note": "history is read from the event store each time; refresh to see new handoffs"
+    },
+    "error": null
+  },
+  "suggestions": {
+    "ipc": "1",
+    "id": "fixture-0002",
+    "ok": true,
+    "result": {
+      "task_categories": [
+        "testing",
+        "docs"
+      ],
+      "risk_level": "unknown",
+      "recommendations": [
+        {
+          "id": "claude-code:user:skill:docs-writer",
+          "name": "docs-writer",
+          "kind": "skill",
+          "scope": "user",
+          "matched": [
+            "docs"
+          ],
+          "compatibility": "compatible",
+          "compatibility_reasons": [
+            "kind, transport, program and scope are consistent with the target"
+          ],
+          "installed": true,
+          "trusted": false,
+          "risks": [],
+          "description": "Writes documentation.",
+          "blocked_by_risk": true,
+          "needs_approval": true,
+          "score": 3
+        },
+        {
+          "id": "claude-code:user:mcp:pytest-runner",
+          "name": "pytest-runner",
+          "kind": "mcp",
+          "scope": "user",
+          "matched": [
+            "testing"
+          ],
+          "compatibility": "unknown",
+          "compatibility_reasons": [
+            "python is a package runner or interpreter: it is present, what it would run cannot be checked without running it"
+          ],
+          "installed": null,
+          "trusted": false,
+          "risks": [
+            "launches_local_process"
+          ],
+          "description": null,
+          "blocked_by_risk": true,
+          "needs_approval": true,
+          "score": 1
+        }
+      ],
+      "excluded": [],
+      "notes": [],
+      "side_effects": "none"
+    },
+    "error": null
+  },
+  "usage": {
+    "ipc": "1",
+    "id": "fixture-0003",
+    "ok": true,
+    "result": {
+      "enabled": true,
+      "window_runs": 7,
+      "totals": {
+        "runs": 7,
+        "accepted": 4,
+        "acceptance_rate": 0.5714,
+        "rate_note": null,
+        "tokens_actual": 51200,
+        "runs_with_usage": 4,
+        "runs_without_usage": 3,
+        "quota_stops": 2
+      },
+      "by_agent": [
+        {
+          "name": "claude",
+          "runs": 3,
+          "accepted": 2,
+          "acceptance_rate": null,
+          "rate_note": "fewer than 5 runs: no percentage is shown",
+          "tokens_actual": 25600,
+          "runs_with_usage": 2,
+          "runs_without_usage": 1,
+          "quota_stops": 1
+        },
+        {
+          "name": "codex",
+          "runs": 4,
+          "accepted": 2,
+          "acceptance_rate": null,
+          "rate_note": "fewer than 5 runs: no percentage is shown",
+          "tokens_actual": 25600,
+          "runs_with_usage": 2,
+          "runs_without_usage": 2,
+          "quota_stops": 1
+        }
+      ],
+      "by_project": [
+        {
+          "name": "C:/projeler/site",
+          "runs": 3,
+          "accepted": 2,
+          "acceptance_rate": null,
+          "rate_note": "fewer than 5 runs: no percentage is shown",
+          "tokens_actual": 12800,
+          "runs_with_usage": 1,
+          "runs_without_usage": 2,
+          "quota_stops": 1
+        },
+        {
+          "name": "C:/projeler/uygulama",
+          "runs": 4,
+          "accepted": 2,
+          "acceptance_rate": null,
+          "rate_note": "fewer than 5 runs: no percentage is shown",
+          "tokens_actual": 38400,
+          "runs_with_usage": 3,
+          "runs_without_usage": 1,
+          "quota_stops": 1
+        }
+      ],
+      "estimate": {
+        "status": "not_computed",
+        "reason": "no price catalog is configured; costs are unknown, never zero"
+      },
+      "budget": {
+        "limit": 60000,
+        "status": "unknown_possible_overrun",
+        "why": "3 run(s) reported no usage, so the real total may be higher"
+      },
+      "warnings": [
+        {
+          "kind": "quota_stops",
+          "message": "2 run(s) stopped on a provider limit"
+        },
+        {
+          "kind": "unknown_usage",
+          "message": "3 of 7 run(s) did not report token usage"
+        }
+      ],
+      "runs": [
+        {
+          "run_id": "run-20261108000007-aaaaaaaaaaa7",
+          "agent": "codex",
+          "accepted": false,
+          "tokens_actual": null,
+          "failure_class": "quota"
+        },
+        {
+          "run_id": "run-20261108000006-aaaaaaaaaaa6",
+          "agent": "claude",
+          "accepted": true,
+          "tokens_actual": 12800,
+          "failure_class": null
+        },
+        {
+          "run_id": "run-20261108000005-aaaaaaaaaaa5",
+          "agent": "codex",
+          "accepted": true,
+          "tokens_actual": null,
+          "failure_class": null
+        },
+        {
+          "run_id": "run-20261108000004-aaaaaaaaaaa4",
+          "agent": "claude",
+          "accepted": false,
+          "tokens_actual": null,
+          "failure_class": "quota"
+        },
+        {
+          "run_id": "run-20261108000003-aaaaaaaaaaa3",
+          "agent": "codex",
+          "accepted": false,
+          "tokens_actual": 12800,
+          "failure_class": "test_failure"
+        },
+        {
+          "run_id": "run-20261108000002-aaaaaaaaaaa2",
+          "agent": "claude",
+          "accepted": true,
+          "tokens_actual": 12800,
+          "failure_class": null
+        },
+        {
+          "run_id": "run-20261108000001-aaaaaaaaaaa1",
+          "agent": "codex",
+          "accepted": true,
+          "tokens_actual": 12800,
+          "failure_class": null
+        }
+      ],
+      "counts_by_failure": {
+        "quota": 2,
+        "none": 4,
+        "test_failure": 1
+      }
+    },
+    "error": null
+  }
+}

@@ -5,7 +5,7 @@ use tauri::test::{get_ipc_response, mock_builder, MockRuntime, INVOKE_KEY};
 use tauri::webview::InvokeRequest;
 use tauri::{WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
-const COMMANDS: [&str; 6] = ["engine_status", "confirm_close", "request_apply", "capability_inventory", "session_call", "preview_open"];
+const COMMANDS: [&str; 10] = ["engine_status", "confirm_close", "request_apply", "attach_image", "share_image", "revoke_image", "capability_inventory", "session_call", "read_call", "preview_open"];
 
 fn call(w: &WebviewWindow<MockRuntime>, cmd: &str, from: &str, body: serde_json::Value) -> Result<serde_json::Value, serde_json::Value> {
     let request = InvokeRequest {
@@ -34,6 +34,16 @@ fn the_preview_window_has_no_ipc_while_the_app_window_still_has() {
     }
     let listed = format!("{:?}", call(&main, "session_call", "http://tauri.localhost/", serde_json::json!({"cmd": "sessions.list", "payload": {"project_id": "proj-1"}})));
     assert!(listed.contains("NotInstalled"), "a listed command reaches the connection: {listed}");
+
+    // read_call is a second fixed list (the Beta.4 read-only views): anything else is refused by our code before it reaches the engine
+    for cmd in ["approval.decide", "plan.start", "settings.apply", "session.start", "team.save", "capabilities.activate", "TEAM.VIEW", ""] {
+        let answer = format!("{:?}", call(&main, "read_call", "http://tauri.localhost/", serde_json::json!({"cmd": cmd, "payload": {}})));
+        assert!(answer.contains("Refused") && !answer.contains("NotInstalled"), "{cmd:?} was relayed by read_call: {answer}");
+    }
+    for cmd in ["team.view", "capabilities.recommend", "analytics.summary"] {
+        let answer = format!("{:?}", call(&main, "read_call", "http://tauri.localhost/", serde_json::json!({"cmd": cmd, "payload": {}})));
+        assert!(answer.contains("NotInstalled"), "{cmd} should reach the connection: {answer}");
+    }
 
     // the preview window: every shell command is refused by the ACL before any of our code runs, whatever origin it claims
     for cmd in COMMANDS {

@@ -36,3 +36,12 @@ td ul { margin: 0 0 4px; padding-left: 18px; font-size: 13px; }
 #sessions-h ~ form input, #sessions-h ~ form textarea, article textarea { display: block; width: min(42rem, 100%); box-sizing: border-box; }
 article { margin-block: 1.25rem; padding-block-start: 0.5rem; border-top: 1px solid currentColor; }
 article > div button { margin-inline-end: 0.5rem; }
+
+.badge { padding: 6px 10px; border-left: 4px solid var(--line); background: var(--panel); }
+.badge[data-tone='ok'] { border-left-color: #2e7d32; }
+.badge[data-tone='warn'] { border-left-color: #b26a00; }
+.badge[data-tone='bad'] { border-left-color: #c62828; }
+.history { padding-left: 20px; }
+.suggestions { list-style: none; padding: 0; }
+.suggestions li { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; }
+td[data-state='false'] { color: #b26a00; }

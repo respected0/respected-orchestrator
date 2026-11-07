@@ -70,6 +70,18 @@ def parse_claude_usage(stdout):
         return {"tokens": UNKNOWN, "cost": UNKNOWN}
 
 
+def parse_agy_usage(stdout):
+    """agy --output-format json reports the call's own usage; only a complete, non-negative integer set counts (anything else is unknown)."""
+    try:
+        usage = json.loads(stdout)["usage"]
+        total = int(usage["total_tokens"])
+        if total < 0 or isinstance(usage["total_tokens"], bool):
+            raise ValueError
+        return {"tokens": total, "cost": UNKNOWN}  # a subscription price is not a per-call cost; it stays unknown
+    except (ValueError, KeyError, TypeError):
+        return {"tokens": UNKNOWN, "cost": UNKNOWN}
+
+
 def real_agent(name, model, *, confirm_free=False):
     """Adapter for an installed CLI. Refuses without the free-path confirmation (ADR-019 §3) and when the CLI is absent."""
     if not confirm_free:
@@ -82,14 +94,23 @@ def real_agent(name, model, *, confirm_free=False):
     version = runner.subprocess.run([exe, "--version"], capture_output=True, text=True, timeout=30).stdout.strip() or UNKNOWN
     argv = {"claude": lambda p: [exe, "-p", p, "--model", model, "--output-format", "json", "--permission-mode", "acceptEdits"],
             "codex": lambda p: [exe, "exec", "--model", model, "--sandbox", "workspace-write", p],
-            "opencode": lambda p: [exe, "run", "--model", model, p]}.get(name)
+            "opencode": lambda p: [exe, "run", "--model", model, p],
+            "agy": lambda p: [exe, "--print", p + " Do not run commands; only edit the file.", "--model", model, "--output-format", "json", "--mode", "accept-edits"]}.get(name)
     if argv is None:
         raise BenchError(f"no direct adapter for {name}")
-    return Agent(name, model, version, argv, worker=name, usage=parse_claude_usage if name == "claude" else unknown_usage, real=True)
+    return Agent(name, model, version, argv, worker=name, usage=parse_claude_usage if name == "claude" else parse_agy_usage if name == "agy" else unknown_usage, real=True)
 
 
-def prompt_for(fixture: Fixture):
-    return f"Fix the bug in solution.py so that test_solution.py passes. Task: {fixture.title}. Change only solution.py."
+CONTEXT_PREP = False  # B4-05.03: the prepared-context arm of the A/B experiment (python -m tests.evals.bench run ... --context-prep)
+
+
+def prompt_for(fixture: Fixture, root=None):
+    prompt = f"Fix the bug in solution.py so that test_solution.py passes. Task: {fixture.title}. Change only solution.py."
+    if CONTEXT_PREP and root is not None:  # the same task, plus the bounded, source-hashed excerpts the context preparer chose (never the golden fix)
+        from respected_orchestrator.engine import context_map, context_prep
+        built = context_map.build(Path(root), allowed=["solution.py", "test_solution.py"])
+        prompt += "\n\n" + context_prep.render(context_prep.prepare(Path(root), built, f"{fixture.title} solution test_solution", budget_tokens=2000))
+    return prompt
 
 
 def select_tasks(count=MIN_TASKS):
@@ -148,7 +169,7 @@ def run_direct(agent, fixture, repeat, timeout):
     started = time.monotonic()
     try:
         start = runner.build_repository(fixture, root)
-        argv = agent.direct(prompt_for(fixture))
+        argv = agent.direct(prompt_for(fixture, root))
         try:
             assert_no_leak(fixture, argv, {}, root)
         except BenchError as error:
@@ -176,11 +197,11 @@ def run_orchestrated(agent, fixture, repeat, timeout):
         repo = base / "project"
         repo.mkdir()
         start = runner.build_repository(fixture, repo)
-        request = dict(project_root=str(repo), task=prompt_for(fixture), worker=agent.worker, kind="write", ownership=["solution.py"],
+        request = dict(project_root=str(repo), task=prompt_for(fixture, repo), worker=agent.worker, kind="write", ownership=["solution.py"],
                        acceptance=[runner.COMMAND], timeout_seconds=int(timeout))
         if agent.worker == "custom":
-            request["command"] = agent.orchestrated(prompt_for(fixture))
-        elif agent.worker in ("openrouter", "opencode"):
+            request["command"] = agent.orchestrated(prompt_for(fixture, repo))
+        elif agent.worker in ("openrouter", "opencode", "agy"):
             request["worker_profile"] = agent.model
         try:
             assert_no_leak(fixture, request.get("command", []), {}, repo)
@@ -238,7 +259,7 @@ def report(agent, tasks, repeat, timeout, runs, status, commit=UNKNOWN):
             "agent": {"name": agent.name, "model": agent.model, "version": agent.version},
             "environment": {k: v for k, v in runner._metadata().items()}, "timeout": timeout, "repeat": repeat,
             "task_ids": [f.id for f in tasks], "selection": "ADR-019 section 6: stdlib only, baseline fails, golden passes, pinned start sha",
-            "golden_used": False, "runs": runs, "summary": summarize(runs)}
+            "golden_used": False, "context_prep": CONTEXT_PREP, "runs": runs, "summary": summarize(runs)}
 
 
 def validate(report_, *, release=True):
@@ -284,7 +305,10 @@ def main(argv=None):
     parser.add_argument("--model")
     parser.add_argument("--timeout", type=float, default=300.0)
     parser.add_argument("--confirm-free", action="store_true")
+    parser.add_argument("--context-prep", action="store_true", help="B4-05.03 prepared-context arm; the report says context_prep: true")
     args = parser.parse_args(argv)
+    global CONTEXT_PREP
+    CONTEXT_PREP = bool(args.context_prep)
     tasks = select_tasks(args.tasks)
     if args.action == "plan":
         payload = make_plan(tasks, args.repeat)

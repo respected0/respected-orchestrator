@@ -49,12 +49,12 @@ impl Engine for Pair {
 pub struct Gate(AtomicBool);
 
 impl Gate {
-    fn enter(&self) -> Option<GateGuard<'_>> {
+    pub(crate) fn enter(&self) -> Option<GateGuard<'_>> {
         if self.0.swap(true, Ordering::SeqCst) { None } else { Some(GateGuard(&self.0)) }
     }
 }
 
-struct GateGuard<'a>(&'a AtomicBool);
+pub(crate) struct GateGuard<'a>(&'a AtomicBool);
 impl Drop for GateGuard<'_> {
     fn drop(&mut self) { self.0.store(false, Ordering::SeqCst); }
 }
