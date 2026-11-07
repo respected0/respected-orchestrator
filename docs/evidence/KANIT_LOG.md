@@ -3155,3 +3155,6 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - Gerçek WebView2 denemesi CDP üzerinden yapıldı, görsel inceleme yapılmadı (DOM/metin doğrulaması); ekran görüntüleri alındı, ben göremedim.
 - Kurucu bu kaynak değişikliklerinden sonra yeniden derlenmedi/imzalanmadı; bkz. B3-09.04 bölümündeki manifest notu.
 - opencode'un kalıcı arka plan servisi (`serve --service`, port 28894) makinede çalışıyor; benim başlattığım değil, kapatılmadı.
+
+**Yayın kapısı yenilendi (tamamlama turundan sonra, kaynak commit `23415e4`, temiz ağaç):** `release_ready: true`, `signed: false`, `publishable: false`; açık engel yalnız `SIGNING-01`. İlk koşu (`d0f302b`) kırmızıydı ve doğru nedenle: tam suite'te 2 hata (masaüstü komut sayısı testi 5→6 ve D-13 satırının "Planlı" biçimi); düzeltilip ikinci koşu yeşil oldu. Kurucu bu commit'ten yeniden derlendi (`build_installer.py`, çalıştırılmadı), hâlâ imzasız. Manifest `docs/evidence/release-manifest-beta3.json` yenilendi (manifest `23415e4` içindir; sonraki commit'te `verify` bilerek "uyuşmuyor" der). Atlanan testler manifestte listeli (canlı oturum testleri dahil, P0 grupları dışında). CI artifact yine üretilmedi.
+
