@@ -914,7 +914,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-03.03 — Yapılandırılmış Chat oturum adaptörü
 
-- [x] **Tamamlandı** — `src/respected_orchestrator/engine/chat_session.py`, gerçek canlı fixture'lar `tests/fixtures/chat/`, `tests/engine/test_chat_session.py` (17 OK); kanıt `docs/evidence/KANIT_LOG.md` B3-03.03. **Not:** yalnız `opencode` doğrulandı (ücretsiz model, cost 0); `ask_user` canlı görülmedi.
+- [x] **Tamamlandı** — `src/respected_orchestrator/engine/chat_session.py`, gerçek canlı fixture'lar `tests/fixtures/chat/`, `tests/engine/test_chat_session.py` (17 OK); kanıt `docs/evidence/KANIT_LOG.md` B3-03.03. **Not:** yalnız `opencode` doğrulandı (ücretsiz model, cost 0); `ask_user` canlı görüldü: etkileşimsiz `run` soruyu iptal eder, cevaplanabilir soru yoktur; tur `--standalone` ile koşar (7 Kasım tamamlama turu, KANIT_LOG).
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-03.01`, `B3-02.02`.
 - **Mimari / değişecek alan:** İlgili CLI JSONL/events üzerinden normalize message stream; supported only.
@@ -925,7 +925,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-03.04 — Etkileşim ve müdahale komutları
 
-- [x] **Tamamlandı** — `engine/session_control.py`, IPC `session.*`, `tests/engine/test_session_control.py` (22 OK) + `test_session_live.py` (canlı ücretsiz oturum); kanıt KANIT_LOG B3-03.04. **Not:** React oturum ekranı ve sandbox içinde oturum başlatma yok.
+- [x] **Tamamlandı** — `engine/session_control.py`, IPC `session.*`, `tests/engine/test_session_control.py` (22 OK) + `test_session_live.py` (canlı ücretsiz oturum); kanıt KANIT_LOG B3-03.04. **Not:** React oturum ekranı ve IPC `session.start` eklendi (gerçek WebView2'de doğrulandı); ama `opencode run` AppContainer içinde çalışmadığı için oturum başlatma **varsayılan kapalı**, yalnız `RESPECTED_CHAT_UNSANDBOXED=allow` ile açılır (THREAT_MODEL D-13 "Kısmen"). Uçuştaki tur kesme hatası düzeltildi.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-03.02`, `B3-03.03`, `B3-00.03`.
 - **Mimari / değişecek alan:** session controller yetki sınıfları: send input / interrupt / cancel / approve ayrı.
@@ -936,7 +936,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-03.05 — Terminal render, split pane ve oturum regresyonu
 
-- [x] **Tamamlandı** — `desktop/src/terminal.ts`, `Terminal.tsx`, `desktop/tests/terminal.test.ts` (13 OK); kanıt KANIT_LOG B3-03.05. **Not:** PTY broker yok, bölmeler `pty` doğrulanana dek kapalı; ekran rotaya bağlı değil.
+- [x] **Tamamlandı** — `desktop/src/terminal.ts`, `Terminal.tsx`, `desktop/tests/terminal.test.ts` (13 OK); kanıt KANIT_LOG B3-03.05. **Not:** PTY broker yok, bölmeler `pty` doğrulanana dek kapalı; `TerminalPane` artık `#/sessions` rotasında sohbet dökümü için kullanılıyor (gerçek WebView2'de çizildi), PTY için değil.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B3-03.02`, `B3-03.04`.
 - **Mimari / değişecek alan:** Proposed desktop/terminal; PTY broker supported only, renderer receives escaped/filtered stream.

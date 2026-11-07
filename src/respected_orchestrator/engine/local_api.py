@@ -65,6 +65,8 @@ COMMANDS = {
     "approval.decide": (None, Action.PRIVILEGED),
     "approval.apply": (None, Action.PRIVILEGED),
     "sessions.list": (None, Action.READ),
+    "session.start": (None, Action.TASK),
+    "session.events": (None, Action.READ),
     "session.send": (None, Action.TASK),
     "session.retry": (None, Action.TASK),
     "session.interrupt": (None, Action.TASK),
@@ -88,7 +90,7 @@ class LocalApi:
         self.journal = journal
         self.only = only  # a connection that may use just these commands (the native approval pipe)
         self._seen = {}  # id -> (request digest, response)
-        self.sessions = session_control.SessionController()
+        self.sessions = session_control.SessionController(unsandboxed=os.environ.get("RESPECTED_CHAT_UNSANDBOXED", "").strip().casefold() == "allow")
 
     def handle_raw(self, raw):
         if isinstance(raw, str):
@@ -133,9 +135,18 @@ class LocalApi:
             if command == "sessions.list":
                 return _reply(corr, True, {"sessions": self.sessions.view(self.origin, pid)})
             name = command.split(".", 1)[1]
+            if name == "start":
+                root, agent, model = payload.get("project_root"), payload.get("agent"), payload.get("model")
+                if not (isinstance(root, str) and os.path.isabs(root) and os.path.isdir(root)):
+                    return _reply(corr, False, code="BAD_REQUEST", message="project_root must be an existing absolute directory.")
+                if not (isinstance(agent, str) and isinstance(model, str)):
+                    return _reply(corr, False, code="BAD_REQUEST", message="agent and model must be strings.")
+                return _reply(corr, True, self.sessions.start(self.origin, pid, agent, model, root, payload.get("text"), wait=False))
             args = (self.origin, sid, pid) + ((payload.get("text"),) if name == "send" else ())
-            result = getattr(self.sessions, name)(*args)
-            return _reply(corr, True, result)
+            # A turn can take minutes and this loop answers one request at a time: turns run on their own thread (wait=False)
+            # so interrupt/cancel stay reachable; the result is read with session.events.
+            kwargs = {"wait": False} if name in ("send", "retry") else {}
+            return _reply(corr, True, getattr(self.sessions, name)(*args, **kwargs))
         except PermissionError:
             return _reply(corr, False, code="FORBIDDEN", message="Not allowed for this origin.")
         except (ValueError, TypeError, KeyError, OSError, RuntimeError) as error:

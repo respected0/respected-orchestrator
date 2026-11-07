@@ -3,14 +3,17 @@ import json
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from respected_orchestrator.context import EngineContext
 from respected_orchestrator.engine import approval, chat_session, local_api
 from respected_orchestrator.engine.authority import Action, Origin, authorize, effective_origin
-from respected_orchestrator.engine.session_control import (CLASSES, MAX_RETRIES, SessionApprovalRefused, SessionController,
-                                                           SessionError, check_input)
+from respected_orchestrator.engine.session_control import (CLASSES, MAX_RETRIES, MAX_SESSIONS, SessionApprovalRefused, SessionController,
+                                                           SessionError, check_input, run_killable)
 
 FIX = Path(__file__).resolve().parents[1] / "fixtures" / "chat"
 OK_STREAM = (FIX / "opencode_ok_text.jsonl").read_text(encoding="utf-8")
@@ -20,10 +23,11 @@ MODEL = "opencode/deepseek-v4.1-flash-free"
 
 class FakeRunner:
     def __init__(self, stdout=OK_STREAM, rc=0):
-        self.stdout, self.rc, self.calls = stdout, rc, []
+        self.stdout, self.rc, self.calls, self.kwargs = stdout, rc, [], []
 
     def __call__(self, argv, **kw):
         self.calls.append(argv)
+        self.kwargs.append(kw)
         return subprocess.CompletedProcess(argv, self.rc, self.stdout, "")
 
 
@@ -40,6 +44,7 @@ class AuthorityTests(unittest.TestCase):
             "interrupt": lambda c, o: c.interrupt(o, SID, PID), "cancel": lambda c, o: c.cancel(o, SID, PID),
             "resume": lambda c, o: c.resume(o, SID, PID), "view": lambda c, o: c.view(o, PID),
             "register": lambda c, o: c.register(o, "ses_zzzzzzzzzz", PID, "opencode", MODEL, "."),
+            "start": lambda c, o: c.start(o, PID, "opencode", MODEL, ".", "hi"), "events": lambda c, o: c.events(o, SID, PID),
         }
         self.assertEqual(set(calls), set(CLASSES))
         for name, call in calls.items():
@@ -162,6 +167,144 @@ class SpoofedApprovalTests(unittest.TestCase):
             self.assertEqual(r["error"]["code"], "FORBIDDEN")
 
 
+class IpcStartTests(unittest.TestCase):
+    """session.start/events/send over the real IPC dispatcher, with a fake CLI (no model involved)."""
+
+    def api(self, runner=None, origin=Origin.RENDERER):
+        tmp = tempfile.mkdtemp()
+        api = local_api.LocalApi(EngineContext(Path(tmp).resolve() / "data"), "t" * 32, origin=origin)
+        api.sessions = SessionController(binary="oc", runner=runner or FakeRunner())
+        self.root = str(Path(tmp).resolve())
+        self.n = 0
+        return api
+
+    def call(self, api, cmd, payload):
+        self.n += 1
+        return api.handle({"ipc": "1", "id": f"ipc-start-{self.n:04d}", "session": "t" * 32, "cmd": cmd, "payload": payload})
+
+    def test_start_returns_at_once_then_events_carry_the_turn(self):
+        api = self.api()
+        r = self.call(api, "session.start", {"project_id": PID, "project_root": self.root, "agent": "opencode", "model": MODEL, "text": "hi"})
+        self.assertTrue(r["ok"], r)
+        sid = r["result"]["id"]
+        self.assertTrue(sid.startswith("loc_"))
+        self.assertTrue(wait_for(lambda: self.call(api, "session.events", {"project_id": PID, "session_id": sid})["result"]["result"]))
+        got = self.call(api, "session.events", {"project_id": PID, "session_id": sid})["result"]
+        self.assertEqual(got["state"], "idle")
+        self.assertTrue(all(e["untrusted"] for e in got["result"]["events"]))
+        listed = self.call(api, "sessions.list", {"project_id": PID})["result"]["sessions"]
+        self.assertEqual([s["id"] for s in listed], [sid])
+        self.assertTrue(self.call(api, "session.send", {"project_id": PID, "session_id": sid, "text": "again"})["ok"])
+
+    def test_ipc_interrupt_reaches_a_turn_that_is_still_running(self):
+        pids = []
+        api = self.api(sleeper(pids))
+        sid = self.call(api, "session.start", {"project_id": PID, "project_root": self.root, "agent": "opencode", "model": MODEL, "text": "long"})["result"]["id"]
+        self.assertTrue(wait_for(lambda: pids))
+        r = self.call(api, "session.interrupt", {"project_id": PID, "session_id": sid})  # answered while the turn runs
+        self.assertTrue(r["ok"], r)
+        self.assertTrue(wait_for(lambda: not alive(pids[0])))
+
+    def test_wire_action_classes_match_the_controller_classes(self):
+        for name, action in CLASSES.items():
+            if name == "register":
+                continue  # not reachable over IPC (a session id comes from a CLI, never from the renderer)
+            wire = "sessions.list" if name == "view" else f"session.{name}"
+            self.assertIs(local_api.COMMANDS[wire][1], action, wire)
+        self.assertNotIn("session.register", local_api.COMMANDS)
+
+    def test_ipc_send_and_retry_do_not_block_on_the_turn(self):
+        release = threading.Event()
+
+        def slow(argv, **kw):
+            release.wait(8)
+            return FakeRunner()(argv)
+
+        api = self.api(slow)
+        sid = self.call(api, "session.start", {"project_id": PID, "project_root": self.root, "agent": "opencode", "model": MODEL, "text": "a"})["result"]["id"]
+        release.set()
+        self.assertTrue(wait_for(lambda: self.call(api, "session.events", {"project_id": PID, "session_id": sid})["result"]["result"]))
+        release.clear()
+        started = time.monotonic()
+        r = self.call(api, "session.send", {"project_id": PID, "session_id": sid, "text": "b"})
+        elapsed = time.monotonic() - started
+        release.set()
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(r["result"]["state"], "running")
+        self.assertLess(elapsed, 3, "session.send waited for the turn")
+
+    def test_start_validation_and_authority_at_the_wire(self):
+        api = self.api()
+        good = {"project_id": PID, "project_root": self.root, "agent": "opencode", "model": MODEL, "text": "hi"}
+        for bad in ({"project_root": "relative/dir"}, {"project_root": self.root + "-missing"}, {"project_root": 5}, {"agent": 5}, {"model": None},
+                    {"text": "\x1b[2J"}, {"text": ""}, {"agent": "codex"}):
+            r = self.call(api, "session.start", {**good, **bad})
+            self.assertFalse(r["ok"], bad)
+            self.assertIn(r["error"]["code"], ("BAD_REQUEST", "ENGINE_ERROR"))
+        self.assertEqual(self.call(api, "sessions.list", {"project_id": PID})["result"]["sessions"], [])
+        for origin in (Origin.WORKER, Origin.CHILD):  # MCP may TASK, like plan.start
+            r = self.call(self.api(origin=origin), "session.start", good)
+            self.assertEqual(r["error"]["code"], "FORBIDDEN", origin)
+
+    def test_events_of_another_project_are_not_readable(self):
+        api = self.api()
+        sid = self.call(api, "session.start", {"project_id": PID, "project_root": self.root, "agent": "opencode", "model": MODEL, "text": "hi"})["result"]["id"]
+        r = self.call(api, "session.events", {"project_id": "proj-2", "session_id": sid})
+        self.assertFalse(r["ok"])
+        self.assertEqual(r["error"]["message"], self.call(api, "session.events", {"project_id": PID, "session_id": "loc_nonexistent1"})["error"]["message"])
+
+
+class SandboxGateTests(unittest.TestCase):
+    """The real agent CLI runs outside the AppContainer (it cannot run inside yet), so the engine starts it only on the operator's switch."""
+
+    def test_default_controller_never_spawns_the_agent(self):
+        from respected_orchestrator.engine import session_control as sc
+        with mock.patch.object(sc, "run_killable") as spawn, mock.patch.object(threading, "Thread") as thread:
+            ctl = SessionController(binary="oc")
+            for wait in (True, False):
+                with self.assertRaises(SessionError) as caught:
+                    ctl.start(Origin.HUMAN, PID, "opencode", MODEL, ".", "hi", wait=wait)
+                self.assertIn("RESPECTED_CHAT_UNSANDBOXED", str(caught.exception))
+            spawn.assert_not_called()
+            thread.assert_not_called()
+            self.assertEqual(ctl._sessions, {})
+
+    def test_the_operator_switch_enables_it_and_the_turn_gets_the_safe_environment(self):
+        from respected_orchestrator.engine import session_control as sc
+        calls = []
+
+        def fake_spawn(argv, **kw):
+            calls.append((argv, kw))
+            return subprocess.CompletedProcess(argv, 0, OK_STREAM, "")
+        with mock.patch.object(sc, "run_killable", fake_spawn):
+            ctl = SessionController(binary="oc", unsandboxed=True)
+            ctl.start(Origin.HUMAN, PID, "opencode", MODEL, tempfile.gettempdir(), "hi")
+        argv, kw = calls[0]
+        self.assertIn("--standalone", argv)
+        self.assertEqual(kw["env"]["PWD"], tempfile.gettempdir())
+        self.assertEqual(kw["env"]["RESPECTED_ORCH_CHILD"], "1")
+        self.assertEqual(json.loads(kw["env"]["OPENCODE_CONFIG_CONTENT"])["permission"]["shell"], "deny")
+
+    def test_injected_runners_get_the_same_environment(self):
+        runner = FakeRunner()
+        ctl = make(runner)
+        ctl.send(Origin.HUMAN, SID, PID, "hi")
+        self.assertEqual(runner.kwargs[0]["env"]["OPENCODE_DISABLE_PROJECT_CONFIG"], "1")
+
+    def test_ipc_sessions_are_off_unless_the_operator_sets_the_variable(self):
+        import os
+        for value, expect_ok in (("", False), ("deny", False), ("1", False), ("allow", True), (" ALLOW ", True)):
+            with mock.patch.dict(os.environ, {"RESPECTED_CHAT_UNSANDBOXED": value}):
+                api = local_api.LocalApi(EngineContext(Path(tempfile.mkdtemp()).resolve() / "data"), "t" * 32, origin=Origin.RENDERER)
+            self.assertIs(api.sessions._unsandboxed, expect_ok, value)
+        with mock.patch.dict(os.environ, {"RESPECTED_CHAT_UNSANDBOXED": ""}):
+            api = local_api.LocalApi(EngineContext(Path(tempfile.mkdtemp()).resolve() / "data"), "t" * 32, origin=Origin.RENDERER)
+        r = api.handle({"ipc": "1", "id": "gate-start-001", "session": "t" * 32, "cmd": "session.start",
+                        "payload": {"project_id": PID, "project_root": tempfile.gettempdir(), "agent": "opencode", "model": MODEL, "text": "hi"}})
+        self.assertEqual(r["error"]["code"], "ENGINE_ERROR")
+        self.assertIn("RESPECTED_CHAT_UNSANDBOXED", r["error"]["message"])
+
+
 class LifecycleTests(unittest.TestCase):
     def test_send_runs_a_resume_turn_and_returns_to_idle(self):
         runner = FakeRunner()
@@ -256,6 +399,135 @@ class RealProcessTests(unittest.TestCase):
         with self.assertRaises(SessionError):
             ctl.interrupt(Origin.HUMAN, SID, "proj-2")
         self.assertIsNone(proc.poll())
+
+
+def sleeper(pids):
+    """A runner that really starts a long-lived process through run_killable (the production path), recording its pid."""
+    def runner(argv, **kw):
+        on_start = kw.pop("on_start")
+        return run_killable([sys.executable, "-c", "import time; time.sleep(60)"], on_start=lambda p: (pids.append(p.pid), on_start(p)), **kw)
+    return runner
+
+
+def wait_for(cond, seconds=10):
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        if cond():
+            return True
+        time.sleep(0.02)
+    return False
+
+
+def alive(pid):
+    out = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/NH"], capture_output=True, text=True).stdout if sys.platform == "win32" else ""
+    return str(pid) in out
+
+
+class InFlightTurnTests(unittest.TestCase):
+    """B3-03.04 follow-up: a turn in flight is interruptible (before, the sender held the lock for the whole turn)."""
+
+    def test_async_send_returns_at_once_and_interrupt_ends_the_real_process(self):
+        pids = []
+        ctl = make(sleeper(pids))
+        view = ctl.send(Origin.HUMAN, SID, PID, "long job", wait=False)
+        self.assertEqual(view["state"], "running")
+        self.assertTrue(wait_for(lambda: pids))
+        self.assertTrue(alive(pids[0]))
+        started = time.monotonic()
+        ctl.interrupt(Origin.HUMAN, SID, PID)  # must not wait for the turn
+        self.assertLess(time.monotonic() - started, 5)
+        self.assertTrue(wait_for(lambda: not alive(pids[0])), "the process survived interrupt")
+        time.sleep(0.3)
+        self.assertEqual(ctl._sessions[SID]["state"], "failed")  # the dying turn's late result did not overwrite the interrupt
+        self.assertEqual(ctl._sessions[SID]["last_state"], "interrupted")
+        self.assertIsNone(ctl.events(Origin.HUMAN, SID, PID)["result"])
+
+    def test_cancel_in_flight_ends_the_process_and_stays_ended(self):
+        pids = []
+        ctl = make(sleeper(pids))
+        ctl.send(Origin.HUMAN, SID, PID, "long job", wait=False)
+        self.assertTrue(wait_for(lambda: pids))
+        ctl.cancel(Origin.RENDERER, SID, PID)
+        self.assertTrue(wait_for(lambda: not alive(pids[0])))
+        time.sleep(0.3)
+        self.assertEqual(ctl._sessions[SID]["state"], "ended")
+
+    def test_interrupt_before_the_process_exists_still_kills_it(self):
+        started, release, pids = threading.Event(), threading.Event(), []
+
+        def runner(argv, **kw):
+            started.set()
+            release.wait(10)  # the runner is "slow to spawn": interrupt arrives first
+            return sleeper(pids)(argv, **kw)
+
+        ctl = make(runner)
+        ctl.send(Origin.HUMAN, SID, PID, "x", wait=False)
+        started.wait(10)
+        ctl.interrupt(Origin.HUMAN, SID, PID)
+        release.set()
+        self.assertTrue(wait_for(lambda: pids))
+        self.assertTrue(wait_for(lambda: not alive(pids[0])), "a process started after interrupt kept running")
+
+    def test_async_turn_result_arrives_through_events(self):
+        ctl = make(FakeRunner())
+        ctl.send(Origin.HUMAN, SID, PID, "hi", wait=False)
+        self.assertTrue(wait_for(lambda: ctl.events(Origin.HUMAN, SID, PID)["result"] is not None))
+        got = ctl.events(Origin.HUMAN, SID, PID)
+        self.assertEqual(got["state"], "idle")
+        self.assertTrue(all(e["untrusted"] for e in got["result"]["events"]))
+
+    def test_each_turn_has_its_own_number_even_when_results_look_identical(self):
+        ctl = make(FakeRunner())
+        ctl.send(Origin.HUMAN, SID, PID, "a", wait=False)
+        self.assertTrue(wait_for(lambda: ctl.events(Origin.HUMAN, SID, PID)["result"] is not None))
+        first = ctl.events(Origin.HUMAN, SID, PID)
+        ctl.send(Origin.HUMAN, SID, PID, "b", wait=False)
+        self.assertTrue(wait_for(lambda: ctl.events(Origin.HUMAN, SID, PID)["turn"] == first["turn"] + 1
+                                 and ctl.events(Origin.HUMAN, SID, PID)["result"] is not None))
+        second = ctl.events(Origin.HUMAN, SID, PID)
+        self.assertEqual([e["kind"] for e in first["result"]["events"]], [e["kind"] for e in second["result"]["events"]])  # same shape...
+        self.assertNotEqual(first["turn"], second["turn"])  # ...different turn
+
+    def test_second_send_while_running_is_refused(self):
+        pids = []
+        ctl = make(sleeper(pids))
+        ctl.send(Origin.HUMAN, SID, PID, "a", wait=False)
+        with self.assertRaises(SessionError):
+            ctl.send(Origin.HUMAN, SID, PID, "b", wait=False)
+        ctl.cancel(Origin.HUMAN, SID, PID)
+
+    def test_start_learns_the_cli_session_id_and_resumes_with_it(self):
+        runner = FakeRunner()
+        ctl = SessionController(binary="oc", runner=runner)
+        first = ctl.start(Origin.HUMAN, PID, "opencode", MODEL, ".", "hello")
+        self.assertNotIn("--session", runner.calls[0])
+        sid = next(iter(ctl._sessions))
+        self.assertTrue(sid.startswith("loc_"))
+        self.assertEqual(ctl._sessions[sid]["cli_id"], first["session_id"])
+        ctl.send(Origin.HUMAN, sid, PID, "again")
+        self.assertEqual(runner.calls[1][runner.calls[1].index("--session") + 1], first["session_id"])
+
+    def test_start_with_the_cli_missing_leaves_no_half_session(self):
+        from unittest import mock
+        ctl = SessionController(unsandboxed=True)
+        with mock.patch.object(chat_session, "native_binary", return_value=None):
+            with self.assertRaises(SessionError):
+                ctl.start(Origin.HUMAN, PID, "opencode", MODEL, ".", "hi")
+        self.assertEqual(ctl._sessions, {})
+
+    def test_start_is_authority_checked_validated_and_bounded(self):
+        ctl = SessionController(binary="oc", runner=FakeRunner())
+        with self.assertRaises(PermissionError):
+            ctl.start(Origin.WORKER, PID, "opencode", MODEL, ".", "hi")
+        with self.assertRaises(chat_session.Unsupported):
+            ctl.start(Origin.HUMAN, PID, "codex", MODEL, ".", "hi")
+        with self.assertRaises(SessionError):
+            ctl.start(Origin.HUMAN, PID, "opencode", MODEL, ".", "bad \x1b[31m")
+        self.assertEqual(ctl._sessions, {})  # nothing registered by a refused start
+        for _ in range(MAX_SESSIONS):
+            ctl.start(Origin.HUMAN, PID, "opencode", MODEL, ".", "hi")
+        with self.assertRaises(SessionError):
+            ctl.start(Origin.HUMAN, PID, "opencode", MODEL, ".", "one too many")
 
 
 if __name__ == "__main__":

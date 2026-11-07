@@ -62,6 +62,24 @@ fn capability_inventory(project_root: Option<String>, state: tauri::State<Mutex<
     }
 }
 
+/// Relays one chat-session command (start, send, interrupt...) to the engine. The renderer names the command but only from the fixed
+/// list in engine_connector; the engine checks authority, session ownership and the input again, and treats the text as data.
+#[tauri::command]
+fn session_call(cmd: String, payload: serde_json::Value, state: tauri::State<Mutex<Option<Connection>>>) -> Result<serde_json::Value, EngineProblem> {
+    let problem = |error: ConnectError| EngineProblem { hint: error.hint(), error };
+    if !engine_connector::session_command_allowed(&cmd) {
+        return Err(problem(ConnectError::Refused(cmd)));
+    }
+    let mut slot = state.lock().unwrap();
+    if slot.is_none() {
+        let launch = engine_connector::discover_env().map_err(problem)?;
+        *slot = Some(Connection::connect(&launch).map_err(problem)?);
+    }
+    match slot.as_mut().unwrap().raw(&cmd, payload) {
+        Ok(v) => Ok(v),
+        Err(e) => { *slot = None; Err(problem(e)) }
+    }
+}
 static PREVIEW_GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 /// Opens one untrusted local page (B3-06.03). Refused unless the user turned the preview on in the engine settings and listed the port.
@@ -149,7 +167,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, capability_inventory, preview_open])
+        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, capability_inventory, session_call, preview_open])
 }
 
 pub fn run() {

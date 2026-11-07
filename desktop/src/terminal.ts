@@ -146,3 +146,10 @@ export function paneSupportText(agent: string, ptyStatus: PtyStatus | undefined)
   if (ptyStatus === 'unsupported' || ptyStatus === undefined) return `${agent}: terminal bölmesi bu sürümde desteklenmiyor (kontrollü PTY aracısı henüz yok); başlatılmaz.`;
   return `${agent}: terminal modu doğrulanmadı (${ptyStatus}); başlatılmaz.`;
 }
+
+/** Plain-text lines (a transcript) through the same cleaning as live output: escapes are dropped, long lines wrapped. */
+export function bufferOf(lines: string[]): TerminalBuffer {
+  const b = new TerminalBuffer();
+  for (const l of lines) b.write(`${l}\n`);
+  return b;
+}

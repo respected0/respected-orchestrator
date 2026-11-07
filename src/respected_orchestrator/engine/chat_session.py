@@ -1,6 +1,6 @@
 """Structured Chat session adapter (B3-03.03): one agent CLI's JSONL stream -> typed, sanitised events.
 
-Supported: `opencode run --format json` only (the one CLI whose stream was captured live; fixtures in
+Supported: `opencode run --standalone --format json` only (the one CLI whose stream was captured live; fixtures in
 tests/fixtures/chat). codex/claude/cursor are NOT mapped: their streams were never captured here, so they are
 refused explicitly instead of guessed. Everything inside a stream is untrusted data: control/escape sequences are
 stripped, secrets masked, sizes capped, and no event can carry authority (see session_control, B3-03.04).
@@ -9,11 +9,11 @@ An `ask_user` event exists only when the stream itself contains a question tool 
 from __future__ import annotations
 
 import json
+import os
 import re
-import shutil
 import subprocess
 
-from . import agent_adapters, winproc
+from . import agent_adapters, clis, winproc
 from .journal import mask
 
 SUPPORTED = ("opencode",)
@@ -21,6 +21,9 @@ MAX_LINE = 1 << 20
 MAX_TEXT = 8000
 MAX_TOOL_OUTPUT = 4000
 _ASK_TOOLS = {"question", "ask_user", "askuser"}
+# Tools a chat turn may not use (checked live 2026-11-07: with these denied the model's shell request never ran; without them it did).
+# Reading project files stays allowed: that is what a chat about a project is. Names cover this CLI version's `shell` and older `bash`.
+DENIED_TOOLS = ("bash", "shell", "edit", "write", "patch", "webfetch", "websearch", "task")
 _RATE = re.compile(r"\b429\b|rate.?limit|usage limit reached|quota", re.I)
 _ANSI = re.compile(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]|\x1b[@-Z\\-_]")
 _CTRL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
@@ -122,10 +125,29 @@ def command(agent, *, model, prompt, binary, session_id=None):
         raise ValueError("Invalid session id")
     if not isinstance(prompt, str) or not prompt.strip() or prompt.lstrip().startswith("-") or "\x00" in prompt:
         raise ValueError("Invalid prompt")
-    argv = [binary, "run", "--model", model, "--format", "json"]
+    # --standalone: a private server per turn. The shared background service ignores the caller's environment and working
+    # directory (checked live 2026-11-07: its shell tool ran in the directory the service was first started in).
+    argv = [binary, "run", "--standalone", "--model", model, "--format", "json"]
     if session_id:
         argv += ["--session", session_id]
     return argv + [prompt]
+
+
+def turn_environment(cwd, environ=None):
+    """Environment for one turn. The CLI takes its project directory from PWD (not from the process working directory), project
+    config is ignored so a repository cannot re-enable tools, mutating/network tools are denied, and the child is marked so it can
+    never act as the human approver (processes.execute does the same for workers)."""
+    env = dict(os.environ if environ is None else environ)
+    env.update({"PWD": str(cwd), "OPENCODE_DISABLE_PROJECT_CONFIG": "1", "RESPECTED_ORCH_CHILD": "1",
+                "OPENCODE_CONFIG_CONTENT": json.dumps({"permission": {tool: "deny" for tool in DENIED_TOOLS}})})
+    return env
+
+
+def native_binary(agent):
+    """The program the engine may spawn: never a `.cmd` shim (cmd.exe would re-parse the prompt, audit P0 #2). None if absent."""
+    names = agent_adapters.ADAPTERS[agent]["binaries"]
+    found = clis.find(list(names))
+    return next((path for path in (clis.worker_executable(agent, found[name]) for name in names) if path), None)
 
 
 def run_turn(agent, *, model, prompt, cwd, session_id=None, row=None, runner=None, timeout=180):
@@ -133,10 +155,12 @@ def run_turn(agent, *, model, prompt, cwd, session_id=None, row=None, runner=Non
     row = row or agent_adapters.verify(agent)
     if not agent_adapters.usable(row, "chat"):
         raise Unsupported(f"{agent}: chat is not verified/logged in on this machine")
-    path = next(p for p in [shutil.which(b) for b in agent_adapters.ADAPTERS[agent]["binaries"]] if p)
+    path = native_binary(agent)
+    if path is None:
+        raise Unsupported(f"{agent}: no directly spawnable program (a .cmd shim is never run)")
     argv = command(agent, model=model, prompt=prompt, binary=path, session_id=session_id)
-    done = (runner or winproc.run)(argv, cwd=str(cwd), capture_output=True, text=True, encoding="utf-8", errors="replace",
-                                   timeout=timeout, stdin=subprocess.DEVNULL, shell=False)
+    done = (runner or winproc.run)(argv, cwd=str(cwd), env=turn_environment(cwd), capture_output=True, text=True, encoding="utf-8",
+                                   errors="replace", timeout=timeout, stdin=subprocess.DEVNULL, shell=False)
     result = parse_stream(done.stdout.splitlines())
     if done.returncode != 0 and result["state"] == "complete":
         result["state"], result["complete"] = "error", False

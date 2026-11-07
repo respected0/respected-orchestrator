@@ -4,6 +4,7 @@ export const ROUTES = [
   { id: 'runs', label: 'Çalıştırmalar', empty: 'Henüz çalıştırma yok.' },
   { id: 'reviews', label: 'İncelemeler', empty: 'İncelenecek bir şey yok.' },
   { id: 'agents', label: 'Ajanlar', empty: 'Ajan bulunamadı. Kurulu yapay zekâ araçları burada listelenecek.' },
+  { id: 'sessions', label: 'Oturumlar', empty: 'Açık sohbet oturumu yok. Bir ajanla oturum başlatınca burada görünür.' },
   { id: 'capabilities', label: 'Yetenekler', empty: 'Kurulu istemcilerde MCP sunucusu veya beceri bulunamadı. Bulununca burada yalnızca okunur olarak listelenir.' },
   { id: 'settings', label: 'Ayarlar', empty: 'Ayarlar sonraki sürümde bu ekrandan yönetilecek.' },
 ] as const;

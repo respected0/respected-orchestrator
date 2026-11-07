@@ -544,6 +544,14 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
 - Codex'in kum havuzu kullanıcı profilindeki programları (örneğin `AppData\Local\Programs` altındaki Python) çalıştıramayabilir:
   çalışan böyle bir doğrulama komutunu kendi kendini denerken çalıştıramayıp görevi başarısız bildirebilir. Motorun kendi
   doğrulaması ayrıca kısıtlı belirteçle yapılır.
+- Sohbet oturumları (`session.*` IPC komutları, `engine/chat_session.py`, `engine/session_control.py`) yalnız `opencode run --standalone
+  --format json` akışını eşler; diğer CLI'lar açıkça reddedilir. `opencode run` AppContainer içinde çalışmadığı için (varsayılan
+  modda servis portu çakışır, `--standalone` modunda çıktısız takılır) IPC üzerinden oturum başlatma **varsayılan kapalıdır** ve
+  yalnız operatör `RESPECTED_CHAT_UNSANDBOXED=allow` verirse açılır; açıkken süreç sandbox dışında, motorun kullanıcısı olarak
+  çalışır. Her tur için dosya değiştiren/komut çalıştıran/ağ araçları reddedilir, proje yapılandırması yok sayılır, çalışma dizini
+  `PWD` ile verilir, süreç `RESPECTED_ORCH_CHILD=1` ile işaretlenir (insan onayı veremez), `.cmd` shim'i çalıştırılmaz. Akıştaki her
+  olay güvenilmeyen veridir; oturumda `approve` komutu yoktur (onaylar yalnız onay merkezinde). Oturum belleği süreç içidir
+  (motor yeniden başlarsa oturum listesi boşalır). `interrupt` süreç ağacını öldürür; tur sonucu `session.events` ile okunur.
 - Kurucu üretimde güvenilir bir Authenticode sertifikasıyla imzalı değildir. İmza/doğrulama hattı gerçek bir
   self-signed test sertifikasıyla kanıtlanmıştır; üretim sertifikası ve zaman damgası operasyonel bağımlılıktır
   (`KANIT_LOG.md` §REL-01).

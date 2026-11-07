@@ -1,19 +1,29 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { type Layout, type TerminalBuffer, gridFor, planPaste } from './terminal';
 
 const ROW = 18;
 const VISIBLE = 40;
 
 /** Draws plain text lines only (React escapes them); only VISIBLE rows exist in the DOM, however long the scrollback is. */
-export function TerminalPane({ id, agent, buffer, onSend }: { id: string; agent: string; buffer: TerminalBuffer; onSend?: (text: string) => void }) {
-  const [top, setTop] = useState(Math.max(0, buffer.length - VISIBLE));
+export function TerminalPane({ id, agent, buffer, onSend, rows: visible = VISIBLE }: { id: string; agent: string; buffer: TerminalBuffer; onSend?: (text: string) => void; rows?: number }) {
+  const [top, setTop] = useState(Math.max(0, buffer.length - visible));
   const [pending, setPending] = useState<string | null>(null);
-  const rows = buffer.window(top, VISIBLE);
+  const box = useRef<HTMLDivElement>(null);
+  const follow = useRef(true); // stay at the end while the reader is at the end; scrolling up pauses it
+  useEffect(() => {
+    if (!follow.current || !box.current) return;
+    setTop(Math.max(0, buffer.length - visible));
+    box.current.scrollTop = box.current.scrollHeight;
+  }, [buffer, buffer.length, visible]);
+  const rows = buffer.window(top, visible);
   return (
     <section aria-label={`Terminal: ${agent}`} className="pane">
       <h3>{agent}</h3>
-      <div role="log" aria-live="off" tabIndex={0} aria-label={`${agent} çıktısı, ${buffer.length} satır`} style={{ height: VISIBLE * ROW, overflowY: 'auto' }}
-        onScroll={(e) => setTop(Math.min(Math.floor(e.currentTarget.scrollTop / ROW), Math.max(0, buffer.length - VISIBLE)))}
+      <div ref={box} role="log" aria-live="off" tabIndex={0} aria-label={`${agent} çıktısı, ${buffer.length} satır`} style={{ height: visible * ROW, overflowY: 'auto' }}
+        onScroll={(e) => {
+          follow.current = e.currentTarget.scrollTop + e.currentTarget.clientHeight >= e.currentTarget.scrollHeight - ROW;
+          setTop(Math.min(Math.floor(e.currentTarget.scrollTop / ROW), Math.max(0, buffer.length - visible)));
+        }}
         onPaste={(e) => {
           e.preventDefault();
           const plan = planPaste(e.clipboardData.getData('text'));

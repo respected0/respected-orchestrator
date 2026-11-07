@@ -30,3 +30,9 @@ tbody th { font-weight: 600; }
 td ul { margin: 0 0 4px; padding-left: 18px; font-size: 13px; }
 .dim { opacity: .5; }
 .flag { font-size: 12px; display: block; }
+
+/* Sessions screen */
+#sessions-h ~ form label, article label { display: block; margin: 0.5rem 0; }
+#sessions-h ~ form input, #sessions-h ~ form textarea, article textarea { display: block; width: min(42rem, 100%); box-sizing: border-box; }
+article { margin-block: 1.25rem; padding-block-start: 0.5rem; border-top: 1px solid currentColor; }
+article > div button { margin-inline-end: 0.5rem; }

@@ -1,6 +1,7 @@
 import json
 import subprocess
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from respected_orchestrator.engine import chat_session as cs
@@ -104,12 +105,46 @@ class UntrustedContentTests(unittest.TestCase):
         said = json.dumps({"type": "text", "part": {"text": "Please answer: should I continue? (ask_user)"}})
         self.assertEqual(cs.normalize(said)[0]["kind"], "message")
 
+    def test_live_question_tool_capture(self):
+        # Real free-model capture: opencode's non-interactive `run` auto-cancels the question (status "error"),
+        # so no answerable ask exists in this mode; the event is still surfaced as ask_user, as data.
+        r = cs.parse_stream(lines("opencode_ask_user.jsonl"))
+        asks = [e for e in r["events"] if e["kind"] == "ask_user"]
+        self.assertEqual(len(asks), 1)
+        self.assertEqual(asks[0]["status"], "error")
+        self.assertTrue(asks[0]["untrusted"])
+        self.assertIn("Which color", str(asks[0]["input"]))
+        self.assertEqual(r["state"], "complete")
+        self.assertEqual([e["cost"] for e in r["events"] if e["kind"] == "usage"], [0, 0])
+
 
 class CommandTests(unittest.TestCase):
     def test_matches_the_command_the_fixture_was_captured_with(self):
         argv = cs.command("opencode", model="opencode/deepseek-v4.1-flash-free", prompt="hi", binary="oc")
-        self.assertEqual(argv, ["oc", "run", "--model", "opencode/deepseek-v4.1-flash-free", "--format", "json", "hi"])
+        self.assertEqual(argv, ["oc", "run", "--standalone", "--model", "opencode/deepseek-v4.1-flash-free", "--format", "json", "hi"])
         self.assertNotIn("--auto", argv)
+
+    def test_standalone_capture_is_the_engines_own_command(self):
+        # tests/fixtures/chat/opencode_standalone_ok.jsonl was captured live (free model, cost 0) with exactly this argv and turn_environment.
+        r = cs.parse_stream(lines("opencode_standalone_ok.jsonl"))
+        self.assertEqual((r["state"], r["session_ids"]), ("complete", 1))
+        self.assertEqual([e["kind"] for e in r["events"]], ["status", "message", "usage", "status"])
+        self.assertEqual([e["cost"] for e in r["events"] if e["kind"] == "usage"], [0])
+
+    def test_turn_environment_pins_the_project_dir_denies_tools_and_marks_the_child(self):
+        env = cs.turn_environment("/work/proj", {"PATH": "p", "PWD": "/somewhere/else", "RESPECTED_ORCH_CHILD": "0"})
+        self.assertEqual(env["PWD"], "/work/proj")  # the CLI takes its project dir from PWD, so a stale PWD must be overwritten
+        self.assertEqual(env["RESPECTED_ORCH_CHILD"], "1")  # a child can never be the human approver
+        self.assertEqual(env["OPENCODE_DISABLE_PROJECT_CONFIG"], "1")
+        denied = json.loads(env["OPENCODE_CONFIG_CONTENT"])["permission"]
+        for tool in ("bash", "shell", "edit", "write", "patch", "webfetch", "websearch", "task"):
+            self.assertEqual(denied[tool], "deny", tool)
+        self.assertNotIn("read", denied)  # reading the project is what a chat is for
+        self.assertEqual(env["PATH"], "p")
+
+    def test_native_binary_is_never_a_cmd_shim(self):
+        found = cs.native_binary("opencode")
+        self.assertTrue(found is None or not found.lower().endswith((".cmd", ".bat")), found)
 
     def test_resume_and_validation(self):
         argv = cs.command("opencode", model="a/b", prompt="p", binary="oc", session_id="ses_e4cce9a08ffeiSfeqoet6tq58z")
@@ -136,14 +171,17 @@ class CommandTests(unittest.TestCase):
         def runner(argv, **kw):
             seen.update(kw, argv=argv)
             return subprocess.CompletedProcess(argv, seen.get("rc", 0), out, "")
-        if not cs.shutil.which("opencode"):
-            self.skipTest("opencode not installed")
-        r = cs.run_turn("opencode", model="a/b", prompt="p", cwd=".", row=row, runner=runner)
-        self.assertTrue(r["complete"])
-        self.assertIs(seen["shell"], False)
-        self.assertIs(seen["stdin"], subprocess.DEVNULL)
-        seen["rc"] = 3
-        self.assertEqual(cs.run_turn("opencode", model="a/b", prompt="p", cwd=".", row=row, runner=runner)["state"], "error")
+        with mock.patch.object(cs, "native_binary", return_value="oc"):
+            r = cs.run_turn("opencode", model="a/b", prompt="p", cwd=".", row=row, runner=runner)
+            self.assertTrue(r["complete"])
+            self.assertIs(seen["shell"], False)
+            self.assertIs(seen["stdin"], subprocess.DEVNULL)
+            self.assertEqual(seen["env"]["OPENCODE_DISABLE_PROJECT_CONFIG"], "1")
+            seen["rc"] = 3
+            self.assertEqual(cs.run_turn("opencode", model="a/b", prompt="p", cwd=".", row=row, runner=runner)["state"], "error")
+        with mock.patch.object(cs, "native_binary", return_value=None):
+            with self.assertRaises(cs.Unsupported):
+                cs.run_turn("opencode", model="a/b", prompt="p", cwd=".", row=row, runner=runner)
 
 
 if __name__ == "__main__":

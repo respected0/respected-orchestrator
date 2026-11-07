@@ -29,6 +29,8 @@ pub enum ConnectError {
     VersionMismatch(String),
     /// The engine process went away mid-session.
     Disconnected(String),
+    /// The renderer asked for a command the shell does not relay.
+    Refused(String),
 }
 
 impl ConnectError {
@@ -38,10 +40,15 @@ impl ConnectError {
             ConnectError::WrongOwner(_) => "Reddedildi: bu program Respected Orchestrator'ın motoru değil.",
             ConnectError::VersionMismatch(_) => "Uygulamayı ve motoru aynı sürüme güncelleyin.",
             ConnectError::Disconnected(_) => "Motor durdu; yeniden bağlanmayı deneyin.",
+            ConnectError::Refused(_) => "Bu komut ekrandan çağrılamaz.",
         }
     }
 }
 
+/// The chat-session commands the renderer may relay. Nothing else goes through `session_call`, and there is no approve here:
+/// permission decisions stay in the native dialog (approval.rs).
+pub const SESSION_COMMANDS: [&str; 8] = ["sessions.list", "session.start", "session.events", "session.send", "session.retry", "session.interrupt", "session.cancel", "session.resume"];
+pub fn session_command_allowed(cmd: &str) -> bool { SESSION_COMMANDS.contains(&cmd) }
 #[derive(Debug, Serialize, PartialEq)]
 pub struct Status {
     pub version: String,
@@ -310,6 +317,16 @@ mod tests {
     #[test]
     fn other_ipc_version_is_refused() {
         assert!(matches!(Connection::connect(&fake("2", PRODUCT_ID)), Err(ConnectError::VersionMismatch(_))));
+    }
+
+    #[test]
+    fn only_the_listed_session_commands_are_relayed_and_none_can_approve() {
+        for cmd in SESSION_COMMANDS { assert!(session_command_allowed(cmd), "{cmd}"); }
+        for cmd in ["approval.decide", "approval.apply", "approval.open", "session.approve", "session.grant", "settings.apply", "plan.start",
+                    "hello", "", "session.send ", "Session.send", "session.", "sessions.approve"] {
+            assert!(!session_command_allowed(cmd), "{cmd:?} must not be relayed");
+        }
+        assert!(SESSION_COMMANDS.iter().all(|c| !c.contains("approv") && !c.contains("grant")));
     }
 
     #[test]
