@@ -2,6 +2,7 @@ Respected Orchestrator, kodlama ajanlarını projenizde değil, yalıtılmış b
 
 beta.3'te neler değişti:
 
+- Yeni masaüstü uygulaması: kurucuyla birlikte gelir, motoru kendi başlatır; çalışmaları, kanıtları, projeleri ve ayarları tek pencerede gösterir. Komut satırı aynen çalışmaya devam eder.
 - Orchestrator bağımsız bir üründür: kurucudan Hub yolu kalktı. Güncellemek için yeni sürümün kurucusunu GitHub sürüm sayfasından indirip çalıştırın; kurucu önce yedek alır, ayarlarınızı ve görevlerinizi korur, bir şey ters giderse önceki sürümü geri yükler. beta.1 ve beta.2 verileri okunur ve taşınır.
 - Güncelleme penceresi: çalışan iş varsa kurucu bunu görür ve işi güvenle durdurur; çalışıp çalışmadığı gerçek süreç denetimiyle bulunur.
 - Daha sağlam çalışma kaydı: tek sahipli denetleyici, çökmeye dayanıklı olay günlüğü ve etkinlik zaman çizgisi.

@@ -37,12 +37,14 @@ def run(command):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--desktop", default=str(ROOT / "desktop/src-tauri/target/release/respected-orchestrator-desktop.exe"),
+                        help="desktop shell to ship next to the engine (build it first: cd desktop && npm run tauri build -- --no-bundle)")
     parser.add_argument("--skip-dist", action="store_true", help="reuse the existing dist/RespectedOrchestrator folder")
     parser.add_argument("--sign-cert", help="PFX certificate path; defaults to RESPECTED_SIGN_CERT")
     parser.add_argument("--require-signed", action="store_true", help="fail unless Authenticode verification passes")
     args = parser.parse_args()
     if not args.skip_dist:
-        run([sys.executable, "-B", str(ROOT / "packaging" / "build_dist.py"), "--output", str(DIST)])
+        run([sys.executable, "-B", str(ROOT / "packaging" / "build_dist.py"), "--output", str(DIST), "--desktop", args.desktop])
     if not (DIST / "RespectedOrchestrator" / "respected-orchestrator.exe").is_file():
         sys.exit("dist/RespectedOrchestrator is missing; run without --skip-dist")
     version = re.search(r'^version\s*=\s*"([^"]+)"', (ROOT / "pyproject.toml").read_text("utf-8"), re.M).group(1)
