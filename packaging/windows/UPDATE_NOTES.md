@@ -2,9 +2,16 @@ Respected Orchestrator, kodlama ajanlarını projenizde değil, yalıtılmış b
 
 beta.3'te neler değişti:
 
-- Orchestrator bağımsız bir üründür: kurucuda Hub yolu kalktı. Güncellemek için yeni sürümün kurucusunu GitHub sürüm sayfasından indirip çalıştırın; ayarlarınız ve görevleriniz korunur.
-- Brain hafızası isteğe bağlı olarak durur: `memory connect` ile bağlanır, varsayılan kapalıdır.
-- Hata iletileri artık yalnızca çalıştırabileceğiniz komutu söyler.
+- Orchestrator bağımsız bir üründür: kurucudan Hub yolu kalktı. Güncellemek için yeni sürümün kurucusunu GitHub sürüm sayfasından indirip çalıştırın; kurucu önce yedek alır, ayarlarınızı ve görevlerinizi korur, bir şey ters giderse önceki sürümü geri yükler. beta.1 ve beta.2 verileri okunur ve taşınır.
+- Güncelleme penceresi: çalışan iş varsa kurucu bunu görür ve işi güvenle durdurur; çalışıp çalışmadığı gerçek süreç denetimiyle bulunur.
+- Daha sağlam çalışma kaydı: tek sahipli denetleyici, çökmeye dayanıklı olay günlüğü ve etkinlik zaman çizgisi.
+- Daha güvenli yama uygulama: uygulamadan önce durum yeniden doğrulanır, çakışma ve yarış durumlarına karşı korunur, uygulanan yama geri alınabilir. Hiçbir sonuç siz onaylamadan uygulanmaz.
+- İnceleme ve kanıt görünümü; sınırlı ve maskelenmiş kanıt dosyası okuyucu.
+- Ajan araçları dürüst durumla bulunur (`agy` bulunamıyordu, düzeltildi); rol, araç ve model atamaları açık farkla düzenlenir, sessizce değiştirilmez.
+- Salt-okunur MCP/skill envanteri: hangi AI aracında neyin kayıtlı olduğunu gösterir, hiçbir şeyi değiştirmez.
+- Projeler için plan görünümü, plan düzenleme, tekrar denemeye dayanıklı iptal ve sürdürme.
+- Brain hafızası isteğe bağlıdır: `memory connect` ile bağlanır, varsayılan kapalıdır. Hata iletileri artık yalnızca çalıştırabileceğiniz komutu söyler.
+- Bilinen sınırlar: kurucu henüz Authenticode ile imzalı değildir, Windows SmartScreen uyarı gösterebilir. Sohbet oturumları deneyseldir ve varsayılan olarak kapalıdır.
 
 beta.2'de neler değişti:
 
