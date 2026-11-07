@@ -35,14 +35,18 @@ class ShellPolicyTests(unittest.TestCase):
         capabilities = list((SRC / "capabilities").glob("*.json"))
         self.assertEqual(len(capabilities), 1)
 
-    def test_exactly_five_shell_commands_each_granted_to_the_main_window_only(self):
+    def test_exactly_six_shell_commands_each_granted_to_the_main_window_only(self):
         lib = (SRC / "src" / "lib.rs").read_text(encoding="utf-8")
-        self.assertEqual(re.findall(r"generate_handler!\[([^\]]*)\]", lib), ["engine_status, confirm_close, request_apply, capability_inventory, preview_open"])
-        self.assertEqual(lib.count("#[tauri::command]"), 5)
+        self.assertEqual(re.findall(r"generate_handler!\[([^\]]*)\]", lib), ["engine_status, confirm_close, request_apply, capability_inventory, session_call, preview_open"])
+        self.assertEqual(lib.count("#[tauri::command]"), 6)
         # B3-05.02: the renderer may only name a run to ask about. No token, decision or binding can be passed in.
         signature = re.search(r"async fn request_apply\(([^)]*)\)", lib).group(1)
         self.assertTrue(signature.startswith("run_id: String,"))
         self.assertNotRegex(signature, r"token|decision|binding|challenge")
+        # session relay: only a command name (checked against a fixed list in Rust) and a payload the engine validates; no approve verbs
+        relay = re.search(r"fn session_call\(([^)]*)\)", lib).group(1)
+        self.assertTrue(relay.startswith("cmd: String, payload: serde_json::Value,"))
+        self.assertNotRegex(relay, r"token|decision|binding|challenge")
         # B3-08.03: the inventory command is read-only data: at most a project folder in, no approvals, no write verbs.
         inventory = re.search(r"fn capability_inventory\(([^)]*)\)", lib).group(1)
         self.assertTrue(inventory.startswith("project_root: Option<String>,"))
@@ -52,7 +56,7 @@ class ShellPolicyTests(unittest.TestCase):
         preview = re.search(r"async fn preview_open<R: tauri::Runtime>\(([^)]*)\)", lib).group(1)
         self.assertTrue(preview.startswith("url: String,"))
         self.assertNotRegex(preview, r"port|enable|setting")
-        names = ["engine_status", "confirm_close", "request_apply", "capability_inventory", "preview_open"]
+        names = ["engine_status", "confirm_close", "request_apply", "capability_inventory", "session_call", "preview_open"]
         build = (SRC / "build.rs").read_text(encoding="utf-8")
         for name in names:
             self.assertIn(f'"{name}"', build)
