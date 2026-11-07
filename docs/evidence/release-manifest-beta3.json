@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "commit_sha": "c3fb63dac39716e88741010080cfc1191713c70c",
+  "tree_clean": true,
+  "elevated": false,
+  "generated_at": "2026-11-07T00:35:26Z",
+  "python": "3.13.15",
+  "platform": "win32",
+  "gates": {
+    "security_matrix": {
+      "status": "pass",
+      "detail": "exit 0",
+      "tail": "security run: OK\n............................\n----------------------------------------------------------------------\nRan 28 tests in 33.412s\n\nOK"
+    },
+    "full_suite": {
+      "status": "pass",
+      "detail": "1014 tests, 0 failing, 4 skipped (outside P0 groups skips are listed, not fatal)",
+      "skipped": [
+        "tests.engine.test_artifact_view.ArtifactViewTests.test_file_swapped_for_a_link_after_listing_is_refused",
+        "tests.engine.test_session_live.LiveFreeSessionTests.test_real_follow_up_turn",
+        "tests.interfaces.test_github_live.LiveGithubTests.test_draft_pr_and_check_run_round_trip",
+        "tests.interfaces.test_mcp_client.McpClientTests.test_live_context_mode_search_when_installed"
+      ],
+      "failing": []
+    },
+    "appcontainer_worker_matrix": {
+      "status": "pass",
+      "detail": "all ok",
+      "problems": [],
+      "tests": 17
+    },
+    "gui_apply_negatives": {
+      "status": "pass",
+      "detail": "all ok",
+      "problems": [],
+      "tests": 53
+    },
+    "intervention_negatives": {
+      "status": "pass",
+      "detail": "all ok",
+      "problems": [],
+      "tests": 26
+    },
+    "chat_adapter": {
+      "status": "pass",
+      "detail": "all ok",
+      "problems": [],
+      "tests": 17
+    },
+    "installer_and_hash": {
+      "status": "pass",
+      "detail": "all ok",
+      "problems": [],
+      "tests": 13
+    },
+    "update_and_migration": {
+      "status": "pass",
+      "detail": "all ok",
+      "problems": [],
+      "tests": 27
+    },
+    "offline_no_telemetry": {
+      "status": "pass",
+      "detail": "all ok",
+      "problems": [],
+      "tests": 5
+    },
+    "desktop_check": {
+      "status": "pass",
+      "detail": "exit 0",
+      "tail": "losed by default; unsupported or unverified terminal modes never open (0.3414ms)\n\u2714 panes: 2-4 only after opting in; never more than four; close and opt-out shrink the layout (0.2962ms)\n\u2714 against the real engine matrix: no agent has a verified PTY mode in this build, so no pane may start (8642.7297ms)\n\u2139 tests 34\n\u2139 suites 0\n\u2139 pass 34\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 8949.642"
+    },
+    "distribution_audit": {
+      "status": "pass",
+      "detail": "exit 0",
+      "tail": "{\"problems\": []}"
+    },
+    "installer_hash": {
+      "status": "pass",
+      "detail": "RespectedOrchestrator-Windows-Setup.exe",
+      "sha256": "1DA20BFF250AE6E42660E93131B8B4B08F19646E675A2EAB36476A47A78CB404"
+    },
+    "roadmap_p0": {
+      "status": "pass",
+      "detail": "all P0 cards of 38 ticked (B3-09.04 excepted)",
+      "open": []
+    }
+  },
+  "signature": {
+    "signed": false,
+    "status": "unsigned",
+    "sha256": "1DA20BFF250AE6E42660E93131B8B4B08F19646E675A2EAB36476A47A78CB404",
+    "detail": "The file C:\\Users\\Furkan\\Documents\\respected-ecosystem\\respected-orchestrator\\dist\\RespectedOrchestrator-Windows-Setup.exe is not digitally signed. You cannot run this script on the current system. For more information about running scripts and setting execution policy, see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170"
+  },
+  "release_ready": true,
+  "signed": false,
+  "publishable": false,
+  "blockers": [
+    {
+      "id": "SIGNING-01",
+      "text": "No valid Authenticode signature: the release cannot be called signed (needs a production certificate; D21)",
+      "status": "unsigned"
+    }
+  ],
+  "body_sha256": "0aec262c562439f8330f9e7f3320700ebeb3f6e91a17da8355b8c175a97657bb"
+}

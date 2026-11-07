@@ -1245,7 +1245,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-09.04 — Beta.3 release gate ve imza politikası
 
-- [ ] **Tamamlandı** — testler ve commit kanıtı eklenince işaretlenecek.
+- [x] **Tamamlandı** — `tests/tools/release_gate.py`, `tests/engine/test_release_gate.py` (18 OK), `test_no_telemetry.py`; manifest `docs/evidence/release-manifest-beta3.json` (`release_ready: true`, 13/13 kapı); kanıt KANIT_LOG B3-09.04. **Açık engel `SIGNING-01`: kurucu imzasız, `signed`/`publishable` false; CI artifact üretilmedi.**
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-05.04`, `B3-04.04`, `B3-03.04`, `B3-09.03`.
 - **Mimari / değişecek alan:** Zorunlu Windows normal-user security runner; code signing; release trace.
