@@ -1,6 +1,5 @@
 """B3-03.04: every intervention command goes through an explicit authority check; no stream content becomes authority."""
 import json
-import os
 import subprocess
 import sys
 import tempfile
@@ -257,25 +256,6 @@ class RealProcessTests(unittest.TestCase):
         with self.assertRaises(SessionError):
             ctl.interrupt(Origin.HUMAN, SID, "proj-2")
         self.assertIsNone(proc.poll())
-
-
-@unittest.skipUnless(os.environ.get("RESPECTED_LIVE_CHAT") == "1", "live free-model session: set RESPECTED_LIVE_CHAT=1 and RESPECTED_TEST_SANDBOX=real")
-class LiveFreeSessionTests(unittest.TestCase):
-    """Real opencode, free model only (opencode/*-free, cost field must be 0). Two small calls."""
-
-    def test_real_follow_up_turn(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            first = chat_session.run_turn("opencode", model=MODEL, prompt="Remember the word PINEAPPLE. Reply OK. No tools.", cwd=tmp)
-            self.assertTrue(first["complete"], first["state"])
-            costs = [e["cost"] for e in first["events"] if e["kind"] == "usage"]
-            self.assertTrue(costs and all(c == 0 for c in costs), costs)
-            ctl = SessionController()
-            ctl.register(Origin.HUMAN, first["session_id"], PID, "opencode", MODEL, tmp)
-            second = ctl.send(Origin.HUMAN, first["session_id"], PID, "Which word did I ask you to remember? One word. No tools.")
-            self.assertTrue(second["complete"], second["state"])
-            self.assertTrue(all(e["cost"] == 0 for e in second["events"] if e["kind"] == "usage"))
-            self.assertIn("PINEAPPLE", " ".join(e["text"] for e in second["events"] if e["kind"] == "message").upper())
-            print("LIVE:", [e["text"] for e in second["events"] if e["kind"] == "message"], [e for e in second["events"] if e["kind"] == "usage"])
 
 
 if __name__ == "__main__":

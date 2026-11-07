@@ -925,7 +925,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-03.04 — Etkileşim ve müdahale komutları
 
-- [x] **Tamamlandı** — `engine/session_control.py`, IPC `session.*`, `tests/engine/test_session_control.py` (23 OK + canlı ücretsiz oturum); kanıt KANIT_LOG B3-03.04. **Not:** React oturum ekranı ve sandbox içinde oturum başlatma yok.
+- [x] **Tamamlandı** — `engine/session_control.py`, IPC `session.*`, `tests/engine/test_session_control.py` (22 OK) + `test_session_live.py` (canlı ücretsiz oturum); kanıt KANIT_LOG B3-03.04. **Not:** React oturum ekranı ve sandbox içinde oturum başlatma yok.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-03.02`, `B3-03.03`, `B3-00.03`.
 - **Mimari / değişecek alan:** session controller yetki sınıfları: send input / interrupt / cancel / approve ayrı.
