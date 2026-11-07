@@ -65,6 +65,7 @@ Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs c
 #ifexist StageDir + "\respected-orchestrator-desktop.exe"
 [Icons]
 Name: "{autoprograms}\Respected Orchestrator"; Filename: "{app}\respected-orchestrator-desktop.exe"; WorkingDir: "{app}"
+Name: "{autodesktop}\Respected Orchestrator"; Filename: "{app}\respected-orchestrator-desktop.exe"; WorkingDir: "{app}"
 #endif
 
 [UninstallRun]
