@@ -1,20 +1,20 @@
 {
   "schema": 1,
-  "commit_sha": "23415e43500adf1902d812eaeef7e3d0f1ce4738",
+  "commit_sha": "6f2a313c17db72bf0d7a4bcb06c0cdcd09f24a51",
   "tree_clean": true,
   "elevated": false,
-  "generated_at": "2026-11-07T10:15:24Z",
+  "generated_at": "2026-11-07T12:00:32Z",
   "python": "3.13.15",
   "platform": "win32",
   "gates": {
     "security_matrix": {
       "status": "pass",
       "detail": "exit 0",
-      "tail": "security run: OK\n............................\n----------------------------------------------------------------------\nRan 28 tests in 37.356s\n\nOK"
+      "tail": "security run: OK\n............................\n----------------------------------------------------------------------\nRan 28 tests in 36.570s\n\nOK"
     },
     "full_suite": {
       "status": "pass",
-      "detail": "1039 tests, 0 failing, 6 skipped (outside P0 groups skips are listed, not fatal)",
+      "detail": "1048 tests, 0 failing, 6 skipped (outside P0 groups skips are listed, not fatal)",
       "skipped": [
         "tests.engine.test_artifact_view.ArtifactViewTests.test_file_swapped_for_a_link_after_listing_is_refused",
         "tests.engine.test_session_live.LiveFreeSessionTests.test_denied_tools_block_a_shell_request_and_the_control_shows_it_would_have_run",
@@ -70,7 +70,7 @@
     "desktop_check": {
       "status": "pass",
       "detail": "exit 0",
-      "tail": "osed by default; unsupported or unverified terminal modes never open (0.4173ms)\n\u2714 panes: 2-4 only after opting in; never more than four; close and opt-out shrink the layout (0.2905ms)\n\u2714 against the real engine matrix: no agent has a verified PTY mode in this build, so no pane may start (9018.8625ms)\n\u2139 tests 43\n\u2139 suites 0\n\u2139 pass 43\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 9335.6538"
+      "tail": "ed by default; unsupported or unverified terminal modes never open (0.4697ms)\n\u2714 panes: 2-4 only after opting in; never more than four; close and opt-out shrink the layout (0.3216ms)\n\u2714 against the real engine matrix: no agent has a verified PTY mode in this build, so no pane may start (13122.6259ms)\n\u2139 tests 43\n\u2139 suites 0\n\u2139 pass 43\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 13522.5087"
     },
     "distribution_audit": {
       "status": "pass",
@@ -80,7 +80,7 @@
     "installer_hash": {
       "status": "pass",
       "detail": "RespectedOrchestrator-Windows-Setup.exe",
-      "sha256": "C702E0FFD2E1F042CC832D1D6F93BA4BF00619FDC78AC1399F1A481DC1466631"
+      "sha256": "3CA4CFE00BF356ACE2DDBC962C99A413D2E6E958BD38F397AEF7B7A2D7E27772"
     },
     "roadmap_p0": {
       "status": "pass",
@@ -91,7 +91,7 @@
   "signature": {
     "signed": false,
     "status": "unsigned",
-    "sha256": "C702E0FFD2E1F042CC832D1D6F93BA4BF00619FDC78AC1399F1A481DC1466631",
+    "sha256": "3CA4CFE00BF356ACE2DDBC962C99A413D2E6E958BD38F397AEF7B7A2D7E27772",
     "detail": "The file C:\\Users\\Furkan\\Documents\\respected-ecosystem\\respected-orchestrator\\dist\\RespectedOrchestrator-Windows-Setup.exe is not digitally signed. You cannot run this script on the current system. For more information about running scripts and setting execution policy, see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170"
   },
   "release_ready": true,
@@ -104,5 +104,5 @@
       "status": "unsigned"
     }
   ],
-  "body_sha256": "c3eb286d64f72723b2f9de9978630666267fb045b38d3a19256cc7d5ad09df05"
+  "body_sha256": "daacc659589b72b82cac4e3851d0b96002b77b197f17f1b8e7df0392f1ba73a3"
 }
