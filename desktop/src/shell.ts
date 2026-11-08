@@ -1,17 +1,14 @@
 // Pure shell logic (no React, no Tauri) so it can be tested under `node --test`.
 export const ROUTES = [
-  { id: 'projects', label: 'Projeler', empty: 'Henüz proje yok. İlk projenizi başlattığınızda burada görünür.' },
-  { id: 'runs', label: 'Çalıştırmalar', empty: 'Henüz çalıştırma yok.' },
-  { id: 'reviews', label: 'İncelemeler', empty: 'İncelenecek bir şey yok.' },
-  { id: 'agents', label: 'Ajanlar', empty: 'Ajan bulunamadı. Kurulu yapay zekâ araçları burada listelenecek.' },
-  { id: 'team', label: 'Takım', empty: 'Takım bilgisi okunuyor.' },
-  { id: 'sessions', label: 'Oturumlar', empty: 'Açık sohbet oturumu yok. Bir ajanla oturum başlatınca burada görünür.' },
-  { id: 'capabilities', label: 'Yetenekler', empty: 'Kurulu istemcilerde MCP sunucusu veya beceri bulunamadı. Bulununca burada yalnızca okunur olarak listelenir.' },
-  { id: 'suggestions', label: 'Yetenek önerileri', empty: 'Bir görev yazın; bulunan yeteneklerden uygun olanlar burada, nedenleriyle önerilir.' },
-  { id: 'voice', label: 'Sesli görev', empty: 'Sesli görev taslağı ayarlarda kapalıdır; açılınca burada konuşarak taslak oluşturursunuz.' },
-  { id: 'screenshot', label: 'Ekran görüntüsü', empty: 'Ekran görüntüsü ekleme ayarlarda kapalıdır; açılınca burada görüntü seçip karartır ve göreve eklersiniz.' },
-  { id: 'usage', label: 'Bütçe ve başarı', empty: 'Kullanım okunuyor.' },
-  { id: 'settings', label: 'Ayarlar', empty: 'Ayarlar sonraki sürümde bu ekrandan yönetilecek.' },
+  { id: 'sessions', group: 'work', label: 'Sohbet', empty: 'Açık sohbet oturumu yok. Bir ajanla oturum başlatınca burada görünür.' },
+  { id: 'inbox', group: 'work', label: 'Gelen kutusu', empty: 'Dikkat isteyen bir şey yok.' },
+  { id: 'flow', group: 'work', label: 'Etkinlik', empty: 'Henüz kayıtlı olay yok.' },
+  { id: 'tasks', group: 'work', label: 'Görevler', empty: 'Henüz görev yok.' },
+  { id: 'projects', group: 'work', label: 'Projeler', empty: 'Henüz proje yok. İlk projenizi başlattığınızda burada görünür.' },
+  { id: 'team', group: 'tools', label: 'Ajanlar ve ekipler', empty: 'Takım bilgisi okunuyor.' },
+  { id: 'capabilities', group: 'tools', label: 'AI araçları', empty: 'Kurulu istemcilerde MCP sunucusu veya beceri bulunamadı. Bulununca burada yalnızca okunur olarak listelenir.' },
+  { id: 'usage', group: 'tools', label: 'Bütçe ve başarı', empty: 'Kullanım okunuyor.' },
+  { id: 'settings', group: 'tools', label: 'Ayarlar', empty: 'Ayarlar sonraki sürümde bu ekrandan yönetilecek.' },
 ] as const;
 export type RouteId = (typeof ROUTES)[number]['id'];
 
@@ -35,7 +32,7 @@ export function screenView(route: RouteId, engine: EngineState): ScreenView {
 
 export function routeFromHash(hash: string): RouteId {
   const id = hash.replace(/^#\/?/, '');
-  return (ROUTES.find((r) => r.id === id)?.id ?? 'projects') as RouteId;
+  return (ROUTES.find((r) => r.id === id)?.id ?? 'sessions') as RouteId;
 }
 
 /** Keyboard order for the nav: ArrowUp/ArrowDown wrap, Home/End jump. */

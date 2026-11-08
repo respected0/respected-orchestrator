@@ -13,22 +13,25 @@ import re
 import secrets
 import subprocess
 import threading
+import time
 
 from . import chat_session, winproc
+from .session_store import SessionStore, title_of, usage_of
 from .authority import Action, authorize
 
 MAX_RETRIES = 2
 MAX_INPUT = 8000
 MAX_SESSIONS = 20
 TURN_TIMEOUT = 180
+MODELS_TTL = 300
 DISABLED = ("Chat sessions are disabled: the agent CLI cannot run inside the sandbox yet, so the engine starts it only when the "
             "operator sets RESPECTED_CHAT_UNSANDBOXED=allow (tools that change files or run commands stay denied)")
 _UNSAFE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")  # tabs and newlines pass; ESC, CR, NUL and C1 do not
 _SESSION = re.compile(r"^(ses|loc)_[A-Za-z0-9]{8,64}$")
 
 # command -> authority class. `approve` is deliberately absent from this table.
-CLASSES = {"register": Action.TASK, "start": Action.TASK, "send": Action.TASK, "retry": Action.TASK, "interrupt": Action.TASK,
-           "cancel": Action.TASK, "resume": Action.TASK, "view": Action.READ, "events": Action.READ}
+CLASSES = {"defaults": Action.READ, "set_defaults": Action.SETTINGS, "transcript": Action.READ, "history": Action.READ, "forget": Action.TASK, "register": Action.TASK, "start": Action.TASK, "send": Action.TASK, "retry": Action.TASK, "interrupt": Action.TASK,
+           "cancel": Action.TASK, "resume": Action.TASK, "view": Action.READ, "events": Action.READ, "models": Action.READ}
 
 
 def kill_tree(proc):
@@ -59,31 +62,37 @@ class SessionApprovalRefused(PermissionError):
 
 
 class SessionError(ValueError):
-    pass
+    """`reason` is a stable machine code the screen turns into words; the message stays for logs and operators."""
+
+    def __init__(self, message, reason=None):
+        super().__init__(message)
+        self.reason = reason
 
 
 def check_input(text):
     if not isinstance(text, str) or not text.strip():
-        raise SessionError("Message is empty")
+        raise SessionError("Message is empty", "TEXT_EMPTY")
     if len(text) > MAX_INPUT:
-        raise SessionError("Message is too long")
+        raise SessionError("Message is too long", "TEXT_TOO_LONG")
     if _UNSAFE.search(text):
-        raise SessionError("Message contains control or escape characters")
+        raise SessionError("Message contains control or escape characters", "TEXT_UNSAFE")
     return text
 
 
 class SessionController:
-    def __init__(self, binary=None, runner=None, unsandboxed=False):
+    def __init__(self, binary=None, runner=None, unsandboxed=False, store=None):
         """`runner=None` means the real agent CLI is spawned, as the engine's own user and outside the AppContainer: that only
         happens with `unsandboxed=True` (the operator's explicit switch, see DISABLED). Injected runners (tests) are not gated."""
         self._binary, self._runner = binary, runner or run_killable
         self._real, self._unsandboxed = runner is None, unsandboxed
         self._sessions, self._lock = {}, threading.RLock()
+        self.store = store or SessionStore()
+        self._known = {}  # agent -> (time, model ids): the CLI is asked at most once in MODELS_TTL seconds
 
     def _get(self, session_id, project_id):
         found = self._sessions.get(session_id) if isinstance(session_id, str) else None
         if found is None or found["project_id"] != project_id or found["state"] == "ended":
-            raise SessionError("Unknown or ended session")  # one answer for all three, so nothing can be probed
+            raise SessionError("Unknown or ended session", "SESSION_UNKNOWN")  # one answer for all three, so nothing can be probed
         return found
 
     def register(self, origin, session_id, project_id, agent, model, cwd, handle=None):
@@ -97,37 +106,141 @@ class SessionController:
                 raise SessionError("Session already registered")
             self._sessions[session_id] = {"id": session_id, "cli_id": session_id, "project_id": project_id, "agent": agent, "model": model,
                                           "cwd": str(cwd), "state": "running" if handle else "idle", "handle": handle, "retries": 0,
-                                          "last": None, "last_text": None, "gen": 0, "turn": 0, "result": None}
+                                          "last": None, "last_text": None, "gen": 0, "turn": 0, "result": None, "turns": []}
         return self._dto(self._sessions[session_id])
 
-    def start(self, origin, project_id, agent, model, cwd, text, wait=True):
-        """A new session: the first turn runs without --session; the CLI's own session id is learned from its stream."""
+    def start(self, origin, project_id, agent, model, cwd, text, wait=True, resume=None):
+        """A new session: the first turn runs without --session; the CLI's own session id is learned from its stream. `resume` is such an id from
+        an earlier session (the CLI keeps its sessions on disk): the first turn then continues that conversation instead of starting one."""
         authorize(origin, CLASSES["start"])
         text = check_input(text)
+        if resume is not None and not (isinstance(resume, str) and chat_session._SESSION.match(resume)):
+            raise SessionError("Invalid session to continue", "RESUME_INVALID")
         if agent not in chat_session.SUPPORTED:
             raise chat_session.Unsupported(f"{agent}: no verified structured-stream adapter")
+        self._check_model(agent, model)
         with self._lock:
             if sum(1 for s in self._sessions.values() if s["state"] != "ended") >= MAX_SESSIONS:
-                raise SessionError("Too many open sessions")
+                raise SessionError("Too many open sessions", "TOO_MANY_SESSIONS")
             sid = "loc_" + secrets.token_hex(8)
-            self._sessions[sid] = {"id": sid, "cli_id": None, "project_id": project_id, "agent": agent, "model": model, "cwd": str(cwd),
-                                   "state": "idle", "handle": None, "retries": 0, "last": None, "last_text": None, "gen": 0, "turn": 0, "result": None}
+            self._sessions[sid] = {"id": sid, "cli_id": resume, "project_id": project_id, "agent": agent, "model": model, "cwd": str(cwd),
+                                   "state": "idle", "handle": None, "retries": 0, "last": None, "last_text": None, "gen": 0, "turn": 0, "result": None, "turns": []}
+            adopted = next((r for r in self.store.all() if resume and r.get("cli") == resume and r["id"] not in self._sessions), None)
+            if adopted:  # the saved conversation continues here: its record moves to the new session
+                self._sessions[sid]["turns"] = list(adopted["turns"])
             try:
-                return self._turn(self._sessions[sid], text, wait)
+                result = self._turn(self._sessions[sid], text, wait)
             except Exception:
                 del self._sessions[sid]
                 raise
+            if adopted:
+                self.store.delete(adopted["id"])
+            return result
 
-    def _turn(self, session, text, wait=True):
+    def models(self, origin, agent):
+        """The agent CLI's own model list (read only). Spawns the CLI, so it is gated exactly like a turn."""
+        authorize(origin, CLASSES["models"])
+        if agent not in chat_session.SUPPORTED:
+            raise chat_session.Unsupported(f"{agent}: no verified structured-stream adapter")
+        if self._real and not self._unsandboxed:
+            raise SessionError(DISABLED, "CHAT_DISABLED")
+        binary = self._binary or chat_session.native_binary(agent)
+        if not binary:
+            raise SessionError("The agent CLI is not installed (a .cmd shim alone is never run)", "AGENT_NOT_INSTALLED")
+        return {"agent": agent, "models": self._model_ids(agent, binary), "default": self.store.defaults()["model"]}
+
+    def _model_ids(self, agent, binary):
+        with self._lock:
+            hit = self._known.get(agent)
+            if hit and time.monotonic() - hit[0] < MODELS_TTL:
+                return hit[1]
+        try:
+            ids = chat_session.list_models(binary, None if self._real else self._runner)
+        except (OSError, subprocess.SubprocessError, RuntimeError) as error:
+            raise SessionError(str(error)[:200], "MODELS_UNAVAILABLE") from None
+        with self._lock:
+            self._known[agent] = (time.monotonic(), ids)
+        return ids
+
+    def _check_model(self, agent, model):
+        """A model that is not on the agent's own list is refused, whatever its shape."""
+        if self._real and not self._unsandboxed:
+            raise SessionError(DISABLED, "CHAT_DISABLED")
+        binary = self._binary or chat_session.native_binary(agent)
+        if not binary:
+            raise SessionError("The agent CLI is not installed (a .cmd shim alone is never run)", "AGENT_NOT_INSTALLED")
+        if not isinstance(model, str) or model not in self._model_ids(agent, binary):
+            raise SessionError("Model is not on the agent's list", "MODEL_INVALID")
+
+    def defaults(self, origin):
+        authorize(origin, CLASSES["defaults"])
+        return {"agents": list(chat_session.SUPPORTED), **self.store.defaults()}
+
+    def set_defaults(self, origin, agent, model):
+        authorize(origin, CLASSES["set_defaults"])
+        if agent not in chat_session.SUPPORTED:
+            raise chat_session.Unsupported(f"{agent}: no verified structured-stream adapter")
+        self._check_model(agent, model)
+        self.store.set_defaults(agent, model)
+        return self.defaults(origin)
+
+    def _persist(self, session):
+        turns = session["turns"]
+        self.store.put({"id": session["id"], "project_root": session["cwd"], "agent": session["agent"], "model": session["model"],
+                        "cli": session["cli_id"], "turns": turns, "title": title_of(turns, f"{session['agent']} · {session['model'].split('/')[-1]}")})
+
+    def transcript(self, origin, session_id):
+        authorize(origin, CLASSES["transcript"])
+        record = self.store.get(session_id) if isinstance(session_id, str) else None
+        if record is None:
+            raise SessionError("Unknown conversation", "SESSION_UNKNOWN")
+        return {"id": record["id"], "title": record["title"], "project_root": record["project_root"], "agent": record["agent"],
+                "model": record["model"], "resumable": bool(record.get("cli")), "turns": record["turns"], "usage": usage_of(record["turns"])}
+
+    def history(self, origin):
+        """Saved conversations that no session of this run owns (after a restart: all of them), newest first."""
+        authorize(origin, CLASSES["history"])
+        with self._lock:
+            return [{"id": r["id"], "title": r["title"], "project_root": r["project_root"], "agent": r["agent"], "model": r["model"],
+                     "updated": r["updated"], "resumable": bool(r.get("cli"))} for r in self.store.all() if r["id"] not in self._sessions]
+
+    def conversations(self, origin, project_id):
+        """Everything the sidebar lists, newest first: this run's sessions and the saved conversations nobody owns now."""
+        authorize(origin, CLASSES["history"])
+        with self._lock:
+            live = []
+            for s in self._sessions.values():
+                if s["project_id"] != project_id:
+                    continue
+                record = self.store.get(s["id"])
+                live.append({"id": s["id"], "title": title_of(s["turns"], f"{s['agent']} \u00b7 {s['model'].split('/')[-1]}"), "state": s["state"],
+                             "project_root": s["cwd"], "updated": record["updated"] if record else time.time(), "saved": False})
+            old = [{"id": h["id"], "title": h["title"], "state": "ended", "project_root": h["project_root"], "updated": h["updated"], "saved": True}
+                   for h in self.history(origin)]
+        return sorted(live + old, key=lambda c: c["updated"], reverse=True)
+
+    def forget(self, origin, session_id):
+        authorize(origin, CLASSES["forget"])
+        with self._lock:
+            if session_id in self._sessions and self._sessions[session_id]["state"] != "ended":
+                raise SessionError("End the session before deleting its record", "SESSION_LIVE")
+            self._sessions.pop(session_id, None)
+        self.store.delete(session_id)
+        return {"deleted": session_id}
+
+    def _turn(self, session, text, wait=True, new_message=True):
         """Start one turn. wait=True blocks and returns the parsed result; wait=False returns the session view at once and the turn
         finishes on its own thread. Either way the lock is NOT needed to end it: interrupt/cancel bump `gen`, so a late result is dropped."""
         if self._real and not self._unsandboxed:
-            raise SessionError(DISABLED)
+            raise SessionError(DISABLED, "CHAT_DISABLED")
         binary = self._binary or chat_session.native_binary(session["agent"])
         if not binary:
-            raise SessionError("The agent CLI is not installed (a .cmd shim alone is never run)")
+            raise SessionError("The agent CLI is not installed (a .cmd shim alone is never run)", "AGENT_NOT_INSTALLED")
         argv = chat_session.command(session["agent"], model=session["model"], prompt=text, binary=binary, session_id=session["cli_id"])
         session["state"], session["last_text"], session["result"] = "running", text, None
+        if new_message:
+            session["turns"].append({"n": None, "user": text, "result": None})
+        self._persist(session)
         session["gen"] += 1
         session["turn"] += 1  # a client tells two equally-shaped results apart by this, never by their content
         gen = session["gen"]
@@ -153,6 +266,12 @@ class SessionController:
                 session["last_state"], session["result"] = result["state"], result
                 if session["cli_id"] is None and result.get("session_id"):
                     session["cli_id"] = result["session_id"]
+                turns = session["turns"]
+                if turns and turns[-1]["result"] is None:
+                    turns[-1]["n"], turns[-1]["result"] = session["turn"], result
+                else:
+                    turns.append({"n": session["turn"], "user": None, "result": result})
+                self._persist(session)
             return result
 
         if wait:
@@ -181,14 +300,14 @@ class SessionController:
             if session["retries"] >= MAX_RETRIES:
                 raise SessionError("Retry limit reached")
             session["retries"] += 1
-            return self._turn(session, session["last_text"], wait)
+            return self._turn(session, session["last_text"], wait, new_message=False)
 
     def events(self, origin, session_id, project_id):
         """The last finished turn of a session (untrusted stream events, already normalised), or None while one runs."""
         authorize(origin, CLASSES["events"])
         with self._lock:
             session = self._get(session_id, project_id)
-            return {"state": session["state"], "turn": session["turn"], "result": session["result"]}
+            return {"state": session["state"], "turn": session["turn"], "result": session["result"], "usage": usage_of(session["turns"])}
 
     def _stop(self, session):
         session["gen"] += 1  # whatever the turn's thread reports from now on is discarded
@@ -236,11 +355,12 @@ class SessionController:
     @staticmethod
     def _dto(s):
         state = s["state"]
-        why = {"running": "a turn is running", "failed": "last turn failed", "ended": "session ended"}
+        why = {"running": "TURN_RUNNING", "failed": "LAST_TURN_FAILED", "ended": "SESSION_ENDED"}
         enabled = {
             "send": state == "idle", "retry": state == "failed" and s["retries"] < MAX_RETRIES and s.get("last_state") != "rate_limited",
             "interrupt": state == "running", "cancel": state != "ended", "resume": state in ("idle", "failed"),
         }
         return {"id": s["id"], "project_id": s["project_id"], "agent": s["agent"], "model": s["model"], "state": state,
                 "retries": s["retries"], "last_state": s.get("last_state"),
-                "commands": {k: {"enabled": v, "reason": None if v else why.get(state, "not available in this state")} for k, v in enabled.items()}}
+                "turn": s["turn"], "project_root": s["cwd"], "title": title_of(s["turns"], f"{s['agent']} · {s['model'].split('/')[-1]}"),
+                "commands": {k: {"enabled": v, "reason": None if v else why.get(state, "NOT_AVAILABLE")} for k, v in enabled.items()}}

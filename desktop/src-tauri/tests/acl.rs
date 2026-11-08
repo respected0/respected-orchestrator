@@ -5,7 +5,7 @@ use tauri::test::{get_ipc_response, mock_builder, MockRuntime, INVOKE_KEY};
 use tauri::webview::InvokeRequest;
 use tauri::{WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
-const COMMANDS: [&str; 10] = ["engine_status", "confirm_close", "request_apply", "attach_image", "share_image", "revoke_image", "capability_inventory", "session_call", "read_call", "preview_open"];
+const COMMANDS: [&str; 14] = ["engine_status", "confirm_close", "request_apply", "attach_image", "share_image", "revoke_image", "capability_inventory", "session_call", "read_call", "preview_open", "pick_folder", "pick_files", "list_dir", "read_text_file"];
 
 fn call(w: &WebviewWindow<MockRuntime>, cmd: &str, from: &str, body: serde_json::Value) -> Result<serde_json::Value, serde_json::Value> {
     let request = InvokeRequest {
@@ -43,6 +43,12 @@ fn the_preview_window_has_no_ipc_while_the_app_window_still_has() {
     for cmd in ["team.view", "capabilities.recommend", "analytics.summary"] {
         let answer = format!("{:?}", call(&main, "read_call", "http://tauri.localhost/", serde_json::json!({"cmd": cmd, "payload": {}})));
         assert!(answer.contains("NotInstalled"), "{cmd} should reach the connection: {answer}");
+    }
+
+    // the dialog plugin is linked only for our own pick_* commands: no capability grants its commands (nor the fs plugin it pulls in) to any window
+    for cmd in ["plugin:dialog|open", "plugin:dialog|save", "plugin:dialog|message", "plugin:fs|read_file", "plugin:fs|read_dir", "plugin:fs|write_file"] {
+        let answer = call(&main, cmd, "http://tauri.localhost/", serde_json::json!({}));
+        assert!(answer.is_err() && format!("{answer:?}").contains("not allowed"), "{cmd} is open to the app window: {answer:?}");
     }
 
     // the preview window: every shell command is refused by the ACL before any of our code runs, whatever origin it claims

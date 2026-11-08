@@ -1,0 +1,71 @@
+// Pure views for the work boards (tasks, projects, inbox, activity). No React, no Tauri: testable under `node --test`.
+// Everything is read from the engine's own records (runs.list, projects.list, activity.list). A reply that is not exactly the documented
+// shape becomes an error view, never an empty or healthy-looking one.
+
+export type Tone = 'ok' | 'warn' | 'err' | 'run' | '';
+export const RUN_STATE: Record<string, { text: string; tone: Tone }> = {
+  queued: { text: 'Sırada', tone: '' }, in_progress: { text: 'Çalışıyor', tone: 'run' }, done: { text: 'Bitti', tone: 'ok' },
+  failed: { text: 'Başarısız', tone: 'err' }, cancelled: { text: 'İptal edildi', tone: 'warn' }, stale: { text: 'Yarıda kaldı', tone: 'warn' }, invalid: { text: 'Bozuk kayıt', tone: 'err' },
+};
+export const stateInfo = (s: string): { text: string; tone: Tone } => RUN_STATE[s] ?? { text: s || 'Bilinmiyor', tone: '' };
+export const ATTENTION_STATES = ['failed', 'stale', 'invalid'] as const;
+
+export type RunRow = { run_id: string; state: string; task: string; kind: string | null; agent: string | null; project_root: string | null; created_at: string | null; updated_at: string | null; error: string | null };
+export type ProjectRow = { project_id: string; state: string; goal: string; created_at: string | null; alive: boolean; stages: { name: string; status: string | null; after: string[]; attempts: number }[]; error: string | null };
+export type ActivityRow = { seq: number; ts: number | null; op: string; run: string | null; type: string; stage: string | null };
+
+export type Failure = { kind: 'error'; text: string; hint: string };
+export type View<T> = { kind: 'rows'; rows: T[]; more: boolean } | Failure;
+const fail = (text: string, hint = 'Yenile düğmesiyle tekrar deneyin.'): Failure => ({ kind: 'error', text, hint });
+const SHAPE = 'Uygulama ve motor aynı sürümde olmalı.';
+
+function body(reply: unknown, what: string, key: string): { ok: true; list: unknown[]; r: Record<string, unknown> } | { ok: false; f: Failure } {
+  const r = reply as { ok?: unknown; result?: Record<string, unknown>; error?: { message?: string } } | null;
+  if (!r || typeof r !== 'object') return { ok: false, f: fail(`${what}: beklenmeyen yanıt alındı.`, 'Motoru yeniden başlatın veya onarım çalıştırın.') };
+  if (r.ok !== true) return { ok: false, f: fail(`${what}: ${r.error?.message ?? 'bilinmeyen hata'}`) };
+  const list = r.result?.[key];
+  if (!Array.isArray(list)) return { ok: false, f: fail(`${what}: yanıt beklenen biçimde değil; gösterilmedi.`, SHAPE) };
+  return { ok: true, list, r: r.result as Record<string, unknown> };
+}
+const s = (v: unknown): string => (typeof v === 'string' ? v : '');
+const sn = (v: unknown): string | null => (typeof v === 'string' ? v : null);
+const obj = (x: unknown, key: string): x is Record<string, unknown> => typeof x === 'object' && x !== null && key in x;
+
+export function runsView(reply: unknown): View<RunRow> {
+  const b = body(reply, 'Görevler okunamadı', 'runs');
+  if (!b.ok) return b.f;
+  const rows = b.list.filter((x): x is Record<string, unknown> => obj(x, 'run_id') && typeof x.run_id === 'string')
+    .map((x) => ({ run_id: s(x.run_id), state: s(x.state) || 'invalid', task: s(x.task), kind: sn(x.kind), agent: sn(x.agent), project_root: sn(x.project_root), created_at: sn(x.created_at), updated_at: sn(x.updated_at), error: sn(x.error) }));
+  return rows.length === b.list.length ? { kind: 'rows', rows, more: b.r.next_cursor != null } : fail('Görev listesi beklenen biçimde değil; gösterilmedi.', SHAPE);
+}
+
+export function projectsView(reply: unknown): View<ProjectRow> {
+  const b = body(reply, 'Projeler okunamadı', 'projects');
+  if (!b.ok) return b.f;
+  const rows = b.list.filter((x): x is Record<string, unknown> => obj(x, 'project_id') && typeof x.project_id === 'string').map((x) => ({
+    project_id: s(x.project_id), state: s(x.state) || 'invalid', goal: s(x.goal), created_at: sn(x.created_at), alive: x.alive === true, error: sn(x.error),
+    stages: (Array.isArray(x.stages) ? x.stages : []).filter((g): g is Record<string, unknown> => typeof g === 'object' && g !== null)
+      .map((g) => ({ name: s(g.name), status: sn(g.status), after: (Array.isArray(g.after) ? g.after : []).filter((a): a is string => typeof a === 'string'), attempts: typeof g.attempts === 'number' ? g.attempts : 0 })),
+  }));
+  return rows.length === b.list.length ? { kind: 'rows', rows, more: b.r.next_cursor != null } : fail('Proje listesi beklenen biçimde değil; gösterilmedi.', SHAPE);
+}
+
+export type ActivityView = { kind: 'rows'; rows: ActivityRow[]; more: boolean; lastSeq: number } | Failure;
+export function activityView(reply: unknown): ActivityView {
+  const b = body(reply, 'Etkinlik okunamadı', 'events');
+  if (!b.ok) return b.f;
+  const rows = b.list.filter((x): x is Record<string, unknown> => obj(x, 'seq') && typeof x.seq === 'number')
+    .map((x) => ({ seq: x.seq as number, ts: typeof x.ts === 'number' ? x.ts : null, op: s(x.op), run: sn(x.run), type: s(x.type), stage: sn(x.stage) }));
+  if (rows.length !== b.list.length) return fail('Etkinlik listesi beklenen biçimde değil; gösterilmedi.', SHAPE);
+  return { kind: 'rows', rows, more: b.r.has_more === true, lastSeq: typeof b.r.last_seq === 'number' ? b.r.last_seq : 0 };
+}
+
+/** The engine pages forward from a cursor, so the newest page starts `limit` before the last sequence. */
+export const newestCursor = (lastSeq: number, limit: number): number => Math.max(0, lastSeq - limit);
+
+/** ISO text or epoch seconds -> short local date and time; anything unreadable shows as an em dash, never as "now". */
+export function when(v: string | number | null): string {
+  if (v === null || v === '') return '—';
+  const d = new Date(typeof v === 'number' ? v * 1000 : v);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' });
+}

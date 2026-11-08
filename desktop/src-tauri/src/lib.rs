@@ -1,6 +1,7 @@
 pub mod approval;
 pub mod image_consent;
 pub mod preview;
+pub mod files;
 pub mod engine_connector;
 
 use engine_connector::{ConnectError, Connection, Status};
@@ -8,6 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use tauri::{Emitter, Manager};
 use tauri::Url;
+use tauri_plugin_dialog::DialogExt;
 
 #[derive(serde::Serialize)]
 pub struct EngineProblem { error: ConnectError, hint: &'static str }
@@ -135,6 +137,33 @@ fn read_call(cmd: String, payload: serde_json::Value, state: tauri::State<Mutex<
         Err(e) => { *slot = None; Err(problem(e)) }
     }
 }
+/// Native folder chooser (an OS dialog the WebView cannot draw into). The renderer gets back only the path the person picked, or nothing.
+/// The dialog plugin itself has no permission in any capability, so the WebView cannot open dialogs of its own: only this command.
+#[tauri::command]
+async fn pick_folder<R: tauri::Runtime>(window: tauri::Window<R>, app: tauri::AppHandle<R>, start: Option<String>, roots: tauri::State<'_, files::Roots>) -> Result<Option<String>, String> {
+    let mut dialog = app.dialog().file().set_parent(&window).set_title("Proje klasörünü seç");
+    if let Some(s) = start.filter(|s| std::path::Path::new(s).is_dir()) { dialog = dialog.set_directory(s); } // only where the dialog opens; the person still has to pick
+    let picked = dialog.blocking_pick_folder();
+    let path = picked.and_then(|p| p.into_path().ok());
+    if let Some(p) = &path { roots.allow(p); } // the file view may look inside exactly the folders the person picked here
+    Ok(path.map(|p| p.to_string_lossy().into_owned()))
+}
+
+/// Lists one folder inside a picked project folder (read only; see files.rs).
+#[tauri::command]
+fn list_dir(path: String, roots: tauri::State<'_, files::Roots>) -> Result<Vec<files::Entry>, String> { roots.list(std::path::Path::new(&path)) }
+
+/// Reads one small text file inside a picked project folder (read only; see files.rs).
+#[tauri::command]
+fn read_text_file(path: String, roots: tauri::State<'_, files::Roots>) -> Result<String, String> { roots.read_text(std::path::Path::new(&path)) }
+
+/// Native file chooser for message attachments; returns the picked paths (possibly none). Nothing is read or uploaded here.
+#[tauri::command]
+async fn pick_files<R: tauri::Runtime>(window: tauri::Window<R>, app: tauri::AppHandle<R>) -> Result<Vec<String>, String> {
+    let picked = app.dialog().file().set_parent(&window).set_title("Eklenecek dosyaları seç").blocking_pick_files().unwrap_or_default();
+    Ok(picked.into_iter().filter_map(|p| p.into_path().ok()).map(|p| p.to_string_lossy().into_owned()).collect())
+}
+
 static PREVIEW_GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 /// Opens one untrusted local page (B3-06.03). Refused unless the user turned the preview on in the engine settings and listed the port.
@@ -203,12 +232,22 @@ pub fn navigation_allowed_for(label: &str, url: &Url) -> bool {
     label == "preview" || navigation_allowed(url)
 }
 
+/// Folders the person picked stay allowed across restarts (a file under the app's data folder); without a data folder nothing is remembered.
+fn roots_store() -> files::Roots {
+    match std::env::var_os("LOCALAPPDATA") {
+        Some(d) if !cfg!(test) => files::Roots::persistent(std::path::PathBuf::from(d).join("com.respected.orchestrator").join("picked-folders.json")),
+        _ => files::Roots::default(),
+    }
+}
+
 /// Everything except the navigation-guard plugin, generic over the runtime so an integration test can run the real command list
 /// and the real capabilities on a mock runtime.
 pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
     builder
+        .plugin(tauri_plugin_dialog::init())
         .manage(Mutex::new(None::<Connection>))
         .manage(CloseConfirmed::default())
+        .manage(roots_store())
         .manage(Mutex::new(None::<approval::Pair>))
         .manage(approval::Gate::default())
         .on_window_event(|window, event| {
@@ -222,7 +261,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, read_call, preview_open])
+        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, read_call, preview_open, pick_folder, pick_files, list_dir, read_text_file])
 }
 
 pub fn run() {

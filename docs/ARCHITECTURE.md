@@ -636,8 +636,20 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   yalnız operatör `RESPECTED_CHAT_UNSANDBOXED=allow` verirse açılır; açıkken süreç sandbox dışında, motorun kullanıcısı olarak
   çalışır. Her tur için dosya değiştiren/komut çalıştıran/ağ araçları reddedilir, proje yapılandırması yok sayılır, çalışma dizini
   `PWD` ile verilir, süreç `RESPECTED_ORCH_CHILD=1` ile işaretlenir (insan onayı veremez), `.cmd` shim'i çalıştırılmaz. Akıştaki her
-  olay güvenilmeyen veridir; oturumda `approve` komutu yoktur (onaylar yalnız onay merkezinde). Oturum belleği süreç içidir
-  (motor yeniden başlarsa oturum listesi boşalır). `interrupt` süreç ağacını öldürür; tur sonucu `session.events` ile okunur.
+  olay güvenilmeyen veridir; oturumda `approve` komutu yoktur (onaylar yalnız onay merkezinde). Canlı oturumlar süreç içidir; konuşma kayıtları
+  (`chat/sessions.json`) yeniden başlatmada kalır ve `continue_conversation` ile sürdürülür. `interrupt` süreç ağacını öldürür; tur sonucu `session.events` ile okunur.
+  **Masaüstü yalnız görsel katmandır.** Varsayılan ajan/model, geçerli model denetimi (başlatma ve `session.defaults.set` modeli ajanın kendi listesine
+  karşı doğrular), konuşma geçmişi, başlık, oturum-klasör eşlemesi, sıralama ve token/maliyet toplamları motorda hesaplanır ve saklanır
+  (`engine/session_store.py`, veri kökünde `chat/sessions.json`); masaüstü bunları çizer ve kullanıcının seçimini iletir. Tarayıcı depolaması
+  yalnız görünüm tercihlerini (tema, kenar çubuğu, grup sırası, sıralama ölçütü) tutar; `desktop/tests/engine_owns.test.ts` bunu denetler.
+  Dosya ağacı ve seçili klasör izni kabukta kalır: izin kullanıcının yerel klasör penceresindeki seçimidir ve motora vekâlet edilemez.
+  `session.models` (salt okunur) ajan CLI'ının kendi `models` çıktısını döndürür; yalnız `sağlayıcı/ad` biçimindeki satırlar kalır ve
+  tur başlatmayla aynı kapıya (`RESPECTED_CHAT_UNSANDBOXED`) bağlıdır. Sohbet ekranı model listesini, token kullanımını (`usage`
+  olayları), planı (`todowrite` araç çağrısı), okunan/değişen dosyaları (araç girdileri) ve sağ paneli yalnız bu yanıtlardan ve
+  `session.events` akışından üretir; motorun vermediği hiçbir değer (bağlam yüzdesi gibi) çizilmez. Eklenen dosya yolları mesaj
+  metninin içinde (`@yol`) gider; oturum komutları yalnız metin alır. Proje/dosya seçimi Tauri'nin yerel iletişim kutusuyla
+  (`pick_folder`, `pick_files`; yalnız bu iki uygulama komutu `main` penceresine izinlidir, `dialog`/`fs` eklenti komutlarının
+  hiçbiri hiçbir pencereye verilmez) yapılır.
 - Kurucu üretimde güvenilir bir Authenticode sertifikasıyla imzalı değildir. İmza/doğrulama hattı gerçek bir
   self-signed test sertifikasıyla kanıtlanmıştır; üretim sertifikası ve zaman damgası operasyonel bağımlılıktır
   (`KANIT_LOG.md` §REL-01).

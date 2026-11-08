@@ -150,6 +150,16 @@ def native_binary(agent):
     return next((path for path in (clis.worker_executable(agent, found[name]) for name in names) if path), None)
 
 
+def list_models(binary, runner=None, timeout=30):
+    """The model ids this CLI reports (`models`), one per line; only lines that pass the same check a session start applies are kept."""
+    env = {**os.environ, "OPENCODE_DISABLE_PROJECT_CONFIG": "1", "RESPECTED_ORCH_CHILD": "1"}
+    done = (runner or winproc.run)([binary, "models"], env=env, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                                   timeout=timeout, stdin=subprocess.DEVNULL, shell=False)
+    if done.returncode != 0:
+        raise RuntimeError("The agent CLI could not list its models")
+    return sorted({clean(line, 200).strip() for line in done.stdout.splitlines() if _MODEL.match(clean(line, 200).strip())})
+
+
 def run_turn(agent, *, model, prompt, cwd, session_id=None, row=None, runner=None, timeout=180):
     """Run one turn only when the matrix says chat is verified and logged in; returns parse_stream's verdict."""
     row = row or agent_adapters.verify(agent)

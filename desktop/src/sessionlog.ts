@@ -2,27 +2,30 @@
 // Everything a session stream contains is untrusted data: it is turned into plain text lines and never into an action.
 
 /** The only commands the screen sends; src-tauri/src/engine_connector.rs keeps the same list and a test compares them. There is no approve. */
-export const SESSION_COMMANDS = ['sessions.list', 'session.start', 'session.events', 'session.send', 'session.retry', 'session.interrupt', 'session.cancel', 'session.resume'] as const;
+export const SESSION_COMMANDS = ['sessions.list', 'session.start', 'session.events', 'session.send', 'session.retry', 'session.interrupt', 'session.cancel', 'session.resume', 'session.models', 'session.defaults', 'session.defaults.set', 'session.transcript', 'session.forget'] as const;
 export type SessionCommand = (typeof SESSION_COMMANDS)[number];
 
 export const PROJECT_ID = 'proj-sessions';
-export const DEFAULT_MODEL = 'opencode/deepseek-v4.1-flash-free';
-export const AGENTS = ['opencode'] as const; // the only agent with a verified structured stream (engine/chat_session.py)
 
 export type State = 'idle' | 'running' | 'failed' | 'ended';
 export type CommandState = { enabled: boolean; reason: string | null };
 export type SessionView = {
-  id: string; project_id: string; agent: string; model: string; state: State; retries: number; last_state: string | null;
+  id: string; project_id: string; agent: string; model: string; state: State; retries: number; last_state: string | null; turn: number;
+  project_root: string; title: string;
   commands: Record<'send' | 'retry' | 'interrupt' | 'cancel' | 'resume', CommandState>;
 };
+/** One sidebar row, ordered and titled by the engine. `saved`: a conversation from an earlier run (read-only until continued). */
+export type Conversation = { id: string; title: string; state: State; project_root: string; updated: number; saved: boolean };
+export type Usage = { input: number; output: number; reasoning: number; cache_read: number; cost: number | null; last_input: number | null; steps: number };
+export type Transcript = { id: string; title: string; project_root: string; agent: string; model: string; resumable: boolean; turns: import('./chatmodel').Turn[]; usage: Usage | null };
+export type Defaults = { agents: string[]; agent: string; model: string };
 export type StreamEvent = { kind: string; [k: string]: unknown };
 export type TurnResult = { state: string; complete: boolean; events: StreamEvent[]; error?: string } | null;
 
 export const STATE_TEXT: Record<State, string> = { idle: 'Hazır', running: 'Çalışıyor', failed: 'Başarısız', ended: 'Bitti' };
 export const COMMAND_TEXT = { send: 'Gönder', retry: 'Yeniden dene', interrupt: 'Turu durdur', cancel: 'Oturumu bitir', resume: 'Sürdür' } as const;
 export const REASON_TEXT: Record<string, string> = {
-  'a turn is running': 'Bir tur çalışıyor.', 'last turn failed': 'Son tur başarısız oldu.', 'session ended': 'Oturum bitti.',
-  'not available in this state': 'Bu durumda kullanılamaz.',
+  TURN_RUNNING: 'Bir tur çalışıyor.', LAST_TURN_FAILED: 'Son tur başarısız oldu.', SESSION_ENDED: 'Oturum bitti.', NOT_AVAILABLE: 'Bu durumda kullanılamaz.',
 };
 export const stateText = (s: string): string => STATE_TEXT[s as State] ?? 'Bilinmiyor';
 export const reasonText = (r: string | null): string => (r ? REASON_TEXT[r] ?? 'Şu an kullanılamaz.' : '');
@@ -57,7 +60,9 @@ export async function call<T>(relay: Relay, cmd: SessionCommand, payload: Record
   try {
     const r = await relay(cmd, { project_id: PROJECT_ID, ...payload });
     if (r.ok) return { ok: true, value: r.result as T };
-    if ((r.error?.message ?? '').startsWith('Chat sessions are disabled')) return { ok: false, text: DISABLED_TEXT };
+    const reason = (r.error as { reason?: string } | null)?.reason ?? '';
+    if (reason === 'CHAT_DISABLED') return { ok: false, text: DISABLED_TEXT };
+    if (REJECT_TEXT[reason]) return { ok: false, text: REJECT_TEXT[reason] };
     const code = r.error?.code ?? 'ENGINE_ERROR';
     const known: Record<string, string> = { FORBIDDEN: 'Bu işleme izin yok.', BAD_REQUEST: 'İstek geçersiz.', UNAUTHENTICATED: 'Motor oturumu doğrulanamadı.' };
     return { ok: false, text: known[code] ?? `Motor reddetti: ${(r.error?.message ?? '').slice(0, 200)}` };
@@ -67,19 +72,16 @@ export async function call<T>(relay: Relay, cmd: SessionCommand, payload: Record
   }
 }
 
+/** The engine says why with a code; these are only the words for it. */
+export const REJECT_TEXT: Record<string, string> = {
+  MODEL_INVALID: 'Bu model ajanın listesinde yok.', MODELS_UNAVAILABLE: 'Ajan model listesini veremedi.', ROOT_INVALID: 'Proje klasörü geçerli bir mevcut tam yol olmalı.',
+  TEXT_EMPTY: 'İleti boş.', TEXT_TOO_LONG: 'İleti çok uzun (en çok 8000 karakter).', TEXT_UNSAFE: 'İletide denetim karakteri var.',
+  AGENT_NOT_INSTALLED: 'Ajan kurulu değil.', TOO_MANY_SESSIONS: 'Çok fazla açık oturum var.', SESSION_UNKNOWN: 'Oturum bulunamadı.',
+  SESSION_LIVE: 'Önce oturumu bitir.', RESUME_INVALID: 'Devam ettirilecek oturum geçersiz.',
+};
 export const DISABLED_TEXT = 'Sohbet oturumları kapalı: ajan henüz sandbox içinde çalışamadığı için motor onu yalnız operatör RESPECTED_CHAT_UNSANDBOXED=allow ayarladığında başlatır. Dosya değiştiren ve komut çalıştıran araçlar o durumda da kapalı kalır.';
 
 export const POLL_MS = 1000;
 /** A running turn is polled; nothing else is. */
 export const shouldPoll = (s: SessionView): boolean => s.state === 'running';
 
-export type StartForm = { root: string; model: string; text: string };
-/** The same rules the engine applies; here only to give the person an immediate reason (the engine still decides). */
-export function startProblem(f: StartForm): string | null {
-  if (!/^([A-Za-z]:[\\/]|\\\\|\/)/.test(f.root.trim())) return 'Proje klasörü tam yol olmalı (ör. C:\\Projeler\\uygulama).';
-  if (!/^[\w.-]+\/[\w.:-]+$/.test(f.model.trim())) return 'Model "sağlayıcı/ad" biçiminde olmalı.';
-  if (!f.text.trim()) return 'İleti boş.';
-  if (f.text.length > 8000) return 'İleti çok uzun (en çok 8000 karakter).';
-  if (/[\x00-\x08\x0b-\x1f\x7f-\x9f]/.test(f.text)) return 'İletide denetim karakteri var.';
-  return null;
-}

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { COMMANDS } from '../src/contracts/ipc.ts';
 import { bufferOf } from '../src/terminal.ts';
 import {
-  COMMAND_TEXT, DISABLED_TEXT, PROJECT_ID, SESSION_COMMANDS, call, reasonText, shouldPoll, startProblem, stateText, transcriptLines,
+  COMMAND_TEXT, DISABLED_TEXT, PROJECT_ID, SESSION_COMMANDS, call, reasonText, shouldPoll, stateText, transcriptLines,
   type Relay, type SessionView,
 } from '../src/sessionlog.ts';
 
@@ -49,7 +49,7 @@ test('every state and command has Turkish text; the reason of a disabled command
   for (const s of ['idle', 'running', 'failed', 'ended']) assert.notEqual(stateText(s), 'Bilinmiyor');
   assert.equal(stateText('weird'), 'Bilinmiyor');
   assert.deepEqual(Object.keys(COMMAND_TEXT).sort(), ['cancel', 'interrupt', 'resume', 'retry', 'send']);
-  for (const r of ['a turn is running', 'last turn failed', 'session ended', 'not available in this state']) assert.notEqual(reasonText(r), 'Şu an kullanılamaz.');
+  for (const r of ['TURN_RUNNING', 'LAST_TURN_FAILED', 'SESSION_ENDED', 'NOT_AVAILABLE']) assert.notEqual(reasonText(r), 'Şu an kullanılamaz.');
   assert.equal(reasonText(null), '');
 });
 
@@ -75,7 +75,7 @@ test('the screen only sends listed commands, always with its project id, and tur
   const odd: Relay = async () => ({ ok: false, result: null, error: { code: 'ENGINE_ERROR', message: 'z'.repeat(1000) } });
   const text = (await call(odd, 'session.send', {})) as { ok: false; text: string };
   assert.ok(text.text.length < 260);
-  const off: Relay = async () => ({ ok: false, result: null, error: { code: 'ENGINE_ERROR', message: 'Chat sessions are disabled: the agent CLI cannot run inside the sandbox yet' } });
+  const off: Relay = async () => ({ ok: false, result: null, error: { code: 'ENGINE_ERROR', message: 'any wording', reason: 'CHAT_DISABLED' } });
   const refused = (await call(off, 'session.start', {})) as { ok: false; text: string };
   assert.equal(refused.text, DISABLED_TEXT);
   assert.ok(DISABLED_TEXT.includes('RESPECTED_CHAT_UNSANDBOXED=allow'));
@@ -85,13 +85,16 @@ test('the screen only sends listed commands, always with its project id, and tur
   assert.deepEqual(await call(weird, 'session.send', {}), { ok: false, text: 'Motora ulaşılamadı.' });
 });
 
-test('the start form explains what the engine would refuse', () => {
-  const good = { root: 'C:\\Projeler\\uygulama', model: 'opencode/deepseek-v4.1-flash-free', text: 'merhaba' };
-  assert.equal(startProblem(good), null);
-  assert.equal(startProblem({ ...good, root: '/tmp/x' }), null);
-  for (const bad of [{ root: 'relative\\dir' }, { root: '' }, { model: 'nomodel' }, { model: 'a/b c' }, { text: '   ' }, { text: 'x'.repeat(8001) }, { text: 'a\x1b[31m' }, { text: 'a\x00' }]) {
-    assert.notEqual(startProblem({ ...good, ...bad }), null, JSON.stringify(bad));
-  }
+test('a refusal is worded from the engine\'s reason code, never from its message text', async () => {
+  const bad: Relay = async () => ({ ok: false, result: null, error: { code: 'ENGINE_ERROR', message: 'Model is not on the agent\'s list', reason: 'MODEL_INVALID' } });
+  assert.deepEqual(await call(bad, 'session.start', {}), { ok: false, text: 'Bu model ajanın listesinde yok.' });
+  const root: Relay = async () => ({ ok: false, result: null, error: { code: 'BAD_REQUEST', message: 'x', reason: 'ROOT_INVALID' } });
+  assert.match(((await call(root, 'session.start', {})) as { text: string }).text, /klasör/i);
+});
+
+test('the screen carries no model, agent or start rule of its own', () => {
+  const src = readFileSync(new URL('../src/sessionlog.ts', import.meta.url), 'utf8');
+  for (const word of ['DEFAULT_MODEL', 'AGENTS', 'startProblem', 'deepseek']) assert.ok(!src.includes(word), word);
 });
 
 test('the screen, the Rust relay and the engine contract list exactly the same session commands', () => {

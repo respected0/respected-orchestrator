@@ -22,10 +22,13 @@ MODEL = "opencode/deepseek-v4.1-flash-free"
 
 
 class FakeRunner:
-    def __init__(self, stdout=OK_STREAM, rc=0):
-        self.stdout, self.rc, self.calls, self.kwargs = stdout, rc, [], []
+    def __init__(self, stdout=OK_STREAM, rc=0, models=None):
+        self.stdout, self.rc, self.calls, self.kwargs, self.models, self.model_calls = stdout, rc, [], [], models or MODEL + chr(10), []
 
     def __call__(self, argv, **kw):
+        if argv[1:2] == ["models"]:  # the model list the engine checks a start against
+            self.model_calls.append(argv)
+            return subprocess.CompletedProcess(argv, self.rc, self.models, "")
         self.calls.append(argv)
         self.kwargs.append(kw)
         return subprocess.CompletedProcess(argv, self.rc, self.stdout, "")
@@ -45,6 +48,9 @@ class AuthorityTests(unittest.TestCase):
             "resume": lambda c, o: c.resume(o, SID, PID), "view": lambda c, o: c.view(o, PID),
             "register": lambda c, o: c.register(o, "ses_zzzzzzzzzz", PID, "opencode", MODEL, "."),
             "start": lambda c, o: c.start(o, PID, "opencode", MODEL, ".", "hi"), "events": lambda c, o: c.events(o, SID, PID),
+            "models": lambda c, o: c.models(o, "opencode"), "defaults": lambda c, o: c.defaults(o),
+            "set_defaults": lambda c, o: c.set_defaults(o, "opencode", MODEL), "transcript": lambda c, o: c.transcript(o, SID),
+            "history": lambda c, o: c.history(o), "forget": lambda c, o: c.forget(o, SID),
         }
         self.assertEqual(set(calls), set(CLASSES))
         for name, call in calls.items():
@@ -209,7 +215,7 @@ class IpcStartTests(unittest.TestCase):
         for name, action in CLASSES.items():
             if name == "register":
                 continue  # not reachable over IPC (a session id comes from a CLI, never from the renderer)
-            wire = "sessions.list" if name == "view" else f"session.{name}"
+            wire = "sessions.list" if name in ("view", "history") else "session.defaults.set" if name == "set_defaults" else f"session.{name}"
             self.assertIs(local_api.COMMANDS[wire][1], action, wire)
         self.assertNotIn("session.register", local_api.COMMANDS)
 
@@ -269,14 +275,42 @@ class SandboxGateTests(unittest.TestCase):
             thread.assert_not_called()
             self.assertEqual(ctl._sessions, {})
 
+    def test_model_list_is_gated_like_a_turn_and_keeps_only_valid_ids(self):
+        with self.assertRaises(SessionError) as caught:
+            SessionController(binary="oc").models(Origin.HUMAN, "opencode")  # the real CLI is never spawned without the switch
+        self.assertIn("RESPECTED_CHAT_UNSANDBOXED", str(caught.exception))
+        runner = FakeRunner(models="amd/Gemma-4-31B-IT\nnot a model\n\x1b[31mopencode/big-pickle\x1b[0m\namd/Gemma-4-31B-IT\n")
+        got = SessionController(binary="oc", runner=runner).models(Origin.HUMAN, "opencode")
+        self.assertEqual(got, {"agent": "opencode", "models": ["amd/Gemma-4-31B-IT", "opencode/big-pickle"], "default": MODEL})
+        self.assertEqual(runner.model_calls, [["oc", "models"]])
+        with self.assertRaises(chat_session.Unsupported):
+            SessionController(binary="oc", runner=runner).models(Origin.HUMAN, "codex")
+        with self.assertRaises(SessionError):
+            SessionController(binary="oc", runner=FakeRunner(rc=1)).models(Origin.HUMAN, "opencode")
+
+    def test_start_can_continue_an_agent_session_and_refuses_a_malformed_id(self):
+        runner = FakeRunner()
+        ctl = SessionController(binary="oc", runner=runner)
+        ctl.start(Origin.HUMAN, PID, "opencode", MODEL, tempfile.gettempdir(), "devam", resume=SID)
+        argv = runner.calls[0]
+        self.assertEqual(argv[argv.index("--session") + 1], SID)  # the first turn continues the saved conversation
+        for bad in ("../x", "loc_abcdef0123", "ses_short", 5, ""):
+            with self.assertRaises(SessionError):
+                ctl.start(Origin.HUMAN, PID, "opencode", MODEL, tempfile.gettempdir(), "x", resume=bad)
+        runner2 = FakeRunner()
+        SessionController(binary="oc", runner=runner2).start(Origin.HUMAN, PID, "opencode", MODEL, tempfile.gettempdir(), "yeni")
+        self.assertNotIn("--session", runner2.calls[0])  # no resume, no --session
+
     def test_the_operator_switch_enables_it_and_the_turn_gets_the_safe_environment(self):
         from respected_orchestrator.engine import session_control as sc
         calls = []
 
         def fake_spawn(argv, **kw):
+            if argv[1:2] == ["models"]:
+                return subprocess.CompletedProcess(argv, 0, MODEL + chr(10), "")
             calls.append((argv, kw))
             return subprocess.CompletedProcess(argv, 0, OK_STREAM, "")
-        with mock.patch.object(sc, "run_killable", fake_spawn):
+        with mock.patch.object(sc, "run_killable", fake_spawn), mock.patch.object(sc.chat_session, "list_models", return_value=[MODEL]):
             ctl = SessionController(binary="oc", unsandboxed=True)
             ctl.start(Origin.HUMAN, PID, "opencode", MODEL, tempfile.gettempdir(), "hi")
         argv, kw = calls[0]
@@ -404,6 +438,8 @@ class RealProcessTests(unittest.TestCase):
 def sleeper(pids):
     """A runner that really starts a long-lived process through run_killable (the production path), recording its pid."""
     def runner(argv, **kw):
+        if argv[1:2] == ["models"]:
+            return subprocess.CompletedProcess(argv, 0, MODEL + chr(10), "")
         on_start = kw.pop("on_start")
         return run_killable([sys.executable, "-c", "import time; time.sleep(60)"], on_start=lambda p: (pids.append(p.pid), on_start(p)), **kw)
     return runner

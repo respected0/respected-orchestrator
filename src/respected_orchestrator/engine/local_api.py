@@ -15,6 +15,7 @@ from .evidence import load_signed
 from .authority import Action, Origin, authorize, effective_origin
 from .capabilities import normalize as capability_normalize, paths as capability_paths
 from . import maintenance, session_control
+from .session_store import SessionStore
 from . import activity, agent_discovery, capability_matrix, approval, artifact_view, read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control, role_editor, roles
 from .runner import SUPPORTED_AGENTS, tool_available
@@ -92,13 +93,18 @@ COMMANDS = {
     "session.interrupt": (None, Action.TASK),
     "session.cancel": (None, Action.TASK),
     "session.resume": (None, Action.TASK),
+    "session.models": (None, Action.READ),
+    "session.defaults": (None, Action.READ),
+    "session.defaults.set": (None, Action.SETTINGS),
+    "session.transcript": (None, Action.READ),
+    "session.forget": (None, Action.TASK),
 }
 ERRORS = ("BAD_REQUEST", "UNSUPPORTED_VERSION", "UNAUTHENTICATED", "UNKNOWN_COMMAND", "FORBIDDEN",
           "PAYLOAD_TOO_LARGE", "REPLAY_CONFLICT", "ENGINE_ERROR")
 
 
-def _reply(corr, ok, result=None, code=None, message=""):
-    error = None if ok else {"code": code, "message": message}
+def _reply(corr, ok, result=None, code=None, message="", reason=None):
+    error = None if ok else {"code": code, "message": message, **({"reason": reason} if reason else {})}
     return {"ipc": IPC, "id": corr, "ok": ok, "result": result, "error": error}
 
 
@@ -112,7 +118,9 @@ class LocalApi:
         self._seen = {}  # id -> (request digest, response)
         self._voice_api = None
         self._attach_api = None
-        self.sessions = session_control.SessionController(unsandboxed=os.environ.get("RESPECTED_CHAT_UNSANDBOXED", "").strip().casefold() == "allow")
+        data_root = getattr(ctx, "data_root", None)
+        store = SessionStore(Path(data_root) / "chat" / "sessions.json") if data_root else None
+        self.sessions = session_control.SessionController(unsandboxed=os.environ.get("RESPECTED_CHAT_UNSANDBOXED", "").strip().casefold() == "allow", store=store)
 
     def handle_raw(self, raw):
         if isinstance(raw, str):
@@ -209,15 +217,33 @@ class LocalApi:
         pid, sid = payload.get("project_id"), payload.get("session_id")
         try:
             if command == "sessions.list":
-                return _reply(corr, True, {"sessions": self.sessions.view(self.origin, pid)})
+                return _reply(corr, True, {"sessions": self.sessions.view(self.origin, pid), "conversations": self.sessions.conversations(self.origin, pid)})
             name = command.split(".", 1)[1]
+            if name == "models":
+                return _reply(corr, True, self.sessions.models(self.origin, payload.get("agent", self.sessions.store.defaults()["agent"])))
+            if name == "defaults":
+                return _reply(corr, True, self.sessions.defaults(self.origin))
+            if name == "defaults.set":
+                return _reply(corr, True, self.sessions.set_defaults(self.origin, payload.get("agent", self.sessions.store.defaults()["agent"]), payload.get("model")))
+            if name == "transcript":
+                return _reply(corr, True, self.sessions.transcript(self.origin, sid))
+            if name == "forget":
+                return _reply(corr, True, self.sessions.forget(self.origin, sid))
             if name == "start":
-                root, agent, model = payload.get("project_root"), payload.get("agent"), payload.get("model")
+                root = payload.get("project_root")
+                chosen = self.sessions.store.defaults()
+                agent, model = payload.get("agent", chosen["agent"]), payload.get("model", chosen["model"])
+                resume = payload.get("resume_session")
+                if payload.get("continue_conversation") is not None:  # a saved conversation carries its own folder, agent, model and agent-side session
+                    saved = self.sessions.store.get(payload["continue_conversation"])
+                    if not saved or not saved.get("cli"):
+                        return _reply(corr, False, code="ENGINE_ERROR", message="That conversation cannot be continued.", reason="RESUME_INVALID")
+                    root, agent, model, resume = saved["project_root"], saved["agent"], saved["model"], saved["cli"]
                 if not (isinstance(root, str) and os.path.isabs(root) and os.path.isdir(root)):
-                    return _reply(corr, False, code="BAD_REQUEST", message="project_root must be an existing absolute directory.")
+                    return _reply(corr, False, code="BAD_REQUEST", message="project_root must be an existing absolute directory.", reason="ROOT_INVALID")
                 if not (isinstance(agent, str) and isinstance(model, str)):
-                    return _reply(corr, False, code="BAD_REQUEST", message="agent and model must be strings.")
-                return _reply(corr, True, self.sessions.start(self.origin, pid, agent, model, root, payload.get("text"), wait=False))
+                    return _reply(corr, False, code="BAD_REQUEST", message="agent and model must be strings.", reason="MODEL_INVALID")
+                return _reply(corr, True, self.sessions.start(self.origin, pid, agent, model, root, payload.get("text"), wait=False, resume=resume))
             args = (self.origin, sid, pid) + ((payload.get("text"),) if name == "send" else ())
             # A turn can take minutes and this loop answers one request at a time: turns run on their own thread (wait=False)
             # so interrupt/cancel stay reachable; the result is read with session.events.
@@ -226,7 +252,7 @@ class LocalApi:
         except PermissionError:
             return _reply(corr, False, code="FORBIDDEN", message="Not allowed for this origin.")
         except (ValueError, TypeError, KeyError, OSError, RuntimeError) as error:
-            return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300])
+            return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300], reason=getattr(error, "reason", None))
 
     def _plan(self, corr, command, payload):
         """Draft editing and the separate start action. Every rule is enforced by plan_draft from the stored draft."""

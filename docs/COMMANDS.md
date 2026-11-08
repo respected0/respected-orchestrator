@@ -44,6 +44,14 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 `integrations.plan|apply|rollback`, `memory.connect|disconnect|status`, `evidence.view`,
 `github.issue_import|pr_plan|pr_create|ci_plan`.
 
+**Masaüstü sohbet IPC komutları** (`rpp` değil, uygulamanın yerel motor bağlantısı): `sessions.list`, `session.start|send|events|retry|interrupt|cancel|resume`, `session.models` (ajan CLI'ının model listesi; `{"agent"}` ister).
+Motor, masaüstünün göstereceği her şeyi tutar: `sessions.list` → `{sessions, conversations}` (`conversations`: bu çalışmanın oturumları ve kaydedilmiş
+konuşmalar, başlık ve klasörle, en yeni önce); `session.defaults` (okuma) → `{agents, agent, model}`; `session.defaults.set {model, agent?}` (ayar sınıfı;
+model ajanın listesinde değilse `MODEL_INVALID` ile reddedilir ve kaydedilmez); `session.transcript {session_id}` → konuşma turları + `usage` toplamı;
+`session.forget {session_id}` (kayıt silme; canlı oturum önce bitirilmelidir); `session.start` `{continue_conversation}` ile kaydedilmiş konuşmayı sürdürür,
+`agent`/`model` verilmezse kayıtlı varsayılan kullanılır. Hata yanıtı `error.reason` içinde kararlı bir kod taşır (`MODEL_INVALID`, `ROOT_INVALID`,
+`TEXT_EMPTY|TEXT_TOO_LONG|TEXT_UNSAFE`, `CHAT_DISABLED`, `AGENT_NOT_INSTALLED`, `SESSION_UNKNOWN`, `SESSION_LIVE`…); ekran metni bu koda göre yazar.
+
 **MCP araçları:** `orchestrator_status`, `orchestrator_plan`, `orchestrator_task_start`, `orchestrator_project_start`,
 `orchestrator_list`, `orchestrator_progress`, `orchestrator_evidence`, `orchestrator_resume`, `orchestrator_cancel`,
 `orchestrator_apply`, `orchestrator_memory_note` (yalnızca hafıza yazma izni varsa).
