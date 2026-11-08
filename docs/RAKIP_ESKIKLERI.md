@@ -41,7 +41,7 @@ Sütunlar: **Biz** (masaüstü + motor), **CC-App** Claude Code masaüstü, **CC
 | Dosya düzenleme ve komut çalıştırma | ✗ (sohbette bilerek kapalı; işçi hattında ✓) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (ajanlar) |
 | Onay kipleri (salt-okunur / onaylı / tam) | ✗ | ✓ (Manual, Accept edits, Plan, Auto, Bypass) | ✓ | ✓ (salt-okunur / workspace-write + on-request / never) | ✓ | ✓ | ◐ |
 | İzin kuralları (izin / yasak listesi) | ✗ | ✓ | ✓ | ◐ | ◐ | ✓ | ✗ |
-| Sandbox | ✗ (kaldırılacak, karar §6; ajanın kendi sandbox'ı kullanılır) | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
+| Sandbox | ✗ (kaldırıldı, karar §6; ajanın kendi sandbox'ı kullanılır) | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
 | Canlı akış | ✗ (1 sn yoklama) | ✓ | ✓ | ✓ | ✓ | ✓ | ◐ |
 | Geri alma / kontrol noktası | ✗ (motorda `checkpoint.py` var, ekranda yok) | ✓ | ✓ | ◐ | ◐ | ✗ (belgede yok) | ◐ |
 | Proje talimat dosyası | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ◐ |
@@ -332,14 +332,14 @@ Her maddede: **Rakipler** · **Bizde şimdi** · **Hedef** · **Motor işi** · 
 4. **İzin kipleri:** tüm kipler sunulur, seçimi kullanıcı yapar; `İzinleri atla` yalnız soruları kapatır, ilk seçimde uyarı penceresi çıkar (B3).
 5. **Sandbox komple kaldırılır** (yedek olarak da kalmaz). İşçiler kullanıcı olarak, ajanın kendi sandbox ve izin kipiyle çalışır. Motorun doğrulama komutları dahil AppContainer yolu tamamen silinir: işçi kısıtsız çalıştığı için doğrulamayı kutuda koşmak yarım koruma olurdu. Kanıt ve onay bütünlüğü imza ve motor doğrulamasıyla sağlanır; anahtar gizliliği için ek garanti verilmez ve belgede açıkça yazılır. Getirisi: Windows bağımlılığı biter (macOS/Linux yolu açılır), `RESPECTED_CHAT_UNSANDBOXED` kalkar, araç uyumsuzlukları (`npm test`, Codex sandbox) biter.
    - **Silinecek:** `engine/appcontainer.py`, `engine/sandbox.py`, `engine/worker_policy.py` (sandbox olmayan kısımları, örneğin ortam süzme, önce okunup korunur), bunlara bağlı `runner.py`, `integration.py`, `processes.py`, `supervisor.py`, `workflows/project.py`, `workflows/maf_workflow.py` kısımları; testler `test_sandbox.py`, `test_worker_policy.py`, `test_worker_security.py`, `test_security_gate.py`, `test_conpty_feasibility.py`; kapı/CI betikleri `release_gate.py`, `run_security_ci.py` içindeki sandbox adımları; `ARCHITECTURE.md` §2/§3 ve ADR-015/018/021/024'ün ilgili kısımları.
-   - **Silinmeyecek:** kapsam denetimi ve yama doğrulama (symlink/submodule reddi), süre sınırları ve süreç ağacı temizliği, `RESPECTED_ORCH_CHILD` işareti ve MCP özyineleme koruması, imzalı kanıt. Eski kanıt dosyaları (`docs/evidence/poc/*`) tarihçedir, silinmez; "artık geçerli değil" notu eklenir.
+   - **Silinmeyecek:** kapsam denetimi ve yama doğrulama (symlink/submodule reddi), süre sınırları ve süreç ağacı temizliği, `RESPECTED_ORCH_CHILD` işareti ve MCP özyineleme koruması, imzalı kanıt. Sandbox'a özgü kanıt dosyaları (`docs/evidence/poc/*`) silindi; imzalı kanıt dosyaları ve `KANIT_LOG.md` tarihçe olarak kalır.
    - Kod ve `ARCHITECTURE.md` aynı değişiklikte güncellenir; `rorch` adına geçiş ayrı bir adımdır.
 6. **CLI adı: `rorch`** (Respected Orchestrator; `ro` fazla kısa bulundu). Tek ad: yürütülebilir dosya `rorch.exe`, MCP girdisi `rorch mcp`; uzun ad ve takma ad yoktur (depo kuralı). Ürün adı "Respected Orchestrator" olarak kalır. Beta olduğu için geçiş şimdi ucuz: kayıtlı MCP girdileri (`respected-orchestrator.exe mcp`), kurucu, belgeler ve testler güncellenir. Ayrı adım olarak yapılır. Reddedilenler: `ro`, `rsp`, `orch`. İlk komut yapısı için Orchestrator.inc'in `ao` komutları örnek alındı (daemon/start/stop/status/doctor, spawn/send/session/project, pr/review, mcp, hooks).
 7. **Çalışma şekli:** dikey dilimler; bir özellik motor + CLI + MCP + masaüstü + test + belge bitince biter.
 
 8. **Ajanın kendi özellikleri ajandan gelir.** Bağlam doluluğu, sıkıştırma (`/compact`), temizleme (`/clear`), model listesi, izin kipleri, eğik çizgi komutları, beceriler, alt ajanlar, hook'lar ajanın işidir; biz yeniden üretmeyiz. Motor ajana sorar, ortak şemaya çevirir, ekran yalnız çizer (§7).
 9. **Ortak şema + ajana özel uzantı alanı.** Her ajan için motor aynı biçimde cevap verir; şemada karşılığı olmayan şeyler "uzantı" alanında genel etiket/değer listesi olarak gelir ve ekran bunu olduğu gibi çizer. Yeni bir ajan özelliği masaüstünü değiştirmeyi gerektirmez.
-10. **Önce Claude Code adaptörü** derinleştirilir (OpenCode'un ACP istemcisi zaten var; Codex sonra).
+10. **Önce Claude Code adaptörü** derinleştirilir; diğer ajanlar da yapılacak, sıra §7'deki "Adaptör sırası" bölümünde.
 11. **Ajanın kendi terminal arayüzü ürünün resmî parçasıdır** (Orchestrator.inc gibi): normalleştirmediğimiz her şey için evrensel yedek. Sandbox kalktığı için ConPTY yolu açılır (ADR-024 engeli ortadan kalkar).
 12. **Taklit yok:** ajan bir özelliği sunuyorsa vardır, sunmuyorsa yoktur. Biz onun yerine üretmeyiz (ör. sıkıştırma). Ekran "yok" olan yeteneği gizler ya da nedeniyle gri gösterir.
 
@@ -363,6 +363,15 @@ Her yetenek: `native` (ajan veriyor) ya da `unsupported`; kaynağı ve doğrulam
 **İlk iş (Claude Code):** gerçek çıktı alanlarını (bağlam bilgisinin nerede verildiği, mod/komut listesi, `/compact` ve `/clear`'ın yapılandırılmış kullanımı) yalnız salt-okunur yoklama ve resmî belgeyle doğrula; doğrulanmayan hiçbir alan şemaya "native" olarak girmez. **Henüz doğrulanmadı.**
 
 **Risk:** ortak şema en küçük ortak paydaya inebilir; çözüm uzantı alanı ve terminal yedeği.
+
+**Adaptör sırası** (motorun desteklediği ajanlar: `engine/clis.py` içinde `claude`, `antigravity`/`agy`, `codex`, `cursor`, `opencode`, `openrouter`, `custom`). Kullanıcı kararı: önce Claude; diğerleri de yapılacak. Önerilen sıra (Claude dışındaki sıra öneridir, onay bekler):
+1. **Claude Code** (karar). Referans adaptör: şema burada oturur.
+2. **Codex** (resmî belgede app server ve ilgili alanlar var; ikinci büyük kullanıcı kitlesi).
+3. **OpenCode** (ACP istemcisi ve bugünkü sohbet zaten var; yeni şemaya taşınır).
+4. **Cursor**, 5. **Antigravity (`agy`)**: ajan CLI'ları; alanları yoklamayla doğrulanır.
+6. **OpenRouter**: araçsız API modeli (dosyayı motor yazar); bağlam/kip/komut yeteneklerinin çoğu "yok" olarak bildirilir.
+7. **custom**: kullanıcı komutu; yalnız ortak temel alanlar.
+Her adaptör aynı şemayı doldurur, desteklemediği yeteneği "yok" bildirir (taklit yok). Yeni ajan eklemek masaüstü değişikliği gerektirmez.
 
 ## 5. Açık sorular (karar bekleyen)
 

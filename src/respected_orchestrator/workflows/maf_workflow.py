@@ -20,7 +20,6 @@ from ..engine import budget as tokens, failures
 from . import roles
 from ..engine.processes import ProcessStopped, execute
 from ..engine.codex import CodexCall, CodexOutcome, _redact, run_codex_call
-from ..engine.worker_policy import SandboxStartError, WorkerPolicyError, default_policy
 
 
 WorkerResult = Mapping[str, Any]
@@ -436,15 +435,11 @@ def _run_tool_call(tool: str, profile: str, prompt: str, run_root: Path, timeout
     text, usage = "", None
     stdout_path, stderr_path = run_root / "stdout.log", run_root / "stderr.log"
     command = command_for(tool, prompt, profile=profile)
-    (run_root / "tmp").mkdir(parents=True, exist_ok=True)
     try:
-        policy = default_policy(ctx, run_root, command, temp_root=run_root / "tmp", ttl=timeout_seconds)
-        completed = execute(command, run_root, timeout_seconds, scrub_env=True, policy=policy)
+        completed = execute(command, run_root, timeout_seconds, scrub_env=True)
         text, usage, _model, error = tool_result(tool, completed.stdout)
         status = "COMPLETE" if completed.returncode == 0 and text.strip() and not error else "FAILED"
         stdout, stderr, cause = completed.stdout, completed.stderr, "" if status == "COMPLETE" else "tool_failed"
-    except (WorkerPolicyError, SandboxStartError) as error:  # fail closed: no unsandboxed reviewer
-        status, stdout, stderr, cause = "FAILED", "", f"{type(error).__name__}: {str(error)[:300]}", "sandbox_unavailable"
     except ProcessStopped as error:
         status, stdout, stderr, cause = "TIMEOUT", error.stdout, error.stderr, error.reason
     except (OSError, ValueError) as error:  # could not start the tool: recorded as a failed review, never a silent gap
@@ -471,19 +466,13 @@ def _run_codex_review(
     started = time.monotonic()
     prompt = _review_prompt(stage, task, result, patch_preview, tool)
     run_root.mkdir(parents=True, exist_ok=True)
-    (run_root / "tmp").mkdir(parents=True, exist_ok=True)
-    try:
-        if tool == "codex":
-            command = get_cli_command("codex")
-            executable = codex_path or (command[0] if command else "codex")
-            policy = default_policy(ctx, run_root, [executable], temp_root=run_root / "tmp",
-                                    readonly_roots=(cwd,), ttl=max(0.1, timeout_seconds))
-            outcome = run_codex_call(CodexCall(stage, profile, None, prompt, run_root), cwd=cwd, codex_path=executable,
-                                     timeout_seconds=max(0.1, timeout_seconds), policy=policy)
-        else:
-            outcome = _run_tool_call(tool, profile, prompt, run_root, max(0.1, timeout_seconds), ctx=ctx)
-    except (WorkerPolicyError, SandboxStartError) as error:
-        raise ReviewerExecutionError(f"{stage} reviewer sandbox unavailable", cause="sandbox_unavailable") from error
+    if tool == "codex":
+        command = get_cli_command("codex")
+        executable = codex_path or (command[0] if command else "codex")
+        outcome = run_codex_call(CodexCall(stage, profile, None, prompt, run_root), cwd=cwd, codex_path=executable,
+                                 timeout_seconds=max(0.1, timeout_seconds))
+    else:
+        outcome = _run_tool_call(tool, profile, prompt, run_root, max(0.1, timeout_seconds), ctx=ctx)
     if outcome.status != "COMPLETE":
         message = f"{stage} reviewer status: {outcome.status} ({outcome.cause or 'unknown'})"
         if outcome.cause == "provider_disconnected":  # structured evidence of a lost connection, whether or not it timed out

@@ -13,27 +13,27 @@
 
 ## Reasons
 
-- codex/terminal: unsupported — PTY awaits the ConPTY+AppContainer gate (B3-03.02)
+- codex/terminal: unsupported — PTY is not wired yet
 - codex/interactive_input: unverified — documented, not probed: app-server/queue exist but no probed non-interactive stdin protocol
 - codex/usage: unverified — documented, not probed: token counts not probed in the JSONL stream
-- claude/terminal: unsupported — PTY awaits the ConPTY+AppContainer gate (B3-03.02)
+- claude/terminal: unsupported — PTY is not wired yet
 - claude/usage: unverified — documented, not probed: result message usage fields not probed
-- cursor/terminal: unsupported — PTY awaits the ConPTY+AppContainer gate (B3-03.02)
+- cursor/terminal: unsupported — PTY is not wired yet
 - cursor/interactive_input: unverified — documented, not probed: no probed streaming input
 - cursor/usage: unverified — documented, not probed: not probed
-- opencode/terminal: unsupported — PTY awaits the ConPTY+AppContainer gate (B3-03.02)
+- opencode/terminal: unsupported — PTY is not wired yet
 - opencode/chat: unverified — flag present, but the tool is configured: stored credentials found; their validity cannot be checked without a model call
 - opencode/interactive_input: unverified — documented, not probed: acp server exists; not probed
 - opencode/usage: unverified — documented, not probed: not probed
 - opencode/resume: unverified — flag present, but the tool is configured: stored credentials found; their validity cannot be checked without a model call
 - opencode/model_switch: unverified — flag present, but the tool is configured: stored credentials found; their validity cannot be checked without a model call
-- antigravity/terminal: unsupported — PTY awaits the ConPTY+AppContainer gate (B3-03.02)
+- antigravity/terminal: unsupported — PTY is not wired yet
 - antigravity/chat: unsupported — no adapter contract for this capability yet
 - antigravity/interactive_input: unsupported — no adapter contract for this capability yet
 - antigravity/usage: unsupported — no adapter contract for this capability yet
 - antigravity/resume: unsupported — no adapter contract for this capability yet
 - antigravity/model_switch: unverified — flag present, but the tool is installed: auth_unknown: login state could not be read
-- custom/terminal: unsupported — PTY awaits the ConPTY+AppContainer gate (B3-03.02)
+- custom/terminal: unsupported — PTY is not wired yet
 - custom/chat: unsupported — no adapter contract for user-defined commands
 - custom/interactive_input: unsupported — no adapter contract for user-defined commands
 - custom/usage: unsupported — no adapter contract for user-defined commands

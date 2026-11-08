@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { COMMANDS } from '../src/contracts/ipc.ts';
 import { bufferOf } from '../src/terminal.ts';
 import {
-  COMMAND_TEXT, DISABLED_TEXT, PROJECT_ID, SESSION_COMMANDS, call, reasonText, shouldPoll, stateText, transcriptLines,
+  COMMAND_TEXT, PROJECT_ID, SESSION_COMMANDS, call, reasonText, shouldPoll, stateText, transcriptLines,
   type Relay, type SessionView,
 } from '../src/sessionlog.ts';
 
@@ -75,10 +75,6 @@ test('the screen only sends listed commands, always with its project id, and tur
   const odd: Relay = async () => ({ ok: false, result: null, error: { code: 'ENGINE_ERROR', message: 'z'.repeat(1000) } });
   const text = (await call(odd, 'session.send', {})) as { ok: false; text: string };
   assert.ok(text.text.length < 260);
-  const off: Relay = async () => ({ ok: false, result: null, error: { code: 'ENGINE_ERROR', message: 'any wording', reason: 'CHAT_DISABLED' } });
-  const refused = (await call(off, 'session.start', {})) as { ok: false; text: string };
-  assert.equal(refused.text, DISABLED_TEXT);
-  assert.ok(DISABLED_TEXT.includes('RESPECTED_CHAT_UNSANDBOXED=allow'));
   const gone: Relay = async () => { throw { error: { kind: 'NotInstalled' } }; };
   assert.deepEqual(await call(gone, 'session.send', {}), { ok: false, text: 'Motor kurulu değil.' });
   const weird: Relay = async () => { throw 'boom'; };

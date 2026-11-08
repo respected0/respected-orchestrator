@@ -28,10 +28,6 @@ class WiringTests(unittest.TestCase):
         subprocess.run(["git", "add", "."], cwd=self.repo, capture_output=True, check=True)
         subprocess.run(["git", "commit", "-m", "base"], cwd=self.repo, capture_output=True, check=True)
         self.ctx = EngineContext(self.root / "data")
-        for target in ("sync_credentials", "clear_worker_home"):
-            patcher = mock.patch.object(runner.opencode_auth, target)
-            patcher.start()
-            self.addCleanup(patcher.stop)
         for name, value in (("tool_available", True), ("get_cli_command", "x.exe")):
             patcher = mock.patch.object(runner, name, return_value=value)
             patcher.start()

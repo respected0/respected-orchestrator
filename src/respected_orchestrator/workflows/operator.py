@@ -23,12 +23,12 @@ ACTIONS = ("retry", "resume", "dismiss")
 PLAIN = {
     "test_failure": "The acceptance checks failed.", "policy_denied": "The worker tried something the policy forbids.",
     "timeout": "The run ran out of time.", "quota": "The provider reports a quota or usage limit.",
-    "auth": "The provider needs you to sign in again.", "infrastructure": "The worker or its sandbox failed, not the task itself.",
+    "auth": "The provider needs you to sign in again.", "infrastructure": "The worker failed, not the task itself.",
     "stale_patch": "The project moved on, so the patch no longer fits.", "reviewer_reject": "The reviewer rejected or asked for changes."}
 STEPS = {
     "test_failure": "Read the failing check output, then retry once.", "policy_denied": "Review what was attempted; this is never retried automatically.",
     "timeout": "Raise the deadline or split the task, then retry.", "quota": "Wait for the limit to reset (or switch profile), then resume.",
-    "auth": "Sign in again in the provider's own tool, confirm it works, then resume.", "infrastructure": "Check the tool is installed and the sandbox is available, then retry.",
+    "auth": "Sign in again in the provider's own tool, confirm it works, then resume.", "infrastructure": "Check the tool is installed, then retry.",
     "stale_patch": "Retry: it starts a new run from the current project state.", "reviewer_reject": "Read the review, then retry or write a correction task."}
 
 

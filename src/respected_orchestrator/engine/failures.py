@@ -43,7 +43,6 @@ SYNONYMS = {
     "worker_failed": FailureClass.INFRASTRUCTURE,
     "invalid_worker_result": FailureClass.INFRASTRUCTURE,
     "engine_error": FailureClass.INFRASTRUCTURE,
-    "sandbox_unavailable": FailureClass.INFRASTRUCTURE,
     "reviewer_execution_failed": FailureClass.INFRASTRUCTURE,
     "reviewer_disconnected": FailureClass.INFRASTRUCTURE,
     "invalid_review_result": FailureClass.INFRASTRUCTURE,

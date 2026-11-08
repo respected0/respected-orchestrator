@@ -28,10 +28,10 @@ gerçek ajan çağrısı demektir; bu token, kota ve para riski taşır. Sahibin
    `"bilinmiyor"` yazımı ile `evidence_view`'daki `unknown` yazımı gerçek rapor şemasında tek biçime bağlanır
    (`unknown`); sentetik rapor değişmez.
 6. **Temsilî görev ölçütü.** 20 fixture arasından şunları sağlayan ≥10 görev seçilir: gerçek bir bug ya da küçük
-   özellik, yalnızca standart kütüphane ile doğrulanabilir (ağsız, ADR-018 ile uyumlu), tek komutla kabul edilir,
+   özellik, yalnızca standart kütüphane ile doğrulanabilir (ağsız), tek komutla kabul edilir,
    başlangıç SHA'sı `start_shas.json` içinde sabit. Seçimin gerekçesi rapora yazılır.
 7. **Kol eşitliği.** Aynı ajan sürümü, model kimliği, başlangıç commit'i, timeout ve makine; ikisi için de kayıtlı.
-   Direct kol kum havuzsuz çalışır; bu yüzden güvenlik ihlali sayacı yalnızca Orchestrated kolun sınırını ölçer ve
+   Direct kol motor kapsam denetimi olmadan çalışır; bu yüzden güvenlik ihlali sayacı yalnızca Orchestrated kolun sınırını ölçer ve
    raporda böyle etiketlenir.
 8. **Tekrar.** Görev başına ≥3 tekrar; rapor ham koşuları ve dağılımı verir, tek eşik karar vermez.
 

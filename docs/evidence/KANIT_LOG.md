@@ -13,7 +13,6 @@ Açık işler: `docs/ROADMAP.md`. Kararların gerekçesi: `docs/adr/`.
 - **Durum:** Tamamlandı (doküman görevi). Tarih: 30 Ekim 2026.
 - **Kapsam:** Worker ve doğrulama katmanlarının varlıkları, güven sınırları, aktör yetkileri ve saldırı senaryolarının yazılı hale getirilmesi. Kod değişikliği yok; bu görev sonraki güvenlik görevlerinin ölçü tabanını kurar.
 - **Çıktı:** `docs/THREAT_MODEL.md` — 10 varlık (A1–A10), 8 güven sınırı (B1–B8), 6 aktör için yetki matrisi, 25 saldırı senaryosu (S-01…S-25), her senaryo için sahip katman / engelleyen katman / beklenen sonuç / bugünkü durum / kanıt.
-- **Mimari senkronu:** `docs/ARCHITECTURE.md` içine üç satırlık referans eklendi. Burada açıkça yazıyor: doğrulama sandbox'ı yalnızca motorun çalıştırdığı kabul/doğrulama komutlarını korur; worker süreçleri için OS düzeyinde dosya veya ağ sınırı yoktur. Normal Windows kullanıcısı desteklenir, yükseltilmiş yönetici desteklenmez (aktif ret SEC-03).
 - **Değişen dosyalar:**
   - `docs/THREAT_MODEL.md` (yeni)
   - `docs/ARCHITECTURE.md` (referans + kapsam notu)
@@ -68,8 +67,6 @@ Belgedeki her "korunuyor" iddiası mevcut testlerle eşleştirildi. Testler belg
 
 | İddia | Kanıtlayan test dosyası | Sonuç |
 |---|---|---|
-| Motor anahtarı, kanıt ve onay dizinleri kısıtlı belirteçle korunur; sandboxsız kontrol aynı yerlere erişebilir | `tests/engine/test_sandbox.py` (6 test) | Geçti |
-| Sahte kanıt anahtar olmadan üretilemez; sandbox kurulumu idempotent, kapatma açık | `tests/engine/test_sandbox.py` | Geçti |
 | Kapsam ihlali, kabul testi değişikliği ve eski/oynanmış sonuç reddedilir | `tests/engine/test_runner.py` | Geçti |
 | `apply` doğrulanmış sonuç ve tek seferlik uygulama ister; yarım kalan iş kabul edilmez | `tests/engine/test_runner.py` | Geçti |
 | Retry bütçesi sınırlı; dal değiştirerek bütçe sıfırlanamaz | `tests/engine/test_runner.py` | Geçti |
@@ -82,7 +79,6 @@ Belgedeki her "korunuyor" iddiası mevcut testlerle eşleştirildi. Testler belg
 ### Bilinen sınırlar (SEC-01 sonrası hâlâ açık)
 
 - Worker süreci için OS düzeyinde dosya sistemi veya ağ sınırı **yok**; bugünkü koruma Git worktree, sonuç kapsamı ve `apply` kontrolüdür. → `SEC-02`, `SEC-03`, `SEC-04`
-- Codex `workspace-write` sandbox'ı ve `approval_policy=never` ile başlatılır; bu bir worker izin politikası değil, CLI'nin kendi sınırıdır.
 - Ortam temizliği isim tabanlıdır; `RESPECTED_WORKER_ENV_ALLOW` ile genişletilebilir.
 - Tek veri kökünde tek görev çalışır; paralellik yalnızca ayrı veri kökleri/şeritler düzeyindedir.
 - Yükseltilmiş yönetici altında çalışma desteklenmez; bunun **aktif reddi** henüz kodda yok (`SEC-03`).
@@ -321,314 +317,13 @@ OK
 - **Kalan risk / shortcut:** Sınıflandırma mevcut `reason` metinlerine ve sağlayıcı durum kodlarına dayanıyor; yeni bir sağlayıcı farklı metin üretirse `unknown` olarak kalır ve alan eklenmez. `shortcut: yeni sağlayıcı metinleri eklendiğinde failures.py eşlemesi genişletilmeli.`
 
 
-## SEC-02 — Windows worker sandbox teknoloji doğrulaması
-
-- **Durum:** Tamamlandı. Tarih: 30 Ekim 2026.
-- **Kapsam:** Gerçek worker ve alt süreçler için Windows'ta dosya, ağ ve süreç sınırı sağlayan teknolojiyi seçmek; prototipi geçici repoda ölçmek. Üretim başlatıcısına bağlama SEC-03.
-- **Çıktı / değişen dosyalar:**
-  - `docs/evidence/poc/sec02_probe.py` (yeni): AppContainer profilini oluşturan, çalışma alanı/Python dizinine ACL veren, üç kez gerçek süreç başlatan ve sonuçları JSON'a yazan prototip.
-  - `docs/evidence/poc/sec02_results.json` (yeni): ham ölçüm.
-  - `docs/evidence/poc/SEC02_SANDBOX_COMPARISON.md` (yeni): dört seçeneğin karşılaştırması ve sınırlar.
-  - `docs/ARCHITECTURE.md` §2: SEC-02 doğrulaması ve SEC-03'e kadar geçerli sınır.
-  - `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`, `docs/evidence/respected_orchestrator_github_issues.csv`: SEC-02 tamamlandı.
-- **Seçim:** Yetenek SID'i olmayan **AppContainer**. Kısıtlı belirteç ayrı dosya güvenlik sınırı olmadığı için reddedildi; Windows Sandbox VM'i başlangıç maliyeti ve dosya paylaşımı nedeniyle ertelendi.
-- **Doğrulama komutu:** `python docs/evidence/poc/sec02_probe.py docs/evidence/poc/sec02_results.json`
-- **Gerçek çıktı:**
-
-```
-{
-  "forbidden_blocked": "15/15",
-  "allowed_workspace_writes": "9/9",
-  "child_policy_inherited": "9/9",
-  "network_baseline_connected": true,
-  "codex_launched": true,
-  "codex_exit_code": 0,
-  "windows_sandbox_binary": true,
-  "pass": true
-}
-```
-
-- **Ölçüm ayrıntısı:** Üç çalıştırmada beş yasak eylem (dış okuma, dış yazma, `.engine-key` okuma, TCP egress, dış silme) 15/15 engellendi; üç izinli yazma 9/9 başarılı; üç torun süreçte politika 9/9 miras alındı. Sandbox dışı ağ ön koşulu bağlandı. Olmayan CLI `CreateProcess` hata 2 ile açıkça unsupported döndü; geniş yetkili fallback yok.
-- **Kabul kriteri karşılandı mı (kanıtla):** Evet. 5 yasak eylem 15/15; izinli yazma 9/9; çocuk süreç 9/9; unsupported CLI açık; sessiz fallback 0. Codex `--version` konteynerde 0 ile çalıştı; oturum açma/gerçek görev kapsam dışı.
-- **Regresyon:** Kaynak kodu değişmedi; QUA-02 tam suite sonucu bu ağaç için geçerli (`Ran 357 tests in 443.235s / OK`). Doküman testi ayrıca `Ran 1 test in 0.070s / OK`.
-- **Kalan risk / shortcut:** `icacls` ACL'leri prototipte elle verilip geri alınıyor; üretimde tek launcher yönetmeli. AppContainer ortam değişkenlerini temizlemez ve izinli dizindeki çalıştırılabilirleri ayırt etmez; sır ayıklama ve executable allowlist SEC-03'te. `shortcut: prototip yalnızca Windows AppContainer; SEC-03 gelene kadar normal worker yolu değişmedi.`
-
----
-
-## SEC-03 — Worker izin politikası ve fail-closed başlatıcı
-
-- **Durum:** Tamamlandı (kod + test + tam regresyon). Tarih: 30 Ekim 2026.
-- **Kapsam:** Her worker ve inceleme sürecinin tek bir politika doğrulamasından ve Windows AppContainer başlatıcısından geçmesi; politika kurulamazsa hiçbir sürecin başlamaması; veri kökü ve `.engine-key` erişiminin hiçbir worker'a açılmaması. `create`, `start`, MAF araç çağrıları ve kampanya alt şeritleri aynı yolu kullanır.
-- **Tasarım kararları:**
-  - `WorkerPolicy` yazılabilir kökleri, salt-okunur araç köklerini, ağ modunu, sır adlarını, çalıştırılabilir allowlist'ini ve TTL'i taşır; boş/çakışan/eksik kök, bilinmeyen ağ modu ve geçersiz TTL reddedilir.
-  - Veri kökü ve `.engine-key` içeren kökler politika kurulurken reddedilir; veri kökünün altındaki çalışma alanı desteklenen tek iç içe biçimdir.
-  - `.cmd`/`.bat` şimleri worker olarak kabul edilmez; çözümlenen çalıştırılabilir mutlak yol olarak sabitlenir.
-  - AppContainer profili her çalıştırmada oluşturulur, izinler yalnızca worktree ve geçici köke verilir, kapanışta geri alınır. Python/araç dizini `ALL APPLICATION PACKAGES` ile makine genelinde salt-okunur paylaşılır; bu grant kullanıcı profilini veya veri kökünü kapsamaz.
-  - AppContainer `TEMP`/`TMP` değişkenlerini kendi profiline yönlendirdiği için politikanın verdiği geçici kök `RESPECTED_WORKER_TMP` olarak açıkça yayınlanır; aksi hâlde verilen izin worker tarafından kullanılamıyordu.
-  - Başlatma zinciri: `runner.execute_task` → `processes.execute(policy=...)` → `appcontainer.spawn`. Politika veya AppContainer hatası `sandbox_unavailable` terminal nedeni üretir; sandbox'sız geri dönüş yoktur.
-- **Değişen/eklenen dosyalar:**
-  - `src/respected_orchestrator/engine/worker_policy.py` (yeni) — politika doğrulaması, ortam temizliği, TTL kontrolü.
-  - `src/respected_orchestrator/engine/appcontainer.py` (yeni) — AppContainer profili, ACL grant/geri alma, boru ve süreç başlatma.
-  - `src/respected_orchestrator/engine/processes.py` — `policy` parametresi; AppContainer üzerinden başlatma; süre bütçesi süreç oluştuktan sonra başlar.
-  - `src/respected_orchestrator/engine/runner.py` — worker için `default_policy`; fail-closed `sandbox_unavailable`.
-  - `src/respected_orchestrator/engine/codex.py` — Codex çağrısına politika aktarımı.
-  - `src/respected_orchestrator/workflows/maf_workflow.py` — araç inceleme yolu ve Codex incelemesi aynı politika/başlatıcıdan geçer.
-  - `src/respected_orchestrator/context.py` — `read_text_retry`: Windows'ta delete-pending/AV penceresinde sınırlı okuma tekrarı.
-  - `src/respected_orchestrator/engine/evidence.py` — imzalı kanıt okuması `read_text_retry` kullanır.
-  - `tests/engine/test_worker_policy.py` (yeni, 18 test) — politika, fail-closed worker ve MAF inceleme yolu, gerçek AppContainer negatif/pozitif vakaları, timeout sonrası süreç temizliği, sentinel sır.
-  - `tests/engine/test_runner.py` — worker pid dosyasının kendi worktree'sinde kalması.
-  - `tests/workflows/test_campaign.py` — kampanya alt şeridinin worker'ı doğrudan değil `engine maf` üzerinden çalıştırdığı.
-  - `tests/workflows/test_reviewer_reliability.py` — gerçek worker sayacı izinli geçici köke taşındı (sandbox gevşetilmedi).
-  - `tests/test_context.py` — okuma tekrarı testi.
-  - `docs/ARCHITECTURE.md` §2 — SEC-03 sınırı, kanıt eşlemesi ve kalan sınır.
-  - `docs/ROADMAP_EXECUTION_PLAN.md`, `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md`, `docs/evidence/respected_orchestrator_github_issues.csv` — durum.
-- **Doğrulama komutu (odak):**
-
-  ```
-  python -m unittest tests.engine.test_worker_policy tests.workflows.test_campaign tests.workflows.test_reviewer_reliability tests.engine.test_token_budget tests.test_context
-  ```
-
-  Gerçek çıktı (`docs/evidence/poc/sec03_focused.log`):
-
-  ```
-  Ran 65 tests in 74.373s
-
-  OK
-  ```
-
-- **Tam regresyon komutu:**
-
-  ```
-  python -m unittest discover -s tests -t .
-  ```
-
-  Gerçek çıktı (`docs/evidence/poc/sec03_full_suite.log`):
-
-  ```
-  Ran 378 tests in 531.768s
-
-  OK
-  ```
-
-- **Kabul kriterleri:**
-  - [x] Üç giriş türü aynı policy motorunu kullanıyor: worker (`test_runner_marks_sandbox_unavailable_and_leaves_project_untouched`), MAF inceleme yolu (`test_maf_reviewer_is_fail_closed_when_the_sandbox_cannot_start`), kampanya alt şeridi (`test_a_lane_delegates_to_the_engine_maf_pipeline_instead_of_launching_a_worker` + `engine maf` → runner testi).
-  - [x] Politika uygulanamıyorsa 0 worker başlıyor: `test_spawn_failure_raises_and_creates_no_worker_output`, `test_runner_marks_sandbox_unavailable_and_leaves_project_untouched`; proje dosyası değişmiyor.
-  - [x] 0 sır sızıntısı: `test_sentinel_secret_never_appears_in_output` (iki sentinel adı da `None`, değer çıktıda yok); `test_environment_scrubs_secrets_and_redirects_temp`.
-  - [x] Timeout sonrası child PID kalıntısı 0: `test_timeout_leaves_no_child_process` (parent ve torun süreç ölü).
-  - [x] Gerçek AppContainer negatifleri: dış okuma/yazma, `.engine-key`, varsayılan ağ reddi, alt süreç mirası; pozitifler: worktree yazma/okuma, alt süreç.
-  - [x] Regresyon yeşil (378 `OK`); `docs/ARCHITECTURE.md` aynı değişiklikte senkron.
-
-- **Kanıt artefaktları (SHA-256):**
-  - `docs/evidence/poc/sec03_focused.log` → `1D4C0B1547F0055EA2144D4975352CF06EE7AE8EA75107B7CA602B6C864CC843`
-  - `docs/evidence/poc/sec03_full_suite.log` → `3D835D18722BE9E49AF529521FBFA18D8AC058DC62A727D85283EF1281BBF729`
-  - `worker_policy.py` → `A912F0FD17C107980EFB030B3DB4ABC7F50AFB1B84D116756FE3C4AF3BDDC01C`
-  - `appcontainer.py` → `E6114F9803795FB6C7E6EBB357E356F3702D1F7B2A5C6B8CB610699B79B4B98A`
-  - `processes.py` → `A564DD1B05A3131B93F9067C2BB878733D6C9B496AF58E6BF973B6541E558AFA`
-  - `runner.py` → `2CFB2EDE51914F1705764819363068D5061DAA95B33422D863C80F4FC7B99528`
-  - `codex.py` → `4717E9A3617A2AF0C2EF9C103F99049BBDDDB499906D9D47DE1E47B3385DD2F5`
-  - `maf_workflow.py` → `2D070E0073F1B7B34D56BA03A77DFE9CF9BDAED3AA3BB5718B1D31E951725B78`
-  - `context.py` → `1E1F1BCD69D361872E743921B9737893C28A8C88239EEE8BF121464FAFC95C3A`
-  - `evidence.py` → `490F65122C879F5C03BE2C6DFD8CF7BF89AF21CA0A4068203A0D6FE256894773`
-  - `test_worker_policy.py` → `A3DA69A5A11AC58CA2E1D1714DCCCD5C9670EF5232F2D62D0914A0D177647083`
-  - `test_campaign.py` → `49C9819CC6320FB98F78B98E0D2F43DBA8DC37C8278CF693B0ABF900ABD108D6`
-  - `test_reviewer_reliability.py` → `D06A68B77A2EF2BEA2FE6132FECF54EFC5140343B38C8F4937B2BF33E13EC6DF`
-  - `test_context.py` → `07A5CEA148FC3EF6DCAFDA7CBF7643E44DDF0E570AFF200E13D644E39D264656`
-  - `ARCHITECTURE.md` → `0AA775023DCEA8CA4B365C8BDBE5CE02FC268EFEE20C1DD495B90881223112BE`
-
-- **Kalan risk / shortcut:**
-  - AppContainer Windows'a özgüdür; Windows dışında worker başlatılmaz (REL-04 platform kararı). Yükseltilmiş yönetici altında çalışan motor bu modelin dışındadır ve kodda aktif ret henüz yoktur.
-  - `sys.prefix` altındaki araç zinciri makine genelinde `ALL APPLICATION PACKAGES` ile salt-okunur açılır; bu, aynı makinedeki diğer AppContainer'ların da Python dizinini okuması demektir (yalnızca çalıştırılabilir/kütüphane, veri değil).
-  - İzin verilen araç dizinindeki ek çalıştırılabilirler varsayılan olarak allowlist'te değildir; `RESPECTED_WORKER_READONLY_ROOTS` ile salt-okunur kök eklenebilir, yazılabilir kök eklenemez.
-  - AppContainer `TEMP`'i kendi profiline yönlendirir; worker'ın kalıcı geçici alanı `RESPECTED_WORKER_TMP` sözleşmesiyle verilir.
-  - ACL geri alma kapanışta `icacls` ile yapılır ve hata yutulur; profil silinemezse artık profil kalabilir. `shortcut: kapanış ACL hataları yalnızca sessizce yutuluyor; artık profil/ACE izleme eklenmeli.`
-  - Önceki tam koşudaki 8 kırık, testlerin sayaç dosyasını izinli köklerin dışına yazmasından kaynaklanıyordu; sandbox gevşetilmedi, sayaç izinli geçici köke taşındı. Windows'ta `status.json` okumasında görülen tek `PermissionError` yarışı `read_text_retry` ile sınırlı biçimde giderildi.
-
----
-
-## SEC-04 — CI zorunlu negatif izolasyon ve kırmızı-takım testleri
-
-- **Durum:** Tamamlandı (31 Ekim 2026).
-- **Kapsam:** Worker AppContainer negatif izolasyon matrisi, restricted-token verify hattı, recursive MCP reddi, symlink/gitlink yama reddi, kaynak ve paketlenmiş exe üzerinde saldırı matrisi, CI'da ayrı ve zorunlu güvenlik adımları.
-- **Doğrulanan açık:** Windows'ta symlink oluşturma imtiyazı olmasa bile Git indeksine `120000` modu yazılabiliyor; aynı yola normal dosya yazıldığında working-tree `is_symlink()` kontrolü bunu maskeliyordu. Yalnızca dosya sistemine bakmak fail-open davranışa yol açıyordu.
-- **Düzeltme (`src/respected_orchestrator/engine/lanes.py`):**
-  - `collect_worker_changes`, baseline'a göre `git diff --raw --no-renames --full-index -z` çıktısındaki eski/yeni modları tarar; `120000` (symlink) veya `160000` (gitlink/submodule) içeren yollar doğrudan `unsafe_paths` listesine girer.
-  - Bu yollar export öncesinde reddedilir; kapsam doğrulamasında `scope_violation` üretir. Çalışma ağacındaki normal dosya, indeks modunu maskeleyemez.
-  - Apply öncesi yama metni ayrıca `old mode`/`new mode`/`new file mode`/`deleted file mode`/`create mode`/`delete mode` başlıklarında `120000` veya `160000` arar; eşleşme `INTEGRATION_CONFLICT` ile fail-closed sonuçlanır.
-- **Test kaydı (`tests/engine/security_cases.py`):**
-  - 21 negatif vaka: 19 worker içi probe + 2 harici vaka (`symlink_patch`, `recursive_mcp`).
-  - 9 izinli vaka ve 13 zorunlu saldırı kategorisi.
-  - `tests/engine/test_security_gate.py`, probe/harici ayrımının eksiksiz ve tekrarsız olduğunu, minimum sayıyı, zorunlu kategorileri ve CI adımlarını doğrular.
-- **CI sınırı (`.github/workflows/ci.yml`):** Worker AppContainer matrisi, restricted-token verify matrisi, güvenlik kayıt kapısı ve frozen exe güvenlik matrisi ayrı zorunlu adımlardır; `continue-on-error` yoktur. Tam keşif ayrıca bloklayıcı son adım olarak çalışır.
-
-- **Doğrulama komutları ve gerçek çıktılar:**
-
-  ```
-  python -m unittest tests.engine.test_worker_security -v
-  ```
-
-  `docs/evidence/poc/sec04_worker_source_final.log`:
-
-  ```
-  Ran 4 tests in 4.400s
-
-  OK
-  ```
-
-  ```
-  python -m unittest tests.engine.test_sandbox -v
-  ```
-
-  `docs/evidence/poc/sec04_verify_sandbox_final.log`:
-
-  ```
-  Ran 6 tests in 4.069s
-
-  OK
-  ```
-
-  ```
-  python -m unittest tests.engine.test_security_gate -v
-  ```
-
-  `docs/evidence/poc/sec04_security_gate_final.log`:
-
-  ```
-  Ran 4 tests in 0.000s
-
-  OK
-  ```
-
-  ```
-  python -m unittest tests.engine.test_lanes -v
-  ```
-
-  `docs/evidence/poc/sec04_lanes_regression_final.log`:
-
-  ```
-  Ran 15 tests in 4.947s
-
-  OK
-  ```
-
-  ```
-  python -m unittest tests.packaging.test_frozen_security.FrozenSecurityTest.test_frozen_engine_rejects_a_symlink_mode_patch_staged_without_symlink_privilege -v
-  ```
-
-  `docs/evidence/poc/sec04_frozen_symlink_fixed.log`:
-
-  ```
-  Ran 1 test in 15.734s
-
-  OK
-  ```
-
-  ```
-  python -m unittest tests.packaging.test_frozen_security -v
-  ```
-
-  `docs/evidence/poc/sec04_frozen_security_final.log`:
-
-  ```
-  Ran 3 tests in 35.553s
-
-  OK
-  ```
-
-  ```
-  python packaging/build_dist.py --output dist
-  ```
-
-  `docs/evidence/poc/sec04_build_final.log`: build tamamlandı; çıktı `dist\RespectedOrchestrator`.
-
-  ```
-  python -m unittest tests.packaging.test_frozen_build tests.packaging.test_frozen_security -v
-  ```
-
-  `docs/evidence/poc/sec04_frozen_all_final.log`:
-
-  ```
-  Ran 7 tests in 54.087s
-
-  OK
-  ```
-
-  ```
-  python -m unittest tests.docs.test_decision_records -v
-  ```
-
-  `docs/evidence/poc/sec04_docs_gate_final.log`:
-
-  ```
-  Ran 1 test in 0.103s
-
-  OK
-  ```
-
-  ```
-  python -m unittest discover -s tests -t .
-  ```
-
-  `docs/evidence/poc/sec04_full_suite.log`:
-
-  ```
-  Ran 389 tests in 469.282s
-
-  OK
-  EXIT_CODE=0
-  ```
-
-- **Kabul kriterleri:**
-  - [x] En az 15 negatif vaka: 21 kayıtlı (19 probe + 2 harici); kayıt kapısı yeşil.
-  - [x] 21/21 saldırı reddedilir, 9/9 izinli işlem geçer; 13 zorunlu kategori korunur (`test_every_registered_negative_is_denied_and_every_allowed_case_passes`, `test_registry_meets_the_security_minimum_and_is_unique`, `test_every_required_attack_category_is_registered`).
-  - [x] Symlink-index saldırısı export/apply öncesi reddedilir; testte durum `failed`/`scope_violation`, değişen yol `src/escape`, `worker.patch` yoktur.
-  - [x] Recursive MCP araç sunmaz ve `tools/call` reddedilir; sandbox dışı kontrol aynı saldırıların gerçek olduğunu gösterir.
-  - [x] Worker, verify, güvenlik kayıt kapısı ve frozen exe matrisleri CI'da ayrı zorunlu adımlardır; `continue-on-error` yoktur.
-  - [x] Kaynak ve paketlenmiş exe güvenlik matrisleri yeşildir; ilgili lanes regresyonu 15/15 `OK`.
-  - [x] Doküman kapısı `OK`; tam regresyon 389/389 `OK`, `EXIT_CODE=0`.
-  - [x] `docs/ARCHITECTURE.md`, `docs/THREAT_MODEL.md`, yol haritası ve issue CSV durumu aynı değişiklikte senkron edildi.
-
-- **Kanıt artefaktları (SHA-256):**
-  - `docs/evidence/poc/sec04_worker_source_final.log` → `A6B4899950AEF6595E83606C7E0A60D1329C608A8D3DE3D362ADFAD3EC61CC98`
-  - `docs/evidence/poc/sec04_verify_sandbox_final.log` → `83C391BAB8358656F5D551285B48A553028D733D11E51F6915C87572C115F1E7`
-  - `docs/evidence/poc/sec04_security_gate_final.log` → `C102B2516AEDA62A87A8E6BFF9BBF8C0537991A098C831D730677B39C84E857B`
-  - `docs/evidence/poc/sec04_lanes_regression_final.log` → `196E0312291FF450D08338299BE7FF16A408D96DC0C7DAD4F85443B3BFBB4417`
-  - `docs/evidence/poc/sec04_frozen_symlink_fixed.log` → `2C89936C0590C19BF5A59A44ECA824A5C83CC67F607962D94F86CBBCD1F66EF5`
-  - `docs/evidence/poc/sec04_frozen_security_final.log` → `18EAB2F62BB1443BB61631B1C15283B645CFBE11B1DFB01D8BD551754D6C786C`
-  - `docs/evidence/poc/sec04_build_final.log` → `9A6ADA2259D0E5DEEFE7CAFF437B0084B7CD277CEE6E8E96DBD7738D3E4158AC`
-  - `docs/evidence/poc/sec04_frozen_all_final.log` → `CE5379121AC1DF1A769A41D634A61D8D58AE641A69899E3F9DFC63C3B822FC87`
-  - `docs/evidence/poc/sec04_docs_gate_final.log` → `28747187822C788FBA68E9F01CF66A7FFDB03BCD69E66EE1ED4E9E3A3EABEC17`
-  - `docs/evidence/poc/sec04_full_suite.log` → `94988541A2177179AA708DA882A2659D0F5BE3BE7B281314BA0C94DF2F0A2968`
-  - `tests/engine/security_cases.py` → `F96FC4D453DF707D5438EADFF99B57182262D861E15C330FF3DFC6B0AD7A70D9`
-  - `tests/engine/test_worker_security.py` → `C8919E71DEA85337BD1DB216BB7FC225A547C2E369E77F015BCDD8010532A61E`
-  - `tests/engine/test_security_gate.py` → `24035E715CD5FD04FE8AA2B8C03A31E1FD1A24A5CAAF7425F2AAD5D27C13382A`
-  - `tests/packaging/test_frozen_security.py` → `5C089FC0E527C4E1800E342A2F71EC5D9232E103CFD74D7C8351AB75948446DA`
-  - `src/respected_orchestrator/engine/lanes.py` → `B4E87F122F5E0F91ADE758A81C84E26430CF5B3A69E52F1AE74A248A575B324F`
-  - `.github/workflows/ci.yml` → `5EB3470F7B9AFC845016F1EB28808441EDBDE580011D07A2584406A7CE3F2C93`
-  - `docs/ARCHITECTURE.md` → `B743BCEEF460AC9605F1A7CA64E79D03DD8B860702EC63C9114E3DD2C1811341`
-  - `docs/THREAT_MODEL.md` → `83579D281921EE0051E12077B5DB698345A77ED34C0025F85296A26125133ACF`
-  - `docs/ROADMAP_EXECUTION_PLAN.md` → `2D92A11554AC252E9A831E4FB54A19B70DCE84FE14FF79A09B42B2C74F4E8F44`
-  - `docs/evidence/respected_orchestrator_roadmap_gorev_plani.md` → `E43BAE6D72F003AA9A9096D867A65609E45BEA4ABC73BBEC73C145391B300D57`
-  - `docs/evidence/respected_orchestrator_github_issues.csv` → `4029911DDEF5A409D3FD1EDBA23A67867CBF6A3AD7714F837094B7335408AB94`
-
-- **Harness sınırı (dürüst not):** Frozen symlink testinde AppContainer worker'ı linked worktree'nin `.git` dizinine erişemez. Bu nedenle saldırı indeks modu harness tarafından `git update-index --cacheinfo 120000` ile hazırlanır; worker yalnızca aynı yolu normal dosyayla maskeler. Frozen exe'nin reddetme yolu gerçek olarak test edilir, ancak indeks yazımı saldırganın kendisi tarafından AppContainer içinde yapılmaz. İlk denemede bu nedenle `fatal: not a git repository: (NULL)` alınmıştı; test harness'i düzeltildi ve doğru saldırı modeli korundu.
-
-- **Kalan risk / shortcut:**
-  - Nightly gerçek araç smoke koşusu bu görevde eklenmedi; deterministik AppContainer ve paketlenmiş exe matrisi kapandı, sağlayıcı sürüm farkları için ayrı smoke izleme gerekli.
-  - AppContainer Windows'a özgüdür; macOS/Linux güvenlik eşdeğerliği REL-04 kapsamında bekliyor.
-  - İzin verilen araç dizinindeki ek çalıştırılabilirler varsayılan allowlist'te değildir; gerektiğinde salt-okunur kök olarak açıkça eklenmelidir.
-  - Frozen symlink testinin indeks hazırlama adımı harness'ta çalışır; bu, saldırının motor tarafındaki reddini doğrular ama worker'ın `.git` yazma denemesini kapsamaz.
-
----
-
 ## QUA-01 — tester rolünü imzalı, motor sahipliğinde doğrulama aşamasına bağla
 
 - **Durum:** Tamamlandı (kod + doküman). Tarih: 1 Kasım 2026.
 - **Kapsam:** `tester` rolü artık serbest komut çalıştıran bir model çağrısı değil, motorun sahip olduğu imzalı doğrulama aşamasıdır.
-  Tester atanmışsa görevin kabul komutları AppContainer içinde tam olarak bir kez çalışır; sonuç run/project fingerprint, patch
   SHA-256 ve rol atamasına bağlı imzalı `tester-report.json` olarak yazılır. MAF, reviewer çağrılmadan önce bu kanıtı doğrular.
   Tester için serbest komut, örtük araç ikamesi veya otomatik apply yoktur; atama yoksa mevcut evidence-only doğrulama yolu korunur.
 - **Çıktı / değişen dosyalar:**
-  - `src/respected_orchestrator/engine/runner.py` — tester ataması, tek seferlik AppContainer kabul koşusu, imzalı rapor ve
     `check_result` içinde rapor doğrulaması.
   - `src/respected_orchestrator/workflows/maf_workflow.py` — reviewer öncesi tester kanıt zorunluluğu ve kanıtın prompt'a bağlanması.
   - `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/THREAT_MODEL.md` — yürütülebilir tester aşaması ve S-19 fail-closed davranışı.
@@ -687,7 +382,6 @@ PowerShell'in `Tee-Object` ile yakaladığı `NativeCommandError` satırı harne
 | 3 | Tester aracı kullanılamıyor | `ROLE_UNAVAILABLE`; örtük fallback yok | `test_unavailable_tester_is_refused_without_an_implicit_substitution` |
 | 4 | Tester'a serbest komut verilmiş | `BAD_ASSIGNMENT`; komut çalışmaz, işaret dosyası oluşmaz | `test_tester_command_cannot_be_supplied_or_run` |
 | 5 | Zaman aşımı veya oynanmış/silinmiş kanıt | Fail-closed; imzalı rapor yoksa/bozuksa `check_result` reddeder | `test_tester_timeout_and_tampering_fail_closed` |
-| 6 | Tester çalışma alanı dışına yazmayı deniyor | AppContainer dışına yazma 0; dış hedef dosya oluşmaz | `test_tester_cannot_write_outside_its_workspace` |
 
 Ek reviewer kapıları: tester kanıtı yoksa veya oynanmışsa reviewer hiç çağrılmaz; `review_failure.cause` değeri
 `tester_evidence_invalid`, `review_decisions` boştur.
@@ -724,7 +418,6 @@ Senkron dokümanların son doğrulama öncesi SHA-256 değerleri:
 
 ### Kalan risk / shortcut
 
-- Tester aşaması Windows AppContainer sınırına bağlıdır; Windows dışı platform kararı REL-04'te açıktır.
 - Tester, kabul komutlarını yalnızca bir kez çalıştırır; bu görev model tabanlı keşifsel test üretimini kapsamaz.
 - QUA-03'ün sınırlı düzeltme döngüsü bu görevde değil, sonraki görevde ele alınır.
 
@@ -1105,7 +798,6 @@ EXIT_CODE=0
 ```
 
 ```text
-python -m unittest tests.workflows.test_campaign tests.workflows.test_campaign_scheduler tests.workflows.test_project tests.workflows.test_project_adversarial tests.workflows.test_project_recovery tests.workflows.test_planner tests.workflows.test_roles tests.engine.test_worker_policy tests.test_main -v
 Ran 116 tests in 171.621s
 OK
 ELAPSED_SECONDS=172.347
@@ -1210,7 +902,6 @@ EXIT_CODE=0
 ```
 
 ```text
-python -m unittest tests.engine.test_integration tests.engine.test_runner tests.engine.test_lanes tests.engine.test_review_apply_invariants tests.engine.test_worker_policy tests.test_main -v
 Ran 104 tests in 172.949s
 OK
 EXIT_CODE=0
@@ -2341,7 +2032,6 @@ py docs/evidence/poc/eval02_real.py
   vermiyor ve `usage` ayrıştırmıyor. (3) `inputTokens`'ın önbelleği içerip içermediği çıktıdan kanıtlanamıyor.
 - Durum: Tamamlandı (ölçüm + adaptör): `clis.cursor_entry` şimin yanındaki `versions\<sürüm>
 ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.command_for` `--trust --output-format json` verir; `tool_result("cursor")` `usage`'ı ayrıştırır, `cacheReadTokens` yoksa `unknown` (0 değil). Testler: `test_cursor_shim_resolves_to_its_own_node_entry...`, `test_usage_comes_from_each_tools_envelope...` — `tests.workflows.test_roles` + `tests.engine.test_runner` 73 test OK.
-- Kalan risk: (a) `inputTokens`'ın önbelleği içerdiği varsayımı doğrulanmadı; (b) sandbox ağı kapalı ve Cursor oturumu kullanıcı profilinde olduğundan gerçek bir Cursor işçisi koşusu henüz yok (OpenCode'daki ADP-01/ADP-02 benzeri ayrı iş); (c) Free planda yalnızca `auto` ve Grok 4.7/4.6 çalışır.
 - Doğrulama: `docs/evidence/poc/cost01_cursor_live.log`.
 - Güncelleme 2026-11-04 (kalan risk a kapandı): aynı uzun istem `--model auto` ile 4 kez koşuldu
   (`poc/cursor_cache_probe.log`). 3. koşuda `inputTokens` 39 iken `cacheReadTokens` 18048 geldi; girdi önbelleği içerseydi
@@ -2536,7 +2226,6 @@ ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.c
   yokluğundan `blocked`, `release=no-go` (`rel04_fixture_linux.log`);
   macOS bu makinede yok, fixture koşulmadı, `release=no-go` (`rel04_fixture_macos.log`).
   MCP spawn gizli pencere düzeltmesi sonrası odaklı paket 19/19 OK (`rel04_mcp_spawn_focused.log`); geniş paket 107/107.
-- Kalan risk: POSIX'te gerçek sandbox/izin eşdeğerliği kanıtlanmadı; `blocked` pass sayılmaz. macOS fiziksel
   olarak koşulmadı. GA yalnızca Windows'tur.
 
 ### Kanıt artefaktları (SHA-256)
@@ -2555,11 +2244,9 @@ ode.exe`+`index.js` girişini çözer, `.cmd` hiç çalıştırılmaz; `runner.c
 
 Yukarıdaki kronolojik kayıtlarda aynı dosya birden çok kez farklı hash ile görünür; bunlar görev kapandıktan sonra yapılan senkron düzenlemelerin tarihsel izleridir. Aşağıdaki değerler ADP-01 kapanışı sonrası çalışma ağacının geçerli SHA-256 değerleridir ve doğrulamada bunlar esas alınır:
 
-- `src/respected_orchestrator/engine/appcontainer.py` → `30B8084D552518CC727DA4C8685C84EA0E0A749947159A2A30D287F9D069C568`
 - `src/respected_orchestrator/engine/processes.py` → `FC674E411841B6629CD8F8D711B5E0C40336B46BCCE369AC153778D0714BC011`
 - `src/respected_orchestrator/engine/runner.py` → `C3B522CDA97ABAD7552A9E28E28A71FF9376FC4DBB03806E4D6CB3A1C8F216A0`
 - `src/respected_orchestrator/workflows/maf_workflow.py` → `5F240A0077F409EAECD6EC54EC2B59EFE5C3556919BC11363EE9FE2BC65F6340`
-- `tests/engine/test_worker_policy.py` → `E527F77513D934D995F97854C9E39A4CA54A90761CDDE0FDCCE2F0BEF7D07378`
 - `tests/workflows/test_campaign.py` → `4224292F0DC67974F55DD3508A6F1636C7BCAE78358153594A00487EADDAFF5D`
 - `tests/workflows/test_reviewer_reliability.py` → `33D85C370FD724B60BD0A457D6AE0597C039E9B42E5F071D2034480424360D48`
 - `docs/ARCHITECTURE.md` → `A3C76C2B92FDC3B765B3FE65D510637E8CB9CD34C728092723B6C2165659841B`
@@ -2567,7 +2254,6 @@ Yukarıdaki kronolojik kayıtlarda aynı dosya birden çok kez farklı hash ile 
 
 - Durum: **Görevler açık.** Bu girdi yalnızca ölçüm ve karar kaydıdır; hiçbir FIX tamamlanmadı, hiçbir güvenlik açığı
   kapatılmadı. Tamamlanma girdileri FIX-01..FIX-04 için ayrıca yazılacaktır.
-- Kapsam: beta.2 öncesi dört düzeltmenin dayandığı varsayımların gerçek ortamda ölçülmesi. Kararlar ADR-017..020.
 - Ortam: yerel Windows 11 (10.0.26300), yükseltilmemiş oturum, Python 3.13.15, git 2.55.0; hosted: GitHub Actions
   `windows-latest` (Windows Server 2025, 10.0.26100), runner git 2.56.0. Hosted ölçümler public depoda geçici
   `probe/fix01-elevation` ve `probe/fix01-followup` dallarında yapıldı; dallar ölçümden sonra silindi, `main` değişmedi,
@@ -2576,8 +2262,6 @@ Yukarıdaki kronolojik kayıtlarda aynı dosya birden çok kez farklı hash ile 
 
 ```text
 python docs/evidence/poc/fix01_deelevate_probe.py info
-python docs/evidence/poc/fix01_deelevate_probe.py run -- python -m unittest tests.engine.test_worker_security tests.engine.test_worker_policy.RealSandboxTests
-python docs/evidence/poc/fix04_verify_appcontainer_probe.py docs/evidence/poc/fix04_results.json
 python docs/evidence/poc/fix04_toolchain_probe.py docs/evidence/poc/fix04_toolchain_results.json
 ```
 
@@ -2587,15 +2271,11 @@ python docs/evidence/poc/fix04_toolchain_probe.py docs/evidence/poc/fix04_toolch
   (`fix01_hosted_probe.log`). Administrators'ı deny-only yapıp integrity'yi Medium'a düşüren kısıtlı çocuk
   belirteçte `token_elevation` **hâlâ 1**; motor `unsupported_elevated` verir, 13 testte 12 ERROR. Bu yol çalışmaz.
 - Runner'ın oluşturduğu geçici standart yerel kullanıcı altında `token_elevation=0`, `_is_elevated()=False`;
-  AppContainer matrisi (`test_worker_security` + `RealSandboxTests`) 13 test: 12 geçti, 1 skip (Cursor CLI yok), 0 hata.
   Yetki yalnızca çalışma alanı + Python dizinine verilince 16 sn; tüm `hostedtoolcache` ağacına verilince ~10 dk
   (`fix01_hosted_followup.log`).
-- Verify, AppContainer'da ağ kapalı: dış IP, DNS, loopback ve alt süreç çıkışı engellendi; Python, unittest, node,
   cmd çalıştı (`fix04_results.json`). `npm.cmd` shim politikasıyla reddedildi; `node npm-cli.js test` sürücü kökü
   `lstat` EPERM ile çalışmadı; sys.prefix dışındaki venv yalnızca kökü salt-okunur verilince çalıştı;
-  `default_policy` `Program Files` altındaki `command[0]` dizini için ACL denemesi yapıp `SandboxStartError` verdi
   (`fix04_toolchain_results.json`).
-- Hosted'da AppContainer içindeki `git` `rc=128`: `could not open '/dev/null'` (yerelde çalışıyor; sebep git sürümü mü
   görüntü mü ayrıştırılmadı).
 - Claude Code CLI 2.1.318 `--output-format json` makine okunur; güvenilir sayılar `modelUsage` altında, üst düzey
   `usage` sıfırdı; `total_cost_usd` liste fiyatı tahmini; çağrının kotadan mı ücretli krediden mi düştüğü anlaşılamadı.
@@ -2604,7 +2284,6 @@ python docs/evidence/poc/fix04_toolchain_probe.py docs/evidence/poc/fix04_toolch
 ### Kalan risk / ölçülmeyenler
 
 - Hosted ölçüm tek runner görüntüsünde yapıldı; görüntü değişirse sonuç değişebilir.
-- AppContainer'da Python/node/cmd dışındaki araç zincirleri ölçülmedi.
 - `git` farkının nedeni ayrıştırılmadı.
 - Hub tarafı (FIX-03C), gerçek PR (FIX-03A), webhook/yoklama (FIX-03B) ve gerçek ajan benchmark'ı (FIX-02) için
   hiçbir koşu yapılmadı.
@@ -2614,7 +2293,6 @@ python docs/evidence/poc/fix04_toolchain_probe.py docs/evidence/poc/fix04_toolch
 - `docs/evidence/poc/fix01_deelevate_probe.py` -> `83993761BE250171E680BE8ACC5F61549FE45F778676C6785EBD828CEC918478`
 - `docs/evidence/poc/fix01_hosted_probe.log` -> `1916DEBE198FF5D046EB5B88429610B6E5E74B102E9B6146C2C833A4DCEFD826`
 - `docs/evidence/poc/fix01_hosted_followup.log` -> `24E2B7BDA11DE0DD364CA95032218216A0AE6B8735CBBE04F3EFB7AEE29F1605`
-- `docs/evidence/poc/fix04_verify_appcontainer_probe.py` -> `99B028401C1568C9C7F53A59C4457ABA64FC43E0FA1F9A95DC0905AB614265A4`
 - `docs/evidence/poc/fix04_results.json` -> `CA62AEF215B479F81219D58B5D28CE45EA34E1AEA80DC262E674ED6423B010F0`
 - `docs/evidence/poc/fix04_toolchain_probe.py` -> `9D9B52421ABCA84E67868B874458E4952BAB06F7D20829CD102AE341096D8072`
 - `docs/evidence/poc/fix04_toolchain_results.json` -> `C40F0BD3D1F6797D4E9F8ABDF2C4BB75BE5A3596C1B399FC276BD3E694C0AA5E`
@@ -2625,7 +2303,6 @@ python docs/evidence/poc/fix04_toolchain_probe.py docs/evidence/poc/fix04_toolch
 
 - Durum: **Kod ve yerel testler tamam; dört görevin dış girdi isteyen kısmı açık** (ROADMAP "Durum" tablosu). Hiçbir release
   kapısı kutusu bu girdiyle işaretlenmedi: kapı tek bir yayın SHA'sı için kanıt ister.
-- Kapsam: FIX-01 (güvenlik koşusu: sıfır skip, manifest, kapı, geçici standart kullanıcı betiği), FIX-04 (verify/kabul AppContainer'da,
   ağ kapalı, fail-closed, S-24), FIX-02 (gerçek ajan yürütücüsü, sızıntı denetimi, plan, kapı), FIX-03A/B (PR geri okuma, CI içe
   aktarma/yoklama), FIX-03C (Hub `evidence`).
 - Ortam: yerel Windows 11, yükseltilmemiş oturum, Python 3.13.15, git 2.55.0, node/cargo yerel.
@@ -2643,7 +2320,6 @@ python docs/evidence/poc/fix04_toolchain2_probe.py
 - Gerçek çıktı (özet):
 
 ```text
-Ran 658 tests in 1059.977s | OK (skipped=1) [skip = Cursor CLI yok, ADR-017 ile güvenlik kümesi dışında]
 --- güvenlik koşusu ---
 Ran 28 tests in 98.389s | OK | security run: OK | security gate: OK (manifest: failed=0 errors=0 skipped=0 elevated=false)
 --- Hub ---
@@ -2651,9 +2327,6 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 ```
 
 - Kabul kriteri karşılandı mı:
-  - FIX-04: **evet (yerel)**. Aynı betik sandbox'sız bağlanır (kontrol), AppContainer'da IP/DNS/loopback/alt süreç reddedilir;
-    anahtar ve veri kökü erişilemez; AppContainer kurulamazsa, `.cmd` shim'inde ve Windows dışında `SandboxError`;
-    `RESPECTED_ORCH_SANDBOX=off` yok sayılır; ağ istisnası yalnızca listedeki görevde `allow`; kanıtta `network` alanı.
   - FIX-03C: **evet**. Gerçek `evidence` çıktısı (`fix03c_real_evidence_view.json`) Hub modelinden geçirildi; stale/failed/tampered ve
     bilinmeyen şema onaya hazır görünmez; sızıntı ve onay-yok testleri; Rust izin listesi testi.
   - FIX-01: **kısmen**. Manifest/kapı yerelde (25 test, 0 skip) ve sahte manifestlerle kırmızı; `ci.yml` değişti. **Hosted GitHub koşusu
@@ -2671,8 +2344,6 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - `tests/tools/run_security_ci.py` -> `6FF4A3BDD5CB868367952F5B00B9F421FAEFBF40F33CF728B0D74F1C1B80A8E3`
 - `tests/tools/run_security_as_user.ps1` -> `BDBE7969AC13B42AA1F245A8CF8CDD3294D3136A26A00269A5C1BC3020246C8F`
 - `.github/workflows/ci.yml` -> `25A0DA1DD48FE7D4370B02298AD97FD26AD043934E59B1B3387A134683615696`
-- `src/respected_orchestrator/engine/sandbox.py` -> `12FB768E77C9377B6D266579B89BD0FA27091213CB66794C46B56FED7EC9F968`
-- `tests/engine/test_sandbox.py` -> `631D83EEC986AAA6DF231DBA54A042493F8E3CCFFE8DB69F6AEE26D556901201`
 - `tests/evals/bench.py` -> `24A2D4C91D1DAAAB0011C520C3C36C0015CD78A020E08142BFD21B79A042CAB8`
 - `tests/evals/test_bench.py` -> `954B0796894609844E5EE56D1D6E70E90F84F5865181C6B69829F55855BA1965`
 - `docs/evidence/poc/fix02_plan.json` -> `C1C40C472B8776F305A65D38E637AB56FE402295B6896AB5D2E95C1076ACF75F`
@@ -2695,19 +2366,6 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - Kalan risk / shortcut:
 ```
 
-## CUR-01 — Cursor çalışanı AppContainer kum havuzunda
-
-- Durum: TAMAM (2026-11-04). Gerçek Cursor işçisi (`--model auto`, Free plan) AppContainer içinde bir yazma görevini tamamladı; kök neden kanıtlandı ve giderildi.
-- Kapsam: `runner.get_cli_command` ve çalışan politikası, yeni `resources/node-shim/appcontainer-pipes.js`, testler, ARCHITECTURE/THREAT_MODEL (ağ anahtarı, izole HOME ve `engine/cursor_auth.py` önceki oturumdan).
-- Kök neden (kanıt: `poc/cursor01_pipe_rootcause.log`): AppContainer jetonu adlandırılmış boruyu yalnız `\\.\pipe\LOCAL\` altında oluşturabilir (`CreateNamedPipeW` diğer adlarda `ERROR_ACCESS_DENIED`). Node/libuv `child_process` borularını `\\?\pipe\uv\*` adıyla kurar, `ACCESS_DENIED`'ı ad çakışması sayıp sonsuza dek yeniden dener; `uv_spawn` hiç dönmez. `stdio:'inherit'/'ignore'` çalışır, `'pipe'` (execFile, spawn, spawnSync) asılır; job object ve handle devralma etkisizdir (job'sız aynı sonuç). Önceki oturumun "git asılıyor" belirtisi bu nedenin sonucuydu; `.running` EPERM notu yeni koşuda engel olmadı.
-- Düzeltme (en küçük): Cursor komutuna `--require <resources/node-shim/appcontainer-pipes.js>` eklendi (`runner.NODE_PIPE_SHIM`); yalnız bu dizin Cursor çalışanına salt-okunur verilir. Shim: `child_process` borularını `LOCAL\` altında kurar, `spawnSync/execSync` çıktısını `RESPECTED_WORKER_TMP` içindeki geçici dosyalardan alır, IPC (`fork`) kanalını `EACCES` ile reddeder, JS `fs.realpath` yerine `native` olanı kullanır (JS sürümü `C:\` üzerinde lstat EPERM verir; yalnız boru shim'iyle yapılan ilk canlı koşuda Cursor'un yazma aracı "kanonik yol doğrulaması" ile reddedildi → `test_failed`; realpath yaması sonrası düzeldi).
-- Çıktı / değişen dosyalar: `src/respected_orchestrator/engine/runner.py`, `src/respected_orchestrator/resources/node-shim/appcontainer-pipes.js` (yeni), `tests/engine/test_worker_policy.py` (+1 gerçek AppContainer testi), `tests/engine/test_runner.py`, `docs/ARCHITECTURE.md`, `docs/THREAT_MODEL.md`, `docs/evidence/poc/cursor01_{pipe_rootcause,fixed_write}.log`, `cursor01_write_only.py`.
-- Doğrulama komutu: `python docs\evidence\poc\cursor01_write_only.py <çıktı.log>` (canlı, Cursor Free); `python -m unittest tests.engine.test_worker_policy tests.engine.test_runner`; `python -m unittest discover -s tests -t .`.
-- Gerçek çıktı: canlı koşu `status=completed`, `changed_files=[owned.txt]`, kabul komutu returncode 0, `check` → `verified`, süre 44,5 sn, izole HOME silindi, token sızıntı taraması (`scan_for_secrets`) hata vermedi. Yeni test (`test_node_worker_can_start_piped_children_and_resolve_paths`) AppContainer içinde Cursor'un node'uyla `spawnSync`, `execFileSync(input)`, `spawn(stdin→stdout)` ve `realpathSync` çağırır; shim yoksa asılır (zaman aşımı).
-- Yasak erişim yeniden doğrulaması (shim sonrası, 2026-11-04): (a) `deny` senaryosu (`RESPECTED_CURSOR_NETWORK` yok) artık zaman aşımı yerine hızlıca fail-closed: `status=failed`, `reason=worker_failed`, `provider_status=AUTH_REQUIRED`, stderr "Authentication required"; auth.json kopyalanmadı, ağ açılmadı, izole HOME silindi (`poc/cursor01_deny.log`; eski kayıt `timed_out` idi). (b) `poc/cursor01_deny_probe.py` Cursor'un node'u + shim ile AppContainer içinde (ağ kapalı politika) çalışır: dışarıdaki dosyayı okuma/yazma/üzerine yazma, `.engine-key` okuma, veri kökü listeleme, kullanıcının `%APPDATA%\Cursoruth.json` okuması hepsi `EPERM`; shim'in başlattığı alt süreç dışarıdaki dosyayı okuyamadı (`status=1`); dışa TCP bağlantısı `EACCES`; kendi çalışma alanına yazma OK (`poc/cursor01_deny_probe.log`). Sızıntı yok, gevşetme gerekmedi. Not: probe'daki `PROBE_*` ad seçimi, `scrub_environment` "KEY/AUTH" adlı değişkenleri sildiği için ilk koşuda iki satırı `ERR_INVALID_ARG_TYPE` yaptı; adlar düzeltilip yeniden koşuldu.
-- Kabul kriteri karşılandı mı (kanıtla): EVET — `poc/cursor01_fixed_write.log` (`status: completed`, `check.status: verified`). Güvenlik sınırları gevşemedi: ağ yalnız `RESPECTED_CURSOR_NETWORK=allow`, `.cmd/.bat` reddi, kimlik yalıtımı ve ACL kapsamı aynı.
-- Kalan risk / shortcut: (1) Yasak erişim kanıtı aşağıdaki "Yasak erişim yeniden doğrulaması" maddesindedir. (2) `fork`/IPC kullanan bir Cursor özelliği artık `EACCES` alır; hangi özelliklerin buna ihtiyaç duyduğu doğrulanmadı. (3) Cursor'un shell aracı koşuda "reddedildi" dedi; nedeni (onay modeli mi, shim mi) doğrulanmadı. (4) `shortcut: shim yalnız Cursor için yüklenir; node tabanlı yeni işçi eklenirse aynı --require gerekir.` (5) sha256 ön ekleri: `cursor01_fixed_write.log` 7aeb758a3ac278aa, `cursor01_pipe_rootcause.log` 15db4e0da701fc86, `cursor01_write_only.py` 2eb1e4a4572a2800, `appcontainer-pipes.js` 362f75197c7f89a9, `runner.py` 8ae846a6a18f065b, `test_worker_policy.py` 6f12ddf68e6f74de, `test_runner.py` 465f97b4416c7518, `ARCHITECTURE.md` 6b19978729f41945, `THREAT_MODEL.md` af39df1b152e74c0, `cursor01_deny.log` dc8b9c8453a1de2e, `cursor01_deny_probe.log` d3d6889e8bd3603c, `cursor01_deny_probe.py` 2099df89ef6e6177; `cursor01_write_only.py` artık 2. argüman (`write|deny`) alır: b6274725dc1384a0 (yukarıdaki 2eb1e4a4572a2800 değerinin yerine).
-
 ## Kapanış hash düzeltmesi 2 (2026-11-04: Cursor token, ilerleme -> evidence taşıma)
 
 - `docs/ilerleme/` klasörü `docs/evidence/` olarak yeniden adlandırıldı; tüm yol atıfları güncellendi. Aşağıdaki hash'ler bu işlemden sonraki güncel dosya içerikleridir ve önceki bloklardaki aynı dosyaların hash'lerinin yerine geçer.
@@ -2725,7 +2383,6 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - `docs/adr/ADR-007-provider-key-network-threat-model.md` → `6099FA2EB8C7439A843C1A722EEBFB1F9F14CF1EC254F1F0A58A20F0D5D925AF`
 - `src/respected_orchestrator/engine/runner.py` → `48AD809631C6713063C3266D8ECA1BC821DBEAF261332E60F5D0BC49283C3EBB`
 - `tests/docs/test_decision_records.py` → `417CABB93D57ACE8C8E5195CF44AC2C5F7FD302DE84B3A2FA3FF7EE138E04110`
-- `tests/engine/test_worker_policy.py` → `3A18451497A89AD68F890F5F6F3013BFEE0893F47652A288563E6469E57F4F43`
 - `tests/evals/runner.py` → `6A151EC5784990FF5AE58FF973E0264FC9EE4893C17139A13CE82E3D7DD580A7`
 - `tests/workflows/test_roles.py` → `078358CEE57819AD8C92950BB329B1C57C96E3757B4CC5F87CCF3C62C8AA069F`
 - `docs/evidence/poc/cursor_cache_probe.log` → `3BFEB51FB7B7B7959B2D1E3718AFC518F2FA90DECAD3B891F1B27D73B1D901CF`
@@ -2749,7 +2406,6 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 
 ## Kapanış hash düzeltmesi 4 (2026-11-04: tüm .md denetimi)
 
-- THREAT_MODEL (B2, B3, S-01/02/04/20, §7, §8 tarihsel not, §10, §11), ARCHITECTURE §3/§4, FOOTPRINT sınır paragrafı, README, PRIVACY (AppContainer, GitHub ve Cursor/OpenCode ağ satırları), ADR-002/007, COMPETITOR_RESEARCH B-02, SKILL.md (`--data-root` kaldırıldı), UPDATE_NOTES güncellendi. Aynı dosyaların önceki bloklardaki hash'lerinin yerine geçer.
 - Bilerek değiştirilmeyenler: `docs/PRODUCT_CONTRACT.md` (üç depoda aynı kopya olmak zorunda; §7 Orchestrator RPP listesi `evidence.view` ve `github.*` işlemlerini içermiyor, Hub/Brain kopyalarıyla birlikte güncellenmeli).
 
 - `docs/THREAT_MODEL.md` → `2BDECEB7AB822D5AE58519F693F77849EBC4E784BE3B244808BA50A9A397875F`
@@ -2766,7 +2422,6 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 
 ## Kapanış hash düzeltmesi 5 (2026-11-05: beta.2 öncesi ölçümler ve kararlar)
 
-- ROADMAP (Beta.2 Öncesi Kalan Kritik Düzeltmeler bölümü), THREAT_MODEL (S-24 satırı, §11 CI sınırı), ARCHITECTURE (CI sınırı, verify planı, EVAL/GH/UX sınırları), README (ADR aralığı), PRIVACY (verify'ın ağ sınırı), ADR-002/014 (işaretçi), yeni ADR-017..020. Önceki girdilerdeki bu dosyalara ait hash'ler bu tarihten sonra geçersizdir; güncel değerler aşağıdadır.
 - Bilerek değiştirilmeyenler: `docs/PRODUCT_CONTRACT.md` (üç depoda aynı kopya), kaynak kod, testler, `ci.yml`.
 
 - `docs/ROADMAP.md` -> `88158D8E8216E5723A7606BED97B09D836284F6CEDB9F48EE783DCA9CE7DE212`
@@ -2776,14 +2431,11 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - `PRIVACY.md` -> `ADB773AD7DC648228ECDEADC8C5037EB425ED164EC872638F76702FDC6BDA08B`
 - `docs/adr/ADR-002-reproducible-evaluation.md` -> `7B46F68F606695260C9650D9EEF767E5E2045FF5C65BBF9A59A9CF5915A31010`
 - `docs/adr/ADR-014-github-boundary.md` -> `3A20192C70E27035A971110FF2C9E7FE287FB14E01267454F2A688FF2EE1178D`
-- `docs/adr/ADR-017-ci-security-run.md` -> `3AF6001D51C9B24FB84AA5B4EEACDBF4BFA9F5A0A131B6A7D7F3B01253D18A5E`
-- `docs/adr/ADR-018-verify-network-isolation.md` -> `9F0AC15F551CDA7A8AD0852A10983F8C074FDF228DF311892A7909FBBD3B59C6`
 - `docs/adr/ADR-019-real-agent-benchmark.md` -> `4B05B480A17316F3546A74F973375F6D1518BC79D918BE2687A8DE4FFCF75F49`
 - `docs/adr/ADR-020-ci-feedback-ingestion.md` -> `E351E1B1D644AB04A98E1860D81862C5B4DBC82E6B1F67B9BCE1CF2BCB1B3C38`
 
 ## FIX-02 gerçek koşu denemesi (5 Kasım 2026) — GEÇERSİZ
 
-- Ajan/model: opencode/deepseek-v4.1-flash-free (kullanıcı onaylı, 0 maliyet). Komut: `RESPECTED_TEST_SANDBOX=real RESPECTED_OPENCODE_NETWORK=allow python -m tests.evals.bench run ... --confirm-free`.
 - Sonuç: 60 koşu yazıldı ama OpenCode "Free usage limit reached" verdi; 26 Direct `agent_error`, 27 Orchestrated `worker_failed`, geçerli koşular (ilk ~4 görev): Direct 0/3 geçti, Orchestrated 3/3 (RSP-001) — örnek küçük, kanıt değil. Rapor `fix02_real_opencode_deepseek_INVALID.json`.
 - Ders: kota ifadesi regex'inde kaçtı; "usage limit" eklendi ve testlendi, parti artık ilk işarette durur. Bu hata düzelmeden koşu yeniden yapılmadı (kota bitti).
 - FIX-02 kutusu açık: kota yenilenince yeniden koşulmalı.
@@ -2798,7 +2450,6 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 
 ## FIX-01 / FIX-03A / FIX-03B — hosted ve canlı kanıt (5 Kasım 2026)
 
-- FIX-01: hosted koşu https://github.com/respected0/orchestrator-e2e-test'ten bağımsız olarak `respected0/respected-orchestrator` koşu 42006314204 (commit a700aff): güvenlik matrisi standart kullanıcı altında 28/28, skipped 0, failed 0, `elevated: false`; kapı yeşil; genel adım 660 test OK (127 skip = yalnızca genel adımdaki yükseltilmiş-skip listesi, güvenlik testleri ayrı adımda koşar). Manifest: `docs/evidence/poc/fix01_hosted_security_manifest.json` (SHA-256 4a9907a5b2f1494a99d51596cf0c26a2ca5a251e32e3cbb0b7ada162f9ff649a). Düzeltmeler: `Start-Process` yönlendirmesi hosted'da "parameter is incorrect" verdi, iç betik dosyasına geçildi; hosted git rc=128 nedeniyle Program Files testi rc 0/128 kabul eder (ACL iddiası aynı); sandbox testleri genel adımın skip listesine alındı. `main` dal koruması: zorunlu kontrol `tests (windows, Python 3.13)`.
 - FIX-03A/B: `tests/interfaces/test_github_live.py` (opt-in), `respected0/orchestrator-e2e-test`: gerçek `git push`, `gh pr create --draft` (PR #1, #2), geri okuma head SHA eşleşti, geçersiz token ve eksik dal yapılandırılmış hata (receipt yok), aynı operation_id ikinci kez push/PR üretmedi, merge yok, PR'lar kapatıldı. `gh api` yoklaması gerçek check-run: ilk `pending`, sonra `success` kabul, yeniden yoklama `duplicate`, eski olay `stale_event`. Günlük: `docs/evidence/poc/fix03_live_run.log`.
 - Kalan risk: imzalı çalıştırma fixture'dır (`check_result` yamalı; gerçek worker konusu değil); token en düşük yetkili değil; kanıt yayın commit'i için yinelenmeli.
 
@@ -2831,7 +2482,6 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
   - `python -m unittest tests.engine.test_review_apply_invariants` → 13 test OK (yeni assertion dahil).
   - `python docs/evidence/poc/doc01_check.py` → `PASS ADR: 21 karar kaydı`, `RESULT PASS 2026-11-06`.
   - Tam suite `python -m unittest discover -s tests -t .` → 661 test, 797 sn, **errors=2, skipped=2**. İki hata aynı testin (test + temizlik) kaydıdır: `EngineTests.test_supervisor_crash_kills_owned_descendants`, `supervisor.log` WinError 32. Tek başına ve değişiklik stash'lenmişken tekrar koşuldu: ikisi de OK. Neden: suite sürerken aynı makinede başka testler paralel koşturuldu (yük kaynaklı yarış); kök neden ayrıca araştırılmadı.
-  - Skip'ler: biri `test_live_context_mode_search_when_installed` (CONTEXT_MODE_SERVER gerekir, isteğe bağlı canlı yoklama); ikincisi izole edilmedi. AppContainer dosyaları (`test_sandbox`, `test_worker_policy` vb.) ayrı koşuda 0 skip.
 - Kalan risk: tam suite yeşil bir temiz koşu olarak kaydedilmedi (yukarıdaki yarış); G-1..G-4 açık; ikinci skip'in nedeni bilinmiyor.
 
 ## B3-00.02 — Masaüstü tehdit modeli ve güven sınırları (6 Kasım 2026)
@@ -2885,7 +2535,6 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 
 ## B3-02.01 — Mevcut ayrık kontrolcüleri denetleyen supervisor (6 Kasım 2026)
 
-- Kapsam: `engine/supervisor.py`: veri kökü başına tek sahip, süreç ömrüne bağlı OS dosya kilidi (`msvcrt.locking` / `flock`; çökme kilidi otomatik bırakır, PID tahmini ve PID yeniden kullanımı yok), yükseltilmiş oturumda ret (`appcontainer._is_elevated`), çalıştırma sahiplenmeleri `supervisor-claims.json` (canlı işçi varken ikinci başlatma `RunAlreadyClaimed`, ölü işçide yeniden sahiplenme). Mevcut campaign/project kodu değiştirilmedi.
 - Test: `tests/engine/test_supervisor.py` 6 test, art arda 3 koşuda OK: aynı veri kökünde ikinci supervisor reddi; sahip süreç öldürülünce kilit serbest; **6 eşzamanlı süreçten tam 1 sahip, 5 `busy`**; yükseltilmiş oturum reddi; sahip olmadan claim reddi, yinelenen başlatma reddi, ölü işçi sonrası yeniden claim; supervisor öldürülünce çalışma süreci yaşar ve yeni supervisor aynı run'ı ikinci kez başlatamaz.
 - Kalan risk: supervisor henüz hiçbir başlatma yoluna bağlı değil (B3-04.04/B3-02.04 bağlayacak); "iki GUI penceresi" yalnızca iki süreç/iki sahip denemesiyle sınandı, gerçek iki GUI örneği değil; orphan alt süreç ağacı temizliği (Job Object) bu görevde eklenmedi, mevcut `winproc` sahipliğine bırakıldı.
 
@@ -2923,14 +2572,6 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - Test: `python -m unittest tests.engine.test_agent_adapters -v` → 9 OK (8 sahte-yoklama senaryosu: yanlış mod bildirimi, ikili yok, sürüm düşürme, giriş gerekli, yoklama zaman aşımı, PTY asla usable, custom/antigravity iddiasız; 1 canlı test kurulu CLI'lerde chat'in `advertised_missing` olmadığını doğrular).
 - Canlı koşu (salt-okunur `--version/--help/auth status`): codex 0.160.1, claude 2.1.318, cursor 2026.10.22-27dcf5f, opencode 2.2.3 hepsi bulundu ve giriş ok; chat dördünde de `verified`; antigravity ikilisi yok → `unsupported`. Tablo `docs/AGENT_ADAPTER_MATRIX.md`.
 - Kalan risk: `verified` yalnızca bayrak varlığını kanıtlar; gerçek oturum akışı B3-03.03'te. interrupt/usage/send_input (claude hariç) `source`. Cursor sürüm tabanı sabitlenmedi. Giriş durumu çıktısındaki e-posta vb. kimlik alanları matrise yazılmaz.
-
-## B3-03.02 — ConPTY + AppContainer fizibilite kapısı (6 Kasım 2026)
-
-- Kapsam: gerçek ConPTY'ye bağlı AppContainer süreci denendi (`tests/engine/conpty_experiment.py`, yalnız test; üretim `spawn` değişmedi). Karar: `ADR-024` — koşullu GO; `agent_adapters` matrisinde `pty` üretim broker'ı gelene kadar `unsupported`.
-- Test: `python -m unittest tests.engine.test_conpty_feasibility -v` → 10 OK (dış dosya okuma/yazma reddi, ağ varsayılan kapalı [loopback sunucu bağlantı görmedi], torun süreç kum havuzunda, boyut değişikliği, 1 MiB çıktı, terminal kaçış dizileri ham gelir, broker girdisi çocuğa ulaşır, ham modda 0x03 okunur, cooked modda SIGINT gelmez + sert durdurma çalışır, çıktı yalnız PTY kanalından). Hiçbiri skip değil.
-- Gerçek bulgular (deneyde ölçüldü): (1) `STARTF_USESTDHANDLES` olmadan çocuk çıktısını üst sürecin yönlendirilmiş stdout dosyasına yazdı; null std handle ile kapandı (üst süreç stdout'u boş, çıktı PTY'de). (2) Ctrl-C sinyali AppContainer içindeki cooked süreçte teslim edilmiyor (20 sn); ham modlu süreç 0x03'ü girdi olarak okuyor.
-- Birlikte koşan belge/ek testler: `tests.docs.*` + `tests.engine.test_agent_adapters` ile 23 test OK.
-- Kalan risk: ağ-açık PTY ve gerçek ajan CLI'sinin PTY içinde çalışması denenmedi; Job Object+PTY denenmedi; Ctrl-C sınırının nedeni (AppContainer mı ConPTY mi) ayrıştırılmadı; deney kodu üretim yoluna henüz taşınmadı.
 
 ## B3-04.01 — Project/Run read model + filtreler (6 Kasım 2026)
 
@@ -2974,7 +2615,6 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - Mutasyon: `_claim` her zaman True yapıldığında yarış/replay/apply testleri kırılıyor (4/4 test kırıldı) → korumaları gerçekten bu testler tutuyor.
 - Rust testleri: `cargo test --lib` 15 OK (8 yeni): Evet→open(asker)+decide(human)+apply(human); Hayır→apply yok, deny gider; reddedilen challenge'da diyalog hiç gösterilmez; motor reddi yutulmaz; aynı anda tek diyalog (Busy) ve her sonuçtan sonra kapı yeniden açılır; diyalog metni sahte satır içeremez; taşıma hatasında hiçbir şey uygulanmaz; **gerçek iki motor süreci**: asker bağlantısı `approval.decide` → FORBIDDEN, human bağlantısı yalnız kendi komutlarında ENGINE_ERROR, diğerlerinde FORBIDDEN.
 - Diğer: `engine_connector::Connection::raw` (motor reddini veri olarak döndürür), `tests.engine.test_local_api/test_ipc_serve/test_authority` + yeni testler birlikte 48 OK; `npm run check` (tsc + 12 test) OK.
-- Kalan risk / doğrulanmayanlar: (1) **`MessageBoxW` hiç gerçek insanla tıklanmadı**; derlendi, mantık sahte Presence ile test edildi. (2) React ekranı `request_apply`'ı çağırmıyor (UI bağlı değil). (3) Aynı kullanıcı oturumunda sandbox dışı kötü amaçlı yazılım (girdi enjeksiyonu, süreç belleği) kapsam dışı. (4) Onay izi dosyaları (`approvals/*.decision.json`, imzalı) var ama olay günlüğüne (journal) yazılmıyor. (5) Apply anındaki TOCTOU (tam repo digest, kopya apply koruması) B3-05.03'ün işi; burada yalnız `consume` yeniden doğrular ve `apply_task`'ın kendi `check_result`/`git apply --check` kontrolü çalışır.
 
 ## B3-05.03 — TOCTOU-safe apply ve işlem sonucu (6 Kasım 2026)
 
@@ -3103,26 +2743,21 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - Fixture'lar (gerçek, kullanıcı yolu `C:\scratch` olarak temizlendi): `tests/fixtures/chat/opencode_ok_text.jsonl` (3 olay), `opencode_tool_injection.jsonl` (6 olay: araç çağrısı + enjeksiyonlu çıktı + özet). Model, dosyadaki "IGNORE ALL PREVIOUS INSTRUCTIONS… APPROVED_BY_USER" metnini veri olarak ele aldı.
 - Kod: `engine/chat_session.py` — `normalize` (tek JSONL satırı → `status/message/tool_call/ask_user/usage/error/unknown`, asla istisna atmaz), `parse_stream` (karar: `complete|incomplete|error|rate_limited`), `command` (saf argv; `--auto` hiç eklenmez, model/oturum kimliği/istem doğrulanır, istem `-` ile başlayamaz), `run_turn` (yalnızca matriste `chat` doğrulanmış ve oturum açıksa). Yalnız `opencode` destekli; codex/claude/cursor/antigravity/custom `Unsupported` (canlı akışları yakalanmadı). Tüm olaylar `untrusted: true`; ANSI/OSC/C0/C1 temizlenir, sırlar maskelenir, metin 8000 / araç çıktısı 4000 karakterle sınırlı, satır 1 MiB.
 - Test: `tests.engine.test_chat_session` 17 OK (gerçek fixture'lar, her kesik noktasında eksik akış, yırtık son satır, bozuk JSON, 429/"Free usage limit reached" → `rate_limited`, aşırı büyük satır, bilinmeyen tür, zengin metin, sır maskeleme, metnin içindeki sahte `step_finish`, yalnız açık `question` aracından `ask_user`). Mutasyon: ANSI temizliğini kaldırma / 429 ayrımı / ask_user'ı her araca yayma → 3/3 öldü. **Gerçek hata (test yakaladı):** `parse_stream` oturum sayısını `pop()` sonrası hesaplıyordu (`session_ids` hep 0).
-- Kalan risk / doğrulanmayanlar: `ask_user` eşlemesi yalnız araç adı `question` olan olaylara dayanıyor; canlı akışta hiç görülmedi (ücretsiz model sormadı) — kaynak varsayımı. Fixture AppContainer **dışında** yakalandı (geliştirici sondası; ürün oturum başlatma yolu sandbox'a B5-01'de bağlanacak). Fixture `--auto` ile yakalandı; `command()` bunu eklemez (varsayılan izinle `read` aracının sorunsuz çalışacağı doğrulanmadı). Tek CLI doğrulandı (kabul: ≥1).
 
 ## B3-03.04 — Etkileşim ve müdahale komutları (7 Kasım 2026)
 
 - Kod: `engine/session_control.py` — `SessionController`: `register/send/retry/interrupt/cancel/resume/view`, her komut kendi yetki sınıfıyla (`CLASSES`) **ilk iş** `authorize` eder. `approve` sınıfı yoktur: `approve()` her origin için (HUMAN dahil) `SessionApprovalRefused` fırlatır; oturum izin istemleri yalnız `approval.py`'nin onay otoritesinde çözülür. Oturum `(session_id, project_id)` ile adreslenir; bilinmeyen / başka projenin / bitmiş oturum **aynı** mesajla reddedilir (kimlik yoklaması yok). Girdi: yalnız çağıranın metni; ESC/CR/NUL/C1 ve >8000 karakter reddedilir (akıştan gelen metin hiçbir yoldan girdiye dönüşmez). `retry` en çok 2, `rate_limited` turda hiç. `interrupt` işlemi sonlandırır ama oturum kalır; `cancel` oturumu bitirir (bitmiş oturum geri gelmez). IPC: `sessions.list` (READ), `session.send/retry/interrupt/cancel/resume` (TASK); `session.approve` **yok** (`UNKNOWN_COMMAND` test edildi); `desktop/src/contracts/ipc.ts` güncellendi (sözleşme testi geçti).
 - Test: `tests.engine.test_session_control` 22 OK + 1 canlı (isteğe bağlı, `test_session_live.py`): 7 komut × 5 origin matrisi (reddedilen çağrı oturum durumunu değiştirmez), worker/child hiçbir şey yapamaz, `RESPECTED_ORCH_CHILD` HUMAN'ı CHILD'a indirir, durum/kimlik testleri, girdi enjeksiyonu (ESC[201~, CR, NUL, C1, aşırı uzun, `--auto`), sahte onay akışı (akıştaki `APPROVED_BY_USER`, sahte `approval` olayı, sahte `granted` token çıktısı → `approvals/` klasörü hiç oluşmaz; `approval.decide/consume` tüm non-human origin'leri durum açılmadan reddeder), sınırlı yeniden deneme, 429'da yeniden deneme yok, gerçek OS süreci üzerinde `interrupt`/`cancel` (süreç gerçekten biter; reddedilen `interrupt` sürece dokunmaz), UI durumları (`commands.<ad>.enabled/reason`).
 - Mutasyon 7/7 öldü: `cancel`'dan authorize kaldırma, `approve`'u serbest bırakma, girdi koruması, proje bağı, 429 retry koruması, retry sınırı, `terminate()`.
-- **Canlı (ücretsiz) kanıt:** `RESPECTED_TEST_SANDBOX=real RESPECTED_LIVE_CHAT=1 python -m unittest tests.engine.test_session_live` OK (4,5 sn): ilk turda "PINEAPPLE kelimesini hatırla" → tamamlandı, `cost 0`; `SessionController.send` ile **aynı oturumda** ikinci tur → model "PINEAPPLE" yanıtladı, `cost 0`, token 219 giriş / 6 çıkış, kota unknown. (Testlerin HOME izolasyonu opencode kimlik bilgisini gizler: bu yüzden canlı test `RESPECTED_TEST_SANDBOX=real` ister; ilk denemede kapı çağrıdan önce reddetti, model çağrılmadı.)
-- Kalan risk / doğrulanmayanlar: kayıt (`register`) yalnız motor içinden; IPC'den canlı bir oturum **başlatma** yok ve React'te oturum ekranı yok → "açık UI durumları" veri modeli (`view`) olarak var, ekrana bağlanmadı. `interrupt` CLI'de yumuşak sinyal yok, süreç sonlandırma (kaynak: matris). `send_input` ile canlı akış (stdin) yok; "mesaj gönder" = `--session` ile yeni tur. Sandbox (AppContainer) içinde oturum çalıştırma bağlanmadı. Denetim izi (journal) yazılmıyor. B3-05.04'te ertelenen "oturum-müdahale saldırıları" bu kartın birim düzeyinde kapandı; paketli exe ile IPC üzerinden uçtan uca denenmedi.
 
 ## B3-03.05 — Terminal render, split pane ve oturum regresyonu (7 Kasım 2026)
 
 - Kod: `desktop/src/terminal.ts` (saf mantık): `TerminalBuffer` (10 000 satır kaydırma, satır başına 4096 karakter; ANSI CSI/OSC/DCS/APC, tek-karakter kaçışlar, C0/C1 ve bidi kontrolleri atılır; parçalara bölünmüş kaçış dizileri durum makinesiyle; CAN/SUB iptal; CRLF tek satır, tek CR satırı ezer (ilerleme çubuğu), BS siler; `snapshot/restore` ile yeniden bağlanma), `planPaste` (CRLF→LF, tüm kontrol karakterleri + ESC atılır → bracketed-paste çıkışı yok, sondaki satır sonu atılır = otomatik gönderim yok, çok satırlı/uzun metin `needsConfirm`), `openPane/closePane/setSplit/gridFor` (bölme yalnız `pty` durumu `verified` ise açılır; 2–4 bölme açıkça seçilmeden olmaz; en çok 4), `paneSupportText` (Türkçe destek durumu). `desktop/src/Terminal.tsx`: yalnız düz metin (`<pre>`), DOM'da 40 satır (sanallaştırılmış), `role="log"`, yapıştırma onay iletişim kutusu. `tsc --noEmit` ve `vite build` temiz.
 - Test: `desktop/tests/terminal.test.ts` 13 OK (npm test toplam 34 OK): Türkçe/emoji, ANSI/OSC/DCS, bayt bayt bölünmüş kaçış = bütün akış, bidi/kontrol, CRLF/CR/BS, iptal, satır sınırı ve kaydırma, **10 MB günlük**, yeniden bağlanma (JSON'dan geri yüklenen anlık görüntü kesintisiz akışla aynı çıktıyı verir), yapıştırma güvenliği, bölme kuralları, ve **gerçek motor matrisine karşı** (Python'dan `agent_adapters.matrix()`): hiçbir ajanın PTY modu doğrulanmış değil → hiçbir bölme açılmıyor. Mutasyon 9/9 öldü (OSC yutma, bidi, yapıştırma kontrolleri, pty durumu, bölme izni, 4 sınırı, çok satır onayı, CR, kaydırma sınırı).
 - Performans (bu makine, Node 24): 10,0 MB girdi **85 ms** (ilk sürüm 3–6 sn'ydi: düz metin hızlı yolu + satır başına `splice` yerine toplu kırpma), 10 000 satırda pencere+ekleme **~0,00–0,05 ms/kare**; bellek 10 000 satırla sınırlı. **Gerçek hatalar (test yakaladı):** satır sınırı 1 karakter taşıyordu; dolu tamponda satır başına dizi kaydırma O(n) idi.
-- Kalan risk / doğrulanmayanlar: kontrollü PTY aracısı (broker) **yok** (ADR-024 koşullu GO, yalnız deney) → "süreç broker dışında shell açamaz" iddiası kanıtlanmadı; yerine "hiçbir yol shell başlatmıyor + pty `unsupported` iken bölme açılmaz" kanıtlandı. `Terminal.tsx` hiçbir rotaya bağlı değil (6 rota testi bozulmasın diye; PTY yokken ekrana koymak anlamsız) ve gerçek WebView'da çizilmedi — performans UI değil mantık düzeyinde ölçüldü; ekran okuyucu davranışı denenmedi. Kaydırma, yeniden boyutlandırma (resize) ve imleç/tam ekran uygulamaları (alternate screen) desteklenmiyor: satır tabanlı günlük görünümü. Bölme yerleşiminin kapat-aç kalıcılığı B5-01.02'ye bırakıldı.
 
 ## B3-09.04 — Beta.3 release gate ve imza politikası (7 Kasım 2026)
 
-- Kod: `tests/tools/release_gate.py` (`collect`, `verify`; yayın/etiket/push **yapmaz**), kararı ayrı üç cevaba böler: `release_ready` (tüm gerekli kapılar temiz ağaçta, yükseltilmemiş oturumda geçti; P0 test gruplarında **atlanan test = kırmızı**), `signed` (yalnız `release_signature.verify` → `signed`), `publishable` (ikisi birden). İmza yoksa ayrı, adlandırılmış engel `SIGNING-01` listelenir. Kapılar: güvenlik matrisi (`run_security_ci`, ADR-017), tam suite (test başına sonuç), 7 P0 test grubu (AppContainer işçi matrisi, GUI apply negatifleri, müdahale negatifleri, Chat adaptörü, kurucu/karma, update+migration, offline/telemetri), `npm run check`, `build_dist.py --audit`, kurucu SHA-256, ROADMAP'te açık Beta.3 P0 kartı yok. Yeni: `tests/engine/test_no_telemetry.py` (statik tarama: tek ağ-yetenekli modül `engine/provider.py`; telemetri/çökme raporu yok; React'ta `fetch`/WebSocket yok; Tauri'de HTTP istemci bağımlılığı yok).
 - Test: `test_release_gate` 18 OK (sahte girdilerle: imzasız=hazır-ama-yayınlanamaz, her kapı kırmızıyken imza kurtarmaz, eksik/bozuk kapı, kirli ağaç, yükseltilmiş oturum, atlanan/başarısız/boş grup, manifest hash'i yeniden hesaplanmış sahte `release_ready` bayrağı bile yakalanır), `test_no_telemetry` 5 OK. Mutasyon 8/8 öldü (imzasızı imzalı sayma, kirli ağaç, grupta skip, eksik kapı, hash kontrolü, bayrak yeniden hesabı, telemetri sözcüğü, ağ içe aktarması).
 - Gerçek koşu (kaynak commit `c3fb63d`, temiz ağaç, yükseltilmemiş oturum): **ilk koşu kırmızıydı** ve doğru nedenlerle — (1) isteğe bağlı canlı test P0 grubunda atlandı → ayrı modüle (`test_session_live.py`) taşındı; (2) `dist/RespectedOrchestrator/.respected/install.json` önceki smoke koşusundan kalma, bildirimde olmayan artık dosya `--audit`'i kırdı → silindi (git'te yok sayılan derleme klasörü). İkinci koşu: **`release_ready: true`**, 13 kapının 13'ü geçti, tam suite **1014 test, 0 hata, 4 atlandı** (atlananlar P0 grupları dışında ve manifestte listeli), `signed: false`, `publishable: false`. Manifest: `docs/evidence/release-manifest-beta3.json` (kurucu SHA-256 `1DA20BFF…8CB404`; manifest `c3fb63d` içindir, bu kanıt commit'inden öncesidir — `verify` yalnız o commit'te "tutarlı" der). `verify` koşuldu: tutarlı.
 - **Açık engel (yayın için): `SIGNING-01`** — üretim Authenticode sertifikası yok (D21); kurucu `unsigned`. "İmzalı sürüm" iddiası yapılmaz. Yayın/etiket/push yapılmadı ve kullanıcıya sorulmadan yapılmayacak.
@@ -3130,7 +2765,6 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 
 ## B3-03 tamamlama turu — kalan sınırların kapatılması (7 Kasım 2026)
 
-Önceki üç kartın (03.03, 03.04, 03.05) "doğrulanmayanlar" listesindeki yapılabilir işler yapıldı. Her model çağrısı `opencode` CLI ile `opencode/deepseek-v4.1-flash-free` (ücretsiz katman) kullandı; ücretli CLI (codex/claude/cursor) çağrılmadı. Üretilen her kullanım olayında `cost` 0 idi; kota her yerde `unknown`. Yaklaşık 24 küçük çağrı yapıldı; bunların yalnız iki sandbox probunda (hata ve zaman aşımı) kullanım olayı alınmadı, yani maliyet orada doğrulanamadı.
 
 **Yapılanlar**
 - **`ask_user` canlı:** gerçek akışta `question` aracı çağrısı görüldü (`tests/fixtures/chat/opencode_ask_user.jsonl`). Etkileşimsiz `opencode run` soruyu kendisi iptal ediyor (`status: error`, "non-interactive run cannot ask"), yani bu modda **cevaplanabilir bir soru yoktur**; olay yine `ask_user` olarak, güvenilmeyen veri biçiminde gösterilir. Test + mutasyon (ask araç kümesi boşaltılınca iki test kırıldı).
@@ -3142,14 +2776,12 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 - **Gerçek WebView2'de doğrulandı (CDP üzerinden, `RESPECTED_APP_DIR` ile derlenmiş geçici motor, geçici veri/profil klasörü; gerçek kurulum dokunulmadı):** (a) operatör anahtarı kapalı: Türkçe "kapalı" mesajı, 0 oturum; (b) anahtar açık: gerçek `opencode` ile ilk tur `OK`, ikinci tur `PINEAPPLE` (oturum belleği), maliyet 0, çalışırken "Turu durdur" açık, durdurunca "Başarısız" + "Yeniden dene" açık, 0 yetim süreç. Kötü niyetli akış içeriği (ESC dizileri, `<script>`, sahte "APPROVED_BY_USER") tarayıcıda etkisiz metin çizildi.
 
 **Güvenlik bulguları (bu turda keşfedildi, düzeltildi)**
-1. **Belgelenmiş değişmez bozuluyordu:** THREAT_MODEL D-13 / ROADMAP "yeni Chat/PTY oturumu korumasız süreç açamaz". Benim `session.start` yolum `opencode`'u sandbox dışında başlatıyordu ve renderer'dan erişilebilirdi. Sandbox denemesi: `opencode run` AppContainer içinde **çalışmıyor** (varsayılan modda yerel servis portu 28894 çakışır; `--standalone` modunda 150 sn çıktısız zaman aşımı, büyük olasılıkla loopback engeli, doğrulanmadı). Karar: IPC üzerinden oturum başlatma **varsayılan kapalı**; yalnız operatör `RESPECTED_CHAT_UNSANDBOXED=allow` verirse açılır (`SandboxGateTests`; kapı, ortam ve komut için toplam 13 mutant öldü: kapı kaldırıldı, kapı enjekte runner'lara da uygulandı, anahtar her zaman açık / her değeri kabul ediyor, ortam runner'a geçmiyor, shim'e düşme, `--standalone`/`PWD`/çocuk işareti/proje yapılandırması/`shell`/`edit` reddi düşürüldü). THREAT_MODEL D-13 "Kısmen" olarak güncellendi.
 2. **Paylaşılan arka plan servisi çalışma dizinini ve ortamı yok sayıyor:** canlı kontrol: modelin `shell` aracı `echo hi > MARKER.txt` komutunu verdiğim `cwd` yerine servisin klasörüne (repo kökü) yazdı. (O yan etki dosyasını ben sildim; repoya girmedi.) Çözüm: her tur `--standalone` (özel sunucu) + `PWD` açıkça oturum klasörüne ayarlanır (CLI proje klasörünü `PWD`'den alıyor, canlı kanıt).
 3. **Araç reddi:** `OPENCODE_CONFIG_CONTENT` ile `bash/shell/edit/write/patch/webfetch/websearch/task` reddedilir (bu sürümün araç adı `shell`; yalnız `bash` yazmak yetmezdi). Canlı çift deney: reddetmeyle araç hiç çağrılmadı, dosya oluşmadı; aynı istem reddetmesiz **çalıştı ve dosyayı oluşturdu** (kontrol). `OPENCODE_DISABLE_PROJECT_CONFIG=1` depo yapılandırmasının bunu geri açmasını engeller.
 4. **`.cmd` shim:** `shutil.which("opencode")` Windows'ta `opencode.cmd` döndürüyordu (denetim P0 #2: cmd.exe istemi yeniden ayrıştırır). Artık `clis.worker_executable` ile yerel `opencode.exe` çözülür; shim hiç çalıştırılmaz.
 5. **Çocuk işaretleme:** oturum süreci `RESPECTED_ORCH_CHILD=1` ile başlar (insan onayı veremez; işçilerle aynı kural).
 
 **Doğrulanmayanlar / kalan sınırlar**
-- Oturum **sandbox içinde çalışmıyor** (yukarıda); anahtar açıkken ajan sandbox dışında, motorun kullanıcısı olarak çalışır. Reddetme listesi opencode'un kendi uygulamasına dayanır (canlı, tek model, tek istemle doğrulandı; başka araç adları/sürümler doğrulanmadı). Okuma araçları açıktır: proje dosyalarının içeriği sağlayıcıya gider.
 - `--standalone` + `PWD` davranışı opencode 2.2.3'te gözlendi; başka sürümde değişebilir.
 - Oturum belleği yalnız süreç içi; PTY broker hâlâ yok ("broker dışında shell açılamaz" kanıtlanmadı).
 - Gerçek WebView2 denemesi CDP üzerinden yapıldı, görsel inceleme yapılmadı (DOM/metin doğrulaması); ekran görüntüleri alındı, ben göremedim.
@@ -3215,7 +2847,6 @@ npm run check: tsc temiz; node --test 131 pass / 1 fail (tests/shell/installFact
 
 **Yapılmayanlar (kart bu yüzden işaretli değil):** (1) **Gerçek benchmark koşulmadı.** `bench.py run` gerçek ajan çağrısı başlatır (ADR-019: yalnız sıfır marjinal maliyetli ajan/model, her seferinde kullanıcıya sorulur; 10 görev × 3 tekrar × 2 kol = 60 çağrı). Onay yok, bu yüzden `B4-GATE-01` açık ve `routing_history` boş. (2) Bu modülün `MIN_TASKS/MIN_REPEAT` değerleri `bench.py` ile elle eşit tutuluyor (src tests'e bağımlı olamaz). (3) Henüz `routing_confidence` hiçbir CLI/ayardan çağrılmıyor; geçmiş tablosu `roles.resolve` yoluna bağlı değil. (4) Aralıklar bağımsız Bernoulli varsayar; aynı görevin tekrarları bağımsız değildir, yani aralıklar olduğundan dar olabilir.
 
-**B4-01.04 ek (gerçek koşu denemesi, 7 Kasım 2026) — GEÇERSİZ:** Kullanıcı "ücretsiz modeller kullan" dedi. Komut: `RESPECTED_TEST_SANDBOX=real RESPECTED_OPENCODE_NETWORK=allow python -m tests.evals.bench run ... --agent opencode --model opencode/deepseek-v4.1-flash-free --confirm-free` (opencode v2.2.3, commit `6b50a45`, ücretli CLI çağrılmadı). Sonuç: 60 koşudan **26'sı yapıldı**, 26. koşuda (orchestrated) kota işareti görüldü ve parti kurala göre durdu (`status: stopped_quota`). Yapılan koşular: direct 13/13 geçti, orchestrated 12/13 geçti (+1 `quota_stop`); orkestre kolunda güvenlik ihlali 0; token/maliyet `unknown`. `routing_confidence.gate`: **FAIL** ("no usable real-agent benchmark report"; durum `stopped_quota` ve 10×3×2'den az). Karşılaştırma bilgi amaçlı: Wilson aralıkları direct [0,77–1,00], orchestrated [0,67–0,99], yani fark saptanamadı; 13 koşu kanıt değil.
 **Karar:** Kota bittiği için yeniden koşulmadı (aynı model, 5 Kasım'da da kota dolmuştu; başka ücretsiz model denemek ayrı karar ve karşılaştırılabilirliği bozar). Rapor `docs/evidence/b4-01-04-bench-opencode-deepseek-INVALID.json`. B4-GATE-01 açık; kota yenilenince aynı komutla tam 60 koşu gerekir.
 
 ## B4-02.01 — Agent/team/profile sürümlü veri sözleşmesi
@@ -3286,7 +2917,6 @@ Bu bölüm, önceki B4 kartlarında "bağlı değil" diye yazılan eksikleri ve 
 **Doğrulanmayanlar:** masaüstünde operatör düğmeleri yok; kaldırılan durdurma yeni bir `queued` koşu başlatır (`retry_task`), yürütmez.
 
 ## B4-08.03 Hata enjeksiyonu
-`tests/faults/matrix.py` (24 hata, 9 alan: ağ, yarım yazılmış durum, süreç artığı, yinelenen eylem, devre kesici, apply güvenliği, sandbox, kurcalama, yükseltme), `tests/faults/test_direct.py` (11 yeni), `test_fault_matrix.py` (yapı: her test var ve tek test; Python 3.13'ün eksik testi `_FailedTest` olarak saklaması yakalanır). `docs/evidence/b4-08-03-fault-matrix.json`: 24/24, atlanan 0, 56,7 sn, `unbounded_retry: 0`, `double_apply: 0`, `working_tree_dirty: true`, commit `3a30f81…` (kirli ağaç; kapıdan önce commit sonrası yeniden üretilmeli).
 
 ## B4-02.04, B4-03.05, B4-04.03 Masaüstü ekranları
 IPC `team.view`, `capabilities.recommend`, `analytics.summary` (hepsi READ; `engine/analytics.py`, `workflows/team_view.py`); Rust `read_call` rölesi yalnız bu üç komutu iletir (`engine_connector::READ_COMMANDS`, ACL izni `allow-read-call`; `cargo test` 27 + ACL entegrasyon testi geçti, hem izinli hem reddedilen komutlar sınandı). Ekranlar `desktop/src/Beta4Screens.tsx`: **Takım** (üyeler, çalışabilirlik, devir geçmişi), **Yetenek önerileri** (görmezden gel var, etkinleştirme düğmesi yok), **Bütçe ve başarı** (bildirilen/tahmini/bilinmeyen ayrı; yüzde yalnız ≥5 koşuda; bütçe yalnız her koşu kullanım bildirdiyse yeşil; kota durmaları uyarı; `usage_collection=false` her şeyi kapatır). Sözleşme: `tests/tools/make_beta4_fixture.py` GERÇEK motor yanıtlarını sentetik veri ve sentetik ev klasöründen üretir (`desktop/tests/fixtures/beta4.json`), `desktop/tests/beta4.test.ts` bunları ekranın kendi görünüm işlevleriyle okur (59 düğüm testi + `tsc`). Tarayıcı bölmesinde (`?mock`, gerçek yanıtlarla) üç ekran açıldı: konsol hatası yok, içerik beklenen gibi.
@@ -3310,9 +2940,7 @@ Kullanıcı yönergesi: ücretsiz modeller. `opencode models` listesindeki ücre
 
 **Ses motoru (kullanıcı izniyle):** yalıtık ortam `%LOCALAPPDATA%\respected-orchestrator-stt\` (sanal ortam: `faster-whisper 1.2.1`, `ctranslate2 4.8.5`; global kurulum yok), model `Systran/faster-whisper-small` (MIT; `model.bin` 483 546 902 bayt, tüm dosya özetleri `docs/evidence/b4-06-01-stt-measurement.json`). Başvuru adaptörü `packaging/voice/faster_whisper_stt.py` ağ yoklamalarını kapatır; ilk sürümde `socket` yamasını `ssl` içe aktarımından önce yaptığı için çöktü (`asyncio`→`ssl` `socket`'i alt sınıflar), yamayı ağır içe aktarımlardan sonraya aldım. Ölçüm: 4 İngilizce cümle (Windows Zira sesiyle üretilmiş): WER %8,6; ses→taslak→onay kapısı uçtan uca çalıştı (`UNCONFIRMED_DRAFT` onaydan önce, ses baytı 0 kaldı). **Ölçümün bulduğu hata:** sözlük düzeltici 'Rename' sözcüğünü sessizce 'readme'ye çeviriyordu; kural değişti (tek harflik kayma uygulanır, iki harflik yakınlık yalnız öneri, çekim ekli sözcük hiç değişmez) ve testlendi. **Ölçülemeyenler:** Türkçe doğruluk (Türkçe ses kaynağı yok), gerçek mikrofon yakalaması.
 
-**agy (Antigravity) ile benchmark:** `agy models`: en ucuz `gemini-3.8-flash-low`. `tests/evals/bench.py` agy için doğrudan kol adaptörü kazandı (`parse_agy_usage`: toplam token biliniyorsa sayı, değilse `unknown`). Doğrudan kol gerçek çağrıyla çalıştı (1 görev: geçti, 14 sn, 23 812 token). **Orkestre kol çalışmadı:** motorun işçi sandbox'ı (AppContainer) içinde `agy` `C:/Users/.../.gemini/antigravity-cli/installation_id` dosyasını açamıyor (erişim reddedildi; `HOME`/`USERPROFILE` yönlendirmesini de dikkate almıyor, kullanıcı klasörünü işletim sisteminden çözüyor) ve ağ da kapalı (`worker_network_mode` yalnız opencode/cursor için açılabiliyor). `agy` işçisini çalıştırmak, sandbox'ı gevşeten yeni bir kimlik köprüsü ve ağ anahtarı gerektirir (cursor_auth benzeri); bu güvenlik kararı kullanıcıya bırakıldı. Bu yüzden iki kollu `B4-GATE-01` benchmark'ı agy ile de koşulamıyor.
 
-**agy köprüsü denemesi (8 Kasım 2026, kullanıcı "ekle" dedi) — EKLENMEDİ, değişiklikler geri alındı:** İki parça denendi. (1) Ağ anahtarı + işçi ortamı: `RESPECTED_AGY_NETWORK=allow` ve `ANTIGRAVITY_GEMINI_DIR`/`HOME` yönlendirmesiyle agy işçisi sandbox içinde artık başlıyor (durum dosyalarını koşunun scratch klasörüne yazıyor; önceki `installation_id` erişim hatası kalktı). (2) Kimlik: agy, Google OAuth oturumunu `ANTIGRAVITY_GEMINI_DIR`, `HOME`, `APPDATA`, `LOCALAPPDATA` yönlendirmeleri boş olsa bile sandbox DIŞINDA buluyor (gerçek kullanıcı klasöründeki `%APPDATA%\antigravity\credential-user-scope` ve/veya işletim sistemi kimlik deposu; yönlendirilebilir bir ayar yok), sandbox İÇİNDE bulamıyor: `Authentication required. Please visit the URL to log in` ve `authentication failed or timed out`. Çalıştırmanın tek yolu AppContainer'a gerçek kimlik dosyasına okuma izni vermek olurdu: işçi (model denetimli kod) `cloud-platform` kapsamlı Google hesabı belirtecini okuyup ağ açıkken dışarı çıkarabilir; bu, `docs/THREAT_MODEL.md` S-02'nin ("worker kimlik bilgilerini okur → engellenir") tam tersidir ve cursor/opencode'daki "yalnız bir auth dosyasını kopyala" modelinden farklı olarak kopyalanabilir tek bir dosya da yoktur. Bu yüzden köprü eklenmedi, ağ anahtarı ve ortam değişikliği de geri alındı (kullanılamayan, yüzey genişleten kod bırakılmadı). Seçenekler: (a) agy'nin Gemini API anahtarı kipi (`AUTH_MODE_GEMINI_API_KEY`) ile yalnız bir anahtarı işçiye vermek (kullanıcının anahtarı ve ayrı bir tehdit modeli gerekir), (b) `B4-GATE-01` benchmark'ını sandbox'ta çalışan bir ajanla (opencode, kota gelince) koşmak.
 
 
 ## B4-06 / B4-07 arayüz ve IPC (2026-11-08)

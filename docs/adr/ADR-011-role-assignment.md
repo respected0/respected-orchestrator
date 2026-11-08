@@ -14,7 +14,7 @@ Her model her role atanabilmeli, ama planlayıcı bir model prompt enjeksiyonuyl
 2. Öncelik: açık atama, ayarlardaki varsayılan, ancak `auto_assign` açıksa `auto_pool` içinden otomatik öneri. Açık seçim sessizce değiştirilmez; yalnızca atamanın kendi `fallbacks` listesi devreye girer.
    Otomatik öneri bu kurulumun kendi imzalı geçmişinden gelir (`track_record.py`): yumuşatılmış tamamlanma oranı, başka rolün kullanmadığı profil, daha düşük ortalama belirteç, havuz sırası. Aday elemez, yalnızca sıralar. Görev zorluğu ve fiyat sıralamaya girmez.
 3. `coordinator` yalnızca doğrulanmış DAG ve rol ataması döndürür. Shell, worker başlatma, kampanya/proje başlatma ve apply yetkisi yoktur; bu yöndeki öneriler plan doğrulamasından önce reddedilir. Tek görevde coordinator `ROLE_NOT_EXECUTABLE` döner.
-4. `tester` motorun sahip olduğu doğrulama aşamasıdır: yalnızca görevin kabul komutlarını bir kez AppContainer içinde çalıştırır, serbest komut kabul etmez ve imzalı `tester-report.json` üretir. MAF gözden geçirici bu kanıtı doğrulamadan çalışmaz.
+4. `tester` motorun sahip olduğu doğrulama aşamasıdır: yalnızca görevin kabul komutlarını bir kez çalıştırır, serbest komut kabul etmez ve imzalı `tester-report.json` üretir. MAF gözden geçirici bu kanıtı doğrulamadan çalışmaz.
 5. `require_independent_review` açıksa çalışanla aynı profili kullanan gözden geçirici `ROLE_INDEPENDENCE`'tır.
 
 ## Sonuçlar

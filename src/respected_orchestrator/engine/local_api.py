@@ -120,7 +120,7 @@ class LocalApi:
         self._attach_api = None
         data_root = getattr(ctx, "data_root", None)
         store = SessionStore(Path(data_root) / "chat" / "sessions.json") if data_root else None
-        self.sessions = session_control.SessionController(unsandboxed=os.environ.get("RESPECTED_CHAT_UNSANDBOXED", "").strip().casefold() == "allow", store=store)
+        self.sessions = session_control.SessionController(store=store)
 
     def handle_raw(self, raw):
         if isinstance(raw, str):

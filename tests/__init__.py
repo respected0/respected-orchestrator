@@ -17,12 +17,12 @@ os.environ.pop("RESPECTED_ORCH_CHILD", None)
 # Windows runners expose TEMP as an 8.3 short path (RUNNER~1) while resolved paths use the long name.
 tempfile.tempdir = os.path.realpath(tempfile.gettempdir())
 
-if not os.environ.get("RESPECTED_TEST_SANDBOX"):
+if not os.environ.get("RESPECTED_TEST_HOME"):
     _home = Path(tempfile.mkdtemp(prefix="respected-test-home-"))
     for _sub in ("AppData/Roaming", "AppData/Local"):
         (_home / _sub).mkdir(parents=True)
     os.environ.update(USERPROFILE=str(_home), HOME=str(_home), APPDATA=str(_home / "AppData/Roaming"),
-                      LOCALAPPDATA=str(_home / "AppData/Local"), RESPECTED_TEST_SANDBOX=str(_home))
+                      LOCALAPPDATA=str(_home / "AppData/Local"), RESPECTED_TEST_HOME=str(_home))
     atexit.register(shutil.rmtree, _home, ignore_errors=True)
 
 # Tests mock every worker call, but role and command resolution still asks whether the CLI is installed. Put empty

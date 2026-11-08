@@ -61,7 +61,6 @@ export async function call<T>(relay: Relay, cmd: SessionCommand, payload: Record
     const r = await relay(cmd, { project_id: PROJECT_ID, ...payload });
     if (r.ok) return { ok: true, value: r.result as T };
     const reason = (r.error as { reason?: string } | null)?.reason ?? '';
-    if (reason === 'CHAT_DISABLED') return { ok: false, text: DISABLED_TEXT };
     if (REJECT_TEXT[reason]) return { ok: false, text: REJECT_TEXT[reason] };
     const code = r.error?.code ?? 'ENGINE_ERROR';
     const known: Record<string, string> = { FORBIDDEN: 'Bu işleme izin yok.', BAD_REQUEST: 'İstek geçersiz.', UNAUTHENTICATED: 'Motor oturumu doğrulanamadı.' };
@@ -79,7 +78,6 @@ export const REJECT_TEXT: Record<string, string> = {
   AGENT_NOT_INSTALLED: 'Ajan kurulu değil.', TOO_MANY_SESSIONS: 'Çok fazla açık oturum var.', SESSION_UNKNOWN: 'Oturum bulunamadı.',
   SESSION_LIVE: 'Önce oturumu bitir.', RESUME_INVALID: 'Devam ettirilecek oturum geçersiz.',
 };
-export const DISABLED_TEXT = 'Sohbet oturumları kapalı: ajan henüz sandbox içinde çalışamadığı için motor onu yalnız operatör RESPECTED_CHAT_UNSANDBOXED=allow ayarladığında başlatır. Dosya değiştiren ve komut çalıştıran araçlar o durumda da kapalı kalır.';
 
 export const POLL_MS = 1000;
 /** A running turn is polled; nothing else is. */

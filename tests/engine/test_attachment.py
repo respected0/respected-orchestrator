@@ -243,10 +243,11 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(code_of(at.bytes_for_model, self.ctx, RUN, record["id"], "openrouter"), "NOT_FOUND")
 
     def test_nothing_else_in_the_engine_can_reach_attachment_bytes(self):
-        """The only ways to read an image are read_for_person and bytes_for_model; no other module imports this one, so no log,
+        """The only ways to read an image are read_for_person and bytes_for_model; no module beyond the command layer imports this one, so no log,
         evidence view, checkpoint or worker prompt can carry it (an adapter that wants it must call bytes_for_model)."""
         root = Path(at.__file__).resolve().parents[1]
-        users = [p.name for p in root.rglob("*.py") if p.name != "attachment.py" and re.search(r"\battachment\b", p.read_text("utf-8")) and
+        api_layer = {"attachment.py", "attachment_api.py", "local_api.py"}  # the command layer (local_api only names AttachError)
+        users = [p.name for p in root.rglob("*.py") if p.name not in api_layer and re.search(r"\battachment\b", p.read_text("utf-8")) and
                  re.search(r"(from \.+\w*\s*import[^\n]*\battachment\b|import [\w.]*attachment\b|from [\w.]*attachment import)", p.read_text("utf-8"))]
         self.assertEqual(users, [])
 

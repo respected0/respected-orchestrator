@@ -171,14 +171,10 @@ aracın ve sizin diğer ayarlarınız korunur. Kayıttan sonra AI aracını yeni
 
 OpenCode çalışanı gerçek ACP oturumu kullanır ve sonucu güvenli biçimde ayrıştırır: çıplak JSON ya da tek bir
 fenced JSON bloğu kabul edilir; fence dışındaki açıklama metni sorun değildir, ancak serbest metinden JSON çıkarılmaz.
-Birden fazla fence, yarım fence, bozuk JSON ve geçersiz `status` başarısız sayılır. OpenCode ağ erişimi varsayılan
-kapalıdır; `RESPECTED_OPENCODE_NETWORK=allow` yalnızca gerektiğinde verilir.
+Birden fazla fence, yarım fence, bozuk JSON ve geçersiz `status` başarısız sayılır.
 
-Cursor çalışanı Cursor'un kendi `node.exe` ve `index.js` girişiyle (`--trust --output-format json`) kum havuzu içinde
-çalışır; `.cmd` kabuğu hiç çalıştırılmaz. Cursor'da oturumunuz açık olmalıdır. Ağ erişimi varsayılan kapalıdır ve
-Cursor ağsız çalışamayacağından `RESPECTED_CURSOR_NETWORK=allow` verilmedikçe görev hızlıca `AUTH_REQUIRED` ile başarısız
-olur; ağ açıkken yalnızca `auth.json` dosyanız o görev için yalıtılmış bir geçici kullanıcı klasörüne kopyalanır ve görev
-sonunda silinir.
+Cursor çalışanı Cursor'un kendi `node.exe` ve `index.js` girişiyle (`--trust --output-format json`) çalışır;
+`.cmd` kabuğu hiç çalıştırılmaz. Cursor'da oturumunuz açık olmalıdır.
 Ücretsiz (Free) planda yalnızca `auto` ve Grok 4.7/4.6 modelleri kullanılabilir.
 
 AI aracı şu araçları görür: `orchestrator_status`, `orchestrator_plan`, `orchestrator_task_start`,
@@ -272,8 +268,6 @@ Brain hafıza bağlantısı varsa önce `memory disconnect` ile kapatmak izni Br
 | Görev `failed`, `WORKER_FAILED` | Çalışanın çıktısı başarılı bir sonuç bildirmedi; `inspect` ve uygulamadaki loglar. Kota ya da oturum hatası ayrıca belirtilir |
 | `timed_out` | `timeout_seconds` ya da `default_timeout_seconds` artırın |
 | Başka bir görev çalışırken yeni görev bekliyor | Aynı veri kökünde aynı anda tek görev çalışır; sıradaki görev kendi süresi içinde sıraya girer (`cancel` ile vazgeçilir) |
-| Codex görevi `failed`; çalışan "erişim engellendi" diyor | Codex'in kum havuzu kullanıcı profilinizdeki programları (örneğin `AppData\Local\Programs` altındaki Python) çalıştıramaz; doğrulama komutunda sistem ya da `Program Files` altındaki bir programı kullanın. Doğrulamayı motor ayrıca kendi belirteciyle yapar |
-| `sandbox_unavailable` | Doğrulama kum havuzu kurulamadı; yükseltilmiş (yönetici) olarak çalışmayın, veri klasörünün izinlerine bakın |
 | `check` geçmiyor | Yama artık projeye uymuyor (proje değişti), kapsam dışına çıkılmış ya da doğrulama komutu başarısız; görevi yeniden deneyin |
 | MCP'den görev reddediliyor | Doğrulama komutu `mcp_acceptance_allow`'da değil ya da özel komut/uygulama klasörü istendi |
 | `memory connect` → `NOT_INSTALLED` | Brain kurulu değil |

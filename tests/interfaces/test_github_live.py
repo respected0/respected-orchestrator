@@ -1,7 +1,7 @@
 """FIX-03A/B live proof against a real throwaway test repository (opt-in; skipped, never green, otherwise).
 
 Set RESPECTED_LIVE_GITHUB_REPO=owner/name and RESPECTED_LIVE_GITHUB_CLONE=<local clone of it, `origin` = that repo>.
-Run with RESPECTED_TEST_SANDBOX=1 so the suite keeps the real HOME (gh needs its own login).
+Run with RESPECTED_TEST_HOME=1 so the suite keeps the real HOME (gh needs its own login).
 The signed run is a fixture (the real worker is not the subject here); `check_result` is patched, everything else
 (git push, `gh pr create --draft`, read-back, check-run polling) is real. No merge is ever issued; the PR is closed after.
 """

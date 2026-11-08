@@ -135,7 +135,7 @@ def _plan_writes(worktree, payload, ownership, forbidden):
 
 
 def run_in_lane(worktree, request, deadline, cancel_path):
-    """The engine's own worker for OpenRouter tasks. No sandbox is needed: no model-controlled code runs here.
+    """The engine's own worker for OpenRouter tasks. No model-controlled code runs here.
 
     The usual scope check, acceptance run and signed evidence follow exactly as for any other worker.
     Returns an object shaped like a finished process (stdout, stderr, returncode)."""

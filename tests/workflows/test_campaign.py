@@ -36,12 +36,12 @@ class CampaignTests(unittest.TestCase):
         # SEC-03: campaign child lanes do not get their own launch path; the engine's maf run applies the policy.
         lane_ctx = EngineContext(self.ctx.data_root / "campaigns" / "camp-20260101000000-aaaaaaaa" / "lanes" / "lane")
         run_id = "run-20260101000000-abcdef"
-        completed = subprocess.CompletedProcess([], 0, '{"status": "FAILED", "reason": "sandbox_unavailable"}\n', "")
+        completed = subprocess.CompletedProcess([], 0, '{"status": "FAILED", "reason": "worker_failed"}\n', "")
         with mock.patch.object(campaign, "execute", return_value=completed) as execute:
             result = campaign._maf_lane(lane_ctx, run_id, 30)
         command = execute.call_args.args[0]
         self.assertEqual(command[-2:], ["maf", run_id])
-        self.assertEqual(result["reason"], "sandbox_unavailable")
+        self.assertEqual(result["reason"], "worker_failed")
 
     def test_campaign_list_names_only_real_campaign_folders_newest_first(self):
         campaigns = self.ctx.data_root / "campaigns"
@@ -116,37 +116,6 @@ class CampaignTests(unittest.TestCase):
         for lane in result["lanes"]:
             self.assertEqual(Path(lane["lane_data_root"]).parent.name, "lanes")
         self.assertEqual(sources[0].joinpath("f.txt").read_text(), "old\n")
-
-    def test_lane_worker_cannot_read_or_write_outside_its_worktree(self):
-        source = self.source("iso")
-        secret = self.root / "outside.txt"
-        secret.write_text("SENTINEL-CAMPAIGN-SECRET", encoding="utf8")
-        planted = self.root / "planted.txt"
-        code = (
-            "import sys\n"
-            "from pathlib import Path\n"
-            f"p=Path({str(secret)!r}); q=Path({str(planted)!r})\n"
-            "def denied(fn):\n"
-            "    try:\n"
-            "        fn()\n"
-            "    except (PermissionError, OSError):\n"
-            "        return 'DENIED'\n"
-            "    return 'ALLOWED'\n"
-            "read=denied(lambda: p.read_text(encoding='utf8'))\n"
-            "write=denied(lambda: q.write_text('x', encoding='utf8'))\n"
-            "Path('f.txt').write_text('new\\n' + read + ' ' + write + '\\n')\n"
-            "sys.exit(0 if 'ALLOWED' not in read+write else 3)\n"
-        )
-        check = "from pathlib import Path; t=Path('f.txt').read_text(); assert t.startswith('new\\n') and 'DENIED DENIED' in t"
-        lanes = [self.lane("iso", source, command=[sys.executable, "-c", code])]
-        lanes[0]["request"]["acceptance"] = [[sys.executable, "-c", check]]
-        campaign_id, _ = self.start(self.spec(lanes))
-        result = campaign.run_campaign(self.ctx, campaign_id, lane_runner=approve)
-        lane = result["lanes"][0]
-        self.assertEqual(lane["status"], "MASTER_APPROVED", result)
-        self.assertEqual(secret.read_text(encoding="utf8"), "SENTINEL-CAMPAIGN-SECRET")
-        self.assertFalse(planted.exists())
-        self.assertNotIn("SENTINEL-CAMPAIGN-SECRET", json.dumps(result))
 
     def test_dependency_waits_and_failed_dependency_skips_dependents(self):
         first, second = self.source("a"), self.source("b")

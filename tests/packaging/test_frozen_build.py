@@ -1,5 +1,5 @@
 """The packaged engine works with no Python on PATH: RPP, MCP, and a real write task through its detached supervisor
-and the restricted-token acceptance sandbox (the two paths that start the engine again from inside itself).
+and its acceptance check (the two paths that start the engine again from inside itself).
 
 Needs a build in dist/ (python packaging/build_dist.py) or RESPECTED_ORCH_DIST; skipped locally without one, required in CI.
 """
@@ -64,7 +64,7 @@ class FrozenBuildTest(unittest.TestCase):
         tools = next(reply for reply in replies if reply.get("id") == 2)["result"]["tools"]
         self.assertTrue(tools, err)
 
-    def test_write_task_runs_detached_and_passes_sandboxed_acceptance(self):
+    def test_write_task_runs_detached_and_passes_acceptance(self):
         repo = self.root / "project"
         repo.mkdir()
         for args in (("init", "-b", "main"), ("config", "user.name", "Fixture"), ("config", "user.email", "fixture@example.invalid")):

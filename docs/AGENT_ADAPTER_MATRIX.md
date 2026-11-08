@@ -11,7 +11,7 @@ Durum: B3-03.01 (6 Kasım 2026). Kaynak: `src/respected_orchestrator/engine/agen
 | `advertised_missing` | Bildirilen yetenek bayrağı kurulu CLI'de yok veya yoklama başarısız. Kapalı. |
 | `unsupported` | Açıkça desteklenmiyor (ikili yok, sözleşme yok, ya da PTY kapısı henüz karar vermedi). |
 
-Bir mod yalnızca `verified` **ve** ikili mevcut **ve** giriş yapılmış ise başlatılabilir (`usable`). PTY hiçbir ajan için açık değildir; ConPTY+AppContainer kapısı (B3-03.02) karar verene kadar `unsupported`.
+Bir mod yalnızca `verified` **ve** ikili mevcut **ve** giriş yapılmış ise başlatılabilir (`usable`). PTY henüz hiçbir ajan için açık değildir (`unsupported`).
 
 ## Canlı doğrulama (6 Kasım 2026, bu makine, yalnız salt-okunur yoklama: `--version`, `--help`, giriş durumu)
 
@@ -26,7 +26,7 @@ Bir mod yalnızca `verified` **ve** ikili mevcut **ve** giriş yapılmış ise b
 
 ## Her ajanın yapılandırılmış (chat) yolu
 
-- codex: `exec --json` (JSONL), `exec resume`; onay/kum havuzu `-a`/`-s`.
+- codex: `exec --json` (JSONL), `exec resume`; onay ve izin kipi bayrakları (`-a`, `-s`).
 - claude: `-p --output-format stream-json`, `--input-format stream-json` (gerçek zamanlı girdi), `--resume`, `--permission-prompts`.
 - cursor: `-p --output-format stream-json`, `--resume`, `--sandbox`. Sürüm tarih biçiminde olduğundan taban henüz sabitlenmedi (`unpinned`).
 - opencode: `run --format json`, `run --session`, `--auto`. `auth list` yalnızca kayıtlı kimlik bilgisi olduğunu gösterir, geçerliliğini kanıtlamaz.

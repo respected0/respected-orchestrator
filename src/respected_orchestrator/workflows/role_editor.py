@@ -61,7 +61,7 @@ def _warnings(role, assignment, settings, tools, discovery, resolved_peers):
             out.append({"kind": "profile_blocked", "where": label, "message": error.message})
         if label != "primary" and tool != assignment["tool"]:
             out.append({"kind": "fallback_changes_tool", "where": label,
-                        "message": f"fallback runs on {tool} instead of {assignment['tool']}: its sandbox and permissions differ"})
+                        "message": f"fallback runs on {tool} instead of {assignment['tool']}: its permissions differ"})
         if role in roles.WRITE_ROLES and tool not in roles.WRITE_TOOLS:
             out.append({"kind": "tool_cannot_write", "where": label, "message": f"{tool} cannot change files, but {role} must"})
         if role in ("reviewer", "deep_reviewer") and tool == "custom":

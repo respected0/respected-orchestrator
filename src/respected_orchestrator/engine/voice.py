@@ -215,7 +215,7 @@ def probe_engines(run: Callable[[list[str]], str]) -> dict[str, Any]:
 def command_engine(argv: Any, run: Callable[..., Any]) -> Callable[[bytes, str, Sequence[str]], str] | None:
     """Engine = a local program the person chose (`voice_engine_command`, a JSON list). Audio goes to its stdin, text comes back on stdout.
 
-    Nothing is downloaded or installed by Orchestrator. The program is NOT sandboxed: whether it is offline is the person's choice and
+    Nothing is downloaded or installed by Orchestrator. Whether it is offline is the person's choice and
     cannot be verified here (reports say so as `network_isolated: false`). Language and vocabulary are passed as arguments, not audio."""
     if argv in (None, "", []):
         return None

@@ -47,7 +47,7 @@ Brain ya da sürekli çalışan bir servis gerektirmez; Brain hafızası isteğe
 
 | | |
 |---|---|
-| **Yalıtım** | Her görev projenizin ayrı bir Git çalışma ağacında ve bir Windows AppContainer içinde çalışır; gerçek ağaca dokunmaz, ağ varsayılan kapalıdır |
+| **Yalıtım** | Her görev projenizin ayrı bir Git çalışma ağacında çalışır ve sonucu kapsam denetiminden, doğrulamadan ve imzalı kanıttan geçmeden gerçek ağaca dokunmaz; işçi sizin kullanıcınızla, ajanın kendi izin kipiyle çalışır |
 | **Kendi ajanınız** | Codex, Claude, Antigravity, Cursor, OpenCode, OpenRouter (API; anahtar Windows DPAPI kasasında, ağ yalnızca sizin açmanızla) ya da kendi komutunuz |
 | **Denetim** | Kapsam, doğrulama komutları, imzalı kanıt, yamanın güncelliği |
 | **Onay sizde** | Hiçbir sonuç kendiliğinden uygulanmaz; bekleyen, başarısız, bayat ya da kurcalanmış sonuç `check`'ten geçmez |
@@ -105,7 +105,7 @@ $env:RESPECTED_DATA_DIR = "$env:TEMP\orch-dev"; python -m respected_orchestrator
 
 | Yol | İçerik |
 |---|---|
-| `src/respected_orchestrator/engine/` | Çalışma ağaçları, çalıştırıcı, araç katmanları (Codex, OpenCode, OpenRouter…), AppContainer kum havuzu, süreç denetimi, belirteç bütçesi, anahtar kasası |
+| `src/respected_orchestrator/engine/` | Çalışma ağaçları, çalıştırıcı, araç katmanları (Codex, OpenCode, OpenRouter…), süreç denetimi, belirteç bütçesi, anahtar kasası |
 | `src/respected_orchestrator/workflows/` | MAF iş akışı, kampanyalar, projeler, planlayıcı, coordinator, checkpoint, rol atama |
 | `src/respected_orchestrator/interfaces/` | RPP, kurulum ve veri geçişi, MCP sunucusu ve istemcisi, GitHub, Brain hafızası, AI aracı kayıtları |
 | `packaging/windows/orchestrator_setup.iss` | Kurucu |

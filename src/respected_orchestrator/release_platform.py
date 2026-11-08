@@ -1,7 +1,7 @@
 """REL-04: fail-closed platform GA decision; parity must be measured per OS before release."""
 
 REQUIRED_FIXTURES = (
-    "permission", "symlink", "network", "child_tree", "key_read",
+    "symlink", "child_tree",
     "migration", "installer_rollback", "janitor", "secret_env", "mcp_recursion",
 )
 GA_PLATFORMS = frozenset({"windows", "win32"})

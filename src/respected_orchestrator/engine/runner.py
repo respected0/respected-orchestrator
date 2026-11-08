@@ -12,7 +12,7 @@ import sys
 import time
 from uuid import uuid4
 
-from . import cursor_auth, failures, lanes, opencode_acp, opencode_auth, sandbox
+from . import failures, lanes, opencode_acp
 from . import budget, track_record, winproc
 from .evidence import key_path, load_signed, save_signed
 from ..interfaces import memory
@@ -21,8 +21,7 @@ from ..workflows import roles
 from ..context import EngineContext, engine_command, path_within_root, safe_path, validate_project
 from . import openrouter_worker
 from .clis import EXECUTABLE, LOCAL_CODEX, SUPPORTED_AGENTS, cursor_entry, worker_executable
-from .processes import ProcessStopped, execute
-from .worker_policy import SandboxStartError, WorkerPolicyError, default_policy, extra_readonly_roots
+from .processes import ProcessStopped, execute, run_check
 from .codex import _is_turn_completed, stream_verified_complete
 
 SELF_CHECK = (
@@ -49,12 +48,6 @@ MAX_ARTIFACT_BYTES = 10 * 1024 * 1024
 MAX_TASK_CHARS = 20000 if sys.platform == "win32" else 60000
 
 
-# Root cause of the Cursor sandbox hang (COST-01/CUR-01): an AppContainer may create named pipes only under
-# \\.\pipe\LOCAL\, but libuv's child_process pipes are \\?\pipe\uv\* and it retries forever on ACCESS_DENIED.
-# Node workers preload this file, which creates their child pipes under LOCAL\ instead.
-NODE_PIPE_SHIM = Path(__file__).resolve().parents[1] / "resources" / "node-shim" / "appcontainer-pipes.js"
-
-
 def get_cli_command(agent: str) -> list[str] | None:
     if agent == "openrouter":  # the engine's own read-only bridge; usable once a provider key is stored
         from .openrouter_worker import vault
@@ -67,10 +60,7 @@ def get_cli_command(agent: str) -> list[str] | None:
     # OpenCode's npm shim resolves to its native sibling instead (clis.worker_executable).
     resolved = worker_executable(agent, found)
     if resolved and agent == "cursor" and Path(found).suffix.lower() in {".cmd", ".bat"}:
-        # The AppContainer cannot lstat the drive root, which Node's realpath walk of the entry path does first.
-        # The shim keeps Node's child_process from hanging in the AppContainer (see NODE_PIPE_SHIM).
-        return [resolved, "--preserve-symlinks", "--preserve-symlinks-main", "--require", str(NODE_PIPE_SHIM),
-                str(cursor_entry(found)[1])]
+        return [resolved, str(cursor_entry(found)[1])]
     return [resolved] if resolved else None
 
 
@@ -105,7 +95,7 @@ def command_for(worker, prompt, custom=(), profile=None, write=False):
         return [*command, profile.strip(), prompt]
     if worker == "codex":
         profile = (profile or os.environ.get("RESPECTED_CODEX_PROFILE", "")).strip()
-        # Explicit OS sandbox and no approval prompts: fail closed rather than inherit a
+        # Explicit workspace-write mode and no approval prompts: fail closed rather than inherit a
         # danger-full-access user config or wait for a human that is not there.
         return [*command, "exec", "--sandbox", "workspace-write", "-c", 'approval_policy="never"',
                 *(["-p", profile] if profile else []), "--json", prompt]
@@ -114,51 +104,6 @@ def command_for(worker, prompt, custom=(), profile=None, write=False):
         # never in argv, so Windows command-line limits and shell re-parsing do not apply.
         return [*command, "acp"]
     return [*command, "exec", "--json", prompt]
-
-
-def worker_network_mode(worker):
-    """OpenCode and Cursor reach their model providers, so each has one explicit operator opt-in
-    (``RESPECTED_OPENCODE_NETWORK=allow`` / ``RESPECTED_CURSOR_NETWORK=allow``).
-
-    Every other worker, and these two without their switch,
-    keeps the AppContainer's default network denial. The switch is deliberately
-    environment-scoped rather than model-controlled: a task prompt cannot grant
-    itself network access. ADP-02 owns the provider/egress threat model.
-    """
-    switch = {"opencode": "RESPECTED_OPENCODE_NETWORK", "cursor": "RESPECTED_CURSOR_NETWORK"}.get(worker)
-    if switch and os.environ.get(switch, "").strip().casefold() == "allow":
-        return "allow"
-    return "deny"
-
-
-def worker_environment(worker, temp_root):
-    """Environment overrides that keep a worker's own state inside its granted scratch root.
-
-    OpenCode otherwise resolves HOME/XDG to the signed-in user's profile, which the AppContainer cannot
-    read and must never receive. The isolated directories also keep provider state and caches per run.
-    """
-    environment = dict(os.environ)
-    if worker == "cursor":
-        # Cursor's session lives in the profile (APPDATA\Cursor\auth.json, ~/.cursor): redirect both into the scratch root.
-        home = Path(temp_root) / "home"
-        environment.update({"HOME": str(home), "USERPROFILE": str(home),
-                            "APPDATA": str(home / "AppData" / "Roaming"), "LOCALAPPDATA": str(home / "AppData" / "Local")})
-    if worker == "opencode":
-        home = Path(temp_root) / "home"
-        environment.update({
-            "HOME": str(home),
-            "USERPROFILE": str(home),
-            "APPDATA": str(home / "AppData" / "Roaming"),
-            "LOCALAPPDATA": str(home / "AppData" / "Local"),
-            "XDG_CONFIG_HOME": str(home / ".config"),
-            "XDG_DATA_HOME": str(home / ".local" / "share"),
-            "XDG_CACHE_HOME": str(home / ".cache"),
-            "XDG_STATE_HOME": str(home / ".local" / "state"),
-            # OpenCode walks parent directories for project config. The AppContainer cannot
-            # access the protected engine/data parents, so discovery must stay inside the worker root.
-            "OPENCODE_DISABLE_PROJECT_CONFIG": "1",
-        })
-    return environment
 
 
 def _usage(raw_input, cached, output, reasoning):
@@ -808,7 +753,7 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
         brief_text = text + checklist
         brief.write_text(brief_text, encoding="utf8")
         _write_status(ctx, directory, "running", pid=os.getpid(), phase="worker", **details)
-        # OpenRouter has no CLI: the engine calls the provider itself (no model-controlled code runs, so no sandbox)
+        # OpenRouter has no CLI: the engine calls the provider itself
         in_process = request["worker"] == "openrouter"
         command = [] if in_process else command_for(request["worker"], brief_text, request["command"],
                                                     request.get("worker_profile"), write=request["kind"] == "write")
@@ -836,59 +781,22 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
                 if stdin is not None and not stdin.closed:
                     stdin.close()
         codex_json = "--json" in command and (request["worker"] == "codex" or Path(command[0]).stem.casefold() == "codex")
-        worker_tmp = safe_path(directory / "worker-tmp")
-        worker_tmp.mkdir(exist_ok=True)
-        worker_env = worker_environment(request["worker"], worker_tmp)
         if in_process:
             completed = openrouter_worker.run_in_lane(lane.worktree, request, deadline, cancel)
         else:
             try:
-                policy = default_policy(ctx, lane.worktree, command, temp_root=worker_tmp,
-                                        network_mode=worker_network_mode(request["worker"]),
-                                        readonly_roots=(*extra_readonly_roots(), *([NODE_PIPE_SHIM.parent] if request["worker"] == "cursor" else [])),
-                                        ttl=request["timeout_seconds"])
-            except WorkerPolicyError as error:
-                return _write_status(ctx, directory, "failed", reason="sandbox_unavailable", detail=str(error)[:300], **details)
-            try:
-                if request["worker"] == "cursor" and policy.network_mode == "allow":
-                    try:
-                        cursor_auth.sync_credentials(worker_tmp)
-                    except cursor_auth.CursorAuthError:
-                        return _write_status(ctx, directory, "failed", reason="worker_failed", provider_status="AUTH_REQUIRED",
-                                             detail="Cursor credentials are unavailable for the isolated worker", **details)
-                if is_opencode:
-                    try:
-                        # The worker HOME is isolated, so provider credentials must be copied into it
-                        # before ACP starts.  They travel through a pipe and stay out of logs/argv.
-                        opencode_auth.sync_credentials([command[0]], worker_env, deadline=deadline)
-                    except opencode_auth.OpenCodeAuthError as error:
-                        # Exception text is deliberately not persisted: an export/import error
-                        # could carry provider data, and only the stable class is evidence here.
-                        (directory / "auth-error.log").write_text(
-                            "OpenCode credential bridge failed", encoding="utf8")
-                        return _write_status(ctx, directory, "failed", reason="worker_failed",
-                                             provider_status="AUTH_REQUIRED",
-                                             detail="OpenCode credentials are unavailable for the isolated worker",
-                                             **details)
                 completed = execute(command, lane.worktree, deadline - time.monotonic(), cancel_path=cancel,
                                     on_ready=ready if is_opencode else None, on_output=output,
                                     on_output_closed=output_closed if is_opencode else None,
                                     complete_when=_is_turn_completed if codex_json else None,
                                     verify_complete=stream_verified_complete if codex_json else None,
-                                    env=worker_env, scrub_env=True, policy=policy,
-                                    interactive=is_opencode)
+                                    scrub_env=True, interactive=is_opencode)
             except opencode_acp.AcpError as error:
                 (directory / "acp-error.log").write_text(lanes._redact(str(error)), encoding="utf8")
                 if error.kind in {"cancelled", "timed_out"}:
                     raise ProcessStopped(error.kind, "", str(error)) from error
                 return _write_status(ctx, directory, "failed", reason="worker_failed",
                                      provider_status=error.provider_status, detail=str(error)[:300], **details)
-            finally:
-                if is_opencode or request["worker"] == "cursor":
-                    try:
-                        opencode_auth.clear_worker_home(worker_tmp)
-                    except opencode_auth.OpenCodeAuthError:
-                        pass
         (directory / "stdout.log").write_text(lanes._redact(completed.stdout), encoding="utf8")
         (directory / "stderr.log").write_text(lanes._redact(completed.stderr), encoding="utf8")
         if is_opencode:
@@ -933,18 +841,14 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
         tester = (request.get("role_assignments") or {}).get("tester")
         tester_checks = []
         tester_started_at = dt.datetime.now(dt.timezone.utc) if tester else None
-        # Acceptance runs in the network-denied AppContainer (ADR-018); the tester stage is the same path plus a report.
+        # Acceptance runs outside the worker with the engine's environment scrubbed; the tester stage is the same path plus a report.
         for index, command in enumerate(request["acceptance"], 1):
             check_started = time.monotonic()
-            try:
-                check, network = sandbox.run_check(ctx, command, lane.worktree, min(deadline - time.monotonic(), request["timeout_seconds"]),
-                                                   task_id=run_id, scratch=directory / "tester-tmp", cancel_path=cancel)
-            except sandbox.SandboxError as error:  # fail closed: worker-written code never runs with the engine's authority
-                return _write_status(ctx, directory, "failed", reason="sandbox_unavailable", detail=str(error)[:300], **details)
+            check = run_check(command, lane.worktree, min(deadline - time.monotonic(), request["timeout_seconds"]), cancel_path=cancel)
             (directory / f"check-{index}.log").write_text(lanes._redact(check.stdout + "\n" + check.stderr), encoding="utf8")
-            checks.append(dict(command=command, returncode=check.returncode, network=network))
+            checks.append(dict(command=command, returncode=check.returncode))
             if tester:
-                tester_checks.append(dict(command=command, returncode=check.returncode, network=network,
+                tester_checks.append(dict(command=command, returncode=check.returncode,
                                           duration_seconds=round(time.monotonic() - check_started, 3)))
             if check.returncode:
                 return _write_status(ctx, directory, "failed", reason="test_failed", checks=checks, **details)
@@ -984,8 +888,6 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
             result["tester"] = tester_report
         save_signed(ctx, directory / "result.json", result)
         return _write_status(ctx, directory, "completed", **{k: v for k, v in result.items() if k not in {"run_id", "status"}})
-    except (WorkerPolicyError, SandboxStartError) as error:  # fail closed: no worker exists without an enforced boundary
-        return _write_status(ctx, directory, "failed", reason="sandbox_unavailable", detail=str(error)[:300], **details)
     except ProcessStopped as error:
         (directory / "stopped.log").write_text(lanes._redact(error.stdout + "\n" + error.stderr), encoding="utf8")
         if details.get("workspace") and '"turn.completed"' not in error.stdout:

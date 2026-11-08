@@ -14,7 +14,7 @@ LEVELS = ("low", "medium", "high", "unknown")
 MEDIUM_FILES, HIGH_FILES = 3, 9
 
 _SENSITIVE = re.compile(
-    r"(^|/)(\.github|\.git|secrets?|auth|security|sandbox|packaging|installer|migrations?)(/|$)|\.(iss|ps1|bat|cmd|pem|key)$"
+    r"(^|/)(\.github|\.git|secrets?|auth|security|packaging|installer|migrations?)(/|$)|\.(iss|ps1|bat|cmd|pem|key)$"
     r"|(^|/)(\.env[^/]*|id_rsa|credentials[^/]*)$", re.I)
 _DEPENDENCIES = re.compile(r"(^|/)(pyproject\.toml|requirements[^/]*\.txt|package(-lock)?\.json|Cargo\.(toml|lock)|poetry\.lock|uv\.lock)$", re.I)
 _DOCS = (".md", ".txt", ".rst")

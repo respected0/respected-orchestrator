@@ -37,9 +37,6 @@ class BenchTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.fixtures = list(all_fixtures())[:2]
-        env = mock.patch.dict(os.environ, {"RESPECTED_WORKER_READONLY_ROOTS": str(Path(self.tmp.name).resolve())})
-        env.start()
-        self.addCleanup(env.stop)
 
     def run_stub(self, **options):
         agent = stub_agent(self.tmp.name, self.fixtures, **options)

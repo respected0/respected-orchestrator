@@ -14,15 +14,12 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
 FIXTURES = {
-    "permission": "tests.engine.test_worker_policy.RealSandboxTests.test_outside_write_is_denied",
-    "symlink": "tests.engine.test_worker_security.WorkerSecurityMatrixTest.test_symlink_mode_patch_is_rejected_before_export_or_apply",
-    "network": "tests.engine.test_worker_policy.RealSandboxTests.test_network_is_denied_by_default",
-    "child_tree": "tests.engine.test_worker_policy.RealSandboxTests.test_child_process_inherits_the_boundary",
-    "key_read": "tests.engine.test_worker_policy.RealSandboxTests.test_engine_key_and_data_root_are_not_reachable_from_worker",
+    "symlink": "tests.engine.test_apply_hardening.ApplyHardeningTests.test_forbidden_or_unsafe_patches_are_refused_even_with_a_valid_signature",
+    "child_tree": "tests.engine.test_windows_processes.ProcessLifecycleTests.test_timeout_kills_the_whole_tree",
     "migration": "tests.interfaces.test_migrate.MigrateTest.test_a_failing_step_leaves_the_original_bytes_and_no_backup",
     "installer_rollback": "tests.interfaces.test_integrations.IntegrationsTest.test_opencode_rollback_restores_exact_foreign_content",
     "janitor": "tests.engine.test_windows_processes.ProcessLifecycleTests.test_an_orphan_left_by_a_finished_command_is_reaped",
-    "secret_env": "tests.engine.test_worker_policy.PolicyValidationTests.test_environment_scrubs_secrets_and_redirects_temp",
+    "secret_env": "tests.engine.test_runner.EngineTests.test_worker_environment_drops_secrets_unless_allowed",
     "mcp_recursion": "tests.interfaces.test_mcp_server.McpServerTest.test_stdio_roundtrip_and_recursion_guard",
 }
 

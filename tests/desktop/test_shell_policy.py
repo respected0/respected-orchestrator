@@ -35,10 +35,10 @@ class ShellPolicyTests(unittest.TestCase):
         capabilities = list((SRC / "capabilities").glob("*.json"))
         self.assertEqual(len(capabilities), 1)
 
-    def test_exactly_six_shell_commands_each_granted_to_the_main_window_only(self):
+    def test_exactly_fourteen_shell_commands_each_granted_to_the_main_window_only(self):
         lib = (SRC / "src" / "lib.rs").read_text(encoding="utf-8")
-        self.assertEqual(re.findall(r"generate_handler!\[([^\]]*)\]", lib), ["engine_status, confirm_close, request_apply, capability_inventory, session_call, preview_open"])
-        self.assertEqual(lib.count("#[tauri::command]"), 6)
+        self.assertEqual(re.findall(r"generate_handler!\[([^\]]*)\]", lib), ["engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, read_call, preview_open, pick_folder, pick_files, list_dir, read_text_file"])
+        self.assertEqual(lib.count("#[tauri::command]"), 14)
         # B3-05.02: the renderer may only name a run to ask about. No token, decision or binding can be passed in.
         signature = re.search(r"async fn request_apply\(([^)]*)\)", lib).group(1)
         self.assertTrue(signature.startswith("run_id: String,"))
@@ -56,7 +56,7 @@ class ShellPolicyTests(unittest.TestCase):
         preview = re.search(r"async fn preview_open<R: tauri::Runtime>\(([^)]*)\)", lib).group(1)
         self.assertTrue(preview.startswith("url: String,"))
         self.assertNotRegex(preview, r"port|enable|setting")
-        names = ["engine_status", "confirm_close", "request_apply", "capability_inventory", "session_call", "preview_open"]
+        names = [n.strip() for n in "engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, read_call, preview_open, pick_folder, pick_files, list_dir, read_text_file".split(",")]
         build = (SRC / "build.rs").read_text(encoding="utf-8")
         for name in names:
             self.assertIn(f'"{name}"', build)

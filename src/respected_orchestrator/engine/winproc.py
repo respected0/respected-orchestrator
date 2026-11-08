@@ -46,3 +46,26 @@ def popen(*args, **kwargs):
     for key, value in options.items():
         kwargs.setdefault(key, value)
     return subprocess.Popen(*args, **kwargs)
+
+
+def is_elevated() -> bool:
+    """True when the current Windows token is elevated (UAC)."""
+    if os.name != "nt":
+        return False
+    import ctypes
+    from ctypes import wintypes as w
+    advapi, kernel = ctypes.WinDLL("advapi32", use_last_error=True), ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.GetCurrentProcess.restype = w.HANDLE
+    advapi.OpenProcessToken.argtypes = [w.HANDLE, w.DWORD, ctypes.POINTER(w.HANDLE)]
+    advapi.GetTokenInformation.argtypes = [w.HANDLE, ctypes.c_int, ctypes.c_void_p, w.DWORD, ctypes.POINTER(w.DWORD)]
+    kernel.CloseHandle.argtypes = [w.HANDLE]
+    token = w.HANDLE()
+    if not advapi.OpenProcessToken(kernel.GetCurrentProcess(), 0x0008, ctypes.byref(token)):  # TOKEN_QUERY
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        elevated, size = w.DWORD(), w.DWORD()
+        if not advapi.GetTokenInformation(token, 20, ctypes.byref(elevated), ctypes.sizeof(elevated), ctypes.byref(size)):  # TokenElevation
+            raise ctypes.WinError(ctypes.get_last_error())
+        return bool(elevated.value)
+    finally:
+        kernel.CloseHandle(token)

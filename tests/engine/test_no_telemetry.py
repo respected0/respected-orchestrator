@@ -1,4 +1,4 @@
-"""B3-09.04 release gate input: the product contains no telemetry path and exactly one module that can open a network connection.
+"""B3-09.04 release gate input: the product contains no telemetry path and only the provider client (plus the unstarted ADR-029 observer server) able to touch the network.
 
 This is a static scan of the shipped sources (Python engine, React shell, Tauri shell and its dependency list), not a packet capture.
 The runtime side is `tests/engine/offline_inventory_proof.py` (network/process attempts raise and are recorded). The one
@@ -10,7 +10,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 NETWORK_MODULES = re.compile(r"^\s*(?:import|from)\s+(?:socket|urllib\.request|urllib\.error|http\b|requests|httpx|aiohttp|ssl|ftplib|smtplib|websockets?|xmlrpc)", re.M)
-ALLOWED_NETWORK = {"src/respected_orchestrator/engine/provider.py"}
+# observer.py: ADR-029 research prototype, a read-only server that nothing starts; it makes no outgoing connection.
+ALLOWED_NETWORK = {"src/respected_orchestrator/engine/provider.py", "src/respected_orchestrator/interfaces/observer.py"}
 TELEMETRY = re.compile(r"sentry|posthog|mixpanel|amplitude|segment\.io|google-analytics|gtag\(|telemetry|appinsights|datadog|bugsnag|rollbar|crashpad", re.I)
 BROWSER_NETWORK = re.compile(r"\bfetch\(|XMLHttpRequest|sendBeacon|new WebSocket\(|new EventSource\(")
 

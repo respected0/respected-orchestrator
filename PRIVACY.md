@@ -24,8 +24,7 @@ Bu metin Orchestrator `0.1.0-beta.2` için geçerlidir (2026-10-24, güncelleme 
 | Bir görev çalıştığında | Görev metni ve çalışanın çalışma kopyasında okuduğu dosyalar | Görevi yapan AI aracı (Codex, Claude, agy, Cursor, OpenCode) ve onun sağlayıcısı. Bu aktarım o aracın ve sağlayıcının kendi şartlarına tabidir |
 | Brain hafıza erişimini **kendiniz açtıysanız** | Göreve uygun bulunan Brain notlarından en fazla yaklaşık 3000 karakterlik parça, görev metnine "güvenilmeyen veri" başlığıyla eklenir | Görev metniyle birlikte aynı AI aracı ve sağlayıcısı |
 | GitHub işlemini **kendiniz** verdiyseniz (`github-pr-create`) | Dal ve taslak PR; yalnızca açık `confirm: true` ve `operation_id` ile | Sizin `gh` oturumunuzla GitHub |
-| Cursor ya da OpenCode çalışanında ağı **kendiniz** açtıysanız (`RESPECTED_CURSOR_NETWORK` / `RESPECTED_OPENCODE_NETWORK`) | Aracın oturum dosyası (Cursor için `auth.json`) görev için yalıtılmış geçici bir klasöre kopyalanır, görev sonunda silinir; ağ açık olduğundan o süreç ağa çıkabilir | Aracın kendi sağlayıcısı |
-| Doğrulama komutları çalıştığında | Görev isteğinde verdiğiniz komutlar (bir AI aracının MCP ile verdiği görevlerde yalnızca sizin önceden izin verdiğiniz önekli komutlar) kısıtlı bir Windows belirteciyle ve ortamdan sır gibi görünen değişkenler çıkarılarak çalışır | Bilgisayarınızda yerel |
+| Doğrulama komutları çalıştığında | Görev isteğinde verdiğiniz komutlar (bir AI aracının MCP ile verdiği görevlerde yalnızca sizin önceden izin verdiğiniz önekli komutlar) ortamdan sır gibi görünen değişkenler çıkarılarak çalışır | Bilgisayarınızda yerel |
 
 Brain hafıza erişimi varsayılan olarak **kapalıdır**; Orchestrator › Ayarlar'dan ya da `memory connect` ile açılır, geri alınabilir.
 
@@ -33,12 +32,10 @@ Brain hafıza erişimi varsayılan olarak **kapalıdır**; Orchestrator › Ayar
 
 - Görev metnini ve projenizin kodunu AI aracınızın sağlayıcısı görür. Kimlik bilgilerini ve çok hassas kodu görev metnine
   ya da çalışma kopyasına koymayın.
-- Çalışan araç Windows'ta bir AppContainer içinde başlatılır: varsayılan olarak yalnızca görevin çalışma kopyasına yazabilir,
-  ağa çıkamaz ve kullanıcı profilinizi okuyamaz. Kum havuzu kurulamazsa çalışan hiç başlamaz. Bu sınır yalnızca Windows'ta
-  vardır; çalışma kopyasının **içindeki** dosyaları (örneğin `.env`) çalışan okuyabilir. Ağı kendiniz açtığınız Cursor/OpenCode
-  çalışanında bu sınır ağ için geçerli değildir. Motorun kendisinin çalıştırdığı kabul ve doğrulama komutları ise bu
-  AppContainer'da değil, daha zayıf bir kısıtlı belirteçle çalışır ve ağa çıkabilir; bu bilinen açıktır
-  (`docs/THREAT_MODEL.md` S-24) ve kapatılması planlıdır, henüz yapılmadı.
+- Çalışan araç **sizin kullanıcınızla** başlatılır ve Orchestrator ona işletim sistemi düzeyinde bir dosya ya da ağ sınırı koymaz;
+  neyi okuyup yazabileceği ve ağa çıkıp çıkamayacağı aracın kendi izin kipine bağlıdır. Orchestrator yalnızca çalışmadan sonra
+  değişikliklerin kapsamını denetler. Çalışan, motorun imza anahtarını da okuyabilir; kanıt bütünlüğü imza ve motorun yeniden doğrulamasına
+  dayanır, anahtarın gizliliği için ek bir garanti verilmez.
 - Bu metin hukuki danışmanlık ya da sözleşme metni değildir; neyin nereye gittiğini anlatır.
 
 ## Silme

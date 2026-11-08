@@ -11,7 +11,7 @@ Windows worker izolasyonu `SEC-03`/`SEC-04` ile ölçüldü. POSIX'te anahtar sa
 ## Karar
 
 1. Windows GA'dır; ancak yayın yalnızca aşağıdaki 10 güvenlik fixture'ı `pass` olduğunda `go` olur.
-2. macOS ve Linux, aynı 10 fixture ve kurucu geri alma kanıtı tamamlanana kadar GA değildir. Kanıtsız platformda sessiz daraltma (sandbox-off) yapılmaz; destek yoksa çalıştırma reddedilir.
+2. macOS ve Linux, aynı 7 fixture ve kurucu geri alma kanıtı tamamlanana kadar GA değildir. Kod yolları çalışabilir ama henüz doğrulanmadı.
 3. Gerekli fixture'lar (her OS): `permission`, `symlink`, `network`, `child_tree`, `key_read`, `migration`, `installer_rollback`, `janitor`, `secret_env`, `mcp_recursion`.
 4. Kapı: `release_platform.decide()` kırmızı veya eksik fixture'da `no-go` döndürür; POSIX için sonuç her durumda `no-go`dur. Karar kodu `src/respected_orchestrator/release_platform.py`, testleri `tests/packaging/test_release_platform.py`.
 

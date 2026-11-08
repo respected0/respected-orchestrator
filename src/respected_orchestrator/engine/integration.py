@@ -16,7 +16,7 @@ import tempfile
 import uuid
 
 from ..context import EngineContext, safe_path, validate_project
-from . import evidence, lanes, processes, runner, winproc, worker_policy
+from . import evidence, lanes, processes, runner, winproc
 
 
 MAX_RUNS = 2
@@ -177,12 +177,7 @@ def _verify(ctx: EngineContext, worktree: Path, scratch: Path,
         timeout = item["timeout_seconds"]
         started = datetime.now(timezone.utc)
         try:
-            policy = worker_policy.default_policy(
-                ctx, worktree, command, network_mode="deny", temp_root=scratch,
-                ttl=float(timeout),
-            )
-            completed = processes.execute(command, worktree, timeout, scrub_env=True,
-                                          policy=policy)
+            completed = processes.run_check(command, worktree, timeout)
             entry = {
                 "command": command,
                 "returncode": int(completed.returncode),
@@ -205,7 +200,7 @@ def _verify(ctx: EngineContext, worktree: Path, scratch: Path,
                     (datetime.now(timezone.utc) - started).total_seconds(), 3),
             })
             return results, False
-        except Exception as error:  # sandbox startup and every other failure is verification failure
+        except Exception as error:  # every other failure is verification failure
             results.append({
                 "command": command,
                 "returncode": None,

@@ -12,7 +12,7 @@ Her yeni çalışan aracı kota, onay modeli, kullanım bildirimi ve izolasyon y
 
 1. Desteklenen araçlar: `codex`, `claude`, `agy` (Antigravity), `cursor`, `opencode`, `openrouter` ve ayrıcalıklı `custom`. Gemini CLI kapsam dışıdır, çünkü Google'ın aracı Antigravity ile değişti. Çalışan, MCP kaydı, kullanım ayrıştırma, belge ve kurucu metinlerinden kaldırıldı; kaynakta, paketlemede ve testlerde Gemini'ye atıf kalmadı.
 2. Bir araç ancak gerçek CLI ile canlı doğrulanırsa desteklenir; doğrulanmamış iddia belgeye yazılmaz.
-3. Cursor çalışanı AppContainer kum havuzunda çalışır. Kök neden: AppContainer adlandırılmış boruyu yalnız `\\.\pipe\LOCAL\` altında açabilir, libuv boruları reddedilir. Çözüm bir node-shimdir (`appcontainer-pipes.js`); güvenlik sınırları aynı kalır.
+3. Cursor çalışanı şimin yanındaki `node.exe` + `index.js` girişiyle doğrudan başlatılır; `.cmd` şimi çalıştırılmaz.
 4. OpenRouter çalışanı araçsız bir modeldir: tam dosya içeriği döndürür, motor yolları kapsamla denetleyip yazar. Anahtar ve ağ kapısı ADR-007'ye tabidir.
 5. Belirteç kullanımını bildirmeyen araçlarda kullanım `bilinmiyor` kaydedilir, sıfır sayılmaz.
 

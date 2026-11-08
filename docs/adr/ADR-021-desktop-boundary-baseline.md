@@ -24,7 +24,7 @@ Baz: depo commit `ec9e599` (main), sürüm beta.2.
 
 | ID | İlke (ROADMAP §4.1) | Mevcut test kaynağı | Durum |
 |---|---|---|---|
-| I-01 | Worker AppContainer/sandbox fail-closed; yeni oturum korumasız süreç açamaz | `tests/engine/test_sandbox.py`, `tests/engine/security_cases.py` + `test_worker_security.py`, `tests/packaging/test_frozen_security.py`, `tests/engine/test_security_gate.py` | Kaynakta var. PTY/Chat oturumu henüz yok → B3-03.02 yeni testi getirmeli |
+| I-01 | Worker, motorun süreç başlatıcısından geçer; süre sınırı, süreç ağacı temizliği ve kapsam denetimi korunur | `tests/engine/test_runner.py`, `tests/packaging/test_frozen_security.py` | Kaynakta var |
 | I-02 | `check`, imzalı kanıt, kapsam, tazelik, `git apply --check`; `apply` yeniden denetler; otomatik commit/merge yok | `tests/engine/test_review_apply_invariants.py` (12 ret + `test_verified_check_then_apply_succeeds_once`), `tests/engine/test_runner.py` | Var. **Boşluk kapandı:** "apply HEAD'i değiştirmez" iddiasını doğrulayan assertion bu commit'te eklendi |
 | I-03 | MCP, worker, renderer, yetkisiz child insan onayı veremez; GUI için ayrı authority | `tests/interfaces/test_human_approval_contract.py` (8 test: kendi onayı, TTY şartı, replay, drift, iptal, head değişimi), `tests/interfaces/test_mcp_server.py::test_privileged_task_options_are_refused_over_mcp_and_bypass_flags_are_not_commands` | CLI/MCP için var. **Boşluk G-1:** renderer/GUI authority yok (henüz GUI yok) → B3-00.03, B3-05.02 |
 | I-04 | Başka uygulama olmadan tam kullanım | Hub'sız çalışan CLI/MCP testlerinin tümü (`tests/interfaces`, `tests/test_main.py`) | Kısmen. **Boşluk G-2:** "Hub/Brain yokken uçtan uca" adlandırılmış tek bir test yok → B3-00.04 / B3-09 |
@@ -37,8 +37,6 @@ Baz: depo commit `ec9e599` (main), sürüm beta.2.
 
 | Kapı | Durum | Kaynak |
 |---|---|---|
-| AppContainer testleri skip=0 | Hosted koşu 28/28, skipped 0 (koşu 42006314204, commit a700aff) | KANIT_LOG §FIX-01 |
-| Verify ağ sınırı | Kapandı (ADR-018, S-24) | THREAT_MODEL §11 |
 | Gerçek ajan kıyası | FIX-02 geçerli koşu kayıtlı; `compare.py` sentetik, kıyas sayılmaz | KANIT_LOG §FIX-02 |
 | PR/CI geri bildirimi | Canlı kanıt kayıtlı (FIX-03A/B) | KANIT_LOG §FIX-03 |
 | Güncelleme/geri alma | beta.1→beta.2, 29 adım PASS | KANIT_LOG §beta.1 → beta.2 |
@@ -53,5 +51,5 @@ Baz: depo commit `ec9e599` (main), sürüm beta.2.
 
 - `docs/ROADMAP.md` §4.1, §7 B3-00.01 (erişim: 2026-11-06).
 - `docs/THREAT_MODEL.md` §4, §9, §10 (erişim: 2026-11-06).
-- [ADR-004](ADR-004-human-approval-boundary.md), [ADR-018](ADR-018-verify-network-isolation.md).
+- [ADR-004](ADR-004-human-approval-boundary.md).
 - [Kanıt kaydı](../evidence/KANIT_LOG.md) §B3-00.01 (erişim: 2026-11-06).

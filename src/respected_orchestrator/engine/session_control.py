@@ -24,8 +24,6 @@ MAX_INPUT = 8000
 MAX_SESSIONS = 20
 TURN_TIMEOUT = 180
 MODELS_TTL = 300
-DISABLED = ("Chat sessions are disabled: the agent CLI cannot run inside the sandbox yet, so the engine starts it only when the "
-            "operator sets RESPECTED_CHAT_UNSANDBOXED=allow (tools that change files or run commands stay denied)")
 _UNSAFE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")  # tabs and newlines pass; ESC, CR, NUL and C1 do not
 _SESSION = re.compile(r"^(ses|loc)_[A-Za-z0-9]{8,64}$")
 
@@ -80,11 +78,10 @@ def check_input(text):
 
 
 class SessionController:
-    def __init__(self, binary=None, runner=None, unsandboxed=False, store=None):
-        """`runner=None` means the real agent CLI is spawned, as the engine's own user and outside the AppContainer: that only
-        happens with `unsandboxed=True` (the operator's explicit switch, see DISABLED). Injected runners (tests) are not gated."""
+    def __init__(self, binary=None, runner=None, store=None):
+        """`runner=None` means the real agent CLI is spawned, as the engine's own user."""
         self._binary, self._runner = binary, runner or run_killable
-        self._real, self._unsandboxed = runner is None, unsandboxed
+        self._real = runner is None
         self._sessions, self._lock = {}, threading.RLock()
         self.store = store or SessionStore()
         self._known = {}  # agent -> (time, model ids): the CLI is asked at most once in MODELS_TTL seconds
@@ -142,8 +139,6 @@ class SessionController:
         authorize(origin, CLASSES["models"])
         if agent not in chat_session.SUPPORTED:
             raise chat_session.Unsupported(f"{agent}: no verified structured-stream adapter")
-        if self._real and not self._unsandboxed:
-            raise SessionError(DISABLED, "CHAT_DISABLED")
         binary = self._binary or chat_session.native_binary(agent)
         if not binary:
             raise SessionError("The agent CLI is not installed (a .cmd shim alone is never run)", "AGENT_NOT_INSTALLED")
@@ -164,8 +159,6 @@ class SessionController:
 
     def _check_model(self, agent, model):
         """A model that is not on the agent's own list is refused, whatever its shape."""
-        if self._real and not self._unsandboxed:
-            raise SessionError(DISABLED, "CHAT_DISABLED")
         binary = self._binary or chat_session.native_binary(agent)
         if not binary:
             raise SessionError("The agent CLI is not installed (a .cmd shim alone is never run)", "AGENT_NOT_INSTALLED")
@@ -231,8 +224,6 @@ class SessionController:
     def _turn(self, session, text, wait=True, new_message=True):
         """Start one turn. wait=True blocks and returns the parsed result; wait=False returns the session view at once and the turn
         finishes on its own thread. Either way the lock is NOT needed to end it: interrupt/cancel bump `gen`, so a late result is dropped."""
-        if self._real and not self._unsandboxed:
-            raise SessionError(DISABLED, "CHAT_DISABLED")
         binary = self._binary or chat_session.native_binary(session["agent"])
         if not binary:
             raise SessionError("The agent CLI is not installed (a .cmd shim alone is never run)", "AGENT_NOT_INSTALLED")

@@ -12,7 +12,7 @@ RESTRICTED_KEYS = set()
 
 
 def restrict_key(path):
-    # Windows: drop inherited ACEs so only this user (not the Codex sandbox users) can read the key.
+    # Windows: drop inherited ACEs so only this user can read the key.
     if os.name != "nt" or path in RESTRICTED_KEYS:
         return
     user = f"{os.environ.get('USERDOMAIN', '')}\\{os.environ['USERNAME']}".lstrip("\\")
@@ -22,7 +22,7 @@ def restrict_key(path):
 
 
 def key_path(ctx):
-    signing_key(ctx)  # makes sure it exists with its private ACL before the sandbox denies itself access
+    signing_key(ctx)  # makes sure it exists with its private ACL
     return safe_path(ctx.data_root / ".engine-key")
 
 

@@ -260,25 +260,10 @@ class IpcStartTests(unittest.TestCase):
         self.assertEqual(r["error"]["message"], self.call(api, "session.events", {"project_id": PID, "session_id": "loc_nonexistent1"})["error"]["message"])
 
 
-class SandboxGateTests(unittest.TestCase):
-    """The real agent CLI runs outside the AppContainer (it cannot run inside yet), so the engine starts it only on the operator's switch."""
+class AgentCliTests(unittest.TestCase):
+    """The real agent CLI runs as the engine's own user; injected runners stand in for it here."""
 
-    def test_default_controller_never_spawns_the_agent(self):
-        from respected_orchestrator.engine import session_control as sc
-        with mock.patch.object(sc, "run_killable") as spawn, mock.patch.object(threading, "Thread") as thread:
-            ctl = SessionController(binary="oc")
-            for wait in (True, False):
-                with self.assertRaises(SessionError) as caught:
-                    ctl.start(Origin.HUMAN, PID, "opencode", MODEL, ".", "hi", wait=wait)
-                self.assertIn("RESPECTED_CHAT_UNSANDBOXED", str(caught.exception))
-            spawn.assert_not_called()
-            thread.assert_not_called()
-            self.assertEqual(ctl._sessions, {})
-
-    def test_model_list_is_gated_like_a_turn_and_keeps_only_valid_ids(self):
-        with self.assertRaises(SessionError) as caught:
-            SessionController(binary="oc").models(Origin.HUMAN, "opencode")  # the real CLI is never spawned without the switch
-        self.assertIn("RESPECTED_CHAT_UNSANDBOXED", str(caught.exception))
+    def test_model_list_keeps_only_valid_ids(self):
         runner = FakeRunner(models="amd/Gemma-4-31B-IT\nnot a model\n\x1b[31mopencode/big-pickle\x1b[0m\namd/Gemma-4-31B-IT\n")
         got = SessionController(binary="oc", runner=runner).models(Origin.HUMAN, "opencode")
         self.assertEqual(got, {"agent": "opencode", "models": ["amd/Gemma-4-31B-IT", "opencode/big-pickle"], "default": MODEL})
@@ -301,7 +286,7 @@ class SandboxGateTests(unittest.TestCase):
         SessionController(binary="oc", runner=runner2).start(Origin.HUMAN, PID, "opencode", MODEL, tempfile.gettempdir(), "yeni")
         self.assertNotIn("--session", runner2.calls[0])  # no resume, no --session
 
-    def test_the_operator_switch_enables_it_and_the_turn_gets_the_safe_environment(self):
+    def test_the_turn_gets_the_safe_environment(self):
         from respected_orchestrator.engine import session_control as sc
         calls = []
 
@@ -311,7 +296,7 @@ class SandboxGateTests(unittest.TestCase):
             calls.append((argv, kw))
             return subprocess.CompletedProcess(argv, 0, OK_STREAM, "")
         with mock.patch.object(sc, "run_killable", fake_spawn), mock.patch.object(sc.chat_session, "list_models", return_value=[MODEL]):
-            ctl = SessionController(binary="oc", unsandboxed=True)
+            ctl = SessionController(binary="oc")
             ctl.start(Origin.HUMAN, PID, "opencode", MODEL, tempfile.gettempdir(), "hi")
         argv, kw = calls[0]
         self.assertIn("--standalone", argv)
@@ -324,20 +309,6 @@ class SandboxGateTests(unittest.TestCase):
         ctl = make(runner)
         ctl.send(Origin.HUMAN, SID, PID, "hi")
         self.assertEqual(runner.kwargs[0]["env"]["OPENCODE_DISABLE_PROJECT_CONFIG"], "1")
-
-    def test_ipc_sessions_are_off_unless_the_operator_sets_the_variable(self):
-        import os
-        for value, expect_ok in (("", False), ("deny", False), ("1", False), ("allow", True), (" ALLOW ", True)):
-            with mock.patch.dict(os.environ, {"RESPECTED_CHAT_UNSANDBOXED": value}):
-                api = local_api.LocalApi(EngineContext(Path(tempfile.mkdtemp()).resolve() / "data"), "t" * 32, origin=Origin.RENDERER)
-            self.assertIs(api.sessions._unsandboxed, expect_ok, value)
-        with mock.patch.dict(os.environ, {"RESPECTED_CHAT_UNSANDBOXED": ""}):
-            api = local_api.LocalApi(EngineContext(Path(tempfile.mkdtemp()).resolve() / "data"), "t" * 32, origin=Origin.RENDERER)
-        r = api.handle({"ipc": "1", "id": "gate-start-001", "session": "t" * 32, "cmd": "session.start",
-                        "payload": {"project_id": PID, "project_root": tempfile.gettempdir(), "agent": "opencode", "model": MODEL, "text": "hi"}})
-        self.assertEqual(r["error"]["code"], "ENGINE_ERROR")
-        self.assertIn("RESPECTED_CHAT_UNSANDBOXED", r["error"]["message"])
-
 
 class LifecycleTests(unittest.TestCase):
     def test_send_runs_a_resume_turn_and_returns_to_idle(self):
@@ -545,7 +516,7 @@ class InFlightTurnTests(unittest.TestCase):
 
     def test_start_with_the_cli_missing_leaves_no_half_session(self):
         from unittest import mock
-        ctl = SessionController(unsandboxed=True)
+        ctl = SessionController()
         with mock.patch.object(chat_session, "native_binary", return_value=None):
             with self.assertRaises(SessionError):
                 ctl.start(Origin.HUMAN, PID, "opencode", MODEL, ".", "hi")

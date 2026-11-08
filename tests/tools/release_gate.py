@@ -26,7 +26,6 @@ SCHEMA = 1
 
 # gate id -> test module prefixes that must all run and pass (no skip, no failure, at least one test each)
 TEST_GROUPS = {
-    "appcontainer_worker_matrix": ("tests.engine.test_worker_security", "tests.engine.test_sandbox", "tests.engine.test_security_gate"),
     "gui_apply_negatives": ("tests.engine.test_approval_attacks", "tests.engine.test_approval", "tests.engine.test_apply_hardening",
                              "tests.engine.test_review_apply_invariants"),
     "intervention_negatives": ("tests.engine.test_session_control", "tests.engine.test_authority"),
@@ -35,7 +34,7 @@ TEST_GROUPS = {
     "update_and_migration": ("tests.engine.test_maintenance", "tests.interfaces.test_migration_faults"),
     "offline_no_telemetry": ("tests.engine.test_no_telemetry",),
 }
-COMMAND_GATES = ("security_matrix", "full_suite", "desktop_check", "distribution_audit", "installer_hash", "roadmap_p0")
+COMMAND_GATES = ("full_suite", "desktop_check", "distribution_audit", "installer_hash", "roadmap_p0")
 REQUIRED = tuple(TEST_GROUPS) + COMMAND_GATES
 SIGNING_BLOCKER = {"id": "SIGNING-01", "text": "No valid Authenticode signature: the release cannot be called signed (needs a production certificate; D21)"}
 
@@ -163,16 +162,12 @@ def suite_child(out_path):
 
 def collect(out_path):
     sys.path.insert(0, str(ROOT))
-    from respected_orchestrator.engine import appcontainer
+    from respected_orchestrator.engine import winproc
     from respected_orchestrator import release_signature
-    meta = {"commit_sha": _git("rev-parse", "HEAD"), "tree_clean": _git("status", "--porcelain") == "", "elevated": appcontainer._is_elevated(),
+    meta = {"commit_sha": _git("rev-parse", "HEAD"), "tree_clean": _git("status", "--porcelain") == "", "elevated": winproc.is_elevated(),
             "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "python": sys.version.split()[0], "platform": sys.platform}
     gates, work = {}, Path(out_path).resolve().parent
-    # 1. mandatory security matrix (ADR-017): its own validator, zero skips
-    sec_path = work / "release-gate-security.json"
-    done = _run([sys.executable, "tests/tools/run_security_ci.py", "run", str(sec_path)])
-    gates["security_matrix"] = _command_gate(done)
-    # 2. the whole suite, per-test outcomes; the P0 groups are judged from it
+    # 1. the whole suite, per-test outcomes; the P0 groups are judged from it
     suite_path = work / "release-gate-suite.json"
     done = _run([sys.executable, str(Path(__file__).resolve()), "_suite", str(suite_path)])
     try:
@@ -186,10 +181,10 @@ def collect(out_path):
                            "skipped": skipped, "failing": sorted(bad)[:20]}
     for name, prefixes in TEST_GROUPS.items():
         gates[name] = group_result(recorded["outcomes"], prefixes)
-    # 3. the desktop shell
+    # 2. the desktop shell
     npm = "npm.cmd" if os.name == "nt" else "npm"
     gates["desktop_check"] = _command_gate(_run([npm, "run", "check"], cwd=ROOT / "desktop"))
-    # 4. packaged build: manifest hashes match the files; installer hash recorded
+    # 3. packaged build: manifest hashes match the files; installer hash recorded
     gates["distribution_audit"] = _command_gate(_run([sys.executable, "packaging/build_dist.py", "--audit"]))
     installers = sorted((ROOT / "dist").glob("*Setup.exe"))
     if installers:

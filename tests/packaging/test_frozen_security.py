@@ -1,17 +1,14 @@
-"""SEC-04 frozen-executable coverage: the packaged engine enforces the same worker boundary."""
+"""SEC-04 frozen-executable coverage: the packaged engine keeps its patch and recursion guards."""
 
 import json
 import os
 from pathlib import Path
 import shutil
-import socket
 import subprocess
 import sys
 import tempfile
 import time
 import unittest
-
-from tests.engine.security_cases import ALLOWED_CASES, PROBE, PROBE_NEGATIVE_CASES
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -19,22 +16,7 @@ DIST = Path(os.environ.get("RESPECTED_ORCH_DIST") or ROOT / "dist" / "RespectedO
 EXE = DIST / ("respected-orchestrator.exe" if os.name == "nt" else "respected-orchestrator")
 SENTINEL = "SEC04-SENTINEL-DO-NOT-LEAK"
 
-PROBE_WORKER = (
-    "import contextlib, io, json, os\n"
-    f"PROBE = {PROBE!r}\n"
-    "scope = {'__name__': '__main__'}\n"
-    "with contextlib.redirect_stdout(io.StringIO()):\n"
-    "    exec(PROBE, scope)\n"
-    "for name in ('junction-data', 'junction-outside'):\n"
-    "    try:\n"
-    "        os.rmdir(os.path.join(os.getcwd(), name))\n"
-    "    except OSError:\n"
-    "        pass\n"
-    "print(json.dumps({'status': 'success', 'security': scope['results']}, sort_keys=True))\n"
-)
-
-
-@unittest.skipUnless(os.name == "nt", "the packaged worker boundary is Windows-only")
+@unittest.skipUnless(os.name == "nt", "the packaged engine tests are Windows-only")
 class FrozenSecurityTest(unittest.TestCase):
     def setUp(self):
         if not EXE.is_file():
@@ -57,11 +39,6 @@ class FrozenSecurityTest(unittest.TestCase):
             "PYTHONHOME": "",
             "MY_SENTINEL_SECRET": SENTINEL,
         }
-        self.listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.listener.bind(("127.0.0.1", 0))
-        self.listener.listen(1)
-        self.addCleanup(self.listener.close)
-        self.port = self.listener.getsockname()[1]
 
     def engine(self, *args, stdin=None, timeout=90):
         return subprocess.run(
@@ -121,37 +98,6 @@ class FrozenSecurityTest(unittest.TestCase):
         self.json_call("start", run_id)
         return run_id, self.wait(run_id)
 
-    def test_frozen_worker_denies_every_registered_attack_and_allows_normal_work(self):
-        repo = self.repo()
-        key = self.data / ".engine-key"
-        run_id = self.create(repo, [
-            sys.executable, "-c", PROBE_WORKER, str(self.data), str(key), str(self.outside),
-            str(self.port), "MY_SENTINEL_SECRET",
-        ])
-        self.assertTrue(key.is_file(), "create must materialize the protected signing key")
-        (self.data / "settings.json").write_text('{"memory_token": "secret"}', encoding="utf-8")
-        evidence = self.data / "state" / "run-1"
-        evidence.mkdir(parents=True)
-        (evidence / "result.json").write_text('{"status": "ok"}', encoding="utf-8")
-        self.json_call("start", run_id)
-        state = self.wait(run_id)
-        run_log = self.data / "state" / run_id / "stdout.log"
-        output = run_log.read_text(encoding="utf-8") if run_log.is_file() else ""
-        self.assertEqual(state["status"], "completed", state | {"stdout": output[-2000:]})
-        payload = json.loads(output.strip().splitlines()[-1])
-        self.assertEqual(payload["status"], "success")
-        results = payload["security"]
-        for name in PROBE_NEGATIVE_CASES:
-            with self.subTest(case=name):
-                self.assertTrue(results[name].startswith("denied:"), f"{name}: {results[name]}")
-        for name in ALLOWED_CASES:
-            with self.subTest(case=name):
-                self.assertEqual(results[name], "ALLOWED")
-        self.assertNotIn(SENTINEL, output)
-        self.assertFalse((self.data / "planted.json").exists())
-        self.assertFalse((self.outside / "planted.txt").exists())
-        self.assertEqual((evidence / "result.json").read_text(encoding="utf-8"), '{"status": "ok"}')
-
     def test_frozen_engine_rejects_a_symlink_mode_patch_staged_without_symlink_privilege(self):
         repo = self.repo("symlink-project")
         marker = ".sec04-staged.ready"
@@ -172,7 +118,6 @@ class FrozenSecurityTest(unittest.TestCase):
         run_id = self.create(repo, [sys.executable, "-c", worker])
         self.json_call("start", run_id)
         workspace, _ = self.wait_for_workspace(run_id)
-        # The AppContainer worker cannot reach the linked worktree's .git metadata.
         # Stage the adversarial index mode from the harness, then let the worker
         # mask it with a regular file: this is the exact no-symlink-privilege attack.
         blob = subprocess.run(

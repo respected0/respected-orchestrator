@@ -84,7 +84,7 @@ class SupervisorTests(unittest.TestCase):
         self.assertEqual(answers, ["busy"] * 5 + ["owner"])
 
     def test_elevated_session_is_refused(self):
-        with mock.patch.object(sup, "_is_elevated", return_value=True):
+        with mock.patch.object(sup, "is_elevated", return_value=True):
             with self.assertRaises(PermissionError):
                 sup.Supervisor(self.ctx).acquire()
 

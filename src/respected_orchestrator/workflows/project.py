@@ -16,11 +16,11 @@ import time
 from uuid import uuid4
 
 from .. import __version__
-from ..engine import lanes, sandbox
+from ..engine import lanes
 from ..engine.budget import MAX_BUDGET, UNKNOWN_STEP_TOKENS_DEFAULT
 from . import campaign, checkpoint, roles
 from ..context import EngineContext, engine_command, path_within_root, safe_path
-from ..engine.processes import ProcessStopped, execute
+from ..engine.processes import ProcessStopped, execute, run_check
 from ..engine.runner import _command, apply_task, source_fingerprint
 from ..engine.evidence import load_signed, save_signed
 from ..engine.runner import project_fingerprint as runner_fingerprint
@@ -472,13 +472,9 @@ def _default_campaign_runner(ctx, campaign_id, timeout, cancel, engine_source):
 
 def _verify(ctx, phase, cancel):
     for check in phase["verify"]:
-        try:  # applied worker code: AppContainer, network denied unless the operator listed this phase (ADR-018)
-            done, network = sandbox.run_check(ctx, check["command"], Path(check["cwd"]), check["timeout_seconds"], task_id=phase["name"],
-                                              scratch=ctx.data_root / "verify-tmp", cancel_path=cancel)
-        except sandbox.SandboxError as error:
-            return f"verify refused, sandbox unavailable: {str(error)[:200]}"
+        done = run_check(check["command"], Path(check["cwd"]), check["timeout_seconds"], cancel_path=cancel)
         if done.returncode:
-            return f"verify {check['command'][:3]} exit {done.returncode} (network: {network}): {(done.stdout + done.stderr)[-1500:]}"
+            return f"verify {check['command'][:3]} exit {done.returncode}: {(done.stdout + done.stderr)[-1500:]}"
     return None
 
 

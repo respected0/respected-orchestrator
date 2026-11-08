@@ -34,13 +34,6 @@ class EngineTests(unittest.TestCase):
         self.git("add", ".")
         self.git("commit", "-m", "fixture baseline")
         self.ctx = EngineContext(self.root / "data")
-        # OpenCode credential export reads the real signed-in profile, so keep unit tests hermetic.
-        sync = mock.patch.object(runner.opencode_auth, "sync_credentials")
-        sync.start()
-        self.addCleanup(sync.stop)
-        clear = mock.patch.object(runner.opencode_auth, "clear_worker_home")
-        clear.start()
-        self.addCleanup(clear.stop)
 
     def git(self, *args):
         return subprocess.run(["git", *args], cwd=self.repo, capture_output=True, check=True).stdout
@@ -159,22 +152,6 @@ class EngineTests(unittest.TestCase):
         report_path.unlink()
         with self.assertRaisesRegex(ValueError, "no signed tester evidence"):
             check_result(self.ctx, task["run_id"])
-
-    @unittest.skipUnless(os.name == "nt", "tester uses the Windows AppContainer boundary")
-    def test_tester_cannot_write_outside_its_workspace(self):
-        target = self.root / "tester-outside.txt"
-        code = (
-            "import sys\nfrom pathlib import Path\n"
-            f"p=Path({str(target)!r})\n"
-            "try:\n    p.write_text('x', encoding='utf8')\n"
-            "except (PermissionError, OSError):\n    sys.exit(0)\n"
-            "sys.exit(3)\n"
-        )
-        task = self.task(acceptance=[[sys.executable, "-c", code]],
-                         roles={"tester": {"tool": "custom", "profile": "qa"}})
-        result = execute_task(self.ctx, task["run_id"])
-        self.assertEqual(result["status"], "completed", result)
-        self.assertFalse(target.exists())
 
     def test_scope_violation_is_manual_and_not_retryable(self):
         task = self.task("from pathlib import Path; Path('outside.txt').write_text('oops')")
@@ -337,8 +314,8 @@ class EngineTests(unittest.TestCase):
         success = {"type": "item.completed", "item": {"type": "agent_message", "text": '{"status":"success"}'}}
         completed = {"type": "turn.completed", "usage": {}}
         cases = [
-            [started, {"type": "turn.failed", "error": {"message": "sandbox unavailable"}}],
-            [started, {"type": "error", "message": "sandbox unavailable"}, success, completed],
+            [started, {"type": "turn.failed", "error": {"message": "worker unavailable"}}],
+            [started, {"type": "error", "message": "worker unavailable"}, success, completed],
             [started, success],
             [started, completed],
             [started, {"type": "item.completed", "item": {"type": "agent_message", "text": "Blocked: Access denied"}}, completed],
@@ -453,8 +430,7 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(worker_executable("cursor", str(shim)), str(new / "node.exe"))
         with mock.patch.object(runner.shutil, "which", return_value=str(shim)):
             command = runner.command_for("cursor", "do it", profile="auto")
-        self.assertEqual(command, [str(new / "node.exe"), "--preserve-symlinks", "--preserve-symlinks-main",
-                                   "--require", str(runner.NODE_PIPE_SHIM), str(new / "index.js"), "--model", "auto",
+        self.assertEqual(command, [str(new / "node.exe"), str(new / "index.js"), "--model", "auto",
                                    "--trust", "--output-format", "json", "-p", "do it"])
         self.assertIsNone(worker_executable("claude", str(shim)))  # other workers keep the hard refusal
 
@@ -485,53 +461,6 @@ class EngineTests(unittest.TestCase):
                     self.assertEqual(command, ["opencode.exe", "acp"])
                     self.assertNotIn(prompt, command)
                     self.assertNotIn("fixture/model", command)
-
-    def test_opencode_network_requires_explicit_operator_opt_in(self):
-        with mock.patch.dict(runner.os.environ, {}, clear=True):
-            self.assertEqual(runner.worker_network_mode("opencode"), "deny")
-            runner.os.environ["RESPECTED_OPENCODE_NETWORK"] = "allow"
-            self.assertEqual(runner.worker_network_mode("opencode"), "allow")
-            self.assertEqual(runner.worker_network_mode("codex"), "deny")
-            runner.os.environ["RESPECTED_OPENCODE_NETWORK"] = "yes"
-            self.assertEqual(runner.worker_network_mode("opencode"), "deny")
-
-    def test_cursor_network_requires_its_own_operator_opt_in(self):
-        with mock.patch.dict(runner.os.environ, {"RESPECTED_OPENCODE_NETWORK": "allow"}, clear=True):
-            self.assertEqual(runner.worker_network_mode("cursor"), "deny")  # the OpenCode switch does not open Cursor
-            runner.os.environ["RESPECTED_CURSOR_NETWORK"] = "allow"
-            self.assertEqual(runner.worker_network_mode("cursor"), "allow")
-            runner.os.environ["RESPECTED_CURSOR_NETWORK"] = "1"
-            self.assertEqual(runner.worker_network_mode("cursor"), "deny")
-
-    def test_cursor_profile_is_redirected_into_granted_worker_tmp(self):
-        temp_root = self.root / "worker-tmp"
-        with mock.patch.dict(runner.os.environ, {"APPDATA": "C:/Users/example/AppData/Roaming"}, clear=True):
-            environment = runner.worker_environment("cursor", temp_root)
-        home = temp_root / "home"
-        self.assertEqual(environment["HOME"], str(home))
-        self.assertEqual(environment["USERPROFILE"], str(home))
-        self.assertEqual(environment["APPDATA"], str(home / "AppData" / "Roaming"))
-        self.assertEqual(environment["LOCALAPPDATA"], str(home / "AppData" / "Local"))
-
-    def test_opencode_state_is_isolated_inside_granted_worker_tmp(self):
-        temp_root = self.root / "worker-tmp"
-        with mock.patch.dict(runner.os.environ, {"HOME": "C:/Users/example"}, clear=True):
-            environment = runner.worker_environment("opencode", temp_root)
-        home = temp_root / "home"
-        self.assertEqual(environment["HOME"], str(home))
-        self.assertEqual(environment["USERPROFILE"], str(home))
-        self.assertEqual(environment["APPDATA"], str(home / "AppData" / "Roaming"))
-        self.assertEqual(environment["LOCALAPPDATA"], str(home / "AppData" / "Local"))
-        self.assertEqual(environment["XDG_CONFIG_HOME"], str(home / ".config"))
-        self.assertEqual(environment["XDG_DATA_HOME"], str(home / ".local" / "share"))
-        self.assertEqual(environment["XDG_CACHE_HOME"], str(home / ".cache"))
-        self.assertEqual(environment["XDG_STATE_HOME"], str(home / ".local" / "state"))
-        self.assertEqual(environment["OPENCODE_DISABLE_PROJECT_CONFIG"], "1")
-        self.assertNotEqual(environment["HOME"], "C:/Users/example")
-        self.assertNotEqual(environment["APPDATA"], str(Path(os.environ.get("APPDATA", ""))))
-        self.assertNotEqual(environment["LOCALAPPDATA"], str(Path(os.environ.get("LOCALAPPDATA", ""))))
-        with mock.patch.dict(runner.os.environ, {"HOME": "C:/Users/example"}, clear=True):
-            self.assertEqual(runner.worker_environment("codex", temp_root)["HOME"], "C:/Users/example")
 
     def _opencode_acp_command(self, mode):
         from tests.engine.test_opencode_acp import FAKE_SERVER
@@ -575,21 +504,6 @@ class EngineTests(unittest.TestCase):
                     rejected = execute_task(self.ctx, failed["run_id"])
                 self.assertEqual(rejected["reason"], "worker_failed", rejected)
                 self._assert_failed_run_has_no_success_evidence(failed)
-
-    def test_opencode_missing_credentials_fails_closed_as_auth_without_leaking(self):
-        failed = self.task(worker="opencode", command=None,
-                           acceptance=[[sys.executable, "-c", "raise SystemExit(99)"]])
-        marker = "never-print-this-credential"
-        with mock.patch.object(runner.opencode_auth, "sync_credentials",
-                               side_effect=runner.opencode_auth.OpenCodeAuthError(marker)):
-            rejected = execute_task(self.ctx, failed["run_id"])
-        self.assertEqual(rejected["reason"], "worker_failed", rejected)
-        self.assertEqual(rejected["provider_status"], "AUTH_REQUIRED", rejected)
-        self.assertEqual(rejected["failure_class"], "auth", rejected)
-        self._assert_failed_run_has_no_success_evidence(failed)
-        directory = self.ctx.run_dir(failed["run_id"])
-        self.assertNotIn(marker, (directory / "auth-error.log").read_text(encoding="utf8"))
-        self.assertNotIn(marker, json.dumps(rejected))
 
     def test_opencode_engine_rejects_read_writes_and_timeouts_without_evidence(self):
         read_only = self.task(worker="opencode", kind="read", command=None, acceptance=[])
@@ -684,7 +598,7 @@ class EngineTests(unittest.TestCase):
     def test_supervisor_crash_kills_owned_descendants(self):
         code = "import subprocess,sys,time; from pathlib import Path; p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)']); Path('crash-descendant.pid').write_text(str(p.pid)); time.sleep(30)"
         task = self.task(code=f"import subprocess,sys; subprocess.run([sys.executable,'-c',{code!r}])", timeout_seconds=20)
-        # The worker is sandboxed: its pid file must live inside its own worktree, not the fixture root.
+        # The worker runs in its own worktree: its pid file must live there, not in the fixture root.
         pid_file = self.ctx.workspace_root / task["run_id"] / "crash-descendant.pid"
         submission = start_task(self.ctx, task["run_id"])
         deadline = time.monotonic() + 10

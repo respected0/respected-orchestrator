@@ -96,7 +96,7 @@ Bir görevi başlattığınızda (masaüstü uygulaması, komut ya da AI aracı 
 | Görev durumu, günlükler | `data\` altında her çalışma için `process.json`, `stdout.log`, `stderr.log`, `events.jsonl`, `lane.json`, `baseline.json` | Masaüstü uygulaması ve komutlar buradan okur |
 | Kanıt ve imza | `data\.engine-key` (ilk görevde), kanıt dosyaları | Kanıt bu anahtarla imzalanır; anahtar kullanıcıya özel ACL ile korunur |
 | Çok görevli iş (kampanya) | `data\campaigns\<kimlik>\` | Her hat kendi veri köküne sahiptir |
-| Kum havuzu | Veri klasörüne **reddetme ACL'i**; her çalıştırmada geçici bir AppContainer profili | İlk kullanımda bir PowerShell ACL kurulumu (yaklaşık 1 sn); çalışan AppContainer içinde, doğrulama komutları kısıtlı belirteçle çalışır; profil kapanışta silinir |
+| İmza anahtarı | Veri klasöründeki `.engine-key` dosyasına yalnız kullanıcıya açık ACL | Yok |
 
 Aynı veri kökünde aynı anda **tek bir görev** çalışır; sonradan başlatılan görev kendi süresi içinde sıraya girer.
 
@@ -112,12 +112,8 @@ yamadan çalışır. Bu yüzden görev geçmişi çoğalsa da deponuzda `orchest
 geçmişi ve günlükleri **kendi klasörlerine** (`~\.codex`, `~\.claude` vb.) yazılır. Bunlar Orchestrator'ın değil, aracın
 dosyalarıdır.
 
-**Sınır:** çalışan AI aracı bir Windows **AppContainer** içinde başlatılır: varsayılan olarak yalnızca görevin çalışma ağacı
-yazılabilir, ağ kapalıdır ve kullanıcı profiliniz ile motor anahtarı okunamaz. Kum havuzu kurulamazsa çalışan hiç başlamaz
-(`sandbox_unavailable`); sessiz geri dönüş yoktur. Bu yalnızca Windows'ta geçerlidir. Ayrıca kapsam denetimi çalışmadan sonra
-yamaya bakar. Codex'in kendi kum havuzu, kullanıcı profilinizdeki programları (örneğin `AppData\Local\Programs` altındaki
-bir Python) çalıştıramayabilir; böyle bir doğrulama komutunu çalışan kendi kendini denerken çalıştıramayıp görevi başarısız
-bildirebilir. Doğrulamayı motor ayrıca, kendi kısıtlı belirteciyle yapar. Ayrıntı: [ARCHITECTURE.md](ARCHITECTURE.md) (Worker sınırı).
+**Sınır:** çalışan AI aracı sizin kullanıcınızla, aracın kendi izin kipiyle çalışır; Orchestrator işletim sistemi düzeyinde
+dosya ya da ağ sınırı koymaz. Kapsam denetimi çalışmadan sonra yamaya bakar. Ayrıntı: [ARCHITECTURE.md](ARCHITECTURE.md) (Worker başlatma, Güven modeli).
 
 ## 6. Güncelleme ve onarım
 

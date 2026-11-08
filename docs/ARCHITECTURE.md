@@ -32,44 +32,24 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   doğrulama komutları, yamanın projeye hâlâ uyması, imzalı kanıt ve projenin güncelliği ayrı ayrı geçmelidir. Hiçbir şey
   kendiliğinden uygulanmaz; `apply` `check`'i yeniden çalıştırır, `git apply --check` yapar, commit atmaz ve çalışan
   süreçlerin içinden reddedilir. Yeniden denemeler açık ve sınırlıdır; süre sınırları ve süreç ağacı temizliği korunur.
-- **Worker sınırı (SEC-03):** Bütün worker girişleri (`create`, `start`, MAF araç çağrıları ve kampanya alt şeritleri) tek
-  `engine/worker_policy.py` politikasından ve `engine/appcontainer.py` başlatıcısından geçer. Politika kurulamaz, komut
-  allowlist dışındaysa ya da AppContainer açılamazsa **hiçbir worker başlamaz**; görev `failed` / `sandbox_unavailable`
-  olur. Sessiz, sandbox'sız geri dönüş yoktur.
-- Varsayılan olarak yalnızca worker'ın kendi worktree'si yazılabilir; Python/araç dizini salt-okunur; ağ kapalıdır
-  (`internetClient` yeteneği verilmez). `.cmd`/`.bat` şimleri reddedilir (Cursor için şimin yanındaki
-  `versions\<sürüm>\node.exe` + `index.js` doğrudan girişi kullanılır; `--trust --output-format json` ile çağrılır,
-  `usage` `inputTokens/outputTokens/cacheReadTokens` alanlarından okunur, `cacheReadTokens` yoksa kullanım `unknown`
-  kalır; `inputTokens` önbellek okumasını içermez (canlı kanıt: `inputTokens` 39, `cacheReadTokens` 18048), ham girdi ikisinin
-  toplamıdır; Cursor işçisi ağ ve oturum açma gerektirir, ağ yalnız açık anahtarla açılır ve işçi AppContainer içinde
-  çalışır, CUR-01), sır adları ortamdan çıkarılır ve `TEMP`/`TMP`
-  worker alanına yönlendirilir. Codex incelemesinde proje `cwd`'si salt-okunur, inceleme çalışma kökü yazılabilirdir.
-  Motor, supervisor ve kampanya final master'ı güvenilen süreçler olarak sandbox dışında kalır.
-- AppContainer profili her çalıştırmada oluşturulup kapatılır; izinler yalnızca worktree ve araç dizinine verilir ve kapanışta
-  geri alınır. `sys.prefix` altındaki Python dosyaları için makine genelinde `ALL APPLICATION PACKAGES` salt-okunur
-  paylaşımı kullanılır; bu grant kullanıcı profilini veya motor veri kökünü kapsamaz.
-- Kanıt: `tests/engine/test_worker_policy.py` (21 test) politika doğrulamasını, worker ve MAF inceleme yollarının
-  fail-closed başlatmasını, dış okuma/yazma reddini, `.engine-key` erişimsizliğini, varsayılan ağ reddini, alt süreç
-  mirasını, timeout sonrası çocuk süreç temizliğini ve sentinel sır sızmamasını ölçer. `tests/workflows/test_campaign.py`
-  kampanya şeridinin worktree dışına okuyup yazamadığını ve alt şeridin worker'ı doğrudan değil `engine maf` üzerinden
-  çalıştırdığını ayrıca doğrular.
-- **Worker güvenlik matrisi (SEC-04):** `tests/engine/security_cases.py` tek bir saldırı kaydıdır: 21 negatif vaka
-  (19 worker içi + 2 dış: `symlink_patch`, `recursive_mcp`) ve 9 izinli vaka. Gerçek AppContainer yolu kaynakta
-  `tests/engine/test_worker_security.py`, paketlenmiş exe'de `tests/packaging/test_frozen_security.py` ile aynı kaydı
-  çalıştırır. `tests/engine/test_security_gate.py`; kayıt küçülmesini, zorunlu kategori kaybını ve CI adımının
-  kaldırılmasını test düşürerek engeller.
+- **Worker başlatma:** Bütün worker girişleri (`create`, `start`, MAF araç çağrıları ve kampanya alt şeritleri) tek
+  `engine/processes.execute` yolundan geçer. İşçi **kullanıcı olarak, ajanın kendi izin kipiyle** çalışır; motor
+  işletim sistemi düzeyinde dosya ya da ağ sınırı koymaz. Motorun işi kapsamı, süreyi ve sonucu denetlemektir: `.cmd`/`.bat`
+  şimleri reddedilir (Cursor için şimin yanındaki `versions\<sürüm>\node.exe` + `index.js` doğrudan girişi kullanılır;
+  `--trust --output-format json` ile çağrılır, `usage` `inputTokens/outputTokens/cacheReadTokens` alanlarından okunur,
+  `cacheReadTokens` yoksa kullanım `unknown` kalır; `inputTokens` önbellek okumasını içermez, ham girdi ikisinin toplamıdır),
+  sır gibi görünen ortam değişkenleri çalışandan çıkarılır (`processes.scrub_environment`, `RESPECTED_WORKER_ENV_ALLOW` ad
+  başına açık istisnadır), her alt süreç `RESPECTED_ORCH_CHILD=1` ile işaretlenir, süre sınırı dolunca ya da iptalde bütün süreç
+  ağacı Windows iş nesnesiyle kapatılır. Motor, supervisor ve kampanya final master'ı ayrı güvenilen süreçlerdir.
+- **Güven modeli:** İşçi ve doğrulama komutları kullanıcının yetkisiyle çalıştığı için `.engine-key` dosyasını okuyabilir.
+  Kanıt ve onay bütünlüğü imza (HMAC) ve motorun yeniden doğrulamasıyla sağlanır; anahtarın gizliliği için ek bir garanti
+  **verilmez**. Bir işçinin yazdığı koddan korunmak, ajanın kendi izin kipine ve kullanıcının seçtiği kipe bağlıdır.
 - **Yama türü fail-closed (SEC-04):** Git indeksindeki `120000` (symlink) ve `160000` (gitlink/submodule) yolları
   `unsafe_paths` içine alınır; kapsam ihlali sayılır, `export_worker_patch` yama üretmeden reddeder ve
   `check_patch_against_master` bu modları taşıyan yamayı `INTEGRATION_CONFLICT` olarak reddeder. Windows symlink
   ayrıcalığı olmayan worker'ın `git update-index` ile `120000` hazırlayıp normal dosyayla maskelemesi de reddedilir.
-- **CI güvenlik sınırları (FIX-01):** `ci.yml` güvenlik kümesini (worker matrisi, gerçek sandbox vakaları, verify izolasyonu, frozen exe)
-  geçici standart kullanıcı altında tek adımda koşar; `skipped = 0`, `elevated = false`, beklenen test sayısı ve commit SHA'sı
-  manifestte doğrulanmadan kapı geçmez. Cursor CLI'ya bağlı tek test adıyla dışarıda tutulur (ADR-017). Genel `run_ci.py`
-  adımı yalnızca güvenlik dışı, sandbox gerektiren testler için yükseltilmiş atlama listesini korur. `continue-on-error` yoktur.
-  **Sınır:** hosted koşu GitHub üzerinde henüz çalıştırılmadı; kapı ve manifest mantığı yerelde birim testlidir.
-- **Kalan sınır:** AppContainer Windows'a özgüdür; Windows dışında worker başlatılmaz (REL-04 platform kararı). Yükseltilmiş
-  veya doğrulanamayan oturumda motor fail-closed davranır ve worker başlatmaz (`unsupported_elevated`). İzin verilen araç dizinindeki çalıştırılabilirler ayrıca
-  allowlist'e eklenmelidir; varsayılan politika yalnızca seçilen yorumlayıcıyı ve `sys.prefix`'i açar.
+- **Kalan sınır:** Yol Windows'ta doğrulandı. macOS ve Linux'ta çalışır durumda olması hedeflenir ama henüz doğrulanmadı
+  (REL-04 platform kararı: GA yalnız Windows). Yükseltilmiş yönetici oturumunda supervisor başlamaz (`is_elevated`).
 - **Hata sınıfları (ADR-005):** terminal görev kaydı ve MAF sonucu `failure_class`, `retryable` ve `retry_policy`
   alanlarını taşır. Sınıflar `test_failure`, `policy_denied`, `timeout`, `quota`, `auth`, `infrastructure`, `stale_patch`,
   `reviewer_reject` ile kapalıdır. `timeout` ve `infrastructure` sınırlı retry; `test_failure` ve `NEEDS_CHANGES` yalnızca
@@ -99,7 +79,6 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   bir `status` taşıyan bir JSON nesnesi bulunmalıdır. Yorum, engellenmiş yanıt, bozuk çıktı ya da eksik son olay, araç 0 ile
   çıksa bile doğrulamaya ilerlemez. Açık başarısızlık `WORKER_FAILED`; kota ve kimlik hataları kendi sınıflarını korur; zaman
   aşımı önceliklidir. Windows'ta projede `.runtime/codex-0.162.0-alpha.20/bin/codex.exe` varsa o tercih edilir, yoksa PATH.
-  Motor ortak bir Codex kum havuzu kurmaz ya da onarmaz.
 - Codex çalışanları `--sandbox workspace-write` ve `approval_policy="never"` ile başlar; kişinin `danger-full-access`
   ayarı devralınmaz. Çalışan, denetim ve gözden geçirme ortamlarından sır gibi görünen değişkenler çıkarılır
   (`RESPECTED_WORKER_ENV_ALLOW` ad başına açık istisnadır). İzin atlayan bayraklar (`--dangerously*`, `--yolo`,
@@ -111,27 +90,10 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   edilir. Fence dışındaki serbest metinden JSON çıkarılmaz; çoklu ya da yarım fence, JSON dizisi, bozuk JSON ve
   geçersiz `status` reddedilir (`WORKER_FAILED`). Açık kimlik hatası `AUTH_REQUIRED`, kota `LIMIT_EXHAUSTED`, zaman
   aşımı `TIMEOUT` olarak sınıflanır; zaman aşımı önceliklidir.
-- OpenCode alt süreci proje yapılandırmasını okumaz (`OPENCODE_DISABLE_PROJECT_CONFIG=1`) ve izole bir HOME ile
-  çalışır: `APPDATA`, `LOCALAPPDATA` ve kullanıcı yapılandırması görev scratch kökünde tutulur. Kimlik bilgisi ana
-  kullanıcı deposundan `auth export --standalone` ile alınıp yalnızca çalışanın izole HOME'una
-  `auth import --standalone` ile aktarılır; sır kanıt, log ve görev metnine yazılmaz. OpenCode ağ erişimi varsayılan
-  kapalıdır; yalnızca `RESPECTED_OPENCODE_NETWORK=allow` ile açılır.
-- **Cursor çalışanı (CUR-01, kum havuzunda çalışır; canlı kanıt `poc/cursor01_fixed_write.log`):** Cursor oturumu `%APPDATA%\Cursor\auth.json` içindedir
-  (`accessToken`/`refreshToken`); başka hiçbir kullanıcı dosyası gerekmez (canlı ölçüldü). Ağ yalnızca operatör anahtarı
-  `RESPECTED_CURSOR_NETWORK=allow` ile açılır (OpenCode anahtarı Cursor'u açmaz, model denetimli değildir). Çalışanın
-  `HOME/USERPROFILE/APPDATA/LOCALAPPDATA` değerleri scratch köküne yönlenir; `engine/cursor_auth.py` yalnızca
-  `auth.json` dosyasını (doğrulanmış, ≤64 KB) o izole HOME'a kopyalar, hata metni sır taşımaz, kopya `finally` ile
-  silinir. Node'un `realpath` yürüyüşü `C:\` üzerinde EPERM verdiği için komuta `--preserve-symlinks(-main)` eklenir.
-  **Alt süreç asılmasının kök nedeni:** AppContainer adlandırılmış boruyu yalnız `\\.\pipe\LOCAL\` altında
-  oluşturabilir; libuv'un `child_process` boruları `\\?\pipe\uv\*` adındadır, `ACCESS_DENIED` alır ve bunu "ad çakışması"
-  sayıp sonsuza dek yeniden dener (`uv_spawn` hiç dönmez; `stdio:'inherit'/'ignore'` çalışır, `'pipe'` asılır).
-  Job object, devralınan handle veya ACL değildir (`poc/cursor01_pipe_rootcause.log`). Çözüm: Cursor komutu
-  `--require resources/node-shim/appcontainer-pipes.js` ile başlar (`runner.NODE_PIPE_SHIM`; dizini yalnız Cursor
-  çalışanına salt-okunur verilir). Shim `child_process` borularını `LOCAL\` altında kurar, `spawnSync/execSync`
-  çıktısını worker scratch'indeki geçici dosyalardan alır, IPC kanalını (`fork`) asılmak yerine `EACCES` ile reddeder ve
-  JS `fs.realpath` yerine `native` olanı kullanır (JS sürümü `C:\` üzerinde `lstat` EPERM verir; Cursor'un yazma aracı
-  bu yüzden reddediliyordu). Sınırlar gevşemedi: ağ yine operatör anahtarıyla, `.cmd/.bat` reddi, kimlik yalıtımı ve ACL
-  kapsamı aynıdır. Shim yalnız Cursor için yüklenir; başka Node tabanlı işçi eklenirse aynı sorun için aynı dosya gerekir.
+- OpenCode alt süreci kullanıcının kendi profiliyle (HOME, oturum) çalışır; motor kimlik bilgisi kopyalamaz ya da yönlendirmez.
+  Ağ ve model erişimi ajanın kendi ayarıdır.
+- **Cursor çalışanı (CUR-01):** Cursor oturumu kullanıcının kendi profilindedir (`%APPDATA%\Cursor\auth.json`); motor ona dokunmaz.
+  Çalışan, `.cmd` şimi yerine kendi `node.exe` + `index.js` girişiyle başlatılır.
 - **Sağlayıcı ağ kapısı (ADR-007):** Kendi API sağlayıcı adaptörleri (ADP-03) ağ varsayılan kapalıyken çalışmaz.
   `engine/provider_policy.py` soket açmadan önce `RESPECTED_PROVIDER_NETWORK=allow` ve
   `RESPECTED_PROVIDER_CODE_GATE=1` ister; yalnızca `https` ve açık allowlist'teki tam alan adına izin verir. Her
@@ -141,7 +103,7 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   rakamsal teklif `at`, `model_version`, `effective_from` ve `currency` taşır; model, kullanım veya sağlayıcı
   bilinmiyorsa tutar `None` ve durum `unknown` olur, sıfıra çevrilmez. Fiyatlar liste fiyatıdır
   (`estimate_only`); canlı fiyat çağrısı zorunlu değildir.
-- **OpenRouter çalışanı:** `openrouter` aracının CLI'si yoktur; profil model adıdır (örneğin `vendor/model:free`, zorunlu). Okuma rolleri (reviewer, tester, planner, coordinator) `engine/openrouter_worker.py` üzerinden `_openrouter MODEL PROMPT` ile tek sohbet çağrısı yapar. Tam görevlerde (`kind=read` ya da `write`) motor sağlayıcıyı kendi sürecinde çağırır (model denetimli kod çalıştırmadığı için kum havuzu gerekmez): sahip olunan dosyaların içeriği isteme konur (yasak dosyalar konmaz) ve model tam dosya içerikleriyle bir JSON döndürür. Motor yazmadan önce her yolu denetler: göreli, `..` ve `.git` yok, sahip olunan kapsamda, yasak kapsamda değil, çalışma ağacının içinde, dosya başına en çok 120 KB ve en çok 25 dosya; biri bile geçmezse hiçbir şey yazılmaz ve görev `worker_failed` olur. `kind=read` görevi hiçbir şey yazmaz. Ardından her çalışan gibi kapsam denetimi, kabul komutları ve imzalı kanıt gelir. Ağ `RESPECTED_PROVIDER_NETWORK=allow` ve `RESPECTED_PROVIDER_CODE_GATE=1` anahtarlarına bağlıdır, anahtar `provider-key set` ile DPAPI kasasına girer; 429 ve 5xx en çok iki kez yeniden denenir, başka modele geçilmez. Anahtar yoksa araç kullanılamaz sayılır.
+- **OpenRouter çalışanı:** `openrouter` aracının CLI'si yoktur; profil model adıdır (örneğin `vendor/model:free`, zorunlu). Okuma rolleri (reviewer, tester, planner, coordinator) `engine/openrouter_worker.py` üzerinden `_openrouter MODEL PROMPT` ile tek sohbet çağrısı yapar. Tam görevlerde (`kind=read` ya da `write`) motor sağlayıcıyı kendi sürecinde çağırır (model denetimli kod çalıştırmaz): sahip olunan dosyaların içeriği isteme konur (yasak dosyalar konmaz) ve model tam dosya içerikleriyle bir JSON döndürür. Motor yazmadan önce her yolu denetler: göreli, `..` ve `.git` yok, sahip olunan kapsamda, yasak kapsamda değil, çalışma ağacının içinde, dosya başına en çok 120 KB ve en çok 25 dosya; biri bile geçmezse hiçbir şey yazılmaz ve görev `worker_failed` olur. `kind=read` görevi hiçbir şey yazmaz. Ardından her çalışan gibi kapsam denetimi, kabul komutları ve imzalı kanıt gelir. Ağ `RESPECTED_PROVIDER_NETWORK=allow` ve `RESPECTED_PROVIDER_CODE_GATE=1` anahtarlarına bağlıdır, anahtar `provider-key set` ile DPAPI kasasına girer; 429 ve 5xx en çok iki kez yeniden denenir, başka modele geçilmez. Anahtar yoksa araç kullanılamaz sayılır.
 - **Sağlayıcı adaptörü (ADP-03):** `engine/provider.py` OpenRouter çağrılarını `require_access` kapısından
   geçirir; `secret_vault.py` anahtarı Windows DPAPI ile şifreli tutar, düz metin dosya yoktur. Aynı
   `idempotency_key` ikinci kez ağ çağrısı yapmaz. 401 `unauthorized`, 429 `rate_limited`, 5xx
@@ -163,157 +125,13 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   altın fixture yamasını uygular. Başarı oranı ile güvenlik ihlali ayrı metriklerdir; maliyet ölçülmediyse
   `bilinmiyor` kalır, sıfır yazılmaz. Her koşu sürüm/tarih/runtime metadata taşır.
 
-## 3. Doğrulama kum havuzu
+## 3. Doğrulama komutları
 
-Doğrulama komutları (ve proje `verify` komutları) bir çalışanın yazdığı kod üzerinde çalışır. Bu kodun motorun yetkisini
-taşımaması ve veri sızdırmaması için komutlar `engine/sandbox.run_check` ile **worker'la aynı AppContainer yolundan**
-(`worker_policy.default_policy` + `appcontainer.spawn`) çalışır (ADR-018, FIX-04):
-
-- Konteyner yalnızca çalışma ağacını (yazılabilir), yorumlayıcı/araç dizinlerini (salt-okunur) ve görevin geçici alanını görür.
-  Motorun anahtarı, ayarlar ve imzalı kanıt erişilemezdir (veri kökü hiçbir zaman verilmez).
-- **Ağ varsayılan kapalıdır** (IP, DNS, loopback, alt süreç). İstisna hep-ya-hiç'tir: yalnızca operatörün
-  `RESPECTED_VERIFY_NETWORK_TASKS` içinde adını yazdığı görev kimliği (run id / proje aşaması adı) ağ alır; model veya görev
-  metni bunu açamaz. Her kontrolün kanıtında `network: deny|allow` yazılır. "Yalnızca şu host'a" vaadi verilmez.
-- **Fail-closed:** AppContainer kurulamazsa (Windows dışı, yükseltilmiş oturum, ACL hatası, `.cmd` shim) çalışma
-  `sandbox_unavailable` ile başarısız olur; kısıtlı belirtece ya da sarmalamasız çalıştırmaya geri dönüş yoktur ve
-  `RESPECTED_ORCH_SANDBOX=off` bu yolda dikkate alınmaz. Eski kısıtlı belirteç başlatıcısı (`_sandbox-exec`) kaldırıldı.
-- `Program Files` gibi sistem altındaki araçların dizini zaten okunabilirse (`ALL APPLICATION PACKAGES`) ACL'ye dokunulmaz.
-- **Uyumluluk (ölçülen):** Python, unittest, node ve cmd çalışır. `npm test`/`.cmd` shim'leri desteklenmez (`node betik.js`
-  yazın); `sys.prefix` dışındaki venv yalnızca `RESPECTED_WORKER_READONLY_ROOTS` ile; hosted görüntüde `git` çalışmaz.
-  Ölçülmeyen araç zincirleri için "çalışır" denmez.
-- Kanıt: `tests/engine/test_sandbox.py` (negatif kontrolle: aynı betik sandbox'sız bağlanır, konteynerde reddedilir).
-- **Yama türü fail-closed (SEC-04):** Git indeksindeki `120000` (symlink) ve `160000` (gitlink/submodule) yolları
-  `unsafe_paths` içine alınır; kapsam ihlali sayılır, `export_worker_patch` yama üretmeden reddeder ve
-  `check_patch_against_master` bu modları taşıyan yamayı `INTEGRATION_CONFLICT` olarak reddeder. Windows symlink
-  ayrıcalığı olmayan worker'ın `git update-index` ile `120000` hazırlayıp normal dosyayla maskelemesi de reddedilir.
-- **CI güvenlik sınırları (FIX-01):** `ci.yml` güvenlik kümesini (worker matrisi, gerçek sandbox vakaları, verify izolasyonu, frozen exe)
-  geçici standart kullanıcı altında tek adımda koşar; `skipped = 0`, `elevated = false`, beklenen test sayısı ve commit SHA'sı
-  manifestte doğrulanmadan kapı geçmez. Cursor CLI'ya bağlı tek test adıyla dışarıda tutulur (ADR-017). Genel `run_ci.py`
-  adımı yalnızca güvenlik dışı, sandbox gerektiren testler için yükseltilmiş atlama listesini korur. `continue-on-error` yoktur.
-  **Sınır:** hosted koşu GitHub üzerinde henüz çalıştırılmadı; kapı ve manifest mantığı yerelde birim testlidir.
-- **Kalan sınır:** AppContainer Windows'a özgüdür; Windows dışında worker başlatılmaz (REL-04 platform kararı). Yükseltilmiş
-  veya doğrulanamayan oturumda motor fail-closed davranır ve worker başlatmaz (`unsupported_elevated`). İzin verilen araç dizinindeki çalıştırılabilirler ayrıca
-  allowlist'e eklenmelidir; varsayılan politika yalnızca seçilen yorumlayıcıyı ve `sys.prefix`'i açar.
-- **Hata sınıfları (ADR-005):** terminal görev kaydı ve MAF sonucu `failure_class`, `retryable` ve `retry_policy`
-  alanlarını taşır. Sınıflar `test_failure`, `policy_denied`, `timeout`, `quota`, `auth`, `infrastructure`, `stale_patch`,
-  `reviewer_reject` ile kapalıdır. `timeout` ve `infrastructure` sınırlı retry; `test_failure` ve `NEEDS_CHANGES` yalnızca
-  `max_fix_rounds` (varsayılan 2, üst sınır 5) kadar kanıta dayalı düzeltme alır; `stale_patch` yeni yama; `auth`, `quota`,
-  `policy_denied` ve nihai `REJECTED` insan müdahalesi gerektirir. `retry_task`, `retryable=false` kayıtları ve mevcut üç
-  deneme sınırını aşan istekleri reddeder.
-- **MAF sonlu durum makinesi (QUA-03):** implement → tester → bağımsız reviewer → sınırlı fix → yeniden doğrulama akışı
-  `max_fix_rounds` ile sınırlıdır. `NEEDS_CHANGES` ara durumdur; terminal durumlar `MASTER_APPROVED`,
-  `HUMAN_APPROVAL_REQUIRED`, `REJECTED`, `CANCELLED`, `STALE_PATCH`, `REPEATED_TEST_FAILURE` ve `FIX_ROUNDS_EXHAUSTED`
-  olarak kapalıdır. Fix'e yalnızca imzalı kanıttan türetilen `run_id`, `checks`, `reason`, `failure_class` ve
-  `evidence_paths` alanları verilir; ham stdout/stderr aktarılmaz. Aynı normalize test hatası ikinci kez görülürse reviewer
-  çağrılmadan `REPEATED_TEST_FAILURE` ile durulur; hiçbir otomatik fix proje çalışma ağacına uygulanmaz.
-- **Bağımsız review/apply değişmezleri (QUA-04):** bağımsızlık istendiğinde reviewer ile implementer aynı profil/araç
-  olamaz. `check_result` sonucu HMAC imzası, kabul ve tester kanıtı, MAF kapısı, onayın çalıştırma ve `patch_sha256`
-  bağlantısı, güncel proje parmak izi ve `git apply --check` ile doğrular. İnsan onayı istenen MAF sonucu onay dosyası
-  olmadan; onay ise başka bir patch'e bağlanarak kullanılamaz. `apply_task` önceki doğrulamayı yeniden çalıştırır,
-  yarışta değişen kaynağı uygulamaz, ikinci kez uygulamaz, commit veya otomatik merge yapmaz. Tester yalnızca görevin
-  kabul komutları hakkında imzalı rapor üretir; tester tarafından verilen serbest komut `BAD_ASSIGNMENT` ile reddedilir.
-  `tests/engine/test_review_apply_invariants.py` 12 saldırgan senaryonun 12/12 reddini, sıfır otomatik apply'ı ve meşru
-  check→apply akışının 1/1 sürmesini kanıtlar.
-- Bir veri kökünde aynı anda tek görev çalışır: sonradan başlatılan görev kendi süresi içinde sıraya girer (süre dolarsa
-  `timed_out`, iptal edilirse `cancelled`); bozuk ya da yarım yazılmış kilit dosyası 5 saniyeden eskiyse bayat sayılıp alınır.
-- Kanıt, veri kökündeki `.engine-key` ile HMAC imzalanır. Anahtar Windows'ta yalnızca kullanıcıya açık bir ACL ile korunur.
-- **Codex sonucu:** yerleşik Codex uyarlayıcısı `exec --json` ile çalışır ve tam görev metnini tek argüman olarak verir
-  (`--json` ile çağrılan `codex` adlı özel komutlar da aynı sözleşmeye tabidir). Çıktı yalnızca JSON nesnelerinden oluşan,
-  `turn.completed` ile biten, `turn.failed` ya da `error` olayı içermeyen JSONL olmalıdır; son ajan mesajında açıkça başarılı
-  bir `status` taşıyan bir JSON nesnesi bulunmalıdır. Yorum, engellenmiş yanıt, bozuk çıktı ya da eksik son olay, araç 0 ile
-  çıksa bile doğrulamaya ilerlemez. Açık başarısızlık `WORKER_FAILED`; kota ve kimlik hataları kendi sınıflarını korur; zaman
-  aşımı önceliklidir. Windows'ta projede `.runtime/codex-0.162.0-alpha.20/bin/codex.exe` varsa o tercih edilir, yoksa PATH.
-  Motor ortak bir Codex kum havuzu kurmaz ya da onarmaz.
-- Codex çalışanları `--sandbox workspace-write` ve `approval_policy="never"` ile başlar; kişinin `danger-full-access`
-  ayarı devralınmaz. Çalışan, denetim ve gözden geçirme ortamlarından sır gibi görünen değişkenler çıkarılır
-  (`RESPECTED_WORKER_ENV_ALLOW` ad başına açık istisnadır). İzin atlayan bayraklar (`--dangerously*`, `--yolo`,
-  `bypassPermissions`, `danger-full-access`, `-y`, `--approval-mode yolo`, `sandbox_mode` geçersiz kılma) her yerde
-  reddedilir.
-- **OpenCode sonucu ve ACP:** OpenCode çalışanı gerçek `opencode acp` stdio oturumuyla çalışır; oturum kimliği, model
-  seçimi ve dönüş sınırı Agent Client Protocol (ACP) üzerinden izlenir. Son ajan mesajı fail-closed ayrıştırılır:
-  çıplak bir JSON nesnesi ya da fence dışında yalnızca açıklama metni bulunan **tek** bir ```json/``` bloğu kabul
-  edilir. Fence dışındaki serbest metinden JSON çıkarılmaz; çoklu ya da yarım fence, JSON dizisi, bozuk JSON ve
-  geçersiz `status` reddedilir (`WORKER_FAILED`). Açık kimlik hatası `AUTH_REQUIRED`, kota `LIMIT_EXHAUSTED`, zaman
-  aşımı `TIMEOUT` olarak sınıflanır; zaman aşımı önceliklidir.
-- OpenCode alt süreci proje yapılandırmasını okumaz (`OPENCODE_DISABLE_PROJECT_CONFIG=1`) ve izole bir HOME ile
-  çalışır: `APPDATA`, `LOCALAPPDATA` ve kullanıcı yapılandırması görev scratch kökünde tutulur. Kimlik bilgisi ana
-  kullanıcı deposundan `auth export --standalone` ile alınıp yalnızca çalışanın izole HOME'una
-  `auth import --standalone` ile aktarılır; sır kanıt, log ve görev metnine yazılmaz. OpenCode ağ erişimi varsayılan
-  kapalıdır; yalnızca `RESPECTED_OPENCODE_NETWORK=allow` ile açılır.
-- **Cursor çalışanı (CUR-01, kum havuzunda çalışır; canlı kanıt `poc/cursor01_fixed_write.log`):** Cursor oturumu `%APPDATA%\Cursor\auth.json` içindedir
-  (`accessToken`/`refreshToken`); başka hiçbir kullanıcı dosyası gerekmez (canlı ölçüldü). Ağ yalnızca operatör anahtarı
-  `RESPECTED_CURSOR_NETWORK=allow` ile açılır (OpenCode anahtarı Cursor'u açmaz, model denetimli değildir). Çalışanın
-  `HOME/USERPROFILE/APPDATA/LOCALAPPDATA` değerleri scratch köküne yönlenir; `engine/cursor_auth.py` yalnızca
-  `auth.json` dosyasını (doğrulanmış, ≤64 KB) o izole HOME'a kopyalar, hata metni sır taşımaz, kopya `finally` ile
-  silinir. Node'un `realpath` yürüyüşü `C:\` üzerinde EPERM verdiği için komuta `--preserve-symlinks(-main)` eklenir.
-  **Alt süreç asılmasının kök nedeni:** AppContainer adlandırılmış boruyu yalnız `\\.\pipe\LOCAL\` altında
-  oluşturabilir; libuv'un `child_process` boruları `\\?\pipe\uv\*` adındadır, `ACCESS_DENIED` alır ve bunu "ad çakışması"
-  sayıp sonsuza dek yeniden dener (`uv_spawn` hiç dönmez; `stdio:'inherit'/'ignore'` çalışır, `'pipe'` asılır).
-  Job object, devralınan handle veya ACL değildir (`poc/cursor01_pipe_rootcause.log`). Çözüm: Cursor komutu
-  `--require resources/node-shim/appcontainer-pipes.js` ile başlar (`runner.NODE_PIPE_SHIM`; dizini yalnız Cursor
-  çalışanına salt-okunur verilir). Shim `child_process` borularını `LOCAL\` altında kurar, `spawnSync/execSync`
-  çıktısını worker scratch'indeki geçici dosyalardan alır, IPC kanalını (`fork`) asılmak yerine `EACCES` ile reddeder ve
-  JS `fs.realpath` yerine `native` olanı kullanır (JS sürümü `C:\` üzerinde `lstat` EPERM verir; Cursor'un yazma aracı
-  bu yüzden reddediliyordu). Sınırlar gevşemedi: ağ yine operatör anahtarıyla, `.cmd/.bat` reddi, kimlik yalıtımı ve ACL
-  kapsamı aynıdır. Shim yalnız Cursor için yüklenir; başka Node tabanlı işçi eklenirse aynı sorun için aynı dosya gerekir.
-- **Sağlayıcı ağ kapısı (ADR-007):** Kendi API sağlayıcı adaptörleri (ADP-03) ağ varsayılan kapalıyken çalışmaz.
-  `engine/provider_policy.py` soket açmadan önce `RESPECTED_PROVIDER_NETWORK=allow` ve
-  `RESPECTED_PROVIDER_CODE_GATE=1` ister; yalnızca `https` ve açık allowlist'teki tam alan adına izin verir. Her
-  redirect hedefi yeniden doğrulanır; proxy de allowlist'ten geçer. 401/429/5xx başka sağlayıcıya sessiz fallback
-  yapmaz. Anahtar istek anında kasadan okunur, log/kanıt/ayar JSON'una yazılmaz ve `***set***` ile maskelenir.
-- **Fiyat kataloğu (COST-02):** `engine/pricing.py` sürüm kontrollü katalogdan deterministik teklif üretir. Her
-  rakamsal teklif `at`, `model_version`, `effective_from` ve `currency` taşır; model, kullanım veya sağlayıcı
-  bilinmiyorsa tutar `None` ve durum `unknown` olur, sıfıra çevrilmez. Fiyatlar liste fiyatıdır
-  (`estimate_only`); canlı fiyat çağrısı zorunlu değildir.
-- **OpenRouter çalışanı:** `openrouter` aracının CLI'si yoktur; profil model adıdır (örneğin `vendor/model:free`, zorunlu). Okuma rolleri (reviewer, tester, planner, coordinator) `engine/openrouter_worker.py` üzerinden `_openrouter MODEL PROMPT` ile tek sohbet çağrısı yapar. Tam görevlerde (`kind=read` ya da `write`) motor sağlayıcıyı kendi sürecinde çağırır (model denetimli kod çalıştırmadığı için kum havuzu gerekmez): sahip olunan dosyaların içeriği isteme konur (yasak dosyalar konmaz) ve model tam dosya içerikleriyle bir JSON döndürür. Motor yazmadan önce her yolu denetler: göreli, `..` ve `.git` yok, sahip olunan kapsamda, yasak kapsamda değil, çalışma ağacının içinde, dosya başına en çok 120 KB ve en çok 25 dosya; biri bile geçmezse hiçbir şey yazılmaz ve görev `worker_failed` olur. `kind=read` görevi hiçbir şey yazmaz. Ardından her çalışan gibi kapsam denetimi, kabul komutları ve imzalı kanıt gelir. Ağ `RESPECTED_PROVIDER_NETWORK=allow` ve `RESPECTED_PROVIDER_CODE_GATE=1` anahtarlarına bağlıdır, anahtar `provider-key set` ile DPAPI kasasına girer; 429 ve 5xx en çok iki kez yeniden denenir, başka modele geçilmez. Anahtar yoksa araç kullanılamaz sayılır.
-- **Sağlayıcı adaptörü (ADP-03):** `engine/provider.py` OpenRouter çağrılarını `require_access` kapısından
-  geçirir; `secret_vault.py` anahtarı Windows DPAPI ile şifreli tutar, düz metin dosya yoktur. Aynı
-  `idempotency_key` ikinci kez ağ çağrısı yapmaz. 401 `unauthorized`, 429 `rate_limited`, 5xx
-  `provider_error`, süre aşımı `timeout` ve `[DONE]` görmeden biten akış `stream_incomplete` olarak
-  ayrılır; hiçbiri başka sağlayıcıya veya modele sessiz fallback yapmaz. Kullanım bilinmiyorsa `None`
-  ve `usage_status=UNKNOWN` kalır. `models()` yalnızca genel model kataloğunu okur ve anahtar istemez.
-- **Yetenek manifestosu (EXT-01):** `engine/capability_manifest.py` skill ve MCP araçlarını fail-closed
-  denetler. Manifest yoksa, alanı eksikse ya da SHA-256 tutmuyorsa çalışmaz; `trust` yalnızca `trusted`, provenance
-  kurulum kaydıyla eşleşmek zorundadır. Araç yalnızca manifestte bildirilen ve görev planında açıkça onaylanan
-  işlemi yapabilir; bildirilmeyen araç/izin otomatik yetkilendirilmez. `exec` kapalıdır, veri kapsamı repo dışına
-  çıkamaz. Açıklama metni yetki sayılmaz; metin içindeki talimatlar yeni izin vermez.
-<!-- EVAL-03_ARCH -->- **KPI ve regresyon kapısı (EVAL-03):** `tests/evals/report.py` her raporda kabul başarısı, worker
-  ihlali, maliyet ve süre KPI'larını üretir. Eksik veri sıfıra çevrilmez; `missing_kpi` hatası verir. İki koşu
-  arasında başarı düşerse veya worker ihlali artarsa regresyon kapısı kapanır; farklı fixture/repeat/timeout
-  raporları karşılaştırılamaz sayılır. Bu sentetik harness model başarısını ölçmez; gerçek ajanlı karşılaştırma
-  henüz yoktur ve ayrı bir şema/rapor olarak planlanmıştır (ADR-019, FIX-02).
-<!-- EVAL-02_ARCH -->- **Karşılaştırma koşucusu (EVAL-02):** `tests/evals/compare.py` aynı fixture, commit, makine ve zaman
-  aşımıyla doğrudan ve orkestre kolları çalıştırır. Doğrudan kol değişiklik uygulamaz; orkestre kol doğrulanmış
-  altın fixture yamasını uygular. Başarı oranı ile güvenlik ihlali ayrı metriklerdir; maliyet ölçülmediyse
-  `bilinmiyor` kalır, sıfır yazılmaz. Her koşu sürüm/tarih/runtime metadata taşır.
-
-## 3. Doğrulama kum havuzu
-
-Doğrulama komutları (ve proje `verify` komutları) bir çalışanın yazdığı kod üzerinde çalışır. Bu kodun motorun yetkisini
-taşımaması için komutlar `sandbox_exec` ile **kısıtlı bir belirteçle** (`CreateRestrictedToken` + `CreateProcessAsUser`)
-çalışır:
-
-- Belirteç kullanıcının bütün SID'lerini kısıtlayıcı SID olarak tutar (araçlar ve önbellekler aynı çalışır) ve bu veri
-  köküne ait bir SID daha ekler (`sandbox.json`; hiçbir gerçek hesabın sahip olmadığı biçimli bir SID). Windows erişimi iki
-  kez denetlediği için bu SID'e verilen **ret** kum havuzunu engeller, o SID'i taşımayan motoru etkilemez.
-- `DISABLE_MAX_PRIVILEGE` yedekleme/geri yükleme/sahiplik alma ayrıcalıklarını kaldırır.
-- Veri kökü bu SID'i bütün alt öğelerde (kalıtımlı), kökün kendisinde oluşturma/değiştirme/silme/ACL değiştirmede ve
-  anahtar dosyasında reddeder. `workspaces/` (çalışanın alanı) kalıtımı keser ve kullanılabilir kalır.
-- Bir **OWNER RIGHTS** girdisi sahibin örtük haklarını READ_CONTROL ile sınırlar; yoksa aynı kullanıcı WRITE_DAC'i korur ve
-  kum havuzu erişimini geri verebilirdi (saldırı testiyle bulundu).
-- Kurulamazsa çalışma `sandbox_unavailable` ile başarısız olur; sessiz geri dönüş yoktur. `RESPECTED_ORCH_SANDBOX=off`
-  açık bir geliştirici anahtarıdır (Windows dışındaki tek yol).
-- Kanıt (`tests/engine/test_sandbox.py`, negatif kontrolle): kum havuzundaki kod anahtarı okuyamaz (düz yol, `\\?\`,
-  bağlantı noktası, sabit bağ), ayarları ve kanıtı okuyamaz, veri kökünde hiçbir şey oluşturamaz/değiştiremez/silemez,
-  `maf-approval.json` sahteleyemez, ACL'yi ya da ret girdisini değiştiremez, sahiplik alamaz. Kum havuzu olmadan aynı
-  denemelerin hepsi başarılı olur.
-- Sınırlar: yalnızca motorun sırları ve kanıtı korunur; kod kişinin diğer dosyalarını okuyabilir ve ağa çıkabilir. Çalışan
-  araçlar bu kısıtlı belirteçle değil, bölüm 2'deki AppContainer ile çalışır; ayrıca kendi izin modları vardır. Yükseltilmiş yönetici olarak
-  çalışan bir motor bu modelin dışındadır. Veri kökü başına ilk kullanımda bir PowerShell ACL kurulumu (yaklaşık bir
-  saniye) yapılır.
-- Tehdit modeli, varlık/yetki matrisi ve 25 saldırı senaryosu [THREAT_MODEL.md](THREAT_MODEL.md) dosyasındadır. Özet:
-  bu kısıtlı belirteç yalnızca motorun çalıştırdığı doğrulama kodunu korur (sırlar ve kanıt; ağ ve diğer dosyalar açıktır);
-  worker için işletim sistemi düzeyinde dosya/ağ sınırı bölüm 2'deki AppContainer'dır. Windows normal kullanıcı desteklenir; yükseltilmiş yönetici desteklenmez ve başlangıçta reddedilir.
+Kabul ve proje `verify` komutları, motorun işçiden sonra ayrı bir süreç olarak çalıştırdığı komutlardır
+(`processes.run_check`): çalışma ağacında, sır adlı ortam değişkenleri çıkarılmış olarak, görevin süre sınırıyla. Motor bu
+komutları bir kutuda çalıştırmaz; sonucu (çıkış kodu, çıktı özeti) imzalı kanıta yazar ve kapsam denetimini komuttan sonra
+yeniden yapar. İşçinin yazdığı kodun motorun sırlarını okuyabileceği varsayılır (bölüm 2, *Güven modeli*). Tehdit modeli
+[THREAT_MODEL.md](THREAT_MODEL.md) dosyasındadır.
 
 ## 4. Rol atama
 
@@ -429,7 +247,7 @@ istekte `role_assignments` olarak saklanır.
 - `require_independent_review` açıksa çalışanla aynı profili kullanan gözden geçirici `ROLE_INDEPENDENCE`'tır; kapalıysa
   izin verilir ve `role_notes`'a yazılır. `escalate_profile` sonraki düzeltmeleri başka profile verir, ilk çalışan gözden
   geçirici olur. `blocked_profiles` (varsayılan `mimo`) profilleri her rolde reddeder.
-- Gözden geçirmeler atanan araçla yapılır: `codex` salt okunur kum havuzu yolunu kullanır; diğer araçlar boş bir kanıt
+- Gözden geçirmeler atanan araçla yapılır: `codex` kendi salt okunur kipinde (`--sandbox read-only`) çalışır; diğer araçlar boş bir kanıt
   klasöründe başsız çalışır. Bunların komut satırları belirteç kullanımı bildirmez; kullanım "bilinmiyor" kaydedilir
   (sıfır değil) ve hat bütçesinden varsayılan miktar düşülür.
 - Tüketilen roller: `implementer`, `reviewer`, `deep_reviewer` (her görev), `debugger` (atandıysa düzeltme turları),
@@ -441,7 +259,7 @@ istekte `role_assignments` olarak saklanır.
   p/one` gibi tam yol), geçersiz kapsam/komut/zaman aşımı ve ata-torun ilişkisi olmayan paralel `ownership` çakışmaları
   reddedilir; bütün çakışan çiftler tek tanıda raporlanır. Geçerli taslak `dag` alanıyla birlikte saklanır ve `plan`
   hiçbir worker, proje veya kampanya başlatmaz; başlatma yalnızca ayrı `project-start` çağrısıyla olur.
-  `tester` motorun sahip olduğu doğrulama aşamasıdır: yalnızca görevin kabul komutlarını bir kez AppContainer içinde çalıştırır,
+  `tester` motorun sahip olduğu doğrulama aşamasıdır: yalnızca görevin kabul komutlarını bir kez çalıştırır,
   serbest komut kabul etmez ve imzalı `tester-report.json` üretir. Rapor run/project fingerprint/patch SHA-256/assignment'a bağlıdır;
   MAF gözden geçirici çalışmadan önce kanıtı doğrular. `coordinator` (`coordinate` komutu) atanan araçla ya da verilen
   `spec` ile plan üretir; yalnızca doğrulanmış DAG ve rol ataması döndürür. Shell, worker başlatma, kampanya/proje
@@ -532,7 +350,7 @@ Sunucu, istem enjeksiyonuna uğramış olabilecek bir modelin isteğini alır. B
 - `worker: "custom"`, herhangi bir `command`, `apply_root`, `engine_source` — sunucu `--allow-privileged` ile
   kaydedilmedikçe. `--allow-auto-apply` yalnızca `auto_apply` reddini kaldırır. Masaüstü uygulaması ikisini de hiç vermez.
 - Kişinin önceden onaylamadığı doğrulama ve `verify` komutları: `mcp_acceptance_allow` ayarındaki öneklerden biriyle
-  kelimesi kelimesine başlamayan komut geçmez. Varsayılan liste boştur. Onaylı komutlar da doğrulama kum havuzunda çalışır.
+  kelimesi kelimesine başlamayan komut geçmez. Varsayılan liste boştur. Onaylı komutlar da doğrulama komutu olarak çalışır (bölüm 3).
 - İzin atlayan bayraklar (bölüm 2).
 
 Özyineleme yoktur: `RESPECTED_ORCH_CHILD` ya da `RESPECTED_ORCH_DELEGATED` tanımlıyken bütün araçlar gizlenir ve reddedilir;
@@ -555,8 +373,7 @@ Orchestrator Brain'e hiçbir zaman bağımlı değildir; bağlantı yoksa aşağ
   görevleri hemen etkiler), Brain'e `memory.recall` sorulur (alt süreç, stdin'de bir istek, stdout'ta bir yanıt) ve en
   fazla yaklaşık 3000 karakterlik parça, güvenilmeyen veri olduğunu belirten bir başlık altında görev metnine eklenir.
   Sorgu `memory.query` ya da görevin ayırt edici kelimeleri (en fazla 12). Her hata yalnızca "hafıza yok" demektir.
-- **Anahtar:** yalnızca `<veri kökü>/memory-token` dosyasındadır (`.engine-key` gibi ACL'li; Codex kum havuzu kullanıcıları
-  okuyamaz). `settings.json`'da, makbuzlarda, istekte, durumda, kanıtta, günlükte, hata metninde ve görev metninde yer
+- **Anahtar:** yalnızca `<veri kökü>/memory-token` dosyasındadır (`.engine-key` gibi ACL'li). `settings.json`'da, makbuzlarda, istekte, durumda, kanıtta, günlükte, hata metninde ve görev metninde yer
   almaz; okumada `***set***` görünür. Alt sürece yalnızca stdin'den, en az ortamla verilir. `memory-context.json` yalnızca
   durum, sayı, göreli yollar, puanlar ve dizin durumunu kaydeder.
 - **Yazma:** `orchestrator_memory_note` MCP aracı, her iki izin varsa (bağlantı `--write` ile ve Brain tarafında yazma
@@ -599,12 +416,12 @@ içine yazdığı MCP girdisi için sahiplik kaydı varsa `gemini` istemcisi yal
 
 | Klasör | Kapsam |
 |---|---|
-| `tests/engine/` | çalıştırıcı, çalışma ağaçları, Codex sonuçları, süre sınırları, kum havuzu, Windows süreçleri, bütçe, geçmiş |
+| `tests/engine/` | çalıştırıcı, çalışma ağaçları, Codex sonuçları, süre sınırları, Windows süreçleri, bütçe, geçmiş |
 | `tests/workflows/` | MAF iş akışı, kampanyalar, rol atama |
 | `tests/interfaces/` | RPP, kurulum ve hafıza bağlantısı, MCP sunucusu ve izinleri, Brain hafızası, AI aracı kayıtları |
 | `tests/evals/` | değerlendirme fixture'ları, sabit SHA'lı koşucu, tekrar ve JSON rapor sözleşmesi |
 | `tests/docs/` | DOC-01 kaynak/profil/ADR yapısal doğrulaması; `docs/evidence/poc/doc01_check.py` |
-| `tests/packaging/` | derlenmiş exe, PATH'te Python yokken: RPP, MCP, ayrık denetleyiciyle gerçek bir yazma görevi, kum havuzlu doğrulama |
+| `tests/packaging/` | derlenmiş exe, PATH'te Python yokken: RPP, MCP, ayrık denetleyiciyle gerçek bir yazma görevi, kabul doğrulaması |
 | `tests/test_main.py` | komut satırı, ortak komutlar, hata biçimi |
 
 Testler geçici depolarda ve sahte çalışanlarla çalışır; HOME yalıtılır. Paketleme testleri önce `packaging/build_dist.py`
@@ -621,20 +438,13 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
 
 ## 10. Açık sınırlar
 
-- Beta yalnızca Windows'u destekler; macOS/Linux kod yolları var ama doğrulanmadı. POSIX'te anahtar için işletim sistemi
-  kum havuzu sınırı yoktur.
+- Beta yalnızca Windows'u destekler; macOS/Linux kod yolları var ama henüz doğrulanmadı.
 - Claude ve Cursor çalışanları kendi onay modellerini korur. Sağlayıcının `turn.completed` olayı modeli
   bildirmediği için incelemelerde `model: null` görünür.
-- Kapsam denetimi çalışmadan sonra, yamaya bakarak yapılır; çalışan ayrıca AppContainer içinde çalışır (bölüm 2, SEC-03), bu
-  yüzden çalışma ağacının dışına yazamaz. Windows dışında worker başlatılmaz.
-- Codex'in kum havuzu kullanıcı profilindeki programları (örneğin `AppData\Local\Programs` altındaki Python) çalıştıramayabilir:
-  çalışan böyle bir doğrulama komutunu kendi kendini denerken çalıştıramayıp görevi başarısız bildirebilir. Motorun kendi
-  doğrulaması ayrıca kısıtlı belirteçle yapılır.
+- Kapsam denetimi çalışmadan sonra, yamaya bakarak yapılır. İşçi işletim sistemi sınırı olmadan çalıştığı için çalışma ağacının dışına yazabilir;
+  bunu motor engellemez, ajanın kendi izin kipi sınırlar. Kapsam dışı değişiklik yamaya girmez ve sonucu reddettirir.
 - Sohbet oturumları (`session.*` IPC komutları, `engine/chat_session.py`, `engine/session_control.py`) yalnız `opencode run --standalone
-  --format json` akışını eşler; diğer CLI'lar açıkça reddedilir. `opencode run` AppContainer içinde çalışmadığı için (varsayılan
-  modda servis portu çakışır, `--standalone` modunda çıktısız takılır) IPC üzerinden oturum başlatma **varsayılan kapalıdır** ve
-  yalnız operatör `RESPECTED_CHAT_UNSANDBOXED=allow` verirse açılır; açıkken süreç sandbox dışında, motorun kullanıcısı olarak
-  çalışır. Her tur için dosya değiştiren/komut çalıştıran/ağ araçları reddedilir, proje yapılandırması yok sayılır, çalışma dizini
+  --format json` akışını eşler; diğer CLI'lar açıkça reddedilir. Süreç motorun kullanıcısı olarak çalışır. Her tur için dosya değiştiren/komut çalıştıran/ağ araçları reddedilir, proje yapılandırması yok sayılır, çalışma dizini
   `PWD` ile verilir, süreç `RESPECTED_ORCH_CHILD=1` ile işaretlenir (insan onayı veremez), `.cmd` shim'i çalıştırılmaz. Akıştaki her
   olay güvenilmeyen veridir; oturumda `approve` komutu yoktur (onaylar yalnız onay merkezinde). Canlı oturumlar süreç içidir; konuşma kayıtları
   (`chat/sessions.json`) yeniden başlatmada kalır ve `continue_conversation` ile sürdürülür. `interrupt` süreç ağacını öldürür; tur sonucu `session.events` ile okunur.
@@ -644,7 +454,7 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   yalnız görünüm tercihlerini (tema, kenar çubuğu, grup sırası, sıralama ölçütü) tutar; `desktop/tests/engine_owns.test.ts` bunu denetler.
   Dosya ağacı ve seçili klasör izni kabukta kalır: izin kullanıcının yerel klasör penceresindeki seçimidir ve motora vekâlet edilemez.
   `session.models` (salt okunur) ajan CLI'ının kendi `models` çıktısını döndürür; yalnız `sağlayıcı/ad` biçimindeki satırlar kalır ve
-  tur başlatmayla aynı kapıya (`RESPECTED_CHAT_UNSANDBOXED`) bağlıdır. Sohbet ekranı model listesini, token kullanımını (`usage`
+  ajan CLI'ını çalıştırır. Sohbet ekranı model listesini, token kullanımını (`usage`
   olayları), planı (`todowrite` araç çağrısı), okunan/değişen dosyaları (araç girdileri) ve sağ paneli yalnız bu yanıtlardan ve
   `session.events` akışından üretir; motorun vermediği hiçbir değer (bağlam yüzdesi gibi) çizilmez. Eklenen dosya yolları mesaj
   metninin içinde (`@yol`) gider; oturum komutları yalnız metin alır. Proje/dosya seçimi Tauri'nin yerel iletişim kutusuyla

@@ -2,7 +2,7 @@
 
 Only read-only probes run (`--version`, `--help`, auth status). A capability is `verified` only when its flag appears in the
 installed CLI's own help text; a flag that vanished is `advertised_missing`, never silently `verified`. PTY is not offered
-anywhere until the ConPTY+AppContainer gate (B3-03.02) decides; nothing here ever starts an unsandboxed process.
+anywhere yet; nothing here starts an agent process.
 """
 from __future__ import annotations
 
@@ -93,7 +93,7 @@ def verify(agent, run=_run, which=shutil.which):
     row = {"agent": agent, "found": path is not None, "version": None, "version_state": "unknown", "auth": "unknown", "caps": {}}
     unsupported = "binary not found" if spec["binaries"] else "no adapter contract for user-defined commands"
     for cap in CAPABILITIES:
-        row["caps"][cap] = {"status": GATED, "evidence": "PTY awaits the ConPTY+AppContainer gate (B3-03.02)" if cap == "pty" else unsupported}
+        row["caps"][cap] = {"status": GATED, "evidence": "the interactive terminal (PTY) is not wired yet" if cap == "pty" else unsupported}
     if path is None:
         return row
     for cap in CAPABILITIES:  # found, but nothing is claimed for this capability: say that, not "binary not found"

@@ -1,4 +1,4 @@
-"""REL-04: ten security fixtures gate every platform; POSIX stays out of GA until parity is proven."""
+"""REL-04: seven security fixtures gate every platform; POSIX stays out of GA until parity is proven."""
 import unittest
 
 from respected_orchestrator import release_platform
@@ -7,9 +7,9 @@ PASSING = {name: "pass" for name in release_platform.REQUIRED_FIXTURES}
 
 
 class ReleasePlatformTests(unittest.TestCase):
-    def test_windows_with_all_ten_fixtures_is_go(self):
+    def test_windows_with_all_seven_fixtures_is_go(self):
         got = release_platform.decide("windows", PASSING)
-        self.assertEqual((got["release"], got["ga"], got["fixtures"]), ("go", True, 10))
+        self.assertEqual((got["release"], got["ga"], got["fixtures"]), ("go", True, 7))
 
     def test_one_red_fixture_blocks_release(self):
         fixtures = dict(PASSING, symlink="fail")

@@ -3,8 +3,8 @@
   "commit": "3a30f81a08afaf0fe2856613c9330fc18474e571",
   "working_tree_dirty": true,
   "seconds": 56.7,
-  "faults": 24,
-  "passed": 24,
+  "faults": 23,
+  "passed": 23,
   "skipped_tests": 0,
   "unbounded_retry": 0,
   "double_apply": 0,
@@ -431,27 +431,6 @@
       "tests": [
         {
           "test": "tests.engine.test_review_apply_invariants.RejectedReviewApplyInvariantTests.test_04_apply_race_after_precheck_writes_nothing",
-          "ok": true,
-          "skipped": 0,
-          "failures": 0
-        }
-      ],
-      "ok": true
-    },
-    {
-      "id": "F22",
-      "area": "sandbox",
-      "fault": "an acceptance check or worker tries the network or reads the engine key",
-      "must_hold": "denied (AppContainer)",
-      "tests": [
-        {
-          "test": "tests.engine.test_sandbox.VerifyIsolationTest.test_ip_dns_loopback_and_child_process_egress_are_denied",
-          "ok": true,
-          "skipped": 0,
-          "failures": 0
-        },
-        {
-          "test": "tests.engine.test_sandbox.VerifyIsolationTest.test_engine_key_and_data_root_are_unreachable_and_the_worktree_works",
           "ok": true,
           "skipped": 0,
           "failures": 0

@@ -100,18 +100,17 @@ class CodingFixture(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
     def request(self, project_root=None, **workflow):
-        # The worker may only write inside its granted roots: its worktree and its scratch root.
-        # Counting through a file outside them would (correctly) fail closed under the SEC-03 policy.
-        code = ("import os; from pathlib import Path; Path('calculator.py').write_text('value = 1' + chr(10)); "
-                "open(os.path.join(os.environ['RESPECTED_WORKER_TMP'], 'worker-runs.txt'), 'a').write('x')")
+        code = ("from pathlib import Path; Path('calculator.py').write_text('value = 1' + chr(10)); "
+                f"open({str(self.root / 'worker-runs.txt')!r}, 'a').write('x')")
         check = "from pathlib import Path; assert Path('calculator.py').read_text() == 'value = 1' + chr(10)"
         return {"project_root": str(project_root or self.repo), "task": "set value to 1", "worker": "custom", "kind": "write",
                 "ownership": ["calculator.py"], "command": [PY, "-c", code], "acceptance": [[PY, "-c", check]],
                 "timeout_seconds": 30, "workflow": dict({"max_fix_rounds": 0}, **workflow)}
 
     def worker_runs(self):
-        # One byte per real worker execution, written into each run's granted scratch root.
-        return sum(len(path.read_text(encoding="utf8")) for path in self.ctx.data_root.rglob("worker-tmp/worker-runs.txt"))
+        # One byte per real worker execution.
+        counter = self.root / "worker-runs.txt"
+        return len(counter.read_text(encoding="utf8")) if counter.exists() else 0
 
 
 class MockedReviewTests(CodingFixture):

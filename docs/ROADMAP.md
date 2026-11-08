@@ -240,14 +240,14 @@ Fazlar tek bir katı DAG değildir; her görevdeki `Bağımlılıklar` alanı ge
 ## İlk sabit sürümü öncesi kontrol edilecek (v.1.0 öncesi)
 
 - [ ] Kurucuyu Authenticode ile imzalamak (SmartScreen uyarısı). Kod imzalama sertifikası gerekir; yok.
-- [ ] macOS / Linux: kod yolları var, doğrulanmadı; POSIX'te anahtar için işletim sistemi kum havuzu yok. Bu geliştirme
+- [ ] macOS / Linux: kod yolları var, henüz doğrulanmadı. Bu geliştirme
   makinesi Windows.
 ```
 
 | Özgün açık madde | Durum | Yeni planda karşılandığı görevler |
 |---|---|---|
 | Kurucuyu Authenticode ile imzalamak | Ertelendi (deferred, kullanıcı kararı: betadan sonra); üretim sertifikası yok. `REL-01` hattı self-signed test sertifikasıyla kanıtlıdır, üretim imzalı yayın yoktur | `B3-09.04`, `B3-GATE-06`, `B9-06.01`, `V1-02.01` |
-| macOS / Linux doğrulanmadı; POSIX'te anahtar için OS kum havuzu yok | Ertelendi (deferred, Beta.3 yalnız Windows); `ADR-008`: yalnız Windows GA, Linux 7 fixture `blocked` (no-go), macOS koşulmadı (no-go) | `B6-10.01`, `B6-10.02`, `B9-03.01` |
+| macOS / Linux henüz doğrulanmadı | Ertelendi (deferred, Beta.3 yalnız Windows); `ADR-008`: yalnız Windows GA, Linux 7 fixture `blocked` (no-go), macOS koşulmadı (no-go) | `B6-10.01`, `B6-10.02`, `B9-03.01` |
 
 - **[deferred]** Kurucuyu Authenticode ile imzalamak (SmartScreen uyarısı): üretim sertifikası yok; kullanıcı kararı (7 Kasım 2026): imza betadan sonra, ilk kararlı sürümde yapılır (`B9-06.01`, `V1-02.01`). Beta.3 imzasız yayınlanır ve bu açıkça belirtilir.
 - **[deferred]** macOS / Linux: kod yolları var, doğrulanmadı; Beta.3 yalnız Windows (`ADR-008`); platform eşdeğerliği `B6-10`, `B9-03.01`.
@@ -258,7 +258,7 @@ Fazlar tek bir katı DAG değildir; her görevdeki `Bağımlılıklar` alanı ge
 
 | Kanıt kaydı | Tamamlanan yetenek (belgelenmiş) | Yeni görevlerle ilişki |
 |---|---|---|
-| `SEC-01…SEC-04`, `ADR-007/015/017/018` | Tehdit modeli ve yetki matrisi; AppContainer worker, fail-closed başlatıcı, CI negatif izolasyon, verify ağ izolasyonu (S-24 "Engellenir") | `B3-00.02/03` desktop tehdit modeli bunu genişletir; `B3-03.02` ConPTY+AppContainer; her GUI/IPC görevi bu testleri bypass edemez |
+| `SEC-01…SEC-04`, `ADR-007/015` | Tehdit modeli ve yetki matrisi (güncel durum THREAT_MODEL.md) | `B3-00.02/03` desktop tehdit modeli bunu genişletir; her GUI/IPC görevi kapsam ve onay testlerini bypass edemez |
 | `QUA-01…QUA-04`, `ADR-005` | Tester, MAF verify/review/fix döngüsü, bağımsız review, apply değişmezleri | `B3-05` review/apply merkezi bu API'yi tüketir |
 | `SCH-01…SCH-04`, `ADR-009/010`, `engine` DAG | Plan DAG/ownership doğrulaması, scheduler, güvenli entegrasyon, coordinator | `B3-04` board/DAG yalnız görselleştirir ve revalidate ister |
 | `RES-01…RES-03`, `ADR-012` | İmzalı checkpoint/handoff, çökme sonrası kontrollü resume; Brain ile isteğe bağlı karar hafızası sözleşmesi (`RES-03`) | `B3-02.04` mevcut resume'a bağlanır |
@@ -269,17 +269,17 @@ Fazlar tek bir katı DAG değildir; her görevdeki `Bağımlılıklar` alanı ge
 | `EVAL-01…EVAL-03`, `ADR-002/019` | Tekrarlanabilir değerlendirme koşucusu; sentetik altın-yama kıyası; gerçek ajan benchmark protokolü | `B4-04`, `B8-03` |
 | `REL-01…REL-04`, `ADR-016/008` | Authenticode doğrulama hattı (test sertifikası), migration test kapısı, `health` wizard, platform kapısı (yalnız Windows GA) | `B3-09`, `B6-10`, `B9-04/06`, `V1-02` |
 | `FIX-01…FIX-04` | Hosted güvenlik matrisi 28/28 skip=0 (5 Kasım 2026, koşu 42006314204); canlı taslak PR ve check-run kanıtı (test deposu); gerçek ajan benchmark; verify ağ izolasyonu; beta.1→beta.2 güncelleme kanıtları | G0 önkoşulunun çoğu karşılanmıştır; kalan riskler aşağıda |
-| `CUR-01` | Cursor worker'ı AppContainer kum havuzunda | `B3-03.01` yetenek matrisine girdi |
+| `CUR-01` | Cursor worker'ı | `B3-03.01` yetenek matrisine girdi |
 
 ### 3.3 Planlamayı doğrudan etkileyen açık gerçekler (depo belgelerinden)
 
 - **Gerçek ajan benchmark sonucu (FIX-02, 5 Kasım 2026):** OpenCode/`amd/DeepSeek-V4.1-Flash`, 10 görev × 3 tekrar × 2 kol: direct 29/30 (%96,7), orchestrated 21/30 (%70), orchestrated ~2,4 kat yavaş; orkestratör kolunda güvenlik ihlali 0, direct kolda güvenlik ölçümü `unknown`, token/maliyet `unknown`. Belge bunu "orkestratör daha iyi" iddiasını **desteklemeyen** bir ölçüm olarak kaydeder (tek model, tek ajan, küçük görevler; 9 başarısızlığın nedeni çözümlenmemiş). **Sonuç:** `B4-01`, `B4-GATE-01`, `B8-03`, `B8-08` ve v1.0 pazarlama iddiaları bu temelden başlar; "daha iyi/daha hızlı" iddiası kanıtlanana kadar yazılmaz.
 - **Hosted CI kanıtı kısmi:** Hosted güvenlik matrisi yeşil (28/28, skipped 0), ancak imzalı çalıştırma fixture'dır; token en düşük yetkili değil; kanıt **yayın commit'i için yinelenmelidir** (KANIT_LOG, FIX-01/FIX-03A/B). Gerçek uzak PR/check-run yalnızca test deposunda denendi.
 - **beta.1→beta.2 güncelleme:** Kurucu geri alma yolu gerçek kurucuyla kanıtlandı (`schema_version: 99` senaryosu, çıkış 8, beta.1 SHA-256 aynı kaldı). Kalan risk: güncelleme sırasında çalışan proje/kampanya durdurulur; beta.1'de başlayan proje beta.2'de elle `project-approve` ister. → `B3-09.03`, `B9-04.01` bunu kapsar.
-- **POSIX:** Worker yalnız Windows'ta başlatılır; POSIX'te OS kum havuzu sınırı yok (`ARCHITECTURE.md` §10, `ADR-008`).
+- **POSIX:** macOS/Linux'ta henüz doğrulanmadı (`ARCHITECTURE.md` §10, `ADR-008`).
 - **Claude ve Cursor worker'ları** kendi onay modellerini korur; incelemelerde `model: null` görünebilir (ARCHITECTURE §10).
 - **Onayın kimlik doğrulaması yok:** Aynı kullanıcı hesabındaki başka süreç için bilinen sınır; "kimlik modeli ayrı ürün kararı" (THREAT_MODEL §10). → `B3-00.03`, `B3-05.02` human-presence authority.
-- **Kod eşlemesi doğrulaması (5 Kasım 2026, `c0e9531`):** Kaynak planların "mevcut" olarak andığı modüller depoda vardır: `engine/worker_policy.py`, `engine/appcontainer.py`, `engine/winproc.py` (kaynak planlarda `engine/winproc` olarak geçer; tek modül dosyasıdır), `engine/integration.py`, `engine/pricing.py`, `engine/capability_manifest.py`, `engine/runner.py`, `workflows/checkpoint.py`, `workflows/coordinator.py`, `workflows/roles.py`, `interfaces/rpp.py`, `tests/evals/compare.py`, `packaging/build_dist.py`, `packaging/windows/orchestrator_setup.iss`. `desktop/`, `engine/sessions/`, `engine/local_api.py` gibi yollar henüz **yoktur** (öneridir).
+- **Kod eşlemesi doğrulaması (5 Kasım 2026, `c0e9531`):** Kaynak planların "mevcut" olarak andığı modüller depoda vardır: `engine/winproc.py` (kaynak planlarda `engine/winproc` olarak geçer; tek modül dosyasıdır), `engine/integration.py`, `engine/pricing.py`, `engine/capability_manifest.py`, `engine/runner.py`, `workflows/checkpoint.py`, `workflows/coordinator.py`, `workflows/roles.py`, `interfaces/rpp.py`, `tests/evals/compare.py`, `packaging/build_dist.py`, `packaging/windows/orchestrator_setup.iss`. `desktop/`, `engine/sessions/`, `engine/local_api.py` gibi yollar henüz **yoktur** (öneridir).
 
 ---
 
@@ -302,7 +302,7 @@ Fazlar tek bir katı DAG değildir; her görevdeki `Bağımlılıklar` alanı ge
 **Beta.3/Beta.4 güvenlik ve ürün sabitleri:**
 
 **Kırılmayacak güvenlik ve ürün kuralları:**
-- Worker AppContainer/sandbox fail-closed; yeni PTY/Chat oturumu “interaktif” diye korumasız process açamaz.
+- Worker, motorun süreç başlatıcısından geçer (süre sınırı, süreç ağacı temizliği, kapsam denetimi); PTY/Chat oturumu motor dışında süreç açamaz.
 - `check`, imzalı evidence, scope/forbidden, güncellik ve `git apply --check` akışı korunur; `apply` tekrar kontrol eder, varsayılan otomatik commit/merge yoktur.
 - MCP, worker, renderer ve yetkisiz child process insan onayı veremez. GUI için ayrı human-presence authority gerekir.
 - Başka uygulama kurulu değilken tam kullanım; yerel MCP/skill keşfi, uyumluluk ve öneri Orchestrator’ın kendi yeteneğidir.
@@ -313,12 +313,12 @@ Fazlar tek bir katı DAG değildir; her görevdeki `Bağımlılıklar` alanı ge
 
 **Beta.5→v1.0 sabitleri:**
 
-**Sabitler:** Orchestrator başka bir uygulamaya, kullanıcı hesabına, markete veya ücretli TestSprite'a bağımlı değildir; mevcut Python engine, Git worktree, MAF, DAG, imzalı evidence, AppContainer, checkpoint, check/apply korunur. Renderer, worker, MCP veya uzak API insanın yetkili onayını taklit edemez. Her dış MCP/skill, tarayıcı veya remote worker ayrı güven sınırıdır. Sıfırdan Playwright/VS Code/sandbox yazılmaz; test ve kod zekâsı için sürümlü dar adaptörler kullanılır. Bilinmeyen kullanım ve fiyat `unknown` kalır.
+**Sabitler:** Orchestrator başka bir uygulamaya, kullanıcı hesabına, markete veya ücretli TestSprite'a bağımlı değildir; mevcut Python engine, Git worktree, MAF, DAG, imzalı evidence, checkpoint, check/apply korunur. Renderer, worker, MCP veya uzak API insanın yetkili onayını taklit edemez. Her dış MCP/skill, tarayıcı veya remote worker ayrı güven sınırıdır. Sıfırdan Playwright/VS Code yazılmaz; test ve kod zekâsı için sürümlü dar adaptörler kullanılır. Bilinmeyen kullanım ve fiyat `unknown` kalır.
 
 **Strateji ilkeleri:**
 
 1. **Bağımsız çalışma:** Hub veya başka yerel uygulama/mağaza kurulumu zorunlu değildir. Yerel görev, keşif, öneri, onay ve doğrulama bağımsız yürür.
-2. **Mevcut motoru koru:** Worktree, mevcut Python engine, DAG, MAF, AppContainer, checkpoint, kanıt ve onay kurallarını yeniden yazma; üzerinde sürümlenmiş adaptör ve deneyim oluştur.
+2. **Mevcut motoru koru:** Worktree, mevcut Python engine, DAG, MAF, checkpoint, kanıt ve onay kurallarını yeniden yazma; üzerinde sürümlenmiş adaptör ve deneyim oluştur.
 3. **Sıfır güven varsayımı:** MCP/skill/tool keşfedildiği için güvenilir sayılmaz. Dış süreçler, cloud/remote işçiler ve Playwright/test süreçleri ayrı güven sınırlarıdır.
 4. **İnsan onayı:** UI/Web/MCP/remote istemciler ajan adına yetkili uygulama onayı oluşturamaz. Kimlik, kaynak ve `run_id`/patch hash bağlamı korunur.
 5. **Yerel-first + BYO tools:** TestSprite/cloud/telefon/SSH seçenekli; hiçbiri çekirdek özellikleri bloke etmez.
@@ -332,7 +332,7 @@ Fazlar tek bir katı DAG değildir; her görevdeki `Bağımlılıklar` alanı ge
 
 Bir alt görev ancak şu şartlar sağlandığında **Done** olur: (1) kod ve kapsamı review edilmiş, (2) pozitif/negatif testler geçiyor, (3) mevcut güvenlik regresyonu yeşil, (4) kullanıcı verisi etkileniyorsa migration fixture var, (5) kanıt commit SHA + komut/ortam/sonuç ile kaydedilmiş, (6) ilgili ADR/README/ROADMAP güncel, (7) rollback veya feature flag kararı belirtilmiş.
 
-**Test ortamı:** Güvenlik sınırına dokunan görevlerin zorunlu koşuları normal, yükseltilmemiş Windows kullanıcısında gerçek AppContainer ile yapılır; skip/xfail release kanıtı sayılmaz. Mock testler ek, gerçek entegrasyonun alternatifi değildir.
+**Test ortamı:** Güvenlik sınırına dokunan görevlerin zorunlu koşuları normal, yükseltilmemiş Windows kullanıcısında gerçek ortamda yapılır; skip/xfail release kanıtı sayılmaz. Mock testler ek, gerçek entegrasyonun alternatifi değildir.
 
 **Bağımlılık gösterimi:** `B3-01.02` gibi kimlikler bu belgedeki görevlere referans verir. Beta.2 dış önkoşullar `G0` üzerinden yönetilir.
 
@@ -363,11 +363,11 @@ Aynı kullanıcı ihtiyacının farklı rakip uygulamaları tek CAP-ID olabilir.
 
 **Beta.3/Beta.4 önkoşulları:**
 
-**Kaynakta doğrulanmış mevcut mekanizmalar (yeniden yazma):** `engine/worker_policy.py`, `engine/appcontainer.py`, `engine/winproc`, `workflows/checkpoint.py`, `workflows/coordinator.py`, `workflows/roles.py`, `engine/integration.py`, `engine/pricing.py`, `engine/capability_manifest.py`, `tests/evals/compare.py`, `packaging/build_dist.py`, `packaging/windows/orchestrator_setup.iss`, `interfaces/rpp.py`; belgelenmiş Git worktree, MAF, DAG, imzalı kanıt ve apply kontrolü.
+**Kaynakta doğrulanmış mevcut mekanizmalar (yeniden yazma):** `engine/processes.py`, `engine/winproc`, `workflows/checkpoint.py`, `workflows/coordinator.py`, `workflows/roles.py`, `engine/integration.py`, `engine/pricing.py`, `engine/capability_manifest.py`, `tests/evals/compare.py`, `packaging/build_dist.py`, `packaging/windows/orchestrator_setup.iss`, `interfaces/rpp.py`; belgelenmiş Git worktree, MAF, DAG, imzalı kanıt ve apply kontrolü.
 
 **Önemli doğrulama sınırı:** Yukarıdaki yolların varlığı mimari dokümanda anlatılıyor. Klasör önerileri (`desktop/`, `engine/sessions/`, `engine/capabilities/`, vb.) bu planda **önerilen yeni yollar**dır; görev başlamadan önce `git ls-files`, mevcut sınıf/fonksiyonlar ve test diziniyle yeniden eşleştirilmelidir. Anlık GitHub dokümantasyonu sonradan değişmiş olabilir.
 
-**Beta.2 önkoşulu:** CI’da gerçek AppContainer testlerinin skip edilmediği, verify kodunun ağ sınırı, gerçek agent benchmark ve PR/CI/UI kanıtları açısından Beta.2 FIX işlerinin durumu kontrol edilmeli. Eksik bir P0 güvenlik kapısı varken Beta.3 GUI bunu bypass eden alternatif bir yürütme yolu yaratamaz. `tests/evals/compare.py` sentetik altın-patch testi gerçek ajan kıyası değildir.
+**Beta.2 önkoşulu:** gerçek agent benchmark ve PR/CI/UI kanıtları açısından Beta.2 FIX işlerinin durumu kontrol edilmeli. Eksik bir P0 güvenlik kapısı varken Beta.3 GUI bunu bypass eden alternatif bir yürütme yolu yaratamaz. `tests/evals/compare.py` sentetik altın-patch testi gerçek ajan kıyası değildir.
 
 **Beta.5→v1.0 başlama koşulu ve kaynak/gerçeklik ayrımı:**
 
@@ -382,7 +382,7 @@ Aynı kullanıcı ihtiyacının farklı rakip uygulamaları tek CAP-ID olabilir.
 **Başlama koşulu**
 
 - Beta.3/Beta.4 görevleri **belgeden değil gerçek commit ve test raporlarından** kontrol edilir.
-- Beta.2 zorunlu Windows AppContainer, verify ağ sınırı, gerçek agent benchmark ve insan onayı kapıları açık ise bu plan bunları bypass edemez.
+- Beta.2 gerçek agent benchmark ve insan onayı kapıları açık ise bu plan bunları bypass edemez.
 - Beta.5 başlamadan `COMPETITOR_CAPABILITY_MATRIX.md` üretilir ve P0/P1/P2 kapsamı dondurulur.
 - Beta.6 remote/mobile/cloud işleri için ayrı tehdit modeli ve açık go/no-go gerekir.
 
@@ -393,7 +393,6 @@ B5 başlamadan önce önceki Beta.3/Beta.4 uygulama planı yayın kapıları iç
 - Hub'sız masaüstü kurulumu ve iş çalıştırma.
 - Güvenli Chat/Terminal, yeniden bağlanma, proje panosu, DAG, review/onay ve temel yerel skill/MCP envanteri.
 - Kalıcı ekip/ajan profilleri, bütçeli routing, yerel öneri ve analitik asgari seviyede kullanılır.
-- Windows AppContainer testleri zorunlu gerçek ortamda skip olmadan geçer; verify sürecinde ağ sınırı belgeli/doğrulanır.
 - Aktif kullanıcı verileri için migration ve rollback fixture'ları mevcuttur.
 
 ---
@@ -413,7 +412,7 @@ B5 başlamadan önce önceki Beta.3/Beta.4 uygulama planı yayın kapıları iç
 ### 5.2 Respected'ın belgelenmiş mevcut temeli (analiz raporuna göre)
 
 - İşçi başına Git worktree + kapsam/forbidden kontrolü + imzalı kanıt + güncellik denetimi + ayrı insan `apply` kararı.
-- Windows AppContainer worker kısıtlaması, fail-closed launcher, varsayılan ağ yok; diğer platformlar için eşdeğer güvenlik henüz doğrulanmamış.
+- Kapsam denetimi, yama doğrulaması, süre sınırları, süreç ağacı temizliği; macOS/Linux henüz doğrulanmamış.
 - `tester`, bağımsız reviewer, sınırlı fix ve tekrar eden hata durdurma döngüsü.
 - `coordinator` doğrulanmış DAG planı; kampanya paralelliği ve bağımlılık denetimi.
 - Sürümlü ve imzalı checkpoint, kontrollü resume.
@@ -454,7 +453,7 @@ Not: Rehberdeki *doğrudan/kısmi rakiplik*, hedef ürüne göre değerlendirmed
 #### 5.3.1 Ek/komşu araçlar: potansiyel benchmark ve ilham
 
 - **118 MXterm**: çoklu terminal + SSH, token meter, uzaktan kontrol; Respected için metriklerin güvenilirliği ve çok makine bağlantısı örneği. https://mxterm.net/
-- **129 EVOLV**: yerel, değiştirilebilir UI/skills/plugins; Orchestrator çekirdeğine öz-değişiklik izni verilmemeli; gelecekte sadece sandbox'lı tema/mod önerileri düşünülebilir. https://github.com/dxn111/EVOLV
+- **129 EVOLV**: yerel, değiştirilebilir UI/skills/plugins; Orchestrator çekirdeğine öz-değişiklik izni verilmemeli; gelecekte sadece izin kipli tema/mod önerileri düşünülebilir. https://github.com/dxn111/EVOLV
 - **051 Jcode**: Rust agent harness performans yaklaşımı; doğrudan taşınması gerekli değil. https://github.com/1jehuang/jcode
 - **089 GitHub Spec Kit / 090 Superpowers**: plan/test sözleşmesi, uygulama öncesi netlik. https://github.com/github/spec-kit , https://github.com/obra/superpowers
 - **092 Task Observer**: tekrarlanan görev desenlerinden *öneri* üretme; otomatik yetki genişletme olmamalı. https://github.com/jonbobo212/task-observer
@@ -534,7 +533,7 @@ Long-running Orchestrator Supervisor / Engine (Python, existing)
     |-- capability discovery + compatibility + trust gate (local)
     |-- usage ledger + real benchmark
     v
-Policy-bounded Workers (Windows AppContainer; explicit fail-closed)
+Policy-bounded Workers (ajanın kendi izin kipi; kapsam denetimi motorda)
 ```
 
 Güvenlik: UI'daki `Approve` düğmesi doğrudan arbitrary CLI shell'e çevrilmemeli; ayrı native onay köprüsü kullanıcı etkileşimini doğrulamalı; işlemin hangi run/patch için ve hangi kapsamda yapıldığı imzalı olmalı. Renderer, ajanlar ve MCP hiçbiri ayrıcalıklı IPC yetkisine otomatik sahip olmamalı.
@@ -543,7 +542,7 @@ Güvenlik: UI'daki `Approve` düğmesi doğrudan arbitrary CLI shell'e çevrilme
 
 **Rakip analizinden:**
 
-- Sıfırdan farklı bir kod sandbox veya scheduler yazma.
+- Sıfırdan farklı bir scheduler yazma.
 - Motoru Rust'a yeniden yazma; güvenliği ve runtime adapter'larını koru.
 - Müşteri hesabını veya bulut bağlantısını zorunlu yapma.
 - 3B/pixel-art office'i kritik yolun önüne koyma; önce fonksiyonel etkileşim.
@@ -555,7 +554,7 @@ Güvenlik: UI'daki `Approve` düğmesi doğrudan arbitrary CLI shell'e çevrilme
 **Beta.3/Beta.4 uygulama planından:**
 
 - Python motorunu sırf yeni UI için Rust/Go’ya taşımak.
-- Var olan sandbox, DAG, MAF, evidence ve checkpoint mekanizmalarını yeniden sıfırdan yazmak.
+- Var olan DAG, MAF, evidence ve checkpoint mekanizmalarını yeniden sıfırdan yazmak.
 - MCP/skill mağazası, zorunlu çevrimiçi katalog veya zorunlu kullanıcı hesabı geliştirmek.
 - 3B ofis, sahte agent avatarları veya tam IDE’yi release critical path’e koymak.
 - 35+ CLI’ı tam destekli ilan etmek; her mod ancak gerçek testle enabled olur.
@@ -608,7 +607,7 @@ Beta.4 release:
 | CAP-001 | Tek bağımsız masaüstü uygulamasında proje, run ve review'u yönetmek | OI (daemon+Electron), AS, ORCA | yok (motor CLI/RPP/MCP; bağımsız GUI doğrulanmadı) | Beta.3 `B3-01`, `B3-GATE-01` | P0 | Temiz Windows normal kullanıcı, başka uygulama yok, kurulumdan apply'a e2e |
 | CAP-002 | Pencere kapansa/çökse de işin sürmesi, geri açınca doğru durumu görmek | OI (session restore, host adoption), HERDR (`herdr-core`) | kısmi (checkpoint/resume var; UI'dan bağımsız supervisor yok) | Beta.3 `B3-02`; Beta.5 `B5-01.02` | P0 | UI öldür/aç testi, event cursor/state hash, iki kez apply yok |
 | CAP-003 | Ajanla yapılandırılmış Chat oturumu (araç çağrısı, ask-user, usage) | OI (native Chat/TUI), V3 (PTY/chat) | yok | Beta.3 `B3-03.03`; Beta.5 `B5-01.01` | P0 | ≥1 (Beta.5'te ≥3) gerçek CLI ile canlı transcript fixture |
-| CAP-004 | Gerçek terminal/PTY oturumu | OI, AS (split terminal), ORCA, MD (gerçek CLI PTY), KIT (tmux) | yok | Beta.3 `B3-03.02` (feasibility gate), `B3-03.05`; Beta.5 `B5-01.02` | P0 (gate'e bağlı) | ConPTY+AppContainer negatif testleri; geçmezse mod kapalı kalır |
+| CAP-004 | Gerçek terminal/PTY oturumu | OI, AS (split terminal), ORCA, MD (gerçek CLI PTY), KIT (tmux) | yok | Beta.3 `B3-03.02` (feasibility gate), `B3-03.05`; Beta.5 `B5-01.02` | P0 (gate'e bağlı) | ConPTY doğrulama testleri; geçmezse mod kapalı kalır |
 | CAP-005 | 2–4 bölmeli terminal/oturum yerleşimi | AS, ORCA, HERDR (agent-customizable layouts) | yok | Beta.3 `B3-03.05` (P1); Beta.5 `B5-01.02` | P0 (Beta.5) | 10k satır scrollback, kapat-aç yerleşim geri gelir |
 | CAP-006 | Oturum geçmişinde arama ve kaldığı yerden devam | OS (session search), OI | kısmi (checkpoint resume; arama yok) | Beta.5 `B5-01.01/.02` | P0 | Pagination + reconnect cursor testi |
 | CAP-007 | Çalışan ajana izinli mesaj göndermek, durdurmak (steer/interrupt) | V3 (live steering) | yok | Beta.3 `B3-03.04` | P0 | Yetki sınıfı negatifleri; tool çıktısı onaya dönüşmez |
@@ -663,7 +662,7 @@ Aşağıdakiler kaynak planlarda açıkça yapılmayacak veya koşullu olarak i�
 | Zorunlu hesap, zorunlu bulut, zorunlu çevrimiçi MCP/skill mağazası | Ürün bağımsız ve yerel-first | Yerel keşif/öneri; cloud opsiyonel (CAP-037) |
 | Sistem geneli dikte (AgentVoice benzeri) | Uygulama içi bas-konuş yeterli; gizlilik yüzeyi küçük | `B4-06` |
 | Bağımsız bölge yakalama ürünü (AgentShot benzeri) | Yalnız göreve ekran görüntüsü iliştirme gerekli | `B4-07` |
-| Orchestrator çekirdeğine öz-değişiklik izni (EVOLV benzeri) | Güvenlik sınırını gevşetir | Gelecekte yalnız sandbox'lı tema/mod önerisi |
+| Orchestrator çekirdeğine öz-değişiklik izni (EVOLV benzeri) | Güvenlik sınırını gevşetir | Gelecekte yalnız izin kipli tema/mod önerisi |
 | Motoru Rust'a/Go'ya yeniden yazmak (Jcode benzeri) | Güvenliği ve runtime adapter'larını korumak | Python motoru yerinde kalır |
 | Voice-to-code'u doğrudan otomatik `apply`'a bağlamak | İnsan onayı devredilemez | Ses yalnız taslak |
 | Üçüncü taraf MCP/skill'i yalnız keşfedildi diye güvenilir saymak | Keşif ≠ güven | `EXT-01` trust gate |
@@ -883,8 +882,8 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 ### B3-03 — Gerçek Chat/Terminal agent oturumları [P0]
 
-**Amaç:** Rakiplerdeki kadar etkileşimli ama sandbox kurallarını ihlal etmeyen agent oturumu sağlamak.
-**Mevcut / önerilen kod eşlemesi:** Mevcut: engine/worker_policy.py, engine/appcontainer.py, engine/winproc, CLI worker adapters. Önerilen: engine/sessions/*, PTY broker.
+**Amaç:** Rakiplerdeki kadar etkileşimli ama izin kurallarını ihlal etmeyen agent oturumu sağlamak.
+**Mevcut / önerilen kod eşlemesi:** Mevcut: engine/processes.py, engine/winproc, CLI worker adapters. Önerilen: engine/sessions/*, PTY broker.
 **Rakip dayanağı:** OrchestratorInc native Chat/TUI; AgentSpace split terminal; Kitchen tmux.
 **Ana kabul koşulu:** Her CLI’nin gerçek yetenek matrisi görülür; desteklenmeyen mod yok; terminal/konuşma worker sınırını aşmaz.
 
@@ -892,7 +891,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 >
 > - Mimari: `AgentAdapter` arayüzü: supports_chat/pty/interrupt/approval/usage/resume; desteklenmeyen yeteneği gizle; Windows ConPTY veya kontrollü process broker; renderer'dan doğrudan shell açma yok.
 > - Test: farklı CLI, unicode ve büyük stdout, yavaş terminal, kill/reconnect, interactive auth, prompt-injection güvenlik sınırı.
-> - Kabul: Claude/Codex en az bir desteklenen modda gerçek canlı ses/çıktı değil **metin/terminal** aktarır; sahte Chat modları yok; motorun sandbox'ı atlatılmaz.
+> - Kabul: Claude/Codex en az bir desteklenen modda gerçek canlı ses/çıktı değil **metin/terminal** aktarır; sahte Chat modları yok; motorun kapsam denetimi atlatılmaz.
 
 #### B3-03.01 — Destek/yetenek matrisi ve protokol tasarımı
 
@@ -905,15 +904,15 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 - **Ölçülebilir kabul:** Tüm desteklenen CLI için doğrulanmış en az bir I/O modu veya explicit unsupported kaydı.
 - **Tamamlanma kanıtı:** Adapter matrix ve doğrulama koşuları.
 
-#### B3-03.02 — ConPTY ve sandbox uyumluluğu feasibility gate
+#### B3-03.02 — ConPTY feasibility gate
 
-- [x] **Tamamlandı** — karar `docs/adr/ADR-024-conpty-appcontainer-go-no-go.md` (koşullu GO), kapı testleri `tests/engine/test_conpty_feasibility.py` (10 OK); kanıt `docs/evidence/KANIT_LOG.md` B3-03.02.
+- [x] **Tamamlandı** — kanıt `docs/evidence/KANIT_LOG.md` B3-03.02.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-03.01`, `B3-02.01`.
-- **Mimari / değişecek alan:** Controlled PTY broker, existing AppContainer launcher; Windows API ve izin modeli test edilecek.
-- **Uygulama adımları:** PTY/ConPTY + AppContainer altında gerçek interactive süreç mümkün mü? Gerekirse yalnızca supported headless transcript moduna daraltma kararı ver; asla unsandboxed fallback uygulama.
+- **Mimari / değişecek alan:** Controlled PTY broker, existing process launcher; Windows API ve izin modeli test edilecek.
+- **Uygulama adımları:** PTY/ConPTY ile gerçek interactive süreç mümkün mü? Gerekirse yalnızca supported headless transcript moduna daraltma kararı ver; asla kontrolsüz fallback uygulama.
 - **Test senaryoları:** Dış dosyaya erişim, ağ default deny, child process, terminal escape, resize, control-C, 1MB çıktı.
-- **Ölçülebilir kabul:** Destek verilen modda AppContainer negatif testleri geçer; geçmiyorsa mod Beta.3 dışı ve kapalı.
+- **Ölçülebilir kabul:** Destek verilen modda kapsam ve izin negatif testleri geçer; geçmiyorsa mod Beta.3 dışı ve kapalı.
 - **Tamamlanma kanıtı:** Windows test run + ADR go/no-go kararı.
 
 #### B3-03.03 — Yapılandırılmış Chat oturum adaptörü
@@ -929,7 +928,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 
 #### B3-03.04 — Etkileşim ve müdahale komutları
 
-- [x] **Tamamlandı** — `engine/session_control.py`, IPC `session.*`, `tests/engine/test_session_control.py` (22 OK) + `test_session_live.py` (canlı ücretsiz oturum); kanıt KANIT_LOG B3-03.04. **Not:** React oturum ekranı ve IPC `session.start` eklendi (gerçek WebView2'de doğrulandı); ama `opencode run` AppContainer içinde çalışmadığı için oturum başlatma **varsayılan kapalı**, yalnız `RESPECTED_CHAT_UNSANDBOXED=allow` ile açılır (THREAT_MODEL D-13 "Kısmen"). Uçuştaki tur kesme hatası düzeltildi.
+- [x] **Tamamlandı** — `engine/session_control.py`, IPC `session.*`, `tests/engine/test_session_control.py` (22 OK) + `test_session_live.py` (canlı ücretsiz oturum); kanıt KANIT_LOG B3-03.04. **Not:** React oturum ekranı ve IPC `session.start` eklendi (gerçek WebView2'de doğrulandı); oturumlar motorun kullanıcısı olarak çalışır (THREAT_MODEL D-13). Uçuştaki tur kesme hatası düzeltildi.
 - **Öncelik / boyut:** P0 / L
 - **Bağımlılıklar:** `B3-03.02`, `B3-03.03`, `B3-00.03`.
 - **Mimari / değişecek alan:** session controller yetki sınıfları: send input / interrupt / cancel / approve ayrı.
@@ -1092,7 +1091,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 - [x] **Tamamlandı** — `engine/artifact_view.py`, IPC `artifact.list/read`; `tests/engine/test_artifact_view.py` (11 OK, 1 atlandı: symlink ayrıcalığı yok; junction denendi) + mutasyon; kanıt `docs/evidence/KANIT_LOG.md` B3-06.02.
 - **Öncelik / boyut:** P1 / M
 - **Bağımlılıklar:** `B3-06.01`, `B3-05.01`.
-- **Mimari / değişecek alan:** Artifacts whitelist & path sandbox; bounded stream; command output redaction.
+- **Mimari / değişecek alan:** Artifacts whitelist & path doğrulaması; bounded stream; command output redaction.
 - **Uygulama adımları:** Büyük logları parça parça yükle, changed file navigation, test summary, full evidence link.
 - **Test senaryoları:** Huge binary, symlink, path traversal, ANSI injection, token leakage.
 - **Ölçülebilir kabul:** UI dış path okuyamaz; büyük çıktıda takılmaz; audit, artifact digest saklanır.
@@ -1254,7 +1253,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 - **Bağımlılıklar:** `B3-05.04`, `B3-04.04`, `B3-03.04`, `B3-09.03`.
 - **Mimari / değişecek alan:** Zorunlu Windows normal-user security runner; code signing; release trace.
 - **Uygulama adımları:** CI tüm P0 doğrulamalarını ve mevcut Beta.2 FIX kapılarını toplasın, SHA ilişkilendirsin; Authenticode sertifikası yoksa “signed release” iddiası yapılamaz.
-- **Test senaryoları:** Unprivileged AppContainer matrix, GUI apply negatives, installer/hash, offline no-other-app, telemetry opt-out.
+- **Test senaryoları:** Unprivileged-user matrix, GUI apply negatives, installer/hash, offline no-other-app, telemetry opt-out.
 - **Ölçülebilir kabul:** P0 gate fail veya güvenlik testi skip olursa sürüm release-ready değil; imza yoksa ayrı açık blocker.
 - **Tamamlanma kanıtı:** Signed release manifest + commit SHA + CI artifact.
 
@@ -1411,7 +1410,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 >
 > - Mimari: local `CapabilityDiscovery` / `CompatibilityResolver` / `Recommender` / `PermissionInspector` / `ActivationPlan`; analiz öncelikle deterministic, LLM opsiyonel. `EXT-01` trust + digest zaten yürütme kapısı.
 > - Test: offline, sahte manifest, path traversal, prompt injection, projeler arası yetki sızıntısı, unsupported agent, missing executable.
-> - Kabul: uygun ve uygun olmayan açıklanır; AI yalnız **önerir**, otomatik kurmaz/etkinleştirmez; kullanıcı onayı ve sandbox uygulanır.
+> - Kabul: uygun ve uygun olmayan açıklanır; AI yalnız **önerir**, otomatik kurmaz/etkinleştirmez; kullanıcı onayı ve izin kipi uygulanır.
 
 #### B4-03.01 — CompatibilityResolver & agent support registry
 
@@ -1454,7 +1453,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 - **Mimari / değişecek alan:** Plan = desired changes diff + scopes + hashes; current capability_manifest fail-closed gate remains final.
 - **Uygulama adımları:** Kullanıcı onayını yerel app’te al; proje bazlı ayrı aktivasyon; external MCP sadece policy sınırında çalışır; güvenli uninstall/rollback planı.
 - **Test senaryoları:** Cross-project bleed, stale manifest, tamper hash, repeated activation, workspace outside.
-- **Ölçülebilir kabul:** Onaysız yazma/yürütme=0; yanlış project capabilities aktive olmaz; sandbox bypass yok.
+- **Ölçülebilir kabul:** Onaysız yazma/yürütme=0; yanlış project capabilities aktive olmaz; izin kipi bypass yok.
 - **Tamamlanma kanıtı:** Activation audit + side-effect tests.
 
 #### B4-03.05 — Capability recommender UI + user feedback
@@ -1657,7 +1656,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 ### B4-08 — Adaptif recovery ve circuit breaker [P1]
 
 **Amaç:** Mevcut sabit retry/MAF durdurma kurallarını daha iyi sınıflandırılmış ve sınırlı otomasyonla genişletmek.
-**Mevcut / önerilen kod eşlemesi:** Mevcut: failure_class, retry_policy, MAF finite state, RES-02, AppContainer; önerilen decision policy ve operator escalation.
+**Mevcut / önerilen kod eşlemesi:** Mevcut: failure_class, retry_policy, MAF finite state, RES-02; önerilen decision policy ve operator escalation.
 **Rakip dayanağı:** Munder Difflin circuit breaker; Oh My ClaudeCode rate-limit wait.
 **Ana kabul koşulu:** Sınırsız döngü yok; güvenlik reddi otomatik retry edilmez; kaynak/bütçe sınırları korunur.
 
@@ -1696,7 +1695,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 - **Bağımlılıklar:** `B4-08.02`, `B4-02.03`.
 - **Mimari / değişecek alan:** Kill/failure injection harness, commit linked release evidence.
 - **Uygulama adımları:** Network unavailable, half-written state, process tree residue, duplicate action, circuit breaker open/close.
-- **Test senaryoları:** 20+ fault fixtures; reset after repair; worker sandbox check.
+- **Test senaryoları:** 20+ fault fixtures; reset after repair; worker scope check.
 - **Ölçülebilir kabul:** Sınırsız retry=0; double apply=0; worker cleanup; no bypass.
 - **Tamamlanma kanıtı:** CI fault matrix + event timeline.
 
@@ -1829,11 +1828,10 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 - **Test senaryoları:** Gerçek Claude/Codex/OpenCode CLI sürümleriyle farklı yetenekleri dene; prompt injection, geçmiş arama, yanlış run-id ve 1 MB çıktı negatifleri.
 - **Ölçülebilir kabul:** En az 3 doğrulanmış CLI sürümüyle capability matrix; unsupported eylem düğmesi yok; yanlış oturuma giriş sıfır.
 - **Tamamlanma kanıtı:** Gerçek session kayıtları, version matrix ve auth saldırı raporu.
-- **Devralınan açık sorunlar (Beta.3 B3-03 tamamlama turunda bulundu, 7 Kasım 2026; ayrıntı `KANIT_LOG.md` "B3-03 tamamlama turu"):** bu kart bunları çözmeden "parity" sayılmaz; karar: sohbet oturumları o zamana dek **varsayılan kapalı** kalır (`RESPECTED_CHAT_UNSANDBOXED=allow` operatör anahtarı).
-  1. **Sandbox içinde oturum yok:** `opencode run` AppContainer içinde çalışmıyor (varsayılan modda servis portu 28894 çakışır, `--standalone` modunda çıktısız zaman aşımı; neden doğrulanmadı, loopback engeli tahmin). Seçenekler: `opencode acp` (işçilerin kullandığı stdio yolu) üzerinden sohbet, AppContainer loopback muafiyeti, ya da başka bir yalıtım. Çözülünce anahtar kalkar ve THREAT_MODEL D-13 "Kısmen"den çıkar.
-  2. **Reddetme listesi opencode'a güvenir:** `shell/bash/edit/write/patch/webfetch/websearch/task` reddi tek model ve tek istemle canlı doğrulandı; araç adları sürümle değişir (bu sürümde `shell`). Sürüm matrisi ve prompt-injection saldırı seti gerekir; okuma araçları açık olduğundan proje içeriği sağlayıcıya gider (gizli dosya dışlama kararı yok).
-  3. **opencode davranışı sürüme bağlı:** paylaşılan arka plan servisi çağıranın `cwd`/ortamını yok sayar, proje klasörü `PWD`'den alınır, `--standalone` gerekir (2.2.3'te gözlendi). Sürüm yükselince yeniden doğrulanmalı.
-  4. **Yalnız opencode eşlenmiş:** codex/claude/cursor akışları yakalanmadı; `ask_user` yalnız etkileşimsiz iptal olarak görüldü, cevaplanabilir soru akışı yok.
+- **Devralınan açık sorunlar (Beta.3 B3-03 tamamlama turunda bulundu, 7 Kasım 2026; ayrıntı `KANIT_LOG.md` "B3-03 tamamlama turu"):** bu kart bunları çözmeden "parity" sayılmaz; 
+  1. **Reddetme listesi opencode'a güvenir:** `shell/bash/edit/write/patch/webfetch/websearch/task` reddi tek model ve tek istemle canlı doğrulandı; araç adları sürümle değişir (bu sürümde `shell`). Sürüm matrisi ve prompt-injection saldırı seti gerekir; okuma araçları açık olduğundan proje içeriği sağlayıcıya gider (gizli dosya dışlama kararı yok).
+  2. **opencode davranışı sürüme bağlı:** paylaşılan arka plan servisi çağıranın `cwd`/ortamını yok sayar, proje klasörü `PWD`'den alınır, `--standalone` gerekir (2.2.3'te gözlendi). Sürüm yükselince yeniden doğrulanmalı.
+  3. **Yalnız opencode eşlenmiş:** codex/claude/cursor akışları yakalanmadı; `ask_user` yalnız etkileşimsiz iptal olarak görüldü, cevaplanabilir soru akışı yok.
   5. **Oturum belleği süreç içi:** motor yeniden başlarsa oturum listesi boşalır; kalıcı oturum ve yeniden bağlanma yok.
   6. **Görsel doğrulama eksik:** gerçek WebView2'de yalnız DOM/metin doğrulandı; erişilebilirlik ve görsel inceleme yapılmadı.
 
@@ -1845,9 +1843,9 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 - **Mimari / modül sınırı:** Desktop terminal panes + supervisor event journal.
 - **Uygulama:** 2–4 bölmeli terminal, search, pagination ve reconnect cursor; her pane aynı worker/run kimliğini doğru gösterir; GUI yeniden açıldığında düzen geri gelir.
 - **Test senaryoları:** 10k satır scrollback, Unicode/ANSI escape, slow renderer, kapat-aç ve forced GUI crash.
-- **Ölçülebilir kabul:** 3 kez kapanıp açılmada mesaj kaybı/çifte komut sıfır; uzun çıktıda UI bloklanmaz; AppContainer bypass yok.
+- **Ölçülebilir kabul:** 3 kez kapanıp açılmada mesaj kaybı/çifte komut sıfır; uzun çıktıda UI bloklanmaz; kapsam denetimi bypass yok.
 - **Tamamlanma kanıtı:** Reconnection videosu, event hash karşılaştırması ve performans ölçümü.
-- **Devralınan açık sorun (Beta.3):** gerçek PTY oturumu için aracı katman (PTY broker) yok (ADR-024 koşullu GO); "süreç broker dışında shell açamaz" kanıtlanmadı ve bölmeler `pty` doğrulanana dek kapalı. Bu kart broker'ı ve AppContainer negatif testlerini getirmeden bölme açılmaz.
+- **Devralınan açık sorun (Beta.3):** gerçek PTY oturumu için aracı katman (PTY broker) yok ; "süreç broker dışında shell açamaz" kanıtlanmadı ve bölmeler `pty` doğrulanana dek kapalı. Bu kart broker'ı ve kapsam negatif testlerini getirmeden bölme açılmaz.
 
 ### B5-02 — Workspace, Git ve arama deneyimi [P0]
 
@@ -2144,7 +2142,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 - **Bağımlılıklar:** `B5-01.02`, `B5-02.01`, `B5-03.02`, `B5-04.02`, `B5-06.02`.
 - **Mimari / modül sınırı:** Packaged desktop + real supported CLIs + controlled test repositories.
 - **Uygulama:** Clean Windows üzerinde gerçek paralel görev, interactive clarification, CI repair, browser trace, local approve/apply akışını tamamla.
-- **Test senaryoları:** UI crash, quota exhaustion, wrong SHA, missing test artifact, AppContainer skip, network deny.
+- **Test senaryoları:** UI crash, quota exhaustion, wrong SHA, missing test artifact, skipped test, network deny.
 - **Ölçülebilir kabul:** 5 journey gerçek altyapıda geçer; P0 security gate skip=0; başarısız koşular done sayılmaz.
 - **Tamamlanma kanıtı:** Release SHA + e2e videoları + CI/security kanıt dosyası.
 
@@ -2186,7 +2184,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 | `B6-10` | macOS/Linux ve platform güvenlik eşdeğerliği | P1 | 2 |
 | `B6-11` | Beta.6 saha pilotu ve release kapısı | P0 | 2 |
 
-**Yüksek riskli kararlar:** Mobil + uzak kontrollere kimlik, ağ saldırı yüzeyi ve revocation; cloud'a ödeme/altyapı/veri gizliliği; çapraz platforma OS sandbox eşdeğerliği gerekir. Bunların hiçbirini sadece UI tamamlandı diye `done` sayma.
+**Yüksek riskli kararlar:** Mobil + uzak kontrollere kimlik, ağ saldırı yüzeyi ve revocation; cloud'a ödeme/altyapı/veri gizliliği; çapraz platform doğrulaması gerekir. Bunların hiçbirini sadece UI tamamlandı diye `done` sayma.
 
 **B6-04 Cloud kararı:** Kullanıcı için anlamlı ve taşınabilir bir bulut çözümü koşulları sağlanmazsa `deferred with documented exception` olabilir. Böyle bir istisna, ticari iddiada “tüm rakiplerle yüzde yüz aynı özellikler” dememeyi gerektirir.
 
@@ -2238,8 +2236,8 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 - **Öncelik:** P0.
 - **Bağımlılıklar:** `B6-00.02`, `B3-02.04`.
 - **Mimari / modül sınırı:** Opt-in remote runner + host registry; engine worker policy version handshake.
-- **Uygulama:** SSH/host key pinning, host ownership, remote worker identity, OS sandbox gereksinimleri ve sır dağıtım politikasını tanımla; default listener kapalı.
-- **Test senaryoları:** Host spoof, MITM, wrong OS sandbox, invalid key, version mismatch, unauthorized command.
+- **Uygulama:** SSH/host key pinning, host ownership, remote worker identity, OS izin gereksinimleri ve sır dağıtım politikasını tanımla; default listener kapalı.
+- **Test senaryoları:** Host spoof, MITM, wrong OS permissions, invalid key, version mismatch, unauthorized command.
 - **Ölçülebilir kabul:** Bilinmeyen host çalıştırılmaz; unsafe OS equivalence yoksa worker fail-closed; revoke sonrası yeni görev reddedilir.
 - **Tamamlanma kanıtı:** Host pinning fixture + threat negative suite.
 
@@ -2331,7 +2329,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 - **Öncelik:** P2 / koşullu.
 - **Bağımlılıklar:** `B6-00.02`, `B6-01.01`.
 - **Mimari / modül sınırı:** Optional VM/container host adapter; same signed run provenance.
-- **Uygulama:** Kullanıcı kendi VM’sini bağlayabilsin; secret lifecycle, outbound network, sandbox eşdeğerliği, veri yerleşimi ve maliyet sınırlarını deneyle doğrula.
+- **Uygulama:** Kullanıcı kendi VM’sini bağlayabilsin; secret lifecycle, outbound network, izin sınırları, veri yerleşimi ve maliyet sınırlarını deneyle doğrula.
 - **Test senaryoları:** Cloud network egress, leaked secrets, billing retry loop, revoked host, VM shutdown, container escape assumptions.
 - **Ölçülebilir kabul:** Cloud kapalıyken local tüm senaryolar geçer; risk/fiyat doğrulanmadıysa `no-go/defer` yazılır.
 - **Tamamlanma kanıtı:** Cloud ADR + PoC artefaktı + güvenlik raporu.
@@ -2344,7 +2342,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 - **Mimari / modül sınırı:** Feature flag, paid-provider disclosure, release scope matrix.
 - **Uygulama:** PoC sonuçlarına göre GA/beta/deferred; kullanıcının dış sağlayıcı anahtarı ve faturası varsa açık anlat; veri sızıntısı/izin/incident prosedürünü planla.
 - **Test senaryoları:** Feature flag off, cost limit, incorrect cloud status, VM quota/timeout, provider outage.
-- **Ölçülebilir kabul:** Go kararı verildiyse ayrı canary, sandbox ve maliyet kriterleri tam; no-go kararı da tam ve gerekçeli teslimat sayılır.
+- **Ölçülebilir kabul:** Go kararı verildiyse ayrı canary, izin ve maliyet kriterleri tam; no-go kararı da tam ve gerekçeli teslimat sayılır.
 - **Tamamlanma kanıtı:** Go/no-go ADR + canary veya deferred release notes.
 
 ### B6-05 — Ek issue/source-control adaptörleri [P1]
@@ -2509,15 +2507,15 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 > **Strateji planındaki kayıt** (kaynaktan aktarıldı):
 >
 > - **İş paketi ve kapsam (strateji):** Desteklenen Windows/macOS/Linux kapsamını ayrı OS kanıtıyla genişlet
-> - **En az kabul kriteri (strateji):** Windows AppContainer güvenliğini diğer OS'te varmış gibi iddia etme; her OS için eşdeğer izolasyon ve gerçek test
+> - **En az kabul kriteri (strateji):** Windows'ta doğrulananı diğer OS'te varmış gibi iddia etme; her OS için eşdeğer izolasyon ve gerçek test
 
 #### B6-10.01 — Platform port gereksinimleri ve güvenlik matrisi
 
 - [ ] **Durum:** Öneri; kod/test kanıtı bekleniyor.
 - **Öncelik:** P1 / yüksek risk.
 - **Bağımlılıklar:** `B6-00.02`, `B3-09.04`.
-- **Mimari / modül sınırı:** OS-specific sandbox launcher adapters; engine policy canonical.
-- **Uygulama:** Windows AppContainer’a eşdeğer yetki sınırlarını macOS/Linux için ayrı modelle; PTY, network sandbox, filesystem, signing ve installer gereksinimleri.
+- **Mimari / modül sınırı:** OS-specific launcher adapters; engine policy canonical.
+- **Uygulama:** macOS/Linux için yetki sınırlarını ayrı modelle; PTY, network, filesystem, signing ve installer gereksinimleri.
 - **Test senaryoları:** Read/write path escape, unauthorized network, child process, symlinks, credentials, elevated account.
 - **Ölçülebilir kabul:** Platform güvenlik testi koşmadan "supported" yayımlanmaz; fail-open fallback sıfır.
 - **Tamamlanma kanıtı:** macOS/Linux negative-test suite ve platform go/no-go ADR.
@@ -2528,10 +2526,10 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 - **Öncelik:** P1 / yüksek risk.
 - **Bağımlılıklar:** `B6-10.01`, `B3-09.03`.
 - **Mimari / modül sınırı:** Platform release pipelines, migration and signed artifacts.
-- **Uygulama:** Destek kararı verilen OS için temiz kurulumdan PR inceleme/onaya kadar gerçek görev; yollar, encoding, güncelleme/rollback ve sandbox kanıtını topla.
+- **Uygulama:** Destek kararı verilen OS için temiz kurulumdan PR inceleme/onaya kadar gerçek görev; yollar, encoding, güncelleme/rollback ve izin kanıtını topla.
 - **Test senaryoları:** Mac permission prompt, Linux user namespaces unavailable, updater crash, Windows↔Linux profile import.
 - **Ölçülebilir kabul:** Her resmi OS’te güvenlik + user journey ayrı geçer; geçmeyen OS beta dışı ve açıkça belgeli.
-- **Tamamlanma kanıtı:** Per-platform SHA + installer + App/Sandbox kanıt raporu.
+- **Tamamlanma kanıtı:** Per-platform SHA + installer + App/izin kanıt raporu.
 
 ### B6-11 — Beta.6 saha pilotu ve release kapısı [P0]
 
@@ -2608,7 +2606,7 @@ Orchestrator bir test koşucusu veya kod zekâsı motoru değil, **koşuyu, yetk
 - **Öncelik:** P0.
 - **Bağımlılıklar:** `B5-04.01`, `B4-05.01`.
 - **Mimari / modül sınırı:** DiagnosticProvider interface, existing test runner, repo metadata.
-- **Uygulama:** Build/test/lint/package yönetici tanıma; proje izninde salt-okunur testlerin yan etki riskini ayrıca sandbox içinde; finding = command, affected component, severity, confidence, evidence.
+- **Uygulama:** Build/test/lint/package yönetici tanıma; proje izninde salt-okunur testlerin yan etki riskini ayrıca ajanın izin kipiyle; finding = command, affected component, severity, confidence, evidence.
 - **Test senaryoları:** Bozuk proje fixture, gizli .env, network-dependent build, false error, dependency install side effect.
 - **Ölçülebilir kabul:** Kullanıcı izni olmadan kaynak dosya mutasyonu=0; bulgular komut+log+commit’e bağlı; unknown kesin hata denmez.
 - **Tamamlanma kanıtı:** 5 stack fixture (örn. JS/Python) + side-effect diff audit.
@@ -2851,7 +2849,7 @@ Project Doctor (B7-01)           Build & Prove (B7-02)             Proof Pack 2.
 
 **Pilot sırası (kaynak):** İlk önce `B7-01` + `B7-02` dikey uçtan uca demo; gerçek kullanıcı tercihine göre `B7-03/04/05/06/07` sırası güncellenir. **Beta.7 kuralı:** B5/B6 parity sonuçları, saha verisi ve teknik fizibiliteye göre özelliği geliştirme/erteleme kararı verilir; önceki önerilerin hepsi otomatik olarak aynı sürüme sıkıştırılmaz.
 
-**Önerilen test altyapısı sınırları `[ÖNERİ]`:** (1) Proje teşhis komutları (`build/test/lint/package`) yan etki riski taşıdığı için yalnız kullanıcı izniyle ve sandbox içinde; bağımlılık kurulumu yan etkisi `B7-01.01` "side-effect diff audit" ile kanıtlanır. (2) Tarayıcı artefaktları (screenshot/video/trace) hassas veri içerebilir; redaksiyon testi (`B7-02.02`) kanıt paketine girmeden önce zorunlu. (3) Dış provider (TestSprite) kullanıldığında veri çıkışı ve maliyet kullanıcıya gösterilir; ücretsiz sayılmaz.
+**Önerilen test altyapısı sınırları `[ÖNERİ]`:** (1) Proje teşhis komutları (`build/test/lint/package`) yan etki riski taşıdığı için yalnız kullanıcı izniyle ve ajanın izin kipiyle; bağımlılık kurulumu yan etkisi `B7-01.01` "side-effect diff audit" ile kanıtlanır. (2) Tarayıcı artefaktları (screenshot/video/trace) hassas veri içerebilir; redaksiyon testi (`B7-02.02`) kanıt paketine girmeden önce zorunlu. (3) Dış provider (TestSprite) kullanıldığında veri çıkışı ve maliyet kullanıcıya gösterilir; ücretsiz sayılmaz.
 
 ---
 
@@ -2923,7 +2921,7 @@ Project Doctor (B7-01)           Build & Prove (B7-02)             Proof Pack 2.
 - **Öncelik:** P0.
 - **Bağımlılıklar:** `B8-01.01`.
 - **Mimari / modül sınırı:** docs/research/ (öneri); ADR/evidence linkleri.
-- **Uygulama:** Harness, agent routing, context, sandbox, eval contamination, human approval, DORA ve UX kaynaklarını sistematik etiketle; her makale için bulgu→ölçülebilir hipotez→gerekli deney→reddetme koşulu oluştur.
+- **Uygulama:** Harness, agent routing, context, izin kipleri, eval contamination, human approval, DORA ve UX kaynaklarını sistematik etiketle; her makale için bulgu→ölçülebilir hipotez→gerekli deney→reddetme koşulu oluştur.
 - **Test senaryoları:** Kaynak tarihi/versiyonu eksikliği, korelasyonun nedensellik sayılması, iddia için uygun olmayan ölçüm.
 - **Ölçülebilir kabul:** En az 12 yüksek ilgili kaynak için citation+hipotez+deney planı; kanıtsız performans iddiası yok.
 - **Tamamlanma kanıtı:** Literature ledger + ADR list + citations.
@@ -2990,11 +2988,11 @@ Project Doctor (B7-01)           Build & Prove (B7-02)             Proof Pack 2.
 
 ### B8-06 — Bağımsız güvenlik saldırı denetimi [P0]
 
-**Referans:** Sandbox, prompt injection, MCP, remote/mobile.  **Öncelik:** P0.
+**Referans:** İzin kipleri, prompt injection, MCP, remote/mobile.  **Öncelik:** P0.
 
 > **Strateji planındaki kayıt** (kaynaktan aktarıldı):
 >
-> - **Araştırma/test işi (strateji):** Güvenlik red team / sandbox / prompt injection / MCP riskleri
+> - **Araştırma/test işi (strateji):** Güvenlik red team / izin kipleri / prompt injection / MCP riskleri
 > - **Somut çıktı (strateji):** Saldırı matrisi, sıfır kritik açık, yeniden çalıştırılabilir repro
 
 #### B8-06.01 — Threat-driven red-team ve güvenlik regresyonu
@@ -3002,8 +3000,8 @@ Project Doctor (B7-01)           Build & Prove (B7-02)             Proof Pack 2.
 - [ ] **Durum:** Öneri; kod/test kanıtı bekleniyor.
 - **Öncelik:** P0.
 - **Bağımlılıklar:** `B8-04.01`, `B6-11.01`, `B7-07.02`.
-- **Mimari / modül sınırı:** Red-team harness + pen-test artifacts + sandbox gates.
-- **Uygulama:** AppContainer/remote OS isolation, GUI approve spoof, MCP injection, malicious tool output, webhook replay, secrets exfiltration, path traversal; bulgu önceliklendirme.
+- **Mimari / modül sınırı:** Red-team harness + pen-test artifacts + permission gates.
+- **Uygulama:** remote OS isolation, GUI approve spoof, MCP injection, malicious tool output, webhook replay, secrets exfiltration, path traversal; bulgu önceliklendirme.
 - **Test senaryoları:** OS/network bypass attempts, compromised renderer, command injection, trust escalation, tamper evidence.
 - **Ölçülebilir kabul:** Kritik exploit için açığın kapatıldığı yeniden gösterilir; release mandatory suite skip=0; hiçbir bilinen kritik açık açık kalmaz.
 - **Tamamlanma kanıtı:** Attack matrix + repro scripts + independent re-test signoff.
@@ -3069,7 +3067,7 @@ Bu protokol, `B8-01…B8-08` kartlarının (ve Beta.8 yayın kapısının) nası
 | L5 | OpenAI, *Separating signal from noise in coding evaluations* (8 Temmuz 2026) (https://openai.com/index/separating-signal-from-noise-coding-evaluations/) | Hatalı/flaky testler ve gürültü karşılaştırmayı bozabilir | H5: Flaky test oranı kabul edilebilir eşiğin altındadır ve puanlama rubric'i hakemler arası tutarlıdır | `B8-04.01` test kararlılığı ön koşulu, ≥2 bağımsız reviewer uzlaşısı | Kararsız testli görev sete alınmaz |
 | L6 | Playwright Trace Viewer / video dokümantasyonu (https://playwright.dev/docs/trace-viewer ; https://playwright.dev/docs/videos) ve TestSprite dokümanları (https://www.testsprite.com/solutions/mcp ; https://github.com/TestSprite/testsprite-cli) | Mevcut doğrulama/raporlama araçlarından yararlan | H6: Trace/video kanıtı, kullanıcının kanıt incelemesini hızlandırır/güveni artırır | `B8-05.01` kanıt inceleme görevi, kanıtlı vs kanıtsız | Süre veya doğruluk iyileşmiyorsa varsayılan görünümden çıkarılır |
 
-**[AÇIK KARAR] — kaynak sayısı:** `B8-02.01` kabul kriteri en az 12 yüksek ilgili kaynak ister; kaynak planlar yalnız yukarıdaki 6 kaynak grubunu (5 makale/rapor + araç dokümantasyonu) adlandırır. Kalan kaynaklar aşağıdaki konu başlıklarından seçilmelidir (kart metni): **harness, agent routing, context, sandbox, eval contamination, human approval, DORA ve UX.** Kaynak adlarını tahmin ederek doldurma; B8-02.01 başında sistematik arama yapılıp literatür defterine (ledger) tarihli eklenir.
+**[AÇIK KARAR] — kaynak sayısı:** `B8-02.01` kabul kriteri en az 12 yüksek ilgili kaynak ister; kaynak planlar yalnız yukarıdaki 6 kaynak grubunu (5 makale/rapor + araç dokümantasyonu) adlandırır. Kalan kaynaklar aşağıdaki konu başlıklarından seçilmelidir (kart metni): **harness, agent routing, context, izin kipleri, eval contamination, human approval, DORA ve UX.** Kaynak adlarını tahmin ederek doldurma; B8-02.01 başında sistematik arama yapılıp literatür defterine (ledger) tarihli eklenir.
 
 #### B. Karşılaştırma deneyi tasarımı (`B8-03.01`)
 
@@ -3100,7 +3098,7 @@ Bu protokol, `B8-01…B8-08` kartlarının (ve Beta.8 yayın kapısının) nası
 
 #### E. Güvenlik saldırı denetimi (`B8-06.01`)
 
-Saldırı yüzeyi (kart + depo `THREAT_MODEL.md`): AppContainer/remote OS izolasyonu, GUI approve spoof, MCP injection, kötü amaçlı tool çıktısı, webhook replay, secret exfiltration, path traversal; ayrıca ele geçirilmiş renderer, komut enjeksiyonu, güven yükseltme, tamper kanıtı, OS/ağ bypass denemeleri. Çıktı: saldırı matrisi + yeniden çalıştırılabilir repro betikleri + bağımsız yeniden test onayı; kritik exploit için "kapatıldı" yeniden gösterilir; zorunlu suite `skip=0`; bilinen kritik açık kalmaz. `[AÇIK KARAR]`: denetimin bağımsızlık derecesi (iç ekip dışı gözden geçiren / harici firma) ve kapsamı.
+Saldırı yüzeyi (kart + depo `THREAT_MODEL.md`): remote OS izolasyonu, GUI approve spoof, MCP injection, kötü amaçlı tool çıktısı, webhook replay, secret exfiltration, path traversal; ayrıca ele geçirilmiş renderer, komut enjeksiyonu, güven yükseltme, tamper kanıtı, OS/ağ bypass denemeleri. Çıktı: saldırı matrisi + yeniden çalıştırılabilir repro betikleri + bağımsız yeniden test onayı; kritik exploit için "kapatıldı" yeniden gösterilir; zorunlu suite `skip=0`; bilinen kritik açık kalmaz. `[AÇIK KARAR]`: denetimin bağımsızlık derecesi (iç ekip dışı gözden geçiren / harici firma) ve kapsamı.
 
 #### F. Performans, maliyet, bellek, a11y optimizasyonu (`B8-07.01`)
 
@@ -3179,7 +3177,7 @@ Her ölçüm (pozitif/negatif) → önceliklendirilmiş issue → değişiklik �
 - **Bağımlılıklar:** `B9-01.01`, `B8-06.01`.
 - **Mimari / modül sınırı:** Issue tracker and fault injection suite.
 - **Uygulama:** Her P0/P1 hata için root cause, minimal repro, negatif/pozitif otomatik test, güvenlik/yetki analizini yap; workaround belgelemek close değildir.
-- **Test senaryoları:** Reopened bug, sandbox denial, stale evidence, chain-of-errors, duplicate apply.
+- **Test senaryoları:** Reopened bug, permission denial, stale evidence, chain-of-errors, duplicate apply.
 - **Ölçülebilir kabul:** Açık P0/P1 = 0; regresyon testleri gerçek ortamda geçiyor; kritik test skip=0.
 - **Tamamlanma kanıtı:** Issue close audit + SHA-linked regression run.
 
@@ -3198,8 +3196,8 @@ Her ölçüm (pozitif/negatif) → önceliklendirilmiş issue → değişiklik �
 - **Öncelik:** P0.
 - **Bağımlılıklar:** `B9-02.01`, `B6-10.02`.
 - **Mimari / modül sınırı:** CI matrix real OS + real CLI adapters; no misleading support claims.
-- **Uygulama:** Desteklenen OS×CLI×core journey için smoke/E2E ve negatif sandbox; unsupported durumları ürün sayfasında açıklanır.
-- **Test senaryoları:** OS version changes, missing sandbox, unauthenticated CLI, model update, event replay.
+- **Uygulama:** Desteklenen OS×CLI×core journey için smoke/E2E ve negatif izin; unsupported durumları ürün sayfasında açıklanır.
+- **Test senaryoları:** OS version changes, missing permission, unauthenticated CLI, model update, event replay.
 - **Ölçülebilir kabul:** Resmi desteklenen her kombinasyonun gerekli testleri yeşil; kritik matriste skipped=0; unsupported etiketleri doğru.
 - **Tamamlanma kanıtı:** OS/CLI compatibility ledger + CI artifacts.
 
@@ -3291,7 +3289,7 @@ Her ölçüm (pozitif/negatif) → önceliklendirilmiş issue → değişiklik �
 
 | Sınıf | Tanım `[ÖNERİ]` | Yayın kuralı (kaynak) |
 |---|---|---|
-| P0 | Veri kaybı/bozulması, güvenlik sınırı aşımı (sandbox, onay, imza), yanlış apply/PR, çekirdek akışı tamamen engelleyen hata | Açık P0 = 0 |
+| P0 | Veri kaybı/bozulması, güvenlik sınırı aşımı (izin kipi, onay, imza), yanlış apply/PR, çekirdek akışı tamamen engelleyen hata | Açık P0 = 0 |
 | P1 | Çekirdek kullanıcı yolculuğunu önemli ölçüde bozan, geçici çözümü olmayan hata | Açık P1 = 0 |
 | P2 | Çekirdek akışı engellemeyen, geçici çözümü olan hata | Gerekçeli ve görünür kayıt |
 | P3 | Kozmetik/küçük sorun | Gerekçeli ve görünür kayıt |
@@ -3300,7 +3298,7 @@ Her ölçüm (pozitif/negatif) → önceliklendirilmiş issue → değişiklik �
 
 **Regresyon süreci (`B9-02/B9-03`):** Her P0/P1 için kök neden, minimal repro, pozitif+negatif otomatik test, güvenlik/yetki analizi; geçici çözüm belgelemek kapatma değildir. Resmî desteklenen OS×CLI×çekirdek yolculuk matrisi gerçek CI'da koşar; kritik matriste `skipped = 0`; desteklenmeyen kombinasyonlar ürün sayfasında doğru etiketlenir.
 
-**Güvenlik testleri:** Zorunlu negatif sandbox/verify matrisi (hosted'da standart kullanıcıyla, skip=0), IPC/webhook/MCP replay, onay taklidi, renderer compromise ve Beta.8 red-team bulgularının regresyonları release kapısına dahildir.
+**Güvenlik testleri:** Zorunlu negatif izin/verify matrisi (hosted'da standart kullanıcıyla, skip=0), IPC/webhook/MCP replay, onay taklidi, renderer compromise ve Beta.8 red-team bulgularının regresyonları release kapısına dahildir.
 
 **Hata düzeltme sürümleri ve RC (kaynak):** Gerekirse `beta.9.1`, `beta.9.2`…; ardından `v1.0.0-rc.1`, `rc.2`…. RC yalnızca adlandırma değil, stabil kod dondurma ve tekrar üretilebilir dağıtım testidir. Başarısız RC → `rc.2` ve yeniden test.
 
@@ -3324,7 +3322,7 @@ Her ölçüm (pozitif/negatif) → önceliklendirilmiş issue → değişiklik �
 
 **Fonksiyonel kapsam:** `COMPETITOR_CAPABILITY_MATRIX` içinde in-scope P0 %100, P1 ≥%90; tüm bilinçli istisnalar release note'ta açık. P0/P1 kullanıcı yolculukları gerçek ortamda tamamlandı. Bu hedefler politika önerisi; henüz sonuç değildir.
 
-**Güvenlik:** Gerçek OS üzerinde zorunlu sandbox/verify negatif matrisinde `skipped = 0`, başarılı yetkisiz erişim = 0, izin dışı apply/approval = 0; replay/IPC/webhook/MCP testleri geçer.
+**Güvenlik:** Gerçek OS üzerinde zorunlu kapsam/verify negatif matrisinde `skipped = 0`, başarılı yetkisiz erişim = 0, izin dışı apply/approval = 0; replay/IPC/webhook/MCP testleri geçer.
 
 **Kalite:** Açık P0/P1 bug = 0; veri kaybı/corruption için yüksek öncelikli senaryo = 0; örnekleme dayalı gerçek kullanıcı görevlerinde önceden tanımlanmış başarı eşiği. Crash-free session ve performans bütçesi testlerden önce kararlaştırılır.
 
@@ -3339,7 +3337,7 @@ Kaynak çıkış sözleşmesi (§14.1) aşağıdaki sekiz başlıkta toplanmış
 | Kategori | Ölçülebilir kriter (kaynaktan) | Kanıtlayan görevler / kapılar | Açık karar |
 |---|---|---|---|
 | **Kapsam** | `COMPETITOR_CAPABILITY_MATRIX` içinde in-scope P0 %100, P1 ≥%90; bilinçli istisnalar release note'ta; P0/P1 kullanıcı yolculukları gerçek ortamda tamamlanmış | `B5-00`, `B5-11`, `B6-11.02`, `B8-01`, `V1-01.01`, `V1-GATE` | Yeni rakip özelliği scope freeze sonrası otomatik blocker olmaz (§5.5) |
-| **Güvenlik** | Gerçek OS'te zorunlu sandbox/verify negatif matrisinde `skipped = 0`; başarılı yetkisiz erişim = 0; izin dışı apply/approval = 0; replay/IPC/webhook/MCP testleri geçer | `B3-GATE-02`, `B5-GATE`, `B8-06`, `B9-02`, `V1-GATE` | Bağımsız denetimin derecesi (`B8-06`) |
+| **Güvenlik** | Gerçek OS'te zorunlu kapsam/verify negatif matrisinde `skipped = 0`; başarılı yetkisiz erişim = 0; izin dışı apply/approval = 0; replay/IPC/webhook/MCP testleri geçer | `B3-GATE-02`, `B5-GATE`, `B8-06`, `B9-02`, `V1-GATE` | Bağımsız denetimin derecesi (`B8-06`) |
 | **Kalite** | Açık P0/P1 = 0; veri kaybı/corruption senaryosu = 0; gerçek kullanıcı görevlerinde önceden tanımlı başarı eşiği | `B8-05`, `B9-02`, `B9-05`, `B9-GATE` | **Başarı eşiği değeri**, crash-free session hedefi (kaynak: "testlerden önce kararlaştırılır") |
 | **Performans** | Performans bütçesi testlerden önce kararlaştırılır; ölçüm baseline→delta | `B8-07`, `B8-08` | **Sayısal bütçeler** (açılış, UI yanıt, bellek, event journal) — kaynakta yok |
 | **Veri bütünlüğü** | Veri kaybı = 0; update/rollback ve eski veri fixture'ları geçer; checkpoint/migration bozulursa fail-closed | `B3-02`, `B3-09.02`, `B9-04`, `B9-GATE` | Desteklenen minimum eski sürüm aralığı (beta.1'den itibaren?) |
@@ -3398,14 +3396,14 @@ Kaynak çıkış sözleşmesi (§14.1) aşağıdaki sekiz başlıkta toplanmış
 
 ## 15. Sürüm kapıları (release gates)
 
-Her beta sürümünün ayrı bir kapısı vardır. Kapı maddeleri `[ ]` olarak başlar ve **yalnızca gerçek commit SHA, ortam, komut, çıkış kodu ve atlanan test sayısı kaydedilince** işaretlenir; belge veya mock test kanıt sayılmaz. Güvenlik kapıları normal (yükseltilmemiş) Windows kullanıcısında ve gerçek AppContainer ile koşar; `skip`/`xfail` release kanıtı değildir.
+Her beta sürümünün ayrı bir kapısı vardır. Kapı maddeleri `[ ]` olarak başlar ve **yalnızca gerçek commit SHA, ortam, komut, çıkış kodu ve atlanan test sayısı kaydedilince** işaretlenir; belge veya mock test kanıt sayılmaz. Güvenlik kapıları normal (yükseltilmemiş) Windows kullanıcısında ve gerçek ortamda koşar; `skip`/`xfail` release kanıtı değildir.
 
 ### 15.1 Beta.3 yayın kapısı (zorunlu)
 
 - **[deferred]** **B3-GATE-01 — Bağımsız ürün:** Yalnız Orchestrator kurulmuş normal Windows kullanıcısı; kurulum → proje → plan → worker → check → onay → apply; başka uygulama/hesap yok. **Durum: deferred (kullanıcı kararı, 7 Kasım 2026):** temiz, tek-uygulamalı kullanıcıda uçtan uca kurulum denemesi Beta.3'ün engeli değildir; ilk kararlı sürüm (v1.0) öncesindeki kapsamlı testlere (`V1-GATE`, `B9-04`) bırakıldı. Bu makinede gerçek kurucu çalıştırılmadı (aynı AppId gerçek kurulumu etkiler); yalnız derlendi ve SHA-256'sı kaydedildi.
-- [x] **B3-GATE-02 — Güvenlik:** Worker ve doğrulama sandbox güvenlik koşuları normal kullanıcıda skip=0; renderer/MCP/worker üzerinden insan onayı taklidi = 0 başarılı saldırı. **Kanıt (7 Kasım 2026):** kaynak commit `23415e4`, temiz ağaç, yükseltilmemiş oturum: `appcontainer_worker_matrix`, `gui_apply_negatives`, `intervention_negatives`, `security_matrix` kapıları geçti, P0 gruplarında skip=0; renderer/MCP/worker/oturum akışı üzerinden insan onayı taklidi testleri 0 başarılı saldırı (`docs/evidence/release-manifest-beta3.json`).
+- [x] **B3-GATE-02 — Güvenlik:** Worker ve doğrulama güvenlik koşuları normal kullanıcıda skip=0; renderer/MCP/worker üzerinden insan onayı taklidi = 0 başarılı saldırı. **Kanıt (7 Kasım 2026):** kaynak commit `23415e4`, temiz ağaç, yükseltilmemiş oturum: `gui_apply_negatives`, `intervention_negatives` kapıları geçti, P0 gruplarında skip=0; renderer/MCP/worker/oturum akışı üzerinden insan onayı taklidi testleri 0 başarılı saldırı (`docs/evidence/release-manifest-beta3.json`).
 - [x] **B3-GATE-03 — Kalıcılık:** UI öldür / aç; aktif run kaybolmaz; event cursor doğru; sonradan yanlış veya ikinci apply olmaz. **Kanıt (7 Kasım 2026):** `23415e4` üzerinde tam suite (1039 test, 0 hata): supervisor/journal/events/maintenance testleri (süreç ölürse run kaybolmaz, event cursor, ikinci apply yok). **Sınır:** GUI'yi gerçekten kapat-aç e2e'si önceki commit'te koşuldu (KANIT_LOG "B3-02 ek kanıt"), bu commit'te yeniden koşulmadı.
-- [x] **B3-GATE-04 — Interaktif ajan:** En az bir gerçek CLI üzerinde desteklenen mod kanıtlı; unsupported modlar kapalı; hiçbir PTY sandbox fallback yapmaz. **Kanıt (7 Kasım 2026):** gerçek CLI olarak `opencode` (ücretsiz model, canlı fixture + canlı oturum + gerçek WebView2 denemesi); codex/claude/cursor/antigravity/custom açıkça `Unsupported`; PTY hiç yok, sandbox fallback'i yok. **Sınır (bilinen risk):** sohbet oturumu sandbox dışında çalışır, bu yüzden **varsayılan kapalıdır** ve yalnız `RESPECTED_CHAT_UNSANDBOXED=allow` ile açılır; çözümü Beta.5 `B5-01.01` / karar D25. (KANIT_LOG "B3-03 tamamlama turu")
+- [x] **B3-GATE-04 — Interaktif ajan:** En az bir gerçek CLI üzerinde desteklenen mod kanıtlı; unsupported modlar kapalı; hiçbir PTY kontrolsüz fallback yapmaz. **Kanıt (7 Kasım 2026):** gerçek CLI olarak `opencode` (ücretsiz model, canlı fixture + canlı oturum + gerçek WebView2 denemesi); codex/claude/cursor/antigravity/custom açıkça `Unsupported`; PTY hiç yok. (KANIT_LOG "B3-03 tamamlama turu")
 - [x] **B3-GATE-05 — DAG:** Geçersiz/kapsam çakışmalı planla worker=0; geçerli plan kullanıcı eylemi olmadan başlamaz. **Kanıt (7 Kasım 2026):** `23415e4` tam suite: geçersiz veya kapsam çakışmalı plan worker başlatmaz, geçerli plan yalnız ayrı `plan.start` eylemiyle başlar (B3-04.03/04.04 testleri, KANIT_LOG).
 - [x] **B3-GATE-06 — Paket ve veri:** beta.1 ve beta.2 gerçek fixture migration/rollback; install integrity; yanlış sürümde fail-closed; Authenticode yayın politikası belgeli. **Kanıt (7 Kasım 2026):** beta.1 ve beta.2 gerçek git-etiketi fixture'larıyla yükseltme + geri alma kanıtı (B3-09.02, `tests/tools/upgrade_proof.py`); kurucu bütünlüğü ve yanlış sürümde fail-closed (B3-09.01/09.03); `update_and_migration` ve `installer_and_hash` kapıları `23415e4` üzerinde geçti. Authenticode politikası belgeli (ARCHITECTURE §10, `release_signature`, `SIGNING-01`): **Beta.3 imzasız yayınlanır**, üretim imzası kullanıcı kararıyla betadan sonraya ertelendi.
 - [x] **B3-GATE-07 — Kanıt:** Her release artefaktı test ortamı, SHA, koşu zamanı, atlanan test sayısı, geçerli paket digest ile ilişkilendirilmiş. **Kanıt (7 Kasım 2026):** `docs/evidence/release-manifest-beta3.json`: kaynak SHA `23415e4`, ortam, koşu zamanı, atlanan test listesi (6), kurucu SHA-256, imza durumu `unsigned`; `release_gate.py verify` yalnız o commit'te tutarlı der.
@@ -3424,7 +3422,7 @@ Her beta sürümünün ayrı bir kapısı vardır. Kapı maddeleri `[ ]` olarak 
 
 - [ ] Yerel 5 E2E kullanıcı yolculuğu gerçek CLI/gerçek Windows uygulamasında ve doğru SHA ile tamamlandı.
 - [ ] P0 yerel rakip yetenekleri %100 test ve kanıta bağlı; bilinmeyenler hiçbir yerde `verified` değil.
-- [ ] Native onay, worker AppContainer, verify network, MCP/IPC negatifleri atlanmadan geçti; yanlış apply ve yanlış PR eşleşmesi sıfır.
+- [ ] Native onay, kapsam denetimi, MCP/IPC negatifleri atlanmadan geçti; yanlış apply ve yanlış PR eşleşmesi sıfır.
 - [ ] Tarayıcı testlerinde Playwright adaptörüyle gerçek trace/screenshot provenance, isteğe bağlı ücretli entegrasyon zorunlu değil.
 - [ ] Paket yükseltme ve UI crash/reconnect testleri geçti.
 
@@ -3510,7 +3508,7 @@ Her kapı bir öncekinin kapanmış olmasını gerektirir (`B3-GATE` → `B4-GAT
 
 | Risk | Tetikleyici | Önlem / geri dönüş |
 |---|---|---|
-| ConPTY + AppContainer uyumsuzluğu | Gerçek interactive worker sandbox testleri geçmiyor | Native Terminal’i disable, sadece doğrulanmış yapılandırılmış event/transcript; korumasız fallback yasak |
+| ConPTY uyumsuzluğu | Gerçek interactive worker testleri geçmiyor | Native Terminal’i disable, sadece doğrulanmış yapılandırılmış event/transcript; korumasız fallback yasak |
 | Onay kapısı renderer’dan aşılabilir | Generic invoke/localhost endpoint ulaşılabiliyor | Ayrı native authority, negatif test, disabled apply |
 | UI crash iş kaybettiriyor | Renderer process worker’a sahip | Supervisor sahibi değiştir, process tree testleri |
 | Güncelleme aktif worker’ı öldürüyor | Installer process/lock clash | Transactional update, quiesce/resume, eski sürüme rollback |
@@ -3521,7 +3519,7 @@ Her kapı bir öncekinin kapanmış olmasını gerektirir (`B3-GATE` → `B4-GAT
 
 **Beta.5→v1.0 yüksek riskli kararlar (strateji planından):**
 
-**Yüksek riskli kararlar:** Mobil + uzak kontrollere kimlik, ağ saldırı yüzeyi ve revocation; cloud'a ödeme/altyapı/veri gizliliği; çapraz platforma OS sandbox eşdeğerliği gerekir. Bunların hiçbirini sadece UI tamamlandı diye `done` sayma.
+**Yüksek riskli kararlar:** Mobil + uzak kontrollere kimlik, ağ saldırı yüzeyi ve revocation; cloud'a ödeme/altyapı/veri gizliliği; çapraz platform doğrulaması gerekir. Bunların hiçbirini sadece UI tamamlandı diye `done` sayma.
 
 **B6-04 Cloud kararı:** Kullanıcı için anlamlı ve taşınabilir bir bulut çözümü koşulları sağlanmazsa `deferred with documented exception` olabilir. Böyle bir istisna, ticari iddiada “tüm rakiplerle yüzde yüz aynı özellikler” dememeyi gerektirir.
 
@@ -3574,7 +3572,7 @@ DoD gereği her görev bir rollback veya feature flag kararı taşır. Aşağıd
 | `B6-07` | Kaynakta ayrıca belirtilmedi | `[AÇIK KARAR]` — DoD madde 7: rollback veya feature flag kararı görev tamamlanmadan yazılır |
 | `B6-08` | "Ölçülebilir kabul: İzinsiz cross-tenant veri/komut sıfır; no-go durumunda kapsam dışı açıkça belgelidir." | Kaynakta ima edilen; kesin mekanizma görev başında ADR ile `[AÇIK KARAR]` |
 | `B6-09` | "Tamamlanma kanıtı: Usability notes + design go/no-go." | Kaynakta ima edilen; kesin mekanizma görev başında ADR ile `[AÇIK KARAR]` |
-| `B6-10` | "…kurulumdan PR inceleme/onaya kadar gerçek görev; yollar, encoding, güncelleme/rollback ve sandbox kanıtını topla." | Kaynakta ima edilen; kesin mekanizma görev başında ADR ile `[AÇIK KARAR]` |
+| `B6-10` | "…kurulumdan PR inceleme/onaya kadar gerçek görev; yollar, encoding, güncelleme/rollback ve izin kanıtını topla." | Kaynakta ima edilen; kesin mekanizma görev başında ADR ile `[AÇIK KARAR]` |
 | `B6-11` | "Uygulama: Cloud, paylaşım, ofis, ek OS için go/no-go kararlarını kullanıcı verisi ve güvenlikle kapat; P0/P1 kapsama raporu; release notes." | Kaynakta ima edilen; kesin mekanizma görev başında ADR ile `[AÇIK KARAR]` |
 | `B7-01` | Kaynakta ayrıca belirtilmedi | `[AÇIK KARAR]` — DoD madde 7: rollback veya feature flag kararı görev tamamlanmadan yazılır |
 | `B7-02` | Kaynakta ayrıca belirtilmedi | `[AÇIK KARAR]` — DoD madde 7: rollback veya feature flag kararı görev tamamlanmadan yazılır |
@@ -3611,7 +3609,7 @@ DoD gereği her görev bir rollback veya feature flag kararı taşır. Aşağıd
 1. Yalnız **bir** `B3-xx.yy` veya `B4-xx.yy` issue seç; önce depoda kodun şimdiki durumunu ve dokümanın güncelliğini doğrula.
 2. Kendi görevinde listelenen mevcut modülleri incele; **önerilen yol** adlarını kaynakta var sanma. Daha küçük ve mevcut mimariyle uyumlu çözüm varsa ADR’ye yaz.
 3. Güvenlik sınırını ya da veri şemasını değiştiriyorsan önce negatif test ve migration fixture yaz; mevcut fail-closed korunur.
-4. İlgili görev testleri + regression gate çalıştır. Windows AppContainer gerektiren testi uygun koşulda çalıştıramıyorsan “pass” deme; `blocked: environment` olarak yaz.
+4. İlgili görev testleri + regression gate çalıştır. Gerçek ortam gerektiren testi uygun koşulda çalıştıramıyorsan “pass” deme; `blocked: environment` olarak yaz.
 5. Kanıt kaydını commit SHA, platform, araç/model sürümü, komutlar, exit status, atlananlar, çıktının konumu, riskler ile oluştur; `docs/evidence/KANIT_LOG.md` düzeniyle tutarlı ol.
 6. Issue tamamlanınca ilgili parent, DAG dependency ve release gate durumunu güncelle; başka bir issueyu otomatik done yapma.
 
@@ -3625,7 +3623,7 @@ DoD gereği her görev bir rollback veya feature flag kararı taşır. Aşağıd
 - **Yeni ADR:** Remote/cloud/paylaşım/OS güvenliği, VerificationProvider, native approval authority, autotask risk kuralı değişirse.
 - **Status:** `proposed / in_progress / blocked / completed / deferred / excluded`; tamamlanma ancak commit + gerçek test kanıtıyla.
 
-**Birleşik kural:** Her görevin kutusu `[ ]` ile başlar. Kutu yalnızca durum `completed` olduğunda ve commit SHA + gerçekten koşturulmuş test/kanıt kaydı (`docs/evidence/KANIT_LOG.md` düzeninde) bulunduğunda `[x]` olur. Kapı ve ana iş kutuları ilişkili alt görev kanıtları olmadan işaretlenmez. Gerçekte koşturulmayan test `passed` yazılmaz. Windows AppContainer gerektiren test uygun ortamda çalıştırılamadıysa "pass" denmez, `blocked: environment` yazılır.
+**Birleşik kural:** Her görevin kutusu `[ ]` ile başlar. Kutu yalnızca durum `completed` olduğunda ve commit SHA + gerçekten koşturulmuş test/kanıt kaydı (`docs/evidence/KANIT_LOG.md` düzeninde) bulunduğunda `[x]` olur. Kapı ve ana iş kutuları ilişkili alt görev kanıtları olmadan işaretlenmez. Gerçekte koşturulmayan test `passed` yazılmaz. Gerçek ortam gerektiren test uygun ortamda çalıştırılamadıysa "pass" denmez, `blocked: environment` yazılır.
 
 **Belge bakımı kuralı:** Bu belge tek ana yol haritasıdır. Eski görevler ve açıklamalar silinmez; tamamlanan görevler yerinde kalır ve kanıta bağlanır (özgün ROADMAP'in "yapılan madde silinir" ilkesi, tamamlanan işin kaydının `KANIT_LOG.md`'de tutulması koşuluyla, tamamlanmış görev kutusunun işaretlenmesiyle karşılanır; silme yerine `[x]` + kanıt bağlantısı kullanılır — `[AÇIK KARAR]`: ekip özgün "sil" ilkesine dönmek isterse bu belgenin boyutu nedeniyle sürüm sonlarında tamamlananlar özetlenebilir).
 
@@ -3827,7 +3825,7 @@ Kaynak: Kaynak A = Beta.3/Beta.4 uygulama planı, Kaynak D = Beta.5→v1.0 uygul
 | `B3-02.03` | Olay akışı ve reconnect cursor | P0 / L | `B3-02.02`, `B3-01.04` |
 | `B3-02.04` | Resume ve shutdown davranışı | P0 / L | `B3-02.03` |
 | `B3-03.01` | Destek/yetenek matrisi ve protokol tasarımı | P0 / M | `B3-00.02`, `B3-01.02` |
-| `B3-03.02` | ConPTY ve sandbox uyumluluğu feasibility gate | P0 / L | `B3-03.01`, `B3-02.01` |
+| `B3-03.02` | ConPTY feasibility gate | P0 / L | `B3-03.01`, `B3-02.01` |
 | `B3-03.03` | Yapılandırılmış Chat oturum adaptörü | P0 / L | `B3-03.01`, `B3-02.02` |
 | `B3-03.04` | Etkileşim ve müdahale komutları | P0 / L | `B3-03.02`, `B3-03.03`, `B3-00.03` |
 | `B3-03.05` | Terminal render, split pane ve oturum regresyonu | P1 / M | `B3-03.02`, `B3-03.04` |
@@ -4081,7 +4079,7 @@ Kaynak belgelerde açıklanmayan veya "ADR/PoC/spike ile karar verilecek" denen 
 
 | # | Karar / araştırma | Nerede | Karar zamanı ve çıktı |
 |---|---|---|---|
-| D1 | Windows ConPTY + AppContainer altında gerçek interaktif süreç mümkün mü? Değilse yalnız headless transcript | `B3-03.02` | Go/no-go ADR (Beta.3); no-go ise terminal modu Beta.3 dışı ve kapalı |
+| D1 | Windows ConPTY altında gerçek interaktif süreç mümkün mü? Değilse yalnız headless transcript | `B3-03.02` | Go/no-go ADR (Beta.3); no-go ise terminal modu Beta.3 dışı ve kapalı |
 | D2 | Desktop+engine paketleme stratejisi (mevcut PyInstaller `distribution.json` + Inno ile desktop bundle) | `B3-09.01` | Paket sözleşmesi ADR'si |
 | D3 | GUI↔motor yerel IPC taşıma/kimlik doğrulama (kaynak yalnız "platforma uygun yerel bağlantı", "auth handshake" der) | `B3-01.02`, `B3-01.03` | Şema + tehdit modeli (`B3-00.02/03`) sonrası |
 | D4 | Event journal depolama biçimi, retention ve redaction (append-only; format belirtilmemiş) | `B3-02.02` | Migration fixture ile birlikte karar |
@@ -4105,4 +4103,3 @@ Kaynak belgelerde açıklanmayan veya "ADR/PoC/spike ile karar verilecek" denen 
 | D22 | Veri geçişinde desteklenecek en eski sürüm aralığı | `B3-09.02`, `B9-04.01` | Fixture seti |
 | D23 | Skill/MCP önerisinde yerel arama/skor yöntemi (deterministik kurallar; LLM opsiyonel) ve test veri kümesi | `B4-03.01/.02` | Kural/ölçüt belgesi |
 | D24 | B5-00.01'de rakip yeteneklerinin shipped/beta/planned/paid ayrımı (bu belge yapmaz) | `B5-00.01` | Tarihli matris |
-| D25 | Sohbet oturumu AppContainer içinde nasıl çalışacak (`opencode acp`, loopback muafiyeti veya başka yalıtım)? Çözülene dek oturumlar varsayılan kapalı | `B5-01.01` | Spike + go/no-go ADR (Beta.5); no-go ise oturumlar yalnız operatör anahtarıyla, belgelenmiş risk olarak kalır |

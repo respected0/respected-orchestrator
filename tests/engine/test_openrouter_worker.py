@@ -150,8 +150,7 @@ class InLaneTests(unittest.TestCase):
         subprocess.run(["git", "add", "."], cwd=self.repo, check=True)
         subprocess.run(["git", "commit", "-m", "base"], cwd=self.repo, check=True, capture_output=True)
         self.ctx = EngineContext(self.root / "data")
-        for target, name, extra in ((runner.opencode_auth, "sync_credentials", {}), (runner.opencode_auth, "clear_worker_home", {}),
-                                    (runner, "tool_available", {"side_effect": lambda tool: True}),
+        for target, name, extra in ((runner, "tool_available", {"side_effect": lambda tool: True}),
                                     (runner, "get_cli_command", {"side_effect": lambda tool: ["stored-key"]})):  # a stored key stands in
             patcher = mock.patch.object(target, name, **extra)
             patcher.start()

@@ -1,4 +1,4 @@
-"""Replay Windows sandbox failures without Git, a sandbox refresh or an AI call."""
+"""Replay Windows worker failures without Git or an AI call."""
 import json
 from pathlib import Path
 import subprocess

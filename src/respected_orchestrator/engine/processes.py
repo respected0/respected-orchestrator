@@ -119,7 +119,7 @@ def scrub_environment(environ):
 def execute(command, cwd: Path, timeout_seconds: float, *, cancel_path: Path | None = None, on_started=None,
             on_ready=None, on_output=None, on_output_closed=None, env=None, complete_when=None,
             verify_complete=None, exit_grace=2.0,
-            scrub_env=False, mark_child=True, policy=None, interactive=False):
+            scrub_env=False, mark_child=True, interactive=False):
     # complete_when(stream, line) -> True marks a candidate completion event. The process then gets
     # exit_grace seconds to exit on its own and its real exit code is kept. If it has to be reaped,
     # the code is 0 only when verify_complete(stdout) confirms the whole stream; otherwise the
@@ -131,10 +131,6 @@ def execute(command, cwd: Path, timeout_seconds: float, *, cancel_path: Path | N
     environment = dict(os.environ if env is None else env)
     if scrub_env:
         environment = scrub_environment(environment)
-    if policy is not None:
-        policy.check_timeout(timeout_seconds)
-        command = policy.resolve(command)
-        environment = policy.environment(environment)
     if _is_codex_command(command) and (environment.get("RESPECTED_ORCH_TEST_ISOLATION") == "1" or _tests_loaded()):
         raise RuntimeError("Codex API calls are blocked in isolated tests")
     # Marks every child so a worker cannot act as the human approver (see runner.approve_maf_task).
@@ -154,21 +150,12 @@ def execute(command, cwd: Path, timeout_seconds: float, *, cancel_path: Path | N
     completed_event = threading.Event()
     last_output = [None]
     try:
-        if policy is not None:
-            from . import appcontainer
-            process = appcontainer.spawn(command, cwd, environment,
-                                         allowed_roots=policy.allowed_roots,
-                                         readonly_roots=policy.readonly_roots,
-                                         network_mode=policy.network_mode, job=job,
-                                         interactive=interactive)
-        else:
-            process = subprocess.Popen(list(command), cwd=cwd,
-                                       stdin=subprocess.PIPE if interactive else subprocess.DEVNULL,
-                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                                       encoding="utf8", errors="replace", env=environment, **options)
-            if job:
-                job.attach_and_resume(process)
-        # Sandbox setup is engine work; the worker's own time budget starts once it exists.
+        process = subprocess.Popen(list(command), cwd=cwd,
+                                   stdin=subprocess.PIPE if interactive else subprocess.DEVNULL,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                   encoding="utf8", errors="replace", env=environment, **options)
+        if job:
+            job.attach_and_resume(process)
         deadline = time.monotonic() + timeout_seconds
         if on_started:
             on_started(process.pid)
@@ -256,7 +243,10 @@ def execute(command, cwd: Path, timeout_seconds: float, *, cancel_path: Path | N
             if process.poll() is None:
                 process.kill()
             process.wait(timeout=5)
-            if policy is not None:
-                process.close()
         for reader in readers:
             reader.join(timeout=5)
+
+
+def run_check(command, cwd: Path, timeout_seconds: float, *, cancel_path: Path | None = None):
+    """Run one acceptance/verify command outside the worker, with secret-looking variables scrubbed."""
+    return execute(command, Path(cwd), timeout_seconds, cancel_path=cancel_path, scrub_env=True)

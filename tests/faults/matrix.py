@@ -4,7 +4,7 @@
     python -m tests.faults.matrix run OUT.json    # run every referenced test and write commit-linked evidence
 
 The matrix test (test_fault_matrix.py) checks structure and that every referenced test exists; `run` is the slow part that really
-executes them (real processes, sandbox, kill/restart) and is what produces release evidence."""
+executes them (real processes, kill/restart) and is what produces release evidence."""
 import json
 import subprocess
 import sys
@@ -14,7 +14,7 @@ from pathlib import Path
 
 D = "tests.faults.test_direct.FaultTests."
 E, W = "tests.engine.", "tests.workflows."
-AREAS = ("network", "half_written_state", "process_residue", "duplicate_action", "breaker", "apply_safety", "sandbox", "tamper", "escalation")
+AREAS = ("network", "half_written_state", "process_residue", "duplicate_action", "breaker", "apply_safety", "tamper", "escalation")
 
 # id, area, fault, property that must hold, tests
 MATRIX = [
@@ -39,7 +39,6 @@ MATRIX = [
     ("F19", "half_written_state", "a process is killed at every step of a project run", "resumes once, no duplicate campaign, no second apply", [W + "test_project_resume.ProjectResumeTests.test_kill_after_apply_is_explained_by_the_signed_marker_without_reapplying", W + "test_project_recovery.ProjectRecoveryTests.test_a_kill_mid_stage_resumes_without_a_duplicate_campaign_or_apply"]),
     ("F20", "apply_safety", "an approval token or decision is replayed", "no second apply", ["tests.engine.test_approval_attacks.ApprovalAttackTests.test_11_replayed_token_cannot_apply_twice", "tests.engine.test_approval_attacks.ApprovalAttackTests.test_10_replayed_decision_changes_nothing_a_second_time"]),
     ("F21", "apply_safety", "the project moves between check and apply", "an apply race writes nothing", [E + "test_review_apply_invariants.RejectedReviewApplyInvariantTests.test_04_apply_race_after_precheck_writes_nothing"]),
-    ("F22", "sandbox", "an acceptance check or worker tries the network or reads the engine key", "denied (AppContainer)", [E + "test_sandbox.VerifyIsolationTest.test_ip_dns_loopback_and_child_process_egress_are_denied", E + "test_sandbox.VerifyIsolationTest.test_engine_key_and_data_root_are_unreachable_and_the_worktree_works"]),
     ("F23", "duplicate_action", "a run is retried twice", "the second retry is refused; the recovery table has the last word", [W + "test_operator.OperatorTests.test_crash_loop_ends_at_the_attempt_limit_which_no_person_can_lift", E + "test_run_wiring.WiringTests.test_second_timeout_in_a_chain_is_stopped_by_the_recovery_table"]),
     ("F24", "half_written_state", "a checkpoint or lock file is corrupt or half written", "never resumed from, locks reclaimed only when dead", [W + "test_checkpoint.CheckpointTests.test_newer_schema_tamper_broken_json_and_missing_files_are_never_resumed", E + "test_lanes.WriterLockTest.test_stale_writer_lock_of_a_dead_process_is_reclaimed"]),
 ]

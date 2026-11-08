@@ -1,6 +1,6 @@
 """Opt-in live session against a real FREE model (kept apart from the P0 gate groups so its skip is not a gate skip).
 
-    RESPECTED_TEST_SANDBOX=real RESPECTED_LIVE_CHAT=1 python -m unittest tests.engine.test_session_live
+    RESPECTED_TEST_HOME=real RESPECTED_LIVE_CHAT=1 python -m unittest tests.engine.test_session_live
 """
 import json
 import os
@@ -41,13 +41,13 @@ def alive(pid):
     return str(pid) in subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/NH"], capture_output=True, text=True).stdout
 
 
-@unittest.skipUnless(os.environ.get("RESPECTED_LIVE_CHAT") == "1", "live free-model session: set RESPECTED_LIVE_CHAT=1 and RESPECTED_TEST_SANDBOX=real")
+@unittest.skipUnless(os.environ.get("RESPECTED_LIVE_CHAT") == "1", "live free-model session: set RESPECTED_LIVE_CHAT=1 and RESPECTED_TEST_HOME=real")
 class LiveFreeSessionTests(unittest.TestCase):
     """Real opencode, free model only (opencode/*-free, cost field must be 0). Five small calls in total."""
 
     def test_real_start_then_follow_up_turn_through_the_controller(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ctl = SessionController(unsandboxed=True)
+            ctl = SessionController()
             view = ctl.start(Origin.HUMAN, PID, "opencode", MODEL, tmp, "Remember the word PINEAPPLE. Reply OK. No tools.", wait=False)
             sid = view["id"]
             self.assertEqual(view["state"], "running")
@@ -67,7 +67,7 @@ class LiveFreeSessionTests(unittest.TestCase):
 
     def test_real_interrupt_leaves_no_process_behind(self):
         with tempfile.TemporaryDirectory() as tmp:
-            ctl = SessionController(unsandboxed=True)
+            ctl = SessionController()
             view = ctl.start(Origin.HUMAN, PID, "opencode", MODEL, tmp, "Write a 1500 word essay about rivers. No tools.", wait=False)
             sid = view["id"]
             self.assertTrue(wait_for(lambda: ctl._sessions[sid]["handle"] is not None, 30), "the CLI never started")

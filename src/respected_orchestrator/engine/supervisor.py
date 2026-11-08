@@ -10,7 +10,7 @@ import json
 import os
 
 from ..context import atomic_write_json
-from .appcontainer import _is_elevated
+from .winproc import is_elevated
 from .lanes import _pid_is_alive
 
 if os.name == "nt":
@@ -40,7 +40,7 @@ class Supervisor:
         self.release()
 
     def acquire(self):
-        if _is_elevated():
+        if is_elevated():
             raise PermissionError("The supervisor does not run elevated; start it as a normal user.")
         self.ctx.state_dir.mkdir(parents=True, exist_ok=True)
         handle = open(self.ctx.state_dir / "supervisor.lock", "a+b")

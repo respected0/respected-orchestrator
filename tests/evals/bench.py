@@ -217,7 +217,7 @@ def run_orchestrated(agent, fixture, repeat, timeout):
         else:
             status = "passed" if verified else "timeout" if reason == "timed_out" else "failed"
         return _record(fixture, "orchestrated", repeat, start, status, started, agent.usage(""), reason=reason or UNKNOWN,
-                       security_violation=reason in ("scope_violation", "sandbox_unavailable"), run_id=run_id)
+                       security_violation=reason == "scope_violation", run_id=run_id)
     finally:
         shutil.rmtree(base, ignore_errors=True)
 
@@ -235,7 +235,7 @@ def summarize(runs):
                     "timeouts": sum(r["status"] == "timeout" for r in rows), "invalid": sum(r["status"] == "invalid" for r in rows),
                     "interventions": sum(r["interventions"] for r in rows), "retries": sum(r["retries"] for r in rows),
                     "duration_seconds": round(sum(r["duration_seconds"] for r in rows), 3), "tokens": _sum(rows, "tokens"), "cost": _sum(rows, "cost"),
-                    # Direct runs without a sandbox, so the counter is not measured there (ADR-019 §7).
+                    # Direct runs have no engine scope check, so the counter is not measured there (ADR-019 §7).
                     "security_violations": sum(r["security_violation"] is True for r in rows) if arm == "orchestrated" else UNKNOWN}
     return out
 

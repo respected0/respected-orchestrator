@@ -28,7 +28,7 @@ varsayılan yok, ses ağa çıkmaz, diske yazılmaz, kapatma anlık.
    durur ve `stop`/`wipe`/silinme ile sıfırlanır; modülün diske yazan ya da ağ kullanan hiçbir kodu yoktur (kaynak taraması + soket engelli test).
 2. **Paketlenmiş motor: NO-GO (şimdilik).** Orchestrator hiçbir tanıma modeli indirmez ya da dağıtmaz: makinede motor yoktur ve model indirmek kullanıcının açık
    izni, kaynağı ve boyutu belirtilmiş bir indirme gerektirir (bu karar için verilmedi). Motor **kişinin seçtiği yerel bir program** olabilir (`voice_engine_command`,
-   JSON liste): ses yalnızca programın stdin'ine gider, dil ve sözlük argümandır. Bu program Orchestrator tarafından **sandbox'lanmaz**; çevrimdışı olması kişinin
+   JSON liste): ses yalnızca programın stdin'ine gider, dil ve sözlük argümandır. Bu program Orchestrator tarafından kısıtlanmaz; çevrimdışı olması kişinin
    sorumluluğundadır ve rapor bunu `network_isolated: false` olarak söyler. Bulut yedeği yoktur.
 3. **Taslak güvenliği:** metin yalnızca `Draft`'a girer (`needs_review=true`, `confirmed=false`); `confirm` kişinin düzenlenmiş metnini ve İNSAN kökenini ister;
    `require_confirmed` onaylanmamış sesli metni reddeder. "approve/apply/merge/delete/onayla/uygula/sil/birleştir" sözcükleri **işaretlenir** ama yalnızca metindir;
