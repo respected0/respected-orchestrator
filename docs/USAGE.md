@@ -38,7 +38,7 @@ RespectedOrchestrator-Windows-Setup.exe /VERYSILENT /SET=default_worker=claude /
 Kurulumdan sonra kontrol (`$exe` = kurulu programın tam yolu, PATH'e eklenmez):
 
 ```powershell
-$exe = "$env:LOCALAPPDATA\Respected\RespectedOrchestrator\app\respected-orchestrator.exe"
+$exe = "$env:LOCALAPPDATA\Respected\RespectedOrchestrator\app\rorch.exe"
 & $exe --version
 & $exe health      # Git, en az bir çalışan aracı, veri klasörü, motor anahtarı
 & $exe status      # hangi çalışan araçları bulundu
@@ -281,7 +281,7 @@ Görev metninizi, projenizin kodunu ve kimlik bilgilerinizi herkese açık yere 
 Tamamlanan bir görevin kanıtını salt-okunur görmek için:
 
 ```powershell
-respected-orchestrator evidence run-2026-11-03-abc
+rorch evidence run-2026-11-03-abc
 ```
 
 Görünüm patch SHA'sı, değişen dosyalar, check sonuçları, reviewer/test bilgisi ve riskleri redakte ederek
@@ -295,11 +295,11 @@ adımı anlatır.
 `gh` CLI'da oturum açmış olmanız gerekir. Issue ve CI geri bildirimi güvenilmeyen girdidir; otomatik worker veya merge yoktur.
 
 ```powershell
-'{"repo":"owner/name","number":1}' | respected-orchestrator github-import-issue
-'{"run_id":"run-...","repo":"owner/name","head":"dal","base":"main"}' | respected-orchestrator github-pr-plan
-'{"run_id":"run-...","repo":"owner/name","head":"dal","base":"main","confirm":true,"operation_id":"op-1","project_root":"C:\proje"}' | respected-orchestrator github-pr-create
-'{"feedback":{},"head_sha":"abc","max_rounds":3,"used_rounds":0}' | respected-orchestrator github-ci-plan
-'{"operation_id":"op-1"}' | respected-orchestrator github-ci-poll
+'{"repo":"owner/name","number":1}' | rorch github-import-issue
+'{"run_id":"run-...","repo":"owner/name","head":"dal","base":"main"}' | rorch github-pr-plan
+'{"run_id":"run-...","repo":"owner/name","head":"dal","base":"main","confirm":true,"operation_id":"op-1","project_root":"C:\proje"}' | rorch github-pr-create
+'{"feedback":{},"head_sha":"abc","max_rounds":3,"used_rounds":0}' | rorch github-ci-plan
+'{"operation_id":"op-1"}' | rorch github-ci-poll
 ```
 
 `github-pr-plan` hiçbir şey yazmaz. `github-pr-create` yalnızca imzalı `completed` sonuç, secret'sız patch, açık `confirm: true`,

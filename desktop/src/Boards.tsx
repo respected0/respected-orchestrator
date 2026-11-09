@@ -46,7 +46,7 @@ export function Tasks() {
       </div>
       {v === null ? <Loading text="Görevler okunuyor…" />
         : v.kind === 'error' ? <Failed text={v.text} hint={v.hint} retry={reload} />
-        : v.rows.length === 0 ? <Empty title={state !== 'all' || q ? 'Bu süzgece uyan görev yok.' : 'Henüz görev yok.'} hint="Görevler `respected-orchestrator create/start` komutlarıyla ya da bir AI aracının MCP bağlantısıyla başlatılır; başlayınca burada görünür." />
+        : v.rows.length === 0 ? <Empty title={state !== 'all' || q ? 'Bu süzgece uyan görev yok.' : 'Henüz görev yok.'} hint="Görevler `rorch create/start` komutlarıyla ya da bir AI aracının MCP bağlantısıyla başlatılır; başlayınca burada görünür." />
         : <><RunTable rows={v.rows} />{v.more && <p className="mut">En yeni 100 görev gösteriliyor.</p>}</>}
     </Page>
   );

@@ -9,7 +9,7 @@ klasöründe doğrulandı (`0.1.0-beta.2`). Kullanım için [USAGE.md](USAGE.md)
 
 | Ne | Nerede | Kim oluşturur | Ne zaman |
 |---|---|---|---|
-| Program (`respected-orchestrator.exe`, kaldırıcı) | `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app` | Kurucu | Her kurulumda |
+| Program (`rorch.exe`, kaldırıcı) | `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app` | Kurucu | Her kurulumda |
 | Windows "Yüklü uygulamalar" kaydı | `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\{8E2B4D7A-61C3-4F09-A5D8-3B9E17C2F640}_is1` | Kurucu | Her kurulumda |
 | Veri klasörü (ayarlar, kayıtlar, kanıtlar) | `%LOCALAPPDATA%\Respected\RespectedOrchestrator\data` | Orchestrator | Kurulumda klasör; içindekiler ilk kullanımda |
 | MCP kaydı | AI aracının ayar dosyası (bölüm 3) | Orchestrator | **Yalnızca siz bağlarsanız** ve araç kuruluysa |
@@ -35,7 +35,7 @@ Kurulum sırasında:
 1. Kurucu programı `app` klasörüne açar, "Yüklü uygulamalar" kaydını yazar. Yönetici izni istemez. `%TEMP%` içinde kısa
    süreli `is-XXXX.tmp` klasörü açıp siler. Orchestrator o sırada çalışıyorsa (AI araçlarının açık MCP sunucuları dahil)
    kurucu önce onu durdurur.
-2. `respected-orchestrator setup` programı doğrular, kurulum kaydını (`distribution.json` ile eşleşen) yazar ve `data`
+2. `rorch setup` programı doğrular, kurulum kaydını (`distribution.json` ile eşleşen) yazar ve `data`
    klasörünü hazırlar. Seçtiğiniz varsayılan çalışan ve hafıza ayarları `settings.json` dosyasına yazılır.
 3. Bir adım hata verirse ürün kendi değişikliklerini geri alır, kurucu program klasörünü ve "Yüklü uygulamalar" kaydını da
    siler (geriye hiçbir şey kalmaz), son sayfada "Kurulum tamamlanamadı" der ve **sıfırdan farklı bir çıkış koduyla** (8)
@@ -44,18 +44,18 @@ Kurulum sırasında:
 
 ## 3. AI araçlarına bağlama (MCP)
 
-Masaüstü uygulamasında **Ayarlar** ya da `respected-orchestrator integrations set <araç>=on`. Kayıt, aracın ayar dosyasında
-`respected-orchestrator` adlı bir sunucudur ve `respected-orchestrator.exe mcp` komutunu çalıştırır. Sunucuyu araç gerektiğinde
+Masaüstü uygulamasında **Ayarlar** ya da `rorch integrations set <araç>=on`. Kayıt, aracın ayar dosyasında
+`rorch` adlı bir sunucudur ve `rorch.exe mcp` komutunu çalıştırır. Sunucuyu araç gerektiğinde
 kendi başlatır (stdio); arka planda sürekli çalışan bir şey yoktur.
 
 | Araç | Dosya | Biçim |
 |---|---|---|
-| Claude Code | `~\.claude.json` | `mcpServers.respected-orchestrator` (`type: stdio`) |
-| Claude Desktop | `%APPDATA%\Claude\claude_desktop_config.json` | `mcpServers.respected-orchestrator` |
-| Codex | `~\.codex\config.toml` | `[mcp_servers.respected-orchestrator]` tablosu |
-| Cursor | `~\.cursor\mcp.json` | `mcpServers.respected-orchestrator` |
-| OpenCode | `~\.config\opencode\opencode.json` | `mcp.servers.respected-orchestrator` (`type: local`) |
-| Windsurf | `~\.codeium\windsurf\mcp_config.json` | `mcpServers.respected-orchestrator` |
+| Claude Code | `~\.claude.json` | `mcpServers.rorch` (`type: stdio`) |
+| Claude Desktop | `%APPDATA%\Claude\claude_desktop_config.json` | `mcpServers.rorch` |
+| Codex | `~\.codex\config.toml` | `[mcp_servers.rorch]` tablosu |
+| Cursor | `~\.cursor\mcp.json` | `mcpServers.rorch` |
+| OpenCode | `~\.config\opencode\opencode.json` | `mcp.servers.rorch` (`type: local`) |
+| Windsurf | `~\.codeium\windsurf\mcp_config.json` | `mcpServers.rorch` |
 
 **Şart:** aracın ayar klasörü bilgisayarınızda var olmalı (`~\.claude`, `~\.codex`, `~\.cursor`, `~\.config\opencode`,
 `~\.codeium\windsurf`, `%APPDATA%\Claude`). Kurulu olmayan bir aracı bağlamaya çalışırsanız Orchestrator **reddeder**

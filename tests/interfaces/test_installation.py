@@ -21,7 +21,7 @@ class InstallationTests(unittest.TestCase):
         self.app = self.root / "app"
         self.binary = b"MZ\x90\x00\xff\xfe binary"
         (self.app / "app").mkdir(parents=True)
-        (self.app / "respected-orchestrator.exe").write_bytes(self.binary)
+        (self.app / "rorch.exe").write_bytes(self.binary)
         (self.app / "app" / "base_library.zip").write_bytes(b"PK\x03\x04")
         self.write_distribution()
         app_root = mock.patch.object(EngineContext, "app_root", new_callable=mock.PropertyMock, return_value=self.app)
@@ -41,8 +41,8 @@ class InstallationTests(unittest.TestCase):
         self.assertEqual((result["status"], result["product_version"]), ("installed", __version__))
         self.assertTrue(self.ctx.data_root.is_dir())
         self.assertEqual(installation.verify(self.app)["install_state"], "installed")
-        self.assertEqual((self.app / "respected-orchestrator.exe").read_bytes(), self.binary, "recording never rewrites program files")
-        (self.app / "respected-orchestrator.exe").write_bytes(self.binary + b"!")
+        self.assertEqual((self.app / "rorch.exe").read_bytes(), self.binary, "recording never rewrites program files")
+        (self.app / "rorch.exe").write_bytes(self.binary + b"!")
         self.assertEqual(installation.verify(self.app)["install_state"], "repair-needed")
 
     def test_a_program_that_does_not_match_its_build_gets_no_record(self):
@@ -69,7 +69,7 @@ class InstallationTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, "NOT_INSTALLED")
         installation.setup(self.ctx)
         installed_at = json.loads(self.record.read_text("utf-8"))["installed_at"]
-        (self.app / "respected-orchestrator.exe").write_bytes(b"MZ next version")
+        (self.app / "rorch.exe").write_bytes(b"MZ next version")
         self.write_distribution()
         self.assertEqual(installation.repair(self.ctx)["status"], "repaired")
         self.assertEqual(installation.verify(self.app)["install_state"], "installed")
@@ -81,7 +81,7 @@ class InstallationTests(unittest.TestCase):
         result = installation.uninstall(self.ctx)
         self.assertEqual((result["status"], result["purged"]), ("removed", False))
         self.assertFalse(self.record.exists())
-        self.assertEqual((self.app / "respected-orchestrator.exe").read_bytes(), self.binary)
+        self.assertEqual((self.app / "rorch.exe").read_bytes(), self.binary)
         self.assertTrue((self.ctx.data_root / "settings.json").is_file())
         installation.setup(self.ctx)
         self.assertTrue(installation.uninstall(self.ctx, purge=True)["purged"])
@@ -98,7 +98,7 @@ class InstallationTests(unittest.TestCase):
             launcher = {"command": "cmd", "args": ["/c", "launch.cmd"]}
             planned = integrations.plan(self.ctx, {"desired": {"claude-code": True}, "launcher": launcher})
             integrations.apply(self.ctx, "op-enable-0001", {"desired": {"claude-code": True}, "launcher": launcher, "plan_digest": planned["plan_digest"]})
-            self.assertIn("respected-orchestrator", json.loads(config.read_text("utf-8"))["mcpServers"])
+            self.assertIn("rorch", json.loads(config.read_text("utf-8"))["mcpServers"])
             self.assertEqual(installation.uninstall(self.ctx)["conflicts"], [])
         self.assertEqual(json.loads(config.read_text("utf-8")), {"mcpServers": {"other": {"command": "x"}}})
 

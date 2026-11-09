@@ -9,7 +9,7 @@ _ACTIONS = {
     "worker_cli": ("install_or_sign_in_worker", "En az bir worker CLI kurun ve oturum açın.",
                    "codex --version"),
     "engine_key": ("repair_engine_key", "Bozuk .engine-key dosyasını kaldırıp repair çalıştırın.",
-                   "respected-orchestrator repair"),
+                   "rorch repair"),
 }
 
 
@@ -23,7 +23,7 @@ def guide(checks, data_root=None):
     for check in checks:
         if check.get("ok"):
             continue
-        action, help_text, command = _ACTIONS.get(check.get("name"), ("inspect", "Kontrolü inceleyin.", "respected-orchestrator health"))
+        action, help_text, command = _ACTIONS.get(check.get("name"), ("inspect", "Kontrolü inceleyin.", "rorch health"))
         steps.append({"check": check.get("name"), "action": action, "help": help_text, "command": command})
     locations = {"data": str(data_root)} if data_root else {}
     return {"steps": steps,

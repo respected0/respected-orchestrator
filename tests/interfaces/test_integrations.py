@@ -36,11 +36,11 @@ class IntegrationsTest(unittest.TestCase):
     def test_enable_preserves_foreign_content_and_disable_restores_it(self):
         self.go({"claude-code": True, "codex": True})
         servers = json.loads(self.claude.read_text("utf-8"))
-        self.assertEqual(servers["mcpServers"]["respected-orchestrator"]["args"], LAUNCH["args"])
+        self.assertEqual(servers["mcpServers"]["rorch"]["args"], LAUNCH["args"])
         self.assertEqual({k: v for k, v in servers.items() if k != "mcpServers"}, {k: v for k, v in CLAUDE.items() if k != "mcpServers"})
         self.assertEqual(servers["mcpServers"]["other"], CLAUDE["mcpServers"]["other"])
         parsed = tomllib.loads(self.codex.read_text("utf-8"))
-        self.assertEqual(parsed["mcp_servers"]["respected-orchestrator"]["args"], LAUNCH["args"])
+        self.assertEqual(parsed["mcp_servers"]["rorch"]["args"], LAUNCH["args"])
         self.assertEqual(parsed["mcp_servers"]["other"], {"command": "y"})
         self.assertIn("# my config", self.codex.read_text("utf-8"))
         self.go({"claude-code": False, "codex": False})
@@ -51,7 +51,7 @@ class IntegrationsTest(unittest.TestCase):
         (self.home / ".cursor").mkdir()
         (self.home / ".cursor/mcp.json").write_text('{ // comments are fine for cursor\n}', encoding="utf-8")
         self.go({"claude-code": True})
-        self.assertIn("respected-orchestrator", self.claude.read_text("utf-8"))
+        self.assertIn("rorch", self.claude.read_text("utf-8"))
         rows = {r["client"]: r for r in sil.plan(self.ctx, {"desired": {}, "launcher": LAUNCH})["clients"]}
         self.assertEqual(rows["cursor"]["state"], "unreadable")
         with self.assertRaises(sil.OperationError):
@@ -63,10 +63,10 @@ class IntegrationsTest(unittest.TestCase):
         with self.assertRaises(sil.OperationError) as caught:
             sil.apply(self.ctx, "op-test-stale", {"desired": {"claude-code": True}, "launcher": LAUNCH, "plan_digest": "0" * 64})
         self.assertEqual(caught.exception.code, "PLAN_CHANGED")
-        self.assertNotIn("respected-orchestrator", self.claude.read_text("utf-8"))
+        self.assertNotIn("rorch", self.claude.read_text("utf-8"))
 
     def test_foreign_entries_and_rewrites_of_edited_ones_are_refused_but_an_edited_own_entry_can_be_taken_back(self):
-        doc = dict(CLAUDE, mcpServers={"respected-orchestrator": {"command": "mine"}})
+        doc = dict(CLAUDE, mcpServers={"rorch": {"command": "mine"}})
         self.claude.write_text(json.dumps(doc), encoding="utf-8")
         before = self.codex.read_bytes()
         with self.assertRaises(sil.OperationError) as caught:
@@ -76,16 +76,16 @@ class IntegrationsTest(unittest.TestCase):
         self.claude.write_text(json.dumps(CLAUDE), encoding="utf-8")
         self.go({"claude-code": True})
         edited = json.loads(self.claude.read_text("utf-8"))
-        edited["mcpServers"]["respected-orchestrator"]["command"] = "user-edit"
+        edited["mcpServers"]["rorch"]["command"] = "user-edit"
         self.claude.write_text(json.dumps(edited), encoding="utf-8")
         with self.assertRaises(sil.OperationError):  # rewriting an entry the person edited is still refused
             self.go({"claude-code": True})
-        self.assertEqual(json.loads(self.claude.read_text("utf-8"))["mcpServers"]["respected-orchestrator"]["command"], "user-edit")
+        self.assertEqual(json.loads(self.claude.read_text("utf-8"))["mcpServers"]["rorch"]["command"], "user-edit")
         edited["mcpServers"]["someone-elses"] = {"command": "x"}
         self.claude.write_text(json.dumps(edited), encoding="utf-8")
         self.go({"claude-code": False})  # but our own entry is ours even after a hand edit: switching off takes it back
         servers = json.loads(self.claude.read_text("utf-8"))["mcpServers"]
-        self.assertNotIn("respected-orchestrator", servers)
+        self.assertNotIn("rorch", servers)
         self.assertIn("someone-elses", servers)
 
     def test_invalid_config_is_never_touched_and_missing_client_is_refused(self):
@@ -121,7 +121,7 @@ class IntegrationsTest(unittest.TestCase):
         path = self.opencode_fixture(original)
         self.go({"opencode": True})
         document = json.loads(path.read_text("utf-8"))
-        self.assertEqual(document["mcp"]["servers"]["respected-orchestrator"],
+        self.assertEqual(document["mcp"]["servers"]["rorch"],
                          {"type": "local", "command": [LAUNCH["command"], *LAUNCH["args"]]})
         self.assertEqual(document["mcp"]["servers"]["other"], original["mcp"]["servers"]["other"])
         self.assertEqual({k: v for k, v in document.items() if k != "mcp"},
@@ -154,15 +154,15 @@ class IntegrationsTest(unittest.TestCase):
         path = self.opencode_fixture(original)
         self.go({"opencode": True})
         edited = json.loads(path.read_text("utf-8"))
-        edited["mcp"]["servers"]["respected-orchestrator"]["command"] = ["user-edit"]
+        edited["mcp"]["servers"]["rorch"]["command"] = ["user-edit"]
         path.write_text(json.dumps(edited), encoding="utf-8")
         with self.assertRaises(sil.OperationError) as caught:
             self.go({"opencode": True})
         self.assertEqual(caught.exception.code, "LIFECYCLE_CONFLICT")
-        self.assertEqual(json.loads(path.read_text("utf-8"))["mcp"]["servers"]["respected-orchestrator"]["command"], ["user-edit"])
+        self.assertEqual(json.loads(path.read_text("utf-8"))["mcp"]["servers"]["rorch"]["command"], ["user-edit"])
         self.go({"opencode": False})
         document = json.loads(path.read_text("utf-8"))
-        self.assertNotIn("respected-orchestrator", document["mcp"]["servers"])
+        self.assertNotIn("rorch", document["mcp"]["servers"])
         self.assertEqual(document["mcp"]["servers"]["other"], original["mcp"]["servers"]["other"])
 
     def test_opencode_is_refused_when_not_installed(self):
@@ -199,7 +199,7 @@ class LegacyGeminiClientTest(unittest.TestCase):
             desired = {"gemini": True}
             planned = sil.plan(self.ctx, {"desired": desired, "launcher": LAUNCH})
             sil.apply(self.ctx, "op-beta1-gemini", {"desired": desired, "launcher": LAUNCH, "plan_digest": planned["plan_digest"]})
-        self.assertIn("respected-orchestrator", self.gemini.read_text("utf-8"))
+        self.assertIn("rorch", self.gemini.read_text("utf-8"))
         self.assertIn("gemini", sil._owned(self.ctx))
 
     def test_the_old_entry_is_listed_and_can_be_switched_off_leaving_foreign_content(self):
@@ -226,7 +226,7 @@ class LegacyGeminiClientTest(unittest.TestCase):
 
     def test_an_edited_old_entry_is_still_taken_back(self):
         doc = json.loads(self.gemini.read_text("utf-8"))
-        doc["mcpServers"]["respected-orchestrator"]["args"] = ["edited"]
+        doc["mcpServers"]["rorch"]["args"] = ["edited"]
         self.gemini.write_text(json.dumps(doc), encoding="utf-8")
         planned = sil.plan(self.ctx, {"desired": {"gemini": False}})
         self.assertEqual(planned["clients"][[r["client"] for r in planned["clients"]].index("gemini")]["action"], "remove")

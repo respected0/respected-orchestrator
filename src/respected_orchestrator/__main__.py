@@ -1,4 +1,4 @@
-"""respected-orchestrator command line: the shared product commands (docs/PRODUCT_CONTRACT.md) and the engine's own.
+"""rorch command line: the shared product commands (docs/PRODUCT_CONTRACT.md) and the engine's own.
 
 Shared: --version, setup, repair, uninstall [--purge], config [get KEY | set KEY=VALUE...], health, memory connect|disconnect|status,
 rpp, mcp. Own: integrations [set CLIENT=on|off...] registers this program as an MCP server in AI clients. Output is JSON; errors are {"error": {code, message, hint}}; exit codes 0 ok, 1 failed, 2 usage.
@@ -172,7 +172,7 @@ def main(argv=None):
             print(json.dumps({"error": {"code": "IPC_TOKEN", "message": str(error), "hint": "Start it from the desktop app."}}))
             return 2
     if argv[:1] == ["--version"]:
-        print(f"respected-orchestrator {__version__}")
+        print(f"rorch {__version__}")
         return 0
     if argv == ["rpp"]:  # what the desktop app asks on every refresh: answered without loading the argument parser, the engine and the roles
         from .interfaces import rpp
@@ -193,8 +193,8 @@ def main(argv=None):
         if args.command == "_selfcheck":
             payload = _selfcheck()
         elif args.command in ("rpp", "mcp") and args.args[:1] in (["--help"], ["-h"]):
-            print({"rpp": "usage: respected-orchestrator rpp  (one RPP 1 request on stdin, one response on stdout)",
-                   "mcp": "usage: respected-orchestrator mcp [--allow-auto-apply] [--allow-privileged]  (stdio MCP server)"}[args.command])
+            print({"rpp": "usage: rorch rpp  (one RPP 1 request on stdin, one response on stdout)",
+                   "mcp": "usage: rorch mcp [--allow-auto-apply] [--allow-privileged]  (stdio MCP server)"}[args.command])
             return 0
         elif args.command == "provider-key":  # set (key on stdin, never echoed) | status | clear
             from .engine.openrouter_worker import vault
@@ -216,7 +216,7 @@ def main(argv=None):
             return 0
         elif args.command in SHARED:
             if args.args[:1] in (["--help"], ["-h"]):
-                print("usage: respected-orchestrator " + USAGE[args.command])
+                print("usage: rorch " + USAGE[args.command])
                 return 0
             payload = _shared(ctx, args.command, args.args)
             print(json.dumps(payload, ensure_ascii=False))
@@ -359,7 +359,7 @@ def main(argv=None):
         print(json.dumps(payload, ensure_ascii=True))
         return 1 if payload.get("status") in {"failed", "timed_out", "cancelled", "interrupted"} and args.command == "_execute" else 0
     except UsageError as error:
-        _error("USAGE", str(error), "respected-orchestrator --help")
+        _error("USAGE", str(error), "rorch --help")
         return 2
     except roles.RoleError as error:
         _error(error.code, error.message, error.hint)

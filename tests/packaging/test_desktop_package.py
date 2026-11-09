@@ -112,7 +112,7 @@ class DesktopPackageTests(unittest.TestCase):
         self.assertIn('#ifexist StageDir + "\\respected-orchestrator-desktop.exe"', text)
         icons = text[text.index("#ifexist StageDir"):text.index("#endif", text.index("#ifexist StageDir"))]
         self.assertIn('Filename: "{app}\\respected-orchestrator-desktop.exe"', icons)
-        self.assertNotIn("respected-orchestrator.exe", icons.replace("respected-orchestrator-desktop.exe", ""))  # no shortcut to the engine launcher
+        self.assertNotIn("rorch.exe", icons.replace("respected-orchestrator-desktop.exe", ""))  # no shortcut to the engine launcher
         for forbidden in ("[Run]", "[Registry]", "startup", "RunOnce", "[Tasks]"):
             self.assertNotIn(forbidden, icons)  # no autostart, no service, no registry run key
 

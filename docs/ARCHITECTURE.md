@@ -7,7 +7,7 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
 ## 1. Paketlenmiş motor
 
 - `packaging/build_dist.py` motoru PyInstaller ile (onedir, içerik `app/` altında) `dist/RespectedOrchestrator/` klasörüne
-  dondurur: `respected-orchestrator.exe` ve her dosyanın SHA-256'sını taşıyan `distribution.json`. Agent Framework'ün tembel
+  dondurur: `rorch.exe` ve her dosyanın SHA-256'sını taşıyan `distribution.json`. Agent Framework'ün tembel
   alt modülleri toplanır; bildirilen bağımlılıkların dışındaki kurulu paketler dışarıda bırakılır, böylece yerel derleme
   temiz bir CI derlemesiyle aynı içeriği taşır. `_selfcheck` her modülü içe aktarır ve eksik olanda başarısız olur.
 - Kurucu (`packaging/windows/orchestrator_setup.iss`) programı `app\` altına yazar ve `setup` çalıştırır; `setup` dosyaları
@@ -332,11 +332,11 @@ testler `tests/workflows/test_roles.py`.
 
 ## 6. MCP sunucusu ve izinler
 
-`respected-orchestrator mcp [--allow-auto-apply] [--allow-privileged]`, masaüstü uygulamasının kullandığı motor işlevleri üzerinde
+`rorch mcp [--allow-auto-apply] [--allow-privileged]`, masaüstü uygulamasının kullandığı motor işlevleri üzerinde
 standart kütüphaneyle yazılmış bir stdio MCP sunucusudur; başka bir ürün gerekmez, başlattığı çalışmalar masaüstü uygulamasında görünür. Araçlar:
 `orchestrator_status`, `_plan`, `_task_start`, `_project_start`, `_list`, `_progress`, `_evidence`, `_resume`, `_cancel`,
 `_apply`, `_memory_note`. `integrations set İSTEMCİ=on` (ya da masaüstü uygulamasının paneli) AI aracının ayarına kurulu programı
-gösteren bir girdi ekler: `respected-orchestrator.exe mcp`. Başka girdiler korunur; kapatınca ve kaldırınca yalnızca kendi
+gösteren bir girdi ekler: `rorch.exe mcp`. Başka girdiler korunur; kapatınca ve kaldırınca yalnızca kendi
 girdisi kalkar (elle değiştirilmiş olsa da); kayıtta olmayan aynı adlı bir girdiye ve elle değiştirilmiş bir girdinin yeniden
 yazılmasına izin verilmez.
 

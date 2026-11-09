@@ -31,7 +31,7 @@ try {
   }
 } finally {
   if ($proc -and -not $proc.HasExited) { Stop-Process $proc -Force }
-  Get-Process respected-orchestrator -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$Folder*" } | Stop-Process -Force
+  Get-Process rorch -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$Folder*" } | Stop-Process -Force
   foreach ($k in $saved.Keys) { if ($saved[$k]) { Set-Item "Env:$k" $saved[$k] } else { Remove-Item "Env:$k" -ErrorAction SilentlyContinue } }
   Remove-Item $empty -Recurse -Force -ErrorAction SilentlyContinue
 }

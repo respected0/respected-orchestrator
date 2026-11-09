@@ -7,7 +7,7 @@ import sys
 import tempfile
 import time
 
-FROZEN = bool(getattr(sys, "frozen", False))  # running as the packaged respected-orchestrator.exe
+FROZEN = bool(getattr(sys, "frozen", False))  # running as the packaged rorch.exe
 
 
 def engine_command(*args: str) -> list[str]:

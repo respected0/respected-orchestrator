@@ -69,7 +69,7 @@ Kurucuyu yeniden çalıştırmak onarır/günceller, ayarları değiştirir ya d
 
 | Ne | Nerede |
 |---|---|
-| Program | `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app\respected-orchestrator.exe` (kurucunun) |
+| Program | `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app\rorch.exe` (kurucunun) |
 | Ayarlar, görev çalışmaları, kanıtlar | `%LOCALAPPDATA%\Respected\RespectedOrchestrator\data` |
 
 Beta yalnızca Windows'u destekler. Kurucu henüz Authenticode ile imzalı değildir; Windows SmartScreen uyarı gösterebilir.
@@ -92,7 +92,7 @@ Tam liste ve istek biçimleri: [docs/COMMANDS.md](docs/COMMANDS.md).
 ```powershell
 python -m pip install -e ".[dev]"
 python -m unittest discover -s tests -t .              # geçici depolar ve sahte çalışanlar; HOME yalıtılır
-python packaging/build_dist.py                         # dist\RespectedOrchestrator\respected-orchestrator.exe
+python packaging/build_dist.py                         # dist\RespectedOrchestrator\rorch.exe
 python -m unittest tests.packaging.test_frozen_build   # derlenmiş program, PATH'te Python yokken
 python packaging/build_installer.py                    # dist\RespectedOrchestrator-Windows-Setup.exe
 $env:RESPECTED_DATA_DIR = "$env:TEMP\orch-dev"; python -m respected_orchestrator status

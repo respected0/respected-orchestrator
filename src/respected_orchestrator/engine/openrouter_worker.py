@@ -169,7 +169,7 @@ def run_in_lane(worktree, request, deadline, cancel_path):
 
 def main(argv):
     if len(argv) != 2 or not argv[0].strip():
-        print("usage: respected-orchestrator _openrouter MODEL PROMPT", file=sys.stderr)
+        print("usage: rorch _openrouter MODEL PROMPT", file=sys.stderr)
         return 2
     model, prompt = argv
     try:

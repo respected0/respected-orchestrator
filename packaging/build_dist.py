@@ -1,6 +1,6 @@
 """Build the packaged Orchestrator: one self-contained folder that needs no Python on the machine.
 
-    python packaging/build_dist.py [--output DIR] [--desktop EXE]   ->   DIR/RespectedOrchestrator/{respected-orchestrator.exe, [respected-orchestrator-desktop.exe], app/, distribution.json}
+    python packaging/build_dist.py [--output DIR] [--desktop EXE]   ->   DIR/RespectedOrchestrator/{rorch.exe, [respected-orchestrator-desktop.exe], app/, distribution.json}
 
 PyInstaller onedir build of the private JSON entry point (RPP, MCP, task/campaign/project commands); distribution.json
 lists every file with its sha256 so the installer and the product's own install record can verify the copy.
@@ -20,7 +20,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 NAME = "RespectedOrchestrator"
-LAUNCHER = "respected-orchestrator.exe" if os.name == "nt" else "respected-orchestrator"
+LAUNCHER = "rorch.exe" if os.name == "nt" else "rorch"
 
 
 def source_version() -> str:

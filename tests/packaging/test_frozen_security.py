@@ -13,7 +13,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 DIST = Path(os.environ.get("RESPECTED_ORCH_DIST") or ROOT / "dist" / "RespectedOrchestrator")
-EXE = DIST / ("respected-orchestrator.exe" if os.name == "nt" else "respected-orchestrator")
+EXE = DIST / ("rorch.exe" if os.name == "nt" else "rorch")
 SENTINEL = "SEC04-SENTINEL-DO-NOT-LEAK"
 
 @unittest.skipUnless(os.name == "nt", "the packaged engine tests are Windows-only")

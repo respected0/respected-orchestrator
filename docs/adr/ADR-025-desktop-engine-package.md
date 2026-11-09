@@ -6,14 +6,14 @@ Kabul edildi (7 Kasım 2026). Görev: B3-09.01. `docs/PRODUCT_CONTRACT.md` metni
 
 ## Bağlam
 
-Beta.2'ye kadar Orchestrator tek PyInstaller klasörüydü (`respected-orchestrator.exe` + `app\` çalışma zamanı + `distribution.json`). Beta.3 ile
+Beta.2'ye kadar Orchestrator tek PyInstaller klasörüydü (`rorch.exe` + `app\` çalışma zamanı + `distribution.json`). Beta.3 ile
 Tauri masaüstü kabuğu (`respected-orchestrator-desktop.exe`) eklenir. Kabuk motoru kendi çocuk süreci olarak başlatır (`_ipc`); ikisi iki ayrı uygulama gibi
 kurulmamalı, iki ayrı güncellenmemeli, iki ayrı kayıt tutmamalı.
 
 ## Karar
 
 1. **Tek kurucu, tek klasör, tek kurulum kaydı.** Masaüstü exe'si motor başlatıcısının **yanına**, kurulum klasörünün köküne konur:
-   `…\RespectedOrchestrator\app\respected-orchestrator.exe` (motor) ve `…\app\respected-orchestrator-desktop.exe` (kabuk). Çalışma zamanı `app\app\` içindeki
+   `…\RespectedOrchestrator\app\rorch.exe` (motor) ve `…\app\respected-orchestrator-desktop.exe` (kabuk). Çalışma zamanı `app\app\` içindeki
    `--contents-directory app` klasöründe kalır; kabuk oraya girmez (güncellemede `{app}\app` bütünüyle silinip yeniden yazıldığı için kabuğun kökte durması
    kilitli dosya yarışını `B3-09.03`'te tek noktaya indirir).
 2. **Tek karma zinciri.** `build_dist.py --desktop <exe>` kabuğu hesaba katarak `distribution.json` üretir: kabuk `files` içinde (sha256) yer alır ve üst düzey
@@ -21,7 +21,7 @@ kurulmamalı, iki ayrı güncellenmemeli, iki ayrı kayıt tutmamalı.
    `files` üzerinden kanıtlar; Hub'ın şeması değişmez.
 3. **Kabuk motoru önce kendi yanında arar.** Sıra: `RESPECTED_APP_DIR` (sözleşmenin test/geliştirme yolu) → kabuğun kendi klasörü → `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app`.
    Başka klasördeki bir motoru "kuruluymuş" gibi kullanmaz.
-4. **Başlatmadan önce başlatıcı karması.** Kabuk, motoru çalıştırmadan önce `distribution.json`'daki `respected-orchestrator.exe` karmasını diskteki dosyayla karşılaştırır.
+4. **Başlatmadan önce başlatıcı karması.** Kabuk, motoru çalıştırmadan önce `distribution.json`'daki `rorch.exe` karmasını diskteki dosyayla karşılaştırır.
    Kurulu yollarda (kabuğun klasörü, `%LOCALAPPDATA%`) `distribution.json` zorunludur; yalnızca `RESPECTED_APP_DIR` geliştirme yolunda dosya yoksa atlanır, **varsa** yine eşleşmelidir.
    Uyuşmazlık `BrokenInstall` olarak "Kurucuyu yeniden çalıştırın (Onar)" ipucuyla gösterilir; motor başlatılmaz. Tüm ağacın doğrulaması motorun `setup`/`repair` komutlarında ve `manifest`in `install_state` değerindedir (karma listesini zaten kanıtlar).
 5. **Onarım = kurucuyu yeniden çalıştırmak** (sözleşmedeki mevcut yol). Kabuk dosya yazmaz, kendini güncellemez, hizmet (servis) ya da otomatik başlangıç kaydı oluşturmaz.

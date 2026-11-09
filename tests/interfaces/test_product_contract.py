@@ -48,7 +48,7 @@ class ProductContract(unittest.TestCase):
     def test_version_names_the_product_and_installs_nothing(self):
         done = self.run_product(["--version"])
         self.assertEqual(done.returncode, 0, done.stderr[:300])
-        self.assertRegex(done.stdout.strip(), r"^respected-orchestrator \S+$")
+        self.assertRegex(done.stdout.strip(), r"^rorch \S+$")
         self.assertFalse((self.root / "data").exists())
 
     def test_commands_exist_and_retired_ones_do_not(self):

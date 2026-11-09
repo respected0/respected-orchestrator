@@ -1,13 +1,13 @@
 # Orchestrator komutları
 
-Kurulu program: `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app\respected-orchestrator.exe` (PATH'e eklenmez; tam yolu
+Kurulu program: `%LOCALAPPDATA%\Respected\RespectedOrchestrator\app\rorch.exe` (PATH'e eklenmez; tam yolu
 kullanın). Kaynaktan: `python -m respected_orchestrator`. İç yapı ve kurallar: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md)):
 
 - Çıktı UTF-8 JSON'dur. Hata: `{"error": {"code", "message", "hint"}}`.
 - Çıkış kodu: `0` başarı, `1` işlem başarısız, `2` kullanım ya da geçersiz ayar.
-- `--version` (`respected-orchestrator <sürüm>`), `--help` ve `<komut> --help` hiçbir şey kurmaz ya da yazmaz.
+- `--version` (`rorch <sürüm>`), `--help` ve `<komut> --help` hiçbir şey kurmaz ya da yazmaz.
 - Veri klasörü: `%LOCALAPPDATA%\Respected\RespectedOrchestrator\data`; geliştirmede ve testte `RESPECTED_DATA_DIR` ile
   değişir. (`--data-root` motorun kendi alt süreçleri içindir, kişiler kullanmaz.)
 - JSON isteği alan komutlar onu **stdin**'den okur: `Get-Content -Raw istek.json | & $exe create`.
@@ -34,7 +34,7 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 | `memory disconnect` | İzni Brain tarafında iptal eder, ayarları temizler. |
 | `memory status` | `{"connected", "write", ...}` |
 | `integrations` | Hangi AI aracında MCP girdisi olduğunu ve olabileceğini gösterir. |
-| `integrations set İSTEMCİ=on\|off [...]` | Kendini AI araçlarına MCP sunucusu olarak kaydeder ya da kaydı kaldırır. İstemciler: `claude-code`, `claude-desktop`, `codex`, `cursor`, `windsurf`, `opencode`. Girdi kurulu programı gösterir (`respected-orchestrator.exe mcp`); başka girdiler korunur. OpenCode girdisi `~/.config/opencode/opencode.json` içindeki `mcp.servers` altına yazılır ve geri alma önceki dosyayı byte düzeyinde geri yükler. |
+| `integrations set İSTEMCİ=on\|off [...]` | Kendini AI araçlarına MCP sunucusu olarak kaydeder ya da kaydı kaldırır. İstemciler: `claude-code`, `claude-desktop`, `codex`, `cursor`, `windsurf`, `opencode`. Girdi kurulu programı gösterir (`rorch.exe mcp`); başka girdiler korunur. OpenCode girdisi `~/.config/opencode/opencode.json` içindeki `mcp.servers` altına yazılır ve geri alma önceki dosyayı byte düzeyinde geri yükler. |
 | `provider-key set\|status\|clear` | OpenRouter anahtarı: `set` anahtarı stdin'den okur ve Windows DPAPI ile şifreli saklar (ekrana ya da dosyaya düz metin yazılmaz), `status` yalnızca saklı olup olmadığını söyler, `clear` siler. |
 | `provider-models [--free]` | OpenRouter'ın herkese açık model listesi (anahtar gerekmez, ağ kapısı yine açık olmalı); `--free` yalnızca bütün fiyatları 0 olan modelleri gösterir. |
 | `mcp [--allow-auto-apply] [--allow-privileged]` | AI araçları için stdio MCP sunucusu. İki bayrak da MCP üzerinden normalde reddedilen işlemleri açar ([ARCHITECTURE.md](ARCHITECTURE.md#6-mcp-sunucusu-ve-izinler)); Masaüstü uygulaması ve `integrations` hiçbirini vermez. |
@@ -162,14 +162,14 @@ zorlanmaz; `stale patch` nedeniyle bloke kalır.
 ## Kanıt görünümü
 
 ```powershell
-respected-orchestrator evidence run-2026-11-03-abc
+rorch evidence run-2026-11-03-abc
 ```
 
 İmzalı kanıtı salt-okunur, redakte edilmiş sunum modeli olarak döndürür. Patch/proje değişmişse `stale`,
 imza geçersizse yapılandırılmış hata verir. Aynı çıktı RPP `evidence.view` operasyonundan da alınır.
 
 ```powershell
-'{"rpp":"1","op":"evidence.view","payload":{"run_id":"run-2026-11-03-abc"}}' | respected-orchestrator rpp
+'{"rpp":"1","op":"evidence.view","payload":{"run_id":"run-2026-11-03-abc"}}' | rorch rpp
 ```
 
 `health` yanıtındaki `wizard` alanı ilk görev ve sonraki adımı gösterir; onay yalnızca etkileşimli terminalde

@@ -207,7 +207,7 @@ with mock.patch("respected_orchestrator.engine.runner._stdin_is_tty", return_val
          code == 0 and new_version and (new_version != old_version or different_source),
          f"old={old_version} new={new_version} source differs={different_source}")
     settings_before = (work / "data" / "settings.json").read_bytes() if (work / "data" / "settings.json").is_file() else b""
-    exe = ROOT / "dist" / "RespectedOrchestrator" / "respected-orchestrator.exe"
+    exe = ROOT / "dist" / "RespectedOrchestrator" / "rorch.exe"
     frozen = lambda *a: (lambda d: (d.returncode, json.loads(d.stdout or "{}"), d.stderr))(
         subprocess.run([str(exe), *a], capture_output=True, text=True, encoding="utf-8", env=env, cwd=work, timeout=180))
     code, out, err = frozen("setup")

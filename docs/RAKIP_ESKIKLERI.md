@@ -360,7 +360,38 @@ Her yetenek: `native` (ajan veriyor) ya da `unsupported`; kaynağı ve doğrulam
 
 **Ekran kuralı:** yalnız motorun verdiğini çizer; ajan bağlam yüzdesini vermiyorsa kart çıkmaz, "bilinmiyor" uydurulmaz.
 
-**İlk iş (Claude Code):** gerçek çıktı alanlarını (bağlam bilgisinin nerede verildiği, mod/komut listesi, `/compact` ve `/clear`'ın yapılandırılmış kullanımı) yalnız salt-okunur yoklama ve resmî belgeyle doğrula; doğrulanmayan hiçbir alan şemaya "native" olarak girmez. **Henüz doğrulanmadı.**
+**İlk iş (Claude Code):** gerçek çıktı alanlarını (bağlam bilgisinin nerede verildiği, mod/komut listesi, `/compact` ve `/clear`'ın yapılandırılmış kullanımı) yalnız salt-okunur yoklama ve resmî belgeyle doğrula; doğrulanmayan hiçbir alan şemaya "native" olarak girmez.
+
+**Claude Code doğrulama sonucu (2026-11-09; yalnız salt-okunur yoklama ve resmî belge, hiçbir ajan/oturum çalıştırılmadı).** Kaynaklar: yerel `claude --version` (2.1.319), `claude --help`, `claude auth status`; resmî belge `code.claude.com/docs/en/` altında `agent-sdk/python`, `agent-sdk/slash-commands`, `statusline`, `cli-reference`, `headless`. "Belge" = belgede yazılı; "yoklama" = yerel CLI'da görüldü; "çalıştırılmadı" = gerçek çıktısı görülmedi.
+
+| Alan | Kaynak | Durum | Not |
+|---|---|---|---|
+| Sürüm | yoklama | native | `claude --version` → `2.1.319 (Claude Code)` |
+| Giriş durumu | yoklama | native | `claude auth status` JSON verir (`loggedIn`, `authMethod`, `apiProvider`). Bu makinede `loggedIn:false` döndü |
+| İzin kipleri | yoklama + belge | native | CLI `--permission-mode` seçenekleri: `acceptEdits, auto, bypassPermissions, manual, dontAsk, plan`. SDK `PermissionMode`: `default, acceptEdits, plan, dontAsk, bypassPermissions, auto`. **Adlar iki yerde farklı** (`manual` ↔ `default`): şemaya ajanın verdiği ad olduğu gibi girer, eşleştirme motorda yapılır. Çalışırken değişim: SDK `set_permission_mode` (belge) |
+| Model | yoklama + belge | native (ayar), liste doğrulanmadı | `--model` takma ad ya da tam ad alır; çalışırken `set_model` (belge). **Model listesi için belgelenmiş sorgu bulunamadı**: `modes`/`models` listesi `agent.describe`'da "doğrulanmadı" kalır |
+| Bağlam doluluğu | belge | belgeli, çalıştırılmadı | SDK `get_context_usage()` → `totalTokens`, `maxTokens`, `percentage`, `isAutoCompactEnabled`, `autoCompactThreshold` (`/context` ile aynı veri). Ayrıca `statusLine` komutuna stdin ile `context_window.used_percentage`, `remaining_percentage`, `context_window_size` gelir. İkisi de ham `--print --output-format stream-json` akışında **belgelenmemiş**; hangi yolun kullanılacağı (Agent SDK mı, statusLine kancası mı) tasarım kararıdır. Bu çağrı token-sayım istekleri yapar, akışta görünmez |
+| Eğik çizgi komut listesi | belge | belgeli, çalıştırılmadı | akışın başında `system` / `init` mesajının `slash_commands` alanı (ayrıca `skills`). Alanın tam biçimi gerçek çıktıyla doğrulanmadı |
+| `/compact` | belge | belgeli, çalıştırılmadı | SDK'da istem olarak `/compact` gönderilir; bitince `system` / `compact_boundary` mesajı gelir. Özetlenecek geçmiş yoksa `compact_boundary` gelmez, sonuç yine `success` olur. Bu **etkileşimsiz yol belgeli**; yani sıkıştırmayı biz değil ajan yapar (karar 12 ile uyumlu) |
+| `/clear` | belge | belgeli, çalıştırılmadı | akış girdisi modunda `/clear` bağlamı boşaltır; eski konuşma diskte kalır ve oturum kimliğiyle sürdürülebilir. Tek seferlik çağrıda etkisizdir |
+| Yapılandırılmış akış | yoklama + belge | native | `--print` ile `--output-format text/json/stream-json`, `--input-format stream-json`, `--include-partial-messages`, `--include-hook-events` (yardım metninde görüldü) |
+| İzin soruları | yoklama | native | `--permission-prompts host|none` (`--print`'te soruyu kim yanıtlar) ve `--permission-prompt-tool` |
+| Oturum | yoklama | native | `--resume`, `--continue`, `--session-id`, `--fork-session`, `--name`, `--no-session-persistence` |
+| Çaba düzeyi | yoklama | native | `--effort low, medium, high, xhigh, max` |
+
+**Çıkarımlar:** (1) Bağlam yüzdesi, `/compact` ve `/clear` ajandan gelebilir, ama yalnız SDK/akış-girdi yoluyla; şu anki "tur başına çıktı" yolunda değil. (2) Kalıcı arka plan süreci kararı (§6.2) bununla birleşir: bağlam ve kip, tur arasında canlı kalan bir oturum ister. (3) `models` listesi şimdilik boş bırakılır. (4) Ham alan adları (`init` mesajının tam şeması, `compact_boundary` içeriği) **ilk gerçek koşuda** doğrulanacaktır; o koşu token harcar ve ayrıca onay ister. Bu satırlar doğrulanana kadar şemaya "native" olarak girmez.
+
+**Eğik çizgi komut kataloğu (2026-11-09, `commands.md` referansı: 120 giriş, çoğu beceri/kullanıcı komutudur).** Komut listesi sabit yazılmaz: ajan her oturumun başında `init.slash_commands` ile verir ve etkileşimli terminal ister olanlar (`/theme`, `/terminal-setup`) listede çıkmaz (belge). `commands` alanı bu listeden doldurulur. Komutların motor tarafında sınıflandırması:
+
+| Sınıf | Komutlar | Etkileşimsiz yol (belge) |
+|---|---|---|
+| Yapılandırılmış SDK çağrısı var | `/model`, `/permissions` kipi (`/plan`), `/context`, `/mcp` (yeniden bağlan/aç-kapa), `/rewind` (dosyalar), durdurma | `set_model`, `set_permission_mode`, `get_context_usage`, `get_mcp_status`, `reconnect_mcp_server`, `toggle_mcp_server`, `rewind_files`, `interrupt`, `stop_task` |
+| İstem olarak gönderilir, belgeli | `/compact` (`compact_boundary` gelir), `/clear`, `/effort` (`-p`'de v2.1.205+), `/model <ad>` (`-p`'de v2.1.205+, varsayılanı **kaydetmez**), `/rename` (`-p`'de çalışır) | akış girdisi ya da `-p` ile komut metni |
+| Kısıtlı | `/fast` (`-p`'de sınırlı, belgede ayrı bölüm) | doğrulanmadı |
+| Belgede etkileşimsiz yol yok / doğrulanmadı | `/usage` `/cost` `/stats`, `/output-style`, `/goal`, `/branch` `/fork`, `/resume`, `/add-dir`, `/cd`, `/advisor`, `/autocompact`, `/sandbox`, `/tasks`, `/recap`, `/btw`, `/diff`, `/export`, `/agents`, `/hooks`, `/config`, `/status` | listede çıkıp çıkmadığına göre `init.slash_commands` söyler; çalışma biçimi ilk gerçek koşuda doğrulanır |
+| Yalnız terminal | `/theme`, `/terminal-setup`, `/vim`, `/focus`, `/copy`, `/color`, `/scroll-speed`, `/tui`, `/login`, `/logout` | ajanın kendi terminali (karar 11) |
+
+**Üç not:** (1) `/effort` ve `/fast` için ayrı SDK yöntemi yok; yalnız komut metni yolu belgeli. (2) `/model` terminalde seçilen modeli **kullanıcının varsayılanı olarak kaydeder**; `-p`'de argümanla verilen kaydetmez. Motor model değiştirirken kullanıcının kalıcı ayarını sessizce değiştirmemek için yalnız oturum-içi yolu (`set_model` ya da `-p` argümanı) kullanmalıdır. (3) Bu listenin büyük kısmı ajan sürümüne göre değişir (belgede "v2.1.205 ve üzeri" gibi notlar var); şema bu yüzden `version` alanını taşır ve her komut ajanın verdiği listeden gelir, bizim tablomuzdan değil.
 
 **Risk:** ortak şema en küçük ortak paydaya inebilir; çözüm uzantı alanı ve terminal yedeği.
 

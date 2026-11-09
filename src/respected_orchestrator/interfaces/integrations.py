@@ -1,6 +1,6 @@
 """RPP ``integrations.*``: register the Orchestrator MCP server in AI-client configs (Safe Integration Layer).
 
-Discover -> Inspect -> Plan -> approve -> Apply -> Verify -> Rollback. Only the one entry named ``respected-orchestrator`` is ever
+Discover -> Inspect -> Plan -> approve -> Apply -> Verify -> Rollback. Only the one entry named ``rorch`` is ever
 touched; every other server/setting is preserved. Ownership (a digest of the entry we wrote) is recorded in the data root; an
 entry we do not own is refused rather than overwritten, and so is rewriting one the user edited since (taking our own edited entry
 back is allowed). Apply needs the digest of the plan the
@@ -16,7 +16,7 @@ import sys
 from ..context import atomic_write_json, safe_path
 from .installation import OperationError, _atomic_write_text, _now, _read_receipt, _receipt_path
 
-NAME = "respected-orchestrator"
+NAME = "rorch"
 _TOML_HEADER = re.compile(r"^\s*\[\[?\s*([^\]]+?)\s*\]\]?\s*(#.*)?$")
 
 
@@ -233,7 +233,7 @@ def plan(ctx, payload):
             if want and not row["detected"]:
                 row.update(action="refuse", reason="Client not detected on this computer.")
             elif state == "foreign" or (state == "modified" and want):
-                row.update(action="refuse", reason="An entry named respected-orchestrator exists that Respected does not own"
+                row.update(action="refuse", reason="An entry named rorch exists that Respected does not own"
                            if state == "foreign" else "Respected's entry was edited since it was written; leaving it alone")
             elif want:
                 new = _entry(client, launcher or {})

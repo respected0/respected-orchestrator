@@ -66,7 +66,7 @@ try {
   $result.preview_window_texts = $previewTexts
 } finally {
   if ($proc -and -not $proc.HasExited) { Stop-Process $proc -Force }
-  Get-Process respected-orchestrator -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$Engine*" } | Stop-Process -Force
+  Get-Process rorch -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$Engine*" } | Stop-Process -Force
   if ($server) { Stop-Process $server -Force }
   Remove-Item Env:RESPECTED_APP_DIR, Env:RESPECTED_DATA_DIR -ErrorAction SilentlyContinue
 }

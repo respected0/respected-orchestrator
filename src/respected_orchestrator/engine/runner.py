@@ -454,7 +454,7 @@ def _memory_policy(request, settings, root):
         raise ValueError("memory.query must be 1..200 characters")
     ready = memory.configured(settings, root)
     if use is True and not ready:
-        raise ValueError("memory requested but Brain access is not enabled: " + hint("respected-orchestrator memory connect"))
+        raise ValueError("memory requested but Brain access is not enabled: " + hint("rorch memory connect"))
     if use is not None:
         policy = {"use": use, "source": "explicit"}
     else:  # enabling memory is a permission, not a default: every task opts in with memory.use

@@ -69,7 +69,7 @@ Kendiliğinden güncelleme yoktur: yeni sürüm GitHub sürüm sayfasından indi
 
 | Komut | Ne yapar |
 |---|---|
-| `--version` | `respected-orchestrator <sürüm>` |
+| `--version` | `rorch <sürüm>` |
 | `--help`, `<komut> --help` | hiçbir şey kurmaz |
 | `setup` | kurucunun yazdığı programı doğrular ve kaydeder, veriyi hazırlar |
 | `repair` | programı doğrular (bozuksa kurucuyu yeniden çalıştırmayı söyler), kaydı ve entegrasyonları yeniler |

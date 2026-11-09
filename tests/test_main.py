@@ -111,14 +111,14 @@ class MainTests(unittest.TestCase):
 
     def test_version_and_shared_product_commands(self):
         from respected_orchestrator import __version__
-        self.assertEqual(call("--version"), (0, f"respected-orchestrator {__version__}\n"))
+        self.assertEqual(call("--version"), (0, f"rorch {__version__}\n"))
         for name in ("setup", "repair", "uninstall", "config", "health", "memory"):
             self.assertEqual(call(*self.root, name, "--help")[0], 0)
         app = Path(tempfile.mkdtemp())
         self.addCleanup(lambda: __import__("shutil").rmtree(app, ignore_errors=True))
-        (app / "respected-orchestrator.exe").write_bytes(b"exe")
+        (app / "rorch.exe").write_bytes(b"exe")
         digest = __import__("hashlib").sha256(b"exe").hexdigest()
-        (app / "distribution.json").write_text(json.dumps({"files": {"respected-orchestrator.exe": digest}}), encoding="utf-8")
+        (app / "distribution.json").write_text(json.dumps({"files": {"rorch.exe": digest}}), encoding="utf-8")
         record = app / ".respected" / "install.json"
         with mock.patch.object(cli.EngineContext, "app_root", new_callable=mock.PropertyMock, return_value=app):
             for name, status in (("setup", "installed"), ("repair", "repaired")):
@@ -133,7 +133,7 @@ class MainTests(unittest.TestCase):
             code, text = call(*self.root, "uninstall")
             self.assertEqual((code, json.loads(text)["status"]), (0, "removed"), text)
             self.assertFalse(record.exists())
-            self.assertTrue((app / "respected-orchestrator.exe").is_file())  # the folder belongs to whoever installed it
+            self.assertTrue((app / "rorch.exe").is_file())  # the folder belongs to whoever installed it
 
     def test_integrations_register_this_program_in_an_ai_client_standalone(self):
         home = Path(tempfile.mkdtemp())
@@ -146,11 +146,11 @@ class MainTests(unittest.TestCase):
             code, text = call(*self.root, "integrations", "set", "claude-code=on")
             self.assertEqual((code, json.loads(text)["status"]), (0, "applied"), text)
             servers = json.loads((home / ".claude.json").read_text("utf-8"))["mcpServers"]
-            self.assertEqual(servers["respected-orchestrator"]["args"][-1], "mcp")
+            self.assertEqual(servers["rorch"]["args"][-1], "mcp")
             self.assertEqual(servers["other"], {"command": "x"})
             self.assertEqual(call(*self.root, "integrations", "set", "claude-code=maybe")[0], 2)
             self.assertEqual(call(*self.root, "integrations", "set", "claude-code=off")[0], 0)
-        self.assertNotIn("respected-orchestrator", json.loads((home / ".claude.json").read_text("utf-8"))["mcpServers"])
+        self.assertNotIn("rorch", json.loads((home / ".claude.json").read_text("utf-8"))["mcpServers"])
 
     def test_config_reads_and_writes_through_the_settings_schema(self):
         code, text = call(*self.root, "config", "set", "default_worker=claude", "default_timeout_seconds=120")

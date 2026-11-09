@@ -272,7 +272,7 @@ def resolve(settings: Mapping[str, Any], requested: Mapping[str, Any], needed: l
         resolved[role] = {k: v for k, v in chosen.items() if k != "fallbacks" or v}
     if missing:
         raise RoleError("ROLE_UNASSIGNED", "No assignment for role(s): " + ", ".join(missing),
-                        "Assign them in the task or enable auto_assign with an auto_pool. " + hint("respected-orchestrator config set default_worker=<araç>"))
+                        "Assign them in the task or enable auto_assign with an auto_pool. " + hint("rorch config set default_worker=<araç>"))
     return resolved
 
 

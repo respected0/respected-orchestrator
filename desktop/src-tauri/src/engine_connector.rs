@@ -65,7 +65,7 @@ pub struct Status {
 }
 
 /// The engine launcher's file name inside an install folder (ADR-025).
-pub const LAUNCHER: &str = "respected-orchestrator.exe";
+pub const LAUNCHER: &str = "rorch.exe";
 
 fn sha256_hex(path: &std::path::Path) -> std::io::Result<String> {
     use sha2::{Digest, Sha256};
@@ -286,7 +286,7 @@ mod tests {
         install(&d, b"engine", false);
         assert!(matches!(discover(None, Some(d.clone()), None), Err(ConnectError::BrokenInstall(m)) if m.contains("missing")));
         assert!(discover(Some(d.clone()), None, None).is_ok(), "the dev override may have no manifest");
-        for bad in ["not json at all", "{}", "{\"files\": {}}", "{\"files\": {\"respected-orchestrator.exe\": 5}}", "[]", "{\"files\": {\"other.exe\": \"00\"}}"] {
+        for bad in ["not json at all", "{}", "{\"files\": {}}", "{\"files\": {\"rorch.exe\": 5}}", "[]", "{\"files\": {\"other.exe\": \"00\"}}"] {
             std::fs::write(d.join("distribution.json"), bad).unwrap();
             assert!(matches!(discover(None, Some(d.clone()), None), Err(ConnectError::BrokenInstall(_))), "{bad}");
         }

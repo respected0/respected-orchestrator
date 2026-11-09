@@ -81,7 +81,7 @@ def token_set(data_root):
 
 def settings_fields():
     # set by `memory connect`, never typed by hand: hidden from forms
-    help_text = "respected-orchestrator memory connect ile ayarlanır."
+    help_text = "rorch memory connect ile ayarlanır."
     return [
         {"key": "memory_enabled", "type": "boolean", "label": "Brain hafızası bağlı", "default": False,
          "secret": False, "hidden": True, "help": help_text},

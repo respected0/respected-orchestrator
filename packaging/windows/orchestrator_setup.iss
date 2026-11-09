@@ -30,7 +30,7 @@ Compression=lzma2
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-UninstallDisplayIcon={app}\respected-orchestrator.exe
+UninstallDisplayIcon={app}\rorch.exe
 SetupIconFile=icon.ico
 CloseApplications=no
 SetupLogging=yes
@@ -70,7 +70,7 @@ Name: "{autodesktop}\Respected Orchestrator"; Filename: "{app}\respected-orchest
 
 [UninstallRun]
 ; the product takes back its MCP registrations and removes its install record (and with /PURGE=1 or a yes its settings and runs)
-Filename: "{app}\respected-orchestrator.exe"; Parameters: "{code:UninstallArgs}"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveProduct"
+Filename: "{app}\rorch.exe"; Parameters: "{code:UninstallArgs}"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveProduct"
 
 [InstallDelete]
 ; an update replaces the program folder whole: files of the previous version (old dist-info, renamed modules) must not stay behind
@@ -84,7 +84,7 @@ Type: filesandordirs; Name: "{app}"
 
 const
   ProductName = 'Orchestrator';
-  ProductExe = 'respected-orchestrator.exe';
+  ProductExe = 'rorch.exe';
   ProductFolder = 'RespectedOrchestrator';
   InstallRecord = 'app\.respected\install.json';  // the product's own install record, relative to its folder
   UninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{8E2B4D7A-61C3-4F09-A5D8-3B9E17C2F640}_is1';
@@ -444,7 +444,7 @@ begin
       ApplyMemoryChoice;
       MsgBox('Ayarlar kaydedildi.', mbInformation, MB_OK);
     end else
-      MsgBox('Ayarlar kaydedilemedi; hiçbir şey değişmedi. Ayrıntı için: respected-orchestrator config', mbError, MB_OK);
+      MsgBox('Ayarlar kaydedilemedi; hiçbir şey değişmedi. Ayrıntı için: rorch config', mbError, MB_OK);
     Result := False;
     Leave;
   end;
