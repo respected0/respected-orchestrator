@@ -44,7 +44,15 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   Ortak uçta `session.defaults.set` (ayar) yoktur.
 - Motor, kendini Windows iş nesnesine (`winproc.contain_children`, kapanınca öldür) koyar: motor nasıl biterse bitsin ajan çocukları kalmaz.
   Koşular `CREATE_BREAKAWAY_FROM_JOB` ile ayrık başladığından iş nesnesinin dışındadır ve motor kapanınca da devam eder.
-- Masaüstü ve MCP henüz taşınmadı: masaüstü hâlâ kendi `_ipc` çocuğunu kullanır (3. dilim), MCP kendi sürecini (4. dilim).
+- Masaüstü kabuğu (3. dilim) motoru başlatıcıya `daemon start` dedirterek ayakta tutar ve çıktıdaki boruya bağlanır (`Connection::connect`);
+  kabuk motoru artık kendi çocuğu olarak çalıştırmaz ve kapanınca motoru durdurmaz. Boru adını motor verir (kabuk adı hesaplamaz) ve
+  yalnız `rorch-` ailesinden bir ad açılır. Kabuğu motor tanır: bağlanan sürecin dosyası, başlatıcının yanındaki
+  `respected-orchestrator-desktop.exe` ve baytları `distribution.json`'daki karma ile aynıysa `RENDERER` düzeyi verilir (okuma, görev ve
+  ayar komutları; onay/uygulama yine yoktur). Tek ayar komutu `session.defaults.set`'tir. Paketsiz (kaynaktan) çalışan motorda kimse tanınmaz.
+  Aynı kullanıcının kabuk sürecine kod enjekte etmesi bu kontrolün kapsamı dışındadır.
+- Yerli onay bağlantısı (`approval.decide/apply`, ekran görüntüsü onayı) kabuğun **özel** çocuk motorudur (`connect_private`, `_ipc --human`): yalnız
+  kabuğun kendi borularından erişilir. Onay durumu imzalı dosyalardadır, bu yüzden ortak motorla tutarlıdır.
+- MCP henüz taşınmadı: `rorch mcp` hâlâ kendi sürecidir (4. dilim). Sesli giriş ve ekran görüntüsü hazırlığı bağlantı başınadır; kabuk tek bağlantı tutar.
 
 ## 2. Görev ve sonuç denetimi
 

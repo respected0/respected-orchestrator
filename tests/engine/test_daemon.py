@@ -187,6 +187,29 @@ time.sleep(120)
         self.assertFalse(lanes._pid_is_alive(agent))
         self.assertTrue(lanes._pid_is_alive(run))
 
+    def test_only_the_installed_desktop_program_is_recognised_and_gets_settings(self):
+        app = Path(self.temporary.name) / "app"
+        app.mkdir()
+        exe = app / daemon.DESKTOP_EXE
+        exe.write_bytes(b"desktop v1")
+        import hashlib
+        (app / "distribution.json").write_text(json.dumps({"files": {daemon.DESKTOP_EXE: hashlib.sha256(b"desktop v1").hexdigest()}}), encoding="utf-8")
+        with mock.patch.object(winproc, "process_image", return_value=str(exe)):
+            self.assertTrue(daemon.is_desktop(1, app))
+        with mock.patch.object(winproc, "process_image", return_value=str(app / "other.exe")):
+            self.assertFalse(daemon.is_desktop(1, app))  # another program, even in the same folder
+        with mock.patch.object(winproc, "process_image", return_value=None):
+            self.assertFalse(daemon.is_desktop(1, app))
+        exe.write_bytes(b"desktop v1 + implant")  # replaced after packaging: no longer the listed file
+        with mock.patch.object(winproc, "process_image", return_value=str(exe)):
+            self.assertFalse(daemon.is_desktop(1, app))
+        (app / "distribution.json").write_text("{}", encoding="utf-8")
+        with mock.patch.object(winproc, "process_image", return_value=str(exe)):
+            self.assertFalse(daemon.is_desktop(1, app))
+        self.assertFalse(daemon.is_desktop(1))  # not a packaged engine: nobody qualifies
+        self.assertIn("session.defaults.set", daemon.SERVED_DESKTOP)
+        self.assertTrue({"approval.decide", "approval.apply", "attachment.commit"}.isdisjoint(daemon.SERVED_DESKTOP))
+
     def test_each_data_root_has_its_own_pipe(self):
         other = EngineContext(Path(self.temporary.name).resolve() / "other")
         self.assertNotEqual(daemon.pipe_name(self.ctx), daemon.pipe_name(other))

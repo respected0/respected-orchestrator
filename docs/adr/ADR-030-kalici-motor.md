@@ -86,13 +86,29 @@ Bu madde §6'daki açık sorunun cevabına bağlıdır: onay durumu iki süreç 
 5. **Kurucu ve yükseltme:** durdurma adımı, sürüm uyuşmazlığı, `FOOTPRINT`/`ARCHITECTURE` güncellemesi.
 6. **Tek işlem kataloğu** (karar 3): `catalog.list`, CLI/MCP/masaüstü komutlarının tek tablodan üretilmesi. Daemon'un bir sonucu, ayrı iş.
 
+## İlerleme (her dilim bitince güncellenir)
+
+Durum: `[x]` bitti ve doğrulandı, `[~]` yapıldı ama bir kısmı doğrulanmadı, `[ ]` yapılmadı. Son güncelleme: 9 Kasım 2026.
+
+| Dilim | Görev | Durum | Not / doğrulanmayan |
+|---|---|---|---|
+| 1. İskelet | `rorch daemon start\|stop\|restart\|status`, tek örnek kilidi, kullanıcıya özel boru, sunucu tarafı köken çözümü, yetkili komutların sunulmaması, boşta çıkış | `[x]` | Başka kullanıcı hesabıyla erişim reddi ve gerçek ajan işçisi soyundan bağlanma uçtan uca denenmedi |
+| 2. Oturumlar | Tek `SessionController`, `rorch session ...`, tur sürerken boşta çıkmama, iş nesnesiyle yetim koruması | `[~]` | Gerçek ajanla (opencode) uçtan uca oturum çalıştırılmadı (token harcar, onay ister) |
+| 3. Masaüstü | Kabuk motora boruyla bağlanır, motor masaüstü programını dosya ve karmayla tanır (`renderer` düzeyi), onay bağlantısı özel çocukta kalır | `[~]` | Gerçek uygulamayla bağlantı, tanıma ve "uygulama kapanınca motor kalır" görüldü; ekrandaki rozet ve `session.defaults.set`'in uygulamadan çağrılması görülmedi |
+| 4. MCP köprüsü | `rorch mcp` araç çağrılarını motora iletir; özyineleme koruması korunur | `[ ]` | |
+| 5. Kurucu ve yükseltme | Kurucu dosyaları değiştirmeden önce `daemon stop`; sürüm/paket karması uyuşmazlığında açık hata; `FOOTPRINT`/`ARCHITECTURE` | `[ ]` | |
+| 6. Tek katalog | `catalog.list`; CLI, MCP ve masaüstü komutlarının tek tablodan üretilmesi (karar 3) | `[ ]` | Ayrı iş |
+
+Dilimler arası kalan işler: Unix soketi (Windows dışı), `session.defaults.set` dışında masaüstünün ayar ihtiyacı doğarsa yeniden değerlendirme, `daemon` günlüğünün dönmesi/boyutu.
+
 ## Doğrulama planı
 
 Birim: tek örnek, ikinci başlatma, durdur/yeniden başlat idempotent, bayat uç temizliği. Güvenlik: işçi soyundan gelen bağlantı hiçbir komut çalıştıramaz; ortak uçta yetkili komut bulunmaz (katalog testi); başka kullanıcı erişim listesi denetimi; sürüm uyuşmazlığı reddi. Paket: donmuş `rorch.exe` ile başlat/durdur uçtan uca. Çökme: daemon öldürülünce yetim ajan kalmaz, `resume` çalışır.
 
 ## Sonuçlar ve sınırlar
 
-- 2. dilim sonrası: tek kalıcı motor süreci, kullanıcıya özel boru, sunucu tarafı köken çözümü, `rorch daemon` ve `rorch session` komutları vardır; canlı sohbet oturumları motordadır ve bağlantılar arasında ortaktır. Masaüstü ve MCP henüz taşınmadı. Varsayılan ajan/model değiştirmek ortak uçta yoktur; masaüstü bunu 3. dilimde kendi özel kanalından yapar.
+- 2. dilim sonrası: tek kalıcı motor süreci, kullanıcıya özel boru, sunucu tarafı köken çözümü, `rorch daemon` ve `rorch session` komutları vardır; canlı sohbet oturumları motordadır ve bağlantılar arasında ortaktır. MCP henüz taşınmadı.
+- 3. dilimde `session.defaults.set` için karar: ayar komutları ortak uçta herkese açılmaz; yalnız **kurulu masaüstü programı** (dosya yolu ve `distribution.json` karması eşleşen süreç) `RENDERER` düzeyi alır. Masaüstünün başka ayar komutu yoktur. Bu, 'ayar yoktur' ilkesinden bilinçli ve dar bir sapmadır.
 - Gerçek bir ajanla (opencode) uçtan uca oturum bu dilimde çalıştırılmadı (token harcar, ayrıca onay ister); paylaşım sahte kayıtla, kapsama gerçek süreçlerle test edildi.
 - Aynı kullanıcı olarak çalışan işçi veri kökünü okuyabilir; motor bunu kapatmaz. Kapattığı şey, işçinin insan onayı olmadan onay/uygulama komutunu tetiklemesidir.
 - Başka kullanıcı hesabıyla erişim reddi ve gerçek bir ajan işçisinin soyundan bağlanma uçtan uca denenmedi; erişim listesi içeriği ve sınıflama birim testle doğrulandı.
@@ -101,4 +117,5 @@ Birim: tek örnek, ikinci başlatma, durdur/yeniden başlat idempotent, bayat u�
 ## Kaynaklar
 
 - `src/respected_orchestrator/engine/daemon.py`, `daemon_client.py`, `winproc.py`, `supervisor.py`, `local_api.py`, `authority.py` (erişim: 2026-11-09).
-- Kanıt: `tests/engine/test_daemon.py` (11), `tests/packaging/test_frozen_build.py` (erişim: 2026-11-09).
+- `desktop/src-tauri/src/engine_connector.rs`, `approval.rs` (erişim: 2026-11-09).
+- Kanıt: `tests/engine/test_daemon.py` (18), `tests/packaging/test_frozen_build.py`, `cargo test` (38) (erişim: 2026-11-09).

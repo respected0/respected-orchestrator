@@ -7,7 +7,7 @@ Kabul edildi (7 Kasım 2026). Görev: B3-09.01. `docs/PRODUCT_CONTRACT.md` metni
 ## Bağlam
 
 Beta.2'ye kadar Orchestrator tek PyInstaller klasörüydü (`rorch.exe` + `app\` çalışma zamanı + `distribution.json`). Beta.3 ile
-Tauri masaüstü kabuğu (`respected-orchestrator-desktop.exe`) eklenir. Kabuk motoru kendi çocuk süreci olarak başlatır (`_ipc`); ikisi iki ayrı uygulama gibi
+Tauri masaüstü kabuğu (`respected-orchestrator-desktop.exe`) eklenir. Kabuk motoru (ADR-030'dan beri) kalıcı motor olarak `daemon start` ile ayakta tutar ve boruyla bağlanır; yalnız yerli onay bağlantısı kendi çocuk motorudur (`_ipc --human`); ikisi iki ayrı uygulama gibi
 kurulmamalı, iki ayrı güncellenmemeli, iki ayrı kayıt tutmamalı.
 
 ## Karar

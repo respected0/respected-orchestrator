@@ -141,3 +141,25 @@ def contain_children() -> None:
     win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation, info)
     win32job.AssignProcessToJobObject(job, win32api.GetCurrentProcess())
     _job = job  # the handle must stay open for the life of the process
+
+
+def process_image(pid: int) -> str | None:
+    """Full path of the program `pid` runs (Windows), or None when it cannot be read."""
+    if os.name != "nt":
+        return None
+    import ctypes
+    from ctypes import wintypes as w
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.OpenProcess.restype = w.HANDLE
+    kernel.CloseHandle.argtypes = [w.HANDLE]
+    handle = kernel.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+    if not handle:
+        return None
+    try:
+        size = w.DWORD(32768)
+        buffer = ctypes.create_unicode_buffer(size.value)
+        if not kernel.QueryFullProcessImageNameW(handle, 0, buffer, ctypes.byref(size)):
+            return None
+        return buffer.value
+    finally:
+        kernel.CloseHandle(handle)

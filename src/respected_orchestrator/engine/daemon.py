@@ -4,9 +4,10 @@ Ownership is the OS file lock `daemon.lock` (a crash releases it). The only way 
 names the current user alone; there is no port. The wire protocol is local_api's line-delimited JSON, unchanged.
 
 Who is calling is decided here, never by the client: a connection whose process descends from one of the engine's own
-running workers is CHILD (no rights); every other connection is MCP-level (read and task commands). Approve, apply and
-settings commands are not in the catalog this process serves, whatever the origin: they stay on the native shell's private
-channel and on the terminal (ADR-030 section 3).
+running workers is CHILD (no rights); the installed desktop program, recognised by its image path and the hash the package
+manifest records, is RENDERER-level (read, task and settings commands); every other connection is MCP-level (read and task).
+Approve and apply commands are in no catalog this process serves, whatever the origin: they stay on the native shell's
+private channel and on the terminal (ADR-030 section 3).
 """
 from __future__ import annotations
 
@@ -15,8 +16,10 @@ import hashlib
 import json
 import os
 import secrets
+import sys
 import threading
 import time
+from pathlib import Path
 
 from .. import __version__
 from . import winproc
@@ -28,6 +31,8 @@ from .supervisor import Supervisor, SupervisorBusy
 IDLE_SECONDS = 30 * 60  # nothing connected, no run working: the daemon leaves (ADR-030 D2)
 CONTROL = ("daemon.status", "daemon.stop")
 SERVED = frozenset(name for name, (_op, action) in COMMANDS.items() if action in (Action.READ, Action.TASK))
+SERVED_DESKTOP = SERVED | frozenset(name for name, (_op, action) in COMMANDS.items() if action is Action.SETTINGS)
+DESKTOP_EXE = "respected-orchestrator-desktop.exe"
 
 
 class DaemonLock(Supervisor):
@@ -44,11 +49,38 @@ def pipe_path(ctx) -> str:
     return "\\\\.\\pipe\\" + pipe_name(ctx)
 
 
+_hashed: dict = {}
+
+
+def is_desktop(pid: int, app_dir: Path | None = None) -> bool:
+    """True when `pid` runs the desktop program of this installation: the very file next to the engine launcher, byte-for-byte the one
+    the package manifest (distribution.json) lists. Without a packaged install nobody qualifies. Same-user code injection is not covered."""
+    app = app_dir if app_dir is not None else (Path(sys.executable).parent if getattr(sys, "frozen", False) else None)
+    image = winproc.process_image(pid)
+    if app is None or not image:
+        return False
+    expected = app / DESKTOP_EXE
+    if os.path.normcase(os.path.realpath(image)) != os.path.normcase(os.path.realpath(expected)):
+        return False
+    try:
+        listed = json.loads((app / "distribution.json").read_text(encoding="utf-8"))["files"][DESKTOP_EXE]
+        stat = expected.stat()
+        key = (str(expected), stat.st_mtime_ns, stat.st_size)
+        if key not in _hashed:
+            _hashed[key] = hashlib.sha256(expected.read_bytes()).hexdigest()
+        return isinstance(listed, str) and _hashed[key] == listed.lower()
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+
+
 def classify(ctx, pid: int) -> Origin:
-    """CHILD when `pid` is, or descends from, a process that is working on a run right now; otherwise MCP-level."""
+    """CHILD when `pid` is, or descends from, a process that is working on a run right now; RENDERER for the installed desktop program;
+    otherwise MCP-level."""
     from . import maintenance
     working = {int(p) for p in maintenance.run_pids(ctx).values()}
-    return Origin.CHILD if working & {pid, *winproc.ancestors(pid)} else Origin.MCP
+    if working & {pid, *winproc.ancestors(pid)}:
+        return Origin.CHILD
+    return Origin.RENDERER if is_desktop(pid) else Origin.MCP
 
 
 class Daemon:
@@ -57,6 +89,7 @@ class Daemon:
         self.stop_event = threading.Event()
         self.started_at = time.time()
         self._connections, self._last_activity = 0, time.monotonic()
+        self._origins: dict = {}  # origin name -> open connections, for `daemon status`
         self._guard = threading.Lock()
         self.sessions = session_controller(ctx)  # the one set of live chat sessions every connection shares
 
@@ -69,7 +102,8 @@ class Daemon:
 
     def status(self) -> dict:
         return {"pid": os.getpid(), "version": __version__, "data_root": str(self.ctx.data_root), "started_at": self.started_at,
-                "pipe": pipe_name(self.ctx), "idle_seconds": self.idle_seconds, "connections": self._connections}
+                "pipe": pipe_name(self.ctx), "idle_seconds": self.idle_seconds, "connections": self._connections,
+                "origins": dict(self._origins)}
 
     def run(self) -> int:
         if os.name != "nt":
@@ -129,10 +163,13 @@ class Daemon:
         import pywintypes
         import win32file
         import win32pipe
+        origin = None
         with self._guard:
             self._connections += 1
         try:
             origin = classify(self.ctx, win32pipe.GetNamedPipeClientProcessId(handle))
+            with self._guard:
+                self._origins[origin.value] = self._origins.get(origin.value, 0) + 1
             token = secrets.token_hex(16)  # local_api insists on one; the pipe's access list is the real gate
             api = self.api(origin, token)
             buffer = b""
@@ -154,6 +191,10 @@ class Daemon:
         finally:
             with self._guard:
                 self._connections -= 1
+                if origin is not None:
+                    self._origins[origin.value] -= 1
+                    if not self._origins[origin.value]:
+                        del self._origins[origin.value]
             self._last_activity = time.monotonic()
             try:
                 win32file.FlushFileBuffers(handle)  # DisconnectNamedPipe drops whatever the client has not read yet
@@ -164,7 +205,8 @@ class Daemon:
 
     def api(self, origin, token):
         """One connection's view of the engine: the served catalog only, the sessions every connection shares."""
-        return LocalApi(self.ctx, token, origin=origin, journal=Journal(self.ctx.state_dir / "events.log"), only=SERVED, sessions=self.sessions)
+        return LocalApi(self.ctx, token, origin=origin, journal=Journal(self.ctx.state_dir / "events.log"),
+                        only=SERVED_DESKTOP if origin is Origin.RENDERER else SERVED, sessions=self.sessions)
 
     def _answer(self, api, origin, token, line):
         try:

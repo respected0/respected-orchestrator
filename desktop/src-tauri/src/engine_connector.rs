@@ -1,10 +1,12 @@
-//! Engine connector (B3-01.03): the shell starts the engine itself and talks to it over the child's own stdio,
-//! so there is no port or pipe another process could own. No raw command dispatch: only `hello` + `engine.health`.
+//! Engine connector (B3-01.03, ADR-030): the shell asks the launcher to make sure the one persistent engine runs
+//! (`daemon start`) and connects to its per-user named pipe; chat sessions live in that engine, so the CLI and the shell see the same ones.
+//! The engine decides who is calling (this program is recognised by its file and hash), the shell asserts nothing.
+//! The native approval connection (`connect_private`) stays a child of the shell on its own stdio: no other process can reach it.
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
-use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+use std::process::{Child, Command, Stdio};
 
 pub const IPC: &str = "1";
 pub const PRODUCT_ID: &str = "respected-orchestrator";
@@ -134,12 +136,62 @@ impl Launch {
 }
 
 pub struct Connection {
-    child: Child,
-    stdin: ChildStdin,
-    stdout: BufReader<ChildStdout>,
+    child: Option<Child>, // only the private approval connection owns a process; the persistent engine outlives the shell
+    writer: Box<dyn Write + Send>,
+    reader: Box<dyn BufRead + Send>,
     token: String,
     n: u64,
     pub version: String,
+}
+
+/// What a dropped pipe connection writes into.
+struct Closed;
+impl Write for Closed {
+    fn write(&mut self, _: &[u8]) -> std::io::Result<usize> { Err(std::io::ErrorKind::BrokenPipe.into()) }
+    fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
+}
+
+fn creation_flags(cmd: &mut Command) {
+    #[cfg(windows)]
+    std::os::windows::process::CommandExt::creation_flags(cmd, 0x0800_0000); // CREATE_NO_WINDOW
+    #[cfg(not(windows))]
+    let _ = cmd;
+}
+
+impl Launch {
+    fn prefix(&self) -> Vec<String> { self.args.iter().take_while(|a| a.as_str() != "_ipc").cloned().collect() }
+
+    /// `daemon <word>` through the same hash-checked launcher; the engine's own JSON answer.
+    pub fn daemon(&self, word: &str) -> Result<Value, ConnectError> {
+        let mut cmd = Command::new(&self.program);
+        cmd.args(self.prefix()).args(["daemon", word]).envs(self.env.iter().cloned()).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::null());
+        creation_flags(&mut cmd);
+        let out = cmd.output().map_err(|e| ConnectError::NotInstalled(e.to_string()))?;
+        serde_json::from_slice(&out.stdout).map_err(|_| ConnectError::BrokenInstall(String::from_utf8_lossy(&out.stdout).chars().take(120).collect()))
+    }
+}
+
+#[cfg(windows)]
+fn open_pipe(name: &str) -> Result<std::fs::File, ConnectError> {
+    // Only the engine's own pipe family: whatever the launcher printed, the shell never opens another name.
+    if !name.starts_with("rorch-") || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+        return Err(ConnectError::WrongOwner(name.chars().take(60).collect()));
+    }
+    let path = format!(r"\\.\pipe\{name}");
+    let mut last = String::new();
+    for _ in 0..60 {
+        match std::fs::OpenOptions::new().read(true).write(true).open(&path) {
+            Ok(f) => return Ok(f),
+            Err(e) if e.raw_os_error() == Some(231) => { last = e.to_string(); std::thread::sleep(std::time::Duration::from_millis(50)); } // ERROR_PIPE_BUSY
+            Err(e) => return Err(ConnectError::Disconnected(e.to_string())),
+        }
+    }
+    Err(ConnectError::Disconnected(last))
+}
+
+#[cfg(not(windows))]
+fn open_pipe(_: &str) -> Result<std::fs::File, ConnectError> {
+    Err(ConnectError::NotInstalled("the persistent engine is Windows-only for now".into()))
 }
 
 fn token() -> String {
@@ -149,17 +201,32 @@ fn token() -> String {
 }
 
 impl Connection {
+    /// The persistent engine: started when it is not running, never owned by this program.
     pub fn connect(launch: &Launch) -> Result<Connection, ConnectError> {
+        let started = launch.daemon("start")?;
+        if started["error"].is_object() {
+            return Err(ConnectError::Disconnected(started["error"]["message"].as_str().unwrap_or("the engine did not start").to_string()));
+        }
+        let name = started["pipe"].as_str().ok_or_else(|| ConnectError::BrokenInstall(started.to_string().chars().take(120).collect()))?;
+        let file = open_pipe(name)?;
+        let reader = file.try_clone().map_err(|e| ConnectError::Disconnected(e.to_string()))?;
+        Self::handshake(Connection { child: None, writer: Box::new(file), reader: Box::new(BufReader::new(reader)), token: token(), n: 0, version: String::new() })
+    }
+
+    /// An engine of its own on this program's stdio (the native approval connection): the parent's pipes are the only way in.
+    pub fn connect_private(launch: &Launch) -> Result<Connection, ConnectError> {
         let token = token();
         let mut cmd = Command::new(&launch.program);
         cmd.args(&launch.args).envs(launch.env.iter().cloned()).env("RESPECTED_IPC_TOKEN", &token)
             .stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null());
-        #[cfg(windows)]
-        std::os::windows::process::CommandExt::creation_flags(&mut cmd, 0x0800_0000); // CREATE_NO_WINDOW
+        creation_flags(&mut cmd);
         let mut child = cmd.spawn().map_err(|e| ConnectError::NotInstalled(e.to_string()))?;
         let stdin = child.stdin.take().unwrap();
         let stdout = BufReader::new(child.stdout.take().unwrap());
-        let mut c = Connection { child, stdin, stdout, token, n: 0, version: String::new() };
+        Self::handshake(Connection { child: Some(child), writer: Box::new(stdin), reader: Box::new(stdout), token, n: 0, version: String::new() })
+    }
+
+    fn handshake(mut c: Connection) -> Result<Connection, ConnectError> {
         let hello = c.call("hello")?;
         if hello["ipc"] != IPC || hello["result"]["ipc"] != IPC {
             return Err(ConnectError::VersionMismatch(hello["ipc"].to_string()));
@@ -178,9 +245,9 @@ impl Connection {
         self.n += 1;
         let req = json!({"ipc": IPC, "id": format!("shell-{:08}", self.n), "session": self.token, "cmd": cmd, "payload": payload});
         let gone = |e: String| ConnectError::Disconnected(e);
-        writeln!(self.stdin, "{req}").and_then(|_| self.stdin.flush()).map_err(|e| gone(e.to_string()))?;
+        writeln!(self.writer, "{req}").and_then(|_| self.writer.flush()).map_err(|e| gone(e.to_string()))?;
         let mut line = String::new();
-        if self.stdout.read_line(&mut line).map_err(|e| gone(e.to_string()))? == 0 {
+        if self.reader.read_line(&mut line).map_err(|e| gone(e.to_string()))? == 0 {
             return Err(gone("engine closed the connection".into()));
         }
         serde_json::from_str(&line).map_err(|_| ConnectError::BrokenInstall(line.chars().take(120).collect()))
@@ -216,11 +283,24 @@ impl Connection {
         self.raw("settings.readback", json!({}))
     }
 
-    pub fn kill(&mut self) { let _ = self.child.kill(); let _ = self.child.wait(); }
+    /// Ends a private engine; for the persistent one only this connection is dropped (the engine keeps running).
+    pub fn kill(&mut self) {
+        if let Some(child) = self.child.as_mut() { let _ = child.kill(); let _ = child.wait(); }
+        self.writer = Box::new(Closed);
+        self.reader = Box::new(BufReader::new(std::io::empty()));
+    }
 }
 
 impl Drop for Connection {
     fn drop(&mut self) { self.kill(); }
+}
+
+/// Tests that start the persistent engine stop it again, so none is left running.
+#[cfg(test)]
+pub struct StopEngine(pub Launch);
+#[cfg(test)]
+impl Drop for StopEngine {
+    fn drop(&mut self) { let _ = self.0.daemon("stop"); }
 }
 
 #[cfg(test)]
@@ -231,9 +311,10 @@ mod tests {
         Launch { program: "python".into(), args: args.iter().map(|s| s.to_string()).collect(), env: vec![] }
     }
 
-    fn real() -> Launch {
+    /// One data root per test: tests run in parallel, and each persistent engine belongs to its own data root.
+    fn real(tag: &str) -> Launch {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
-        let data = std::env::temp_dir().join(format!("orch-conn-{}", std::process::id()));
+        let data = std::env::temp_dir().join(format!("orch-conn-{tag}-{}", std::process::id()));
         let mut l = py(&["-m", "respected_orchestrator", "_ipc"]);
         l.env = vec![("PYTHONPATH".into(), root.join("src").display().to_string()), ("RESPECTED_DATA_DIR".into(), data.display().to_string())];
         l
@@ -314,18 +395,18 @@ mod tests {
 
     #[test]
     fn garbage_output_is_a_broken_install() {
-        assert!(matches!(Connection::connect(&py(&["-c", "print('garbage')"])), Err(ConnectError::BrokenInstall(_))));
-        assert!(matches!(Connection::connect(&py(&["-c", "pass"])), Err(ConnectError::Disconnected(_))));
+        assert!(matches!(Connection::connect_private(&py(&["-c", "print('garbage')"])), Err(ConnectError::BrokenInstall(_))));
+        assert!(matches!(Connection::connect_private(&py(&["-c", "pass"])), Err(ConnectError::Disconnected(_))));
     }
 
     #[test]
     fn other_product_is_refused() {
-        assert!(matches!(Connection::connect(&fake("1", "respected-hub")), Err(ConnectError::WrongOwner(_))));
+        assert!(matches!(Connection::connect_private(&fake("1", "respected-hub")), Err(ConnectError::WrongOwner(_))));
     }
 
     #[test]
     fn other_ipc_version_is_refused() {
-        assert!(matches!(Connection::connect(&fake("2", PRODUCT_ID)), Err(ConnectError::VersionMismatch(_))));
+        assert!(matches!(Connection::connect_private(&fake("2", PRODUCT_ID)), Err(ConnectError::VersionMismatch(_))));
     }
 
     #[test]
@@ -356,9 +437,10 @@ command = \"definitely-not-installed-xyz\"
 TOKEN = \"sk-SHOULDNEVERAPPEAR123456\"
 ").unwrap();
         let before = std::fs::read(&config).unwrap();
-        let mut launch = real();
+        let mut launch = real("inventory");
         launch.env.push(("USERPROFILE".into(), home.display().to_string()));
         launch.env.push(("HOME".into(), home.display().to_string()));
+        let _stop = StopEngine(launch.clone());
         let mut c = Connection::connect(&launch).expect("connect");
         let reply = c.inventory(None).expect("inventory");
         assert_eq!(reply["ok"], true, "{reply}");
@@ -376,7 +458,8 @@ TOKEN = \"sk-SHOULDNEVERAPPEAR123456\"
 
     #[test]
     fn real_engine_handshake_crash_and_reconnect() {
-        let launch = real();
+        let launch = real("crash");
+        let _stop = StopEngine(launch.clone());
         let mut c = Connection::connect(&launch).expect("connect");
         assert!(!c.version.is_empty());
         assert_eq!(c.status().unwrap().version, c.version);
@@ -384,5 +467,18 @@ TOKEN = \"sk-SHOULDNEVERAPPEAR123456\"
         assert!(matches!(c.status(), Err(ConnectError::Disconnected(_))));
         let mut again = Connection::connect(&launch).expect("reconnect");
         assert!(again.status().is_ok());
+    }
+
+    #[test]
+    fn two_connections_reach_the_same_running_engine_and_closing_one_does_not_stop_it() {
+        let launch = real("shared");
+        let _stop = StopEngine(launch.clone());
+        let (mut first, mut second) = (Connection::connect(&launch).expect("first"), Connection::connect(&launch).expect("second"));
+        let pid = |l: &Launch| l.daemon("status").unwrap()["pid"].clone();
+        let engine = pid(&launch);
+        assert!(engine.is_number());
+        first.kill();
+        assert!(second.status().is_ok(), "the other connection is untouched");
+        assert_eq!(pid(&launch), engine, "same engine process, still running");
     }
 }

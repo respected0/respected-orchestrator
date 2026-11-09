@@ -30,13 +30,13 @@ pub trait Engine {
     fn human(&mut self, cmd: &str, payload: Value) -> Result<Value, String>;
 }
 
-/// Two separate engine processes with separate session tokens: the asker (renderer origin) and the presence connection
-/// (human origin, only approval.decide/apply). The renderer is never given either handle.
+/// The asker is a connection to the persistent engine (which decides it may only read and start things); the presence connection
+/// is a private engine on the shell's own stdio (human origin, only approval.decide/apply). The renderer is never given either handle.
 pub struct Pair { pub asker: crate::engine_connector::Connection, pub human: crate::engine_connector::Connection }
 
 impl Pair {
     pub fn connect(launch: &crate::engine_connector::Launch) -> Result<Pair, crate::engine_connector::ConnectError> {
-        Ok(Pair { asker: crate::engine_connector::Connection::connect(launch)?, human: crate::engine_connector::Connection::connect(&launch.human())? })
+        Ok(Pair { asker: crate::engine_connector::Connection::connect(launch)?, human: crate::engine_connector::Connection::connect_private(&launch.human())? })
     }
 }
 
@@ -127,6 +127,7 @@ mod tests {
 
     #[test]
     fn the_two_real_engine_connections_have_different_authority() {
+        let _stop = crate::engine_connector::StopEngine(real_launch());
         let mut pair = Pair::connect(&real_launch()).expect("connect both");
         let bogus = json!({"challenge_id": "chal-0000000000000000", "decision": "approve", "binding": "x"});
         // The renderer-origin connection can never decide, even though it speaks the same protocol.
