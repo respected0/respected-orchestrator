@@ -10,7 +10,9 @@ from respected_orchestrator.interfaces import mcp_server
 
 from respected_orchestrator.engine import runner
 from respected_orchestrator.context import EngineContext
+from respected_orchestrator.engine import daemon_client
 from respected_orchestrator.engine.evidence import save_signed
+from unittest import mock
 
 SRC = str(Path(__file__).resolve().parents[2] / "src")
 
@@ -117,6 +119,54 @@ class McpServerTest(unittest.TestCase):
         self.assertEqual(len(free), 2)  # the notification gets no reply
         self.assertGreater(len(free[1]["result"]["tools"]), 5)
         self.assertEqual(run({mcp_server.DELEGATED: "1"})[1]["result"]["tools"], [])
+
+
+class McpSessionToolsTest(unittest.TestCase):
+    """ADR-030 slice 4: chat sessions are the engine's, the MCP server only carries the call."""
+
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.ctx = EngineContext(Path(self.temporary.name).resolve())
+
+    def text(self, name, args, **kw):
+        result = call(self.ctx, name, args, **kw)["result"]
+        return result["isError"], json.loads(result["content"][0]["text"])
+
+    def test_the_session_tools_are_listed_with_honest_read_only_hints_and_no_approval(self):
+        tools = {t["name"]: t for t in mcp_server.handle(self.ctx, {"id": 1, "method": "tools/list"})["result"]["tools"]}
+        names = [n for n in tools if n.startswith("orchestrator_session_")]
+        self.assertEqual(len(names), 8)
+        self.assertTrue(all(not any(w in n for w in ("approve", "apply", "grant", "default")) for n in names))
+        self.assertEqual({n for n in names if tools[n]["annotations"]["readOnlyHint"]},
+                         {"orchestrator_session_list", "orchestrator_session_events", "orchestrator_session_transcript"})
+
+    def test_a_call_is_carried_to_the_engine_unchanged_and_its_answer_comes_back(self):
+        args = {"project_id": "p1", "session_id": "loc_abcdefgh12", "text": "hello"}
+        with mock.patch.object(daemon_client, "start"), mock.patch.object(daemon_client, "request", return_value={"ok": True, "result": {"state": "running"}}) as ask:
+            self.assertEqual(self.text("orchestrator_session_send", args), (False, {"state": "running"}))
+        self.assertEqual(ask.call_args.args[1:3], ("session.send", args))
+
+    def test_an_engine_refusal_and_a_missing_engine_are_errors_not_made_up_answers(self):
+        with mock.patch.object(daemon_client, "start"), mock.patch.object(daemon_client, "request", return_value={"ok": False, "error": {"code": "FORBIDDEN", "message": "Not allowed for this origin."}}):
+            failed, body = self.text("orchestrator_session_cancel", {"project_id": "p", "session_id": "loc_abcdefgh12"})
+        self.assertTrue(failed)
+        self.assertIn("FORBIDDEN", body["error"])
+        with mock.patch.object(daemon_client, "start", side_effect=daemon_client.DaemonUnavailable("no engine")):
+            failed, body = self.text("orchestrator_session_list", {})
+        self.assertTrue(failed)
+        self.assertIn("ENGINE_UNAVAILABLE", body["error"])
+
+    def test_an_orchestrated_process_cannot_use_them(self):
+        self.assertIn("error", call(self.ctx, "orchestrator_session_list", {}, delegated=True))
+
+    @unittest.skipUnless(os.name == "nt", "named pipe transport is Windows-only for now")
+    def test_through_the_real_engine(self):
+        self.addCleanup(daemon_client.stop, self.ctx)
+        self.assertEqual(self.text("orchestrator_session_list", {"project_id": "p1"}), (False, {"sessions": [], "conversations": []}))
+        failed, body = self.text("orchestrator_session_start", {"project_id": "p1", "project_root": "C:\\nowhere", "text": "hi"})
+        self.assertTrue(failed)
+        self.assertIn("ROOT_INVALID", body["error"])  # the engine's own validation, reached over the pipe
 
 
 if __name__ == "__main__":

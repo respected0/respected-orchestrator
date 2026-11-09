@@ -63,6 +63,9 @@ model ajanın listesinde değilse `MODEL_INVALID` ile reddedilir ve kaydedilmez)
 `orchestrator_list`, `orchestrator_progress`, `orchestrator_evidence`, `orchestrator_resume`, `orchestrator_cancel`,
 `orchestrator_apply`, `orchestrator_memory_note` (yalnızca hafıza yazma izni varsa).
 
+**MCP oturum araçları** (kalıcı motorun canlı sohbet oturumları; `rorch session` ve masaüstüyle aynı oturumlar): `orchestrator_session_list`, `_start`, `_send`,
+`_events`, `_transcript`, `_interrupt`, `_cancel`, `_resume`. Alanlar `rorch session` ile aynıdır; onay ve varsayılan değiştirme yoktur.
+
 ## Görevler
 
 | Komut | Girdi | Ne yapar |

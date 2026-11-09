@@ -95,7 +95,7 @@ Durum: `[x]` bitti ve doğrulandı, `[~]` yapıldı ama bir kısmı doğrulanmad
 | 1. İskelet | `rorch daemon start\|stop\|restart\|status`, tek örnek kilidi, kullanıcıya özel boru, sunucu tarafı köken çözümü, yetkili komutların sunulmaması, boşta çıkış | `[x]` | Başka kullanıcı hesabıyla erişim reddi ve gerçek ajan işçisi soyundan bağlanma uçtan uca denenmedi |
 | 2. Oturumlar | Tek `SessionController`, `rorch session ...`, tur sürerken boşta çıkmama, iş nesnesiyle yetim koruması | `[~]` | Gerçek ajanla (opencode) uçtan uca oturum çalıştırılmadı (token harcar, onay ister) |
 | 3. Masaüstü | Kabuk motora boruyla bağlanır, motor masaüstü programını dosya ve karmayla tanır (`renderer` düzeyi), onay bağlantısı özel çocukta kalır | `[~]` | Gerçek uygulamayla bağlantı, tanıma ve "uygulama kapanınca motor kalır" görüldü; ekrandaki rozet ve `session.defaults.set`'in uygulamadan çağrılması görülmedi |
-| 4. MCP köprüsü | `rorch mcp` araç çağrılarını motora iletir; özyineleme koruması korunur | `[ ]` | |
+| 4. MCP oturum araçları | `rorch mcp`'ye 8 `orchestrator_session_*` aracı; çağrı motora iletilir (motor yoksa başlatılır), özyineleme koruması korunur | `[~]` | **Kapsam değişti:** mevcut araçlar (görev, proje, kampanya, apply, not) canlı durum tutmaz ve `apply` yetkili komuttur (ortak uçta sunulmaz), bu yüzden motora yönlendirilmedi; yarar yeni oturum araçlarındadır. Gerçek bir AI istemcisiyle (Claude Code) bağlanıp denenmedi |
 | 5. Kurucu ve yükseltme | Kurucu dosyaları değiştirmeden önce `daemon stop`; sürüm/paket karması uyuşmazlığında açık hata; `FOOTPRINT`/`ARCHITECTURE` | `[ ]` | |
 | 6. Tek katalog | `catalog.list`; CLI, MCP ve masaüstü komutlarının tek tablodan üretilmesi (karar 3) | `[ ]` | Ayrı iş |
 

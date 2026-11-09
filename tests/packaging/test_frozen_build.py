@@ -64,6 +64,17 @@ class FrozenBuildTest(unittest.TestCase):
             reply = json.loads(out)
             self.assertTrue(reply["ok"], out + err)
 
+    def test_the_mcp_session_tools_reach_the_persistent_engine_from_the_package(self):
+        self.addCleanup(self.engine, "daemon", "stop")
+        lines = [{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {},
+                  "clientInfo": {"name": "test", "version": "1"}}},
+                 {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "orchestrator_session_list", "arguments": {"project_id": "p1"}}}]
+        code, out, err = self.engine("mcp", stdin=chr(10).join(json.dumps(line) for line in lines) + chr(10), timeout=90)
+        reply = next(json.loads(line) for line in out.splitlines() if line.strip().startswith("{") and json.loads(line).get("id") == 2)
+        self.assertFalse(reply["result"]["isError"], out + err)
+        self.assertEqual(json.loads(reply["result"]["content"][0]["text"]), {"sessions": [], "conversations": []})
+        self.assertTrue(self.json_call("daemon", "status")["running"])  # the call started the engine and it is still there
+
     def test_mcp_lists_tools(self):
         lines = [{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-06-18", "capabilities": {},
                   "clientInfo": {"name": "test", "version": "1"}}},

@@ -14,6 +14,7 @@ Bu talimatın sahibi Respected Orchestrator'dır; MCP bağlantısı kurulduğund
 4. Master/işçi rolleri sabit değildir: kullanıcı veya ayarlardaki varsayılan hangi modeli seçtiyse o kullanılır.
 5. Tekrar kullanılabilir bir karar veya bilgi çıkarsa (görev geçmişi değil) `orchestrator_memory_note` ile Brain gelen kutusuna not bırak; yalnızca Brain kuruluysa ve kullanıcı yazma iznini açtıysa (`rorch memory connect --write` ile) çalışır.
 6. Başarısız, bekleyen, eski veya değiştirilmiş sonuç kabul edilmez; yeniden deneme yalnızca kullanıcının açık isteğiyle yapılır.
+7. Kullanıcının masaüstünde ya da `rorch session` ile açtığı sohbet oturumlarını `orchestrator_session_list` ve `orchestrator_session_events` ile görebilir, `orchestrator_session_start` / `_send` ile kendin de bir oturum açıp konuşabilirsin; oturumda onay verme yolu yoktur.
 
 Orchestrator MCP bağlı değilse kullanıcıdan masaüstü uygulamasında ya da `rorch integrations set <araç>=on` ile bağlamasını iste.
 

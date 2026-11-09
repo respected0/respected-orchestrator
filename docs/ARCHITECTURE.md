@@ -363,7 +363,10 @@ testler `tests/workflows/test_roles.py`.
 `rorch mcp [--allow-auto-apply] [--allow-privileged]`, masaüstü uygulamasının kullandığı motor işlevleri üzerinde
 standart kütüphaneyle yazılmış bir stdio MCP sunucusudur; başka bir ürün gerekmez, başlattığı çalışmalar masaüstü uygulamasında görünür. Araçlar:
 `orchestrator_status`, `_plan`, `_task_start`, `_project_start`, `_list`, `_progress`, `_evidence`, `_resume`, `_cancel`,
-`_apply`, `_memory_note`. `integrations set İSTEMCİ=on` (ya da masaüstü uygulamasının paneli) AI aracının ayarına kurulu programı
+`_apply`, `_memory_note` ve kalıcı motorun sohbet oturumları için `orchestrator_session_list`, `_start`, `_send`, `_events`,
+`_transcript`, `_interrupt`, `_cancel`, `_resume` (ADR-030: çağrı motora iletilir, motor yoksa başlatılır, ulaşılamazsa `ENGINE_UNAVAILABLE`; onay, uygulama ve
+varsayılan değiştirme araçları yoktur). Görev, proje ve kampanya araçları canlı durum tutmadığı için eskisi gibi süreç içinde çalışır;
+`orchestrator_apply` yetkili bir komuttur ve motorun ortak ucunda sunulmaz. `integrations set İSTEMCİ=on` (ya da masaüstü uygulamasının paneli) AI aracının ayarına kurulu programı
 gösteren bir girdi ekler: `rorch.exe mcp`. Başka girdiler korunur; kapatınca ve kaldırınca yalnızca kendi
 girdisi kalkar (elle değiştirilmiş olsa da); kayıtta olmayan aynı adlı bir girdiye ve elle değiştirilmiş bir girdinin yeniden
 yazılmasına izin verilmez.
