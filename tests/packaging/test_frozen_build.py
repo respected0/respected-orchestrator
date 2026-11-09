@@ -49,6 +49,15 @@ class FrozenBuildTest(unittest.TestCase):
         status = self.json_call("status")
         self.assertEqual(status["data_root"], str(self.data))
 
+    def test_the_persistent_engine_starts_answers_and_stops_from_the_package(self):
+        # ADR-030: `daemon start` re-launches this very executable detached; pywin32 and the pipe must work frozen too
+        self.addCleanup(self.engine, "daemon", "stop")
+        started = self.json_call("daemon", "start")
+        self.assertTrue(started["running"])
+        self.assertEqual(self.json_call("daemon", "status")["pid"], started["pid"])
+        self.assertEqual(self.json_call("daemon", "stop"), {"running": False, "stopped": True})
+        self.assertEqual(self.engine("daemon", "status")[0], 1)
+
     def test_rpp_manifest_and_health(self):
         for op in ("manifest", "health"):
             code, out, err = self.engine("rpp", stdin=json.dumps({"rpp": "1", "op": op, "payload": {}}))

@@ -28,6 +28,8 @@ class RunAlreadyClaimed(RuntimeError):
 
 
 class Supervisor:
+    LOCK_NAME = "supervisor.lock"
+
     def __init__(self, ctx):
         self.ctx = ctx
         self._file = None
@@ -43,7 +45,7 @@ class Supervisor:
         if is_elevated():
             raise PermissionError("The supervisor does not run elevated; start it as a normal user.")
         self.ctx.state_dir.mkdir(parents=True, exist_ok=True)
-        handle = open(self.ctx.state_dir / "supervisor.lock", "a+b")
+        handle = open(self.ctx.state_dir / self.LOCK_NAME, "a+b")
         try:
             handle.seek(0)
             if os.name == "nt":

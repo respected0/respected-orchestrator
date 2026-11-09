@@ -128,6 +128,26 @@ def _error(code, message, hint):
     print(json.dumps({"error": {"code": code, "message": message, "hint": hint}}, ensure_ascii=False))
 
 
+def _daemon(ctx, args):
+    """(payload, exit code) for `rorch daemon start|stop|restart|status` (ADR-030). status exits 1 when no engine runs."""
+    from .engine import daemon_client
+    action = (args[:1] or [""])[0]
+    if action not in ("start", "stop", "restart", "status") or len(args) > 1:
+        raise UsageError("Kullanım: daemon start | stop | restart | status")
+    try:
+        if action == "status":
+            found = daemon_client.status(ctx)
+            return ({"running": True, **found}, 0) if found else ({"running": False}, 1)
+        if action in ("stop", "restart"):
+            stopped = daemon_client.stop(ctx)
+            if action == "stop":
+                return {"running": False, "stopped": stopped}, 0
+        return {"running": True, **daemon_client.start(ctx)}, 0
+    except daemon_client.DaemonUnavailable as error:
+        _error("ENGINE_UNAVAILABLE", str(error), "rorch daemon status")
+        return None, 1
+
+
 def _maintenance(ctx, args):
     """(payload, exit code). drain exits 0 when nothing is running any more and 3 when work is still running (nothing is stopped)."""
     from .engine import maintenance
@@ -182,7 +202,7 @@ def main(argv=None):
     from .workflows import roles
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=default_data_root(), help=argparse.SUPPRESS)
-    parser.add_argument("command", choices=["maintenance", "status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "ledger", "team", "handoff", "inbox", "escalation", "operator", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", "github-ci-ingest", "github-ci-poll", "provider-key", "provider-models", *SHARED, "_selfcheck"])
+    parser.add_argument("command", choices=["maintenance", "status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "ledger", "team", "handoff", "inbox", "escalation", "operator", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", "github-ci-ingest", "github-ci-poll", "provider-key", "provider-models", *SHARED, "daemon", "_daemon", "_selfcheck"])
     parser.add_argument("args", nargs=argparse.REMAINDER)
     try:
         args = parser.parse_args(argv)
@@ -226,6 +246,14 @@ def main(argv=None):
             payload = dict(product="respected-orchestrator", version=__version__, data_root=str(ctx.data_root),
                            workers={worker: runner.get_cli_command(worker) for worker in runner.SUPPORTED_AGENTS if worker != "custom"},
                            git=runner.shutil.which("git"))
+        elif args.command == "_daemon":  # the persistent engine itself (started by `daemon start`, never by hand)
+            from .engine import daemon
+            return daemon.run(ctx)
+        elif args.command == "daemon":
+            payload, code = _daemon(ctx, args.args)
+            if payload is not None:
+                print(json.dumps(payload, ensure_ascii=False))
+            return code
         elif args.command == "maintenance":  # the update window (ADR-026): begin [--ttl N] [--reason TEXT] | end | status | drain [--seconds N]
             payload, code = _maintenance(ctx, args.args)
             print(json.dumps(payload, ensure_ascii=False))

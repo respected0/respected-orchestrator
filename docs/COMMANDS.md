@@ -24,6 +24,10 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 | `config set A=D [A=D...]` | Doğrular ve uygular; geçersizse hiçbir şey yazmaz (çıkış 2). Mantıksal değerler `true`/`false`. Anahtarlar: [USAGE.md](USAGE.md#8-ayarlar). |
 | `health` | Veri klasörü yazılabilir mi, Git var mı, en az bir çalışan aracı bulunuyor mu, motor anahtarı okunabilir mi; sağlıklıysa 0. Yanıttaki `wizard` salt-okunur ilk-görev rehberidir. |
 | `status` | Sürüm, veri klasörü, bulunan çalışan araçlarının yolları ve Git. |
+| `daemon start` | Kalıcı motoru başlatır (çalışıyorsa onu gösterir). Çalışan motor başka sürümse reddeder. Çıktı: `running`, `pid`, `version`, `data_root`, `pipe`. Başlatamazsa `ENGINE_UNAVAILABLE` (çıkış 1). |
+| `daemon status` | Çalışan motorun durumunu verir; çalışmıyorsa `{"running": false}` ve çıkış 1. |
+| `daemon stop` | Motoru durdurur ve sürecin çıkmasını bekler; çalışmıyorsa hata değildir (`stopped: false`). |
+| `daemon restart` | Durdurup yeniden başlatır (sürüm uyuşmazlığında çare). |
 
 ## Brain hafızası ve AI araçları
 

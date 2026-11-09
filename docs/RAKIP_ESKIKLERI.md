@@ -327,7 +327,7 @@ Her maddede: **Rakipler** · **Bizde şimdi** · **Hedef** · **Motor işi** · 
 ## 6. Alınan kararlar (2026-11-08, kullanıcı)
 
 1. **Odak:** "Birden çok ajanı çalıştıran, işin gerçekten bittiğini kanıtlayan, tamamen yerel orchestrator." Özellik sayısı yarışına girilmez.
-2. **Motor tek, kalıcı bir arka plan süreci olur.** CLI, MCP ve masaüstü aynı canlı oturumları görür. (Tasarım ayrı belge/ADR ister: başlatma, kurucu, yerel bağlantı güvenliği.)
+2. **Motor tek, kalıcı bir arka plan süreci olur.** CLI, MCP ve masaüstü aynı canlı oturumları görür. (Tasarım: [ADR-030](adr/ADR-030-kalici-motor.md), onay bekliyor: başlatma, kurucu, yerel bağlantı güvenliği.)
 3. **Tek işlem kataloğu:** CLI, MCP ve masaüstü motordaki tek katalogdan beslenir; yeni özellik üçünde birden görünür.
 4. **İzin kipleri:** tüm kipler sunulur, seçimi kullanıcı yapar; `İzinleri atla` yalnız soruları kapatır, ilk seçimde uyarı penceresi çıkar (B3).
 5. **Sandbox komple kaldırılır** (yedek olarak da kalmaz). İşçiler kullanıcı olarak, ajanın kendi sandbox ve izin kipiyle çalışır. Motorun doğrulama komutları dahil AppContainer yolu tamamen silinir: işçi kısıtsız çalıştığı için doğrulamayı kutuda koşmak yarım koruma olurdu. Kanıt ve onay bütünlüğü imza ve motor doğrulamasıyla sağlanır; anahtar gizliliği için ek garanti verilmez ve belgede açıkça yazılır. Getirisi: Windows bağımlılığı biter (macOS/Linux yolu açılır), `RESPECTED_CHAT_UNSANDBOXED` kalkar, araç uyumsuzlukları (`npm test`, Codex sandbox) biter.

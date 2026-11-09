@@ -26,6 +26,22 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
 - `--data-root` yalnızca motorun kendi alt süreçleri içindir (her kampanya hattının kendi kökü vardır); yardımda görünmez.
   Kişiler ve testler `RESPECTED_DATA_DIR` kullanır.
 
+### Kalıcı motor (ADR-030, 1. dilim)
+
+- `rorch daemon start|stop|restart|status` veri kökü başına **tek** kalıcı süreç yönetir (`engine/daemon.py`, istemci: `engine/daemon_client.py`).
+  Tekillik `state/daemon.lock` dosya kilididir (çökme kilidi bırakır; yükseltilmiş oturumda çalışmaz). İlk istemci motoru yoksa başlatır
+  (gizli konsol, `lanes._spawn_detached`); çalışan motor başka sürümse kullanılmaz, `daemon restart` istenir. Hiçbir istemci motor
+  yokken yerel bir kopyayla cevap vermez (`ENGINE_UNAVAILABLE`).
+- Tek giriş: adlandırılmış boru `\\.\pipe\rorch-<kullanıcı>-<veri kökü özeti>`; erişim listesi yalnız mevcut kullanıcıdır, uzak istemci
+  reddedilir, ilk örnek bayrağı adın önceden alınmasını önler. Port yoktur. Protokol `local_api` ile aynıdır; ek olarak `daemon.status`
+  ve `daemon.stop`. Yalnız Windows; Unix soketi sonraki iş.
+- Arayan kimliğini motor çözer: bağlanan süreç, o an bir koşu üzerinde çalışan sürecin kendisi ya da soyundansa (`winproc.ancestors`,
+  yeniden kullanılmış PID zinciri keser) `CHILD` olur ve hiçbir komut çalıştıramaz; diğer herkes `MCP` düzeyindedir (okuma ve görev).
+  Sunulan katalog yalnız `READ` ve `TASK` komutlarıdır: onay, uygulama, ayar ve ekran görüntüsü onayı bu uçta **yoktur**.
+- Boşta (bağlantı yok, çalışan koşu yok) 30 dakika sonra motor kendiliğinden çıkar; testler için `RESPECTED_DAEMON_IDLE_SECONDS`.
+- Bu dilimde hiçbir ön yüz taşınmadı: masaüstü hâlâ kendi `_ipc` çocuğunu, MCP kendi sürecini kullanır; canlı sohbet oturumları
+  hâlâ o çocuğun belleğindedir (2. dilim).
+
 ## 2. Görev ve sonuç denetimi
 
 - Her görev projenin yalıtılmış bir Git çalışma ağacında çalışır. Sonuç bir iddiadır: kapsam (`ownership` / `forbidden`),
