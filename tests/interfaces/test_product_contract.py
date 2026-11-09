@@ -105,14 +105,14 @@ class ProductContract(unittest.TestCase):
         self.assertEqual(result["capabilities"], sorted(result["capabilities"]))
         self.assertTrue(set(REQUIRED_OPS) <= set(result["capabilities"]))
 
-    def test_installer_has_the_contract_switches_and_pages_and_no_other_product_path(self):
+    def test_installer_only_copies_files_and_knows_no_other_product_path(self):
         text = (ROOT / "packaging/windows/orchestrator_setup.iss").read_text(encoding="utf-8")
-        for token in ("/SET=", "'PURGE'", "Onar / Güncelle", "Ayarları değiştir", "Kaldır", "{code:UninstallArgs}", "'uninstall --purge'",
-                      "WizardStyle=modern", "PrivilegesRequired=lowest", "DisableDirPage=yes"):
+        for token in ("WizardStyle=modern", "PrivilegesRequired=lowest", "DisableDirPage=yes", "CloseApplications=force", "[Files]", "[InstallDelete]"):
             self.assertIn(token, text, f"installer lacks {token}")
+        for forbidden in ("[Code]", "[Run]", "[UninstallRun]", "[Registry]", "CreateCustomPage", "/SET=", "PURGE", "maintenance", "update-backup"):
+            self.assertNotIn(forbidden, text, f"the installer must only copy files: {forbidden}")
         self.assertNotRegex(text, r"--package|--allow-unattested|--keep-data|update --", "installer still uses a retired command")
         self.assertNotRegex(text, r"(?i)hub", "the installer must not know any other product's manager")
-        self.assertIn("Brain hafızası", text)  # the optional memory link stays
 
     def test_contract_is_this_products_own_and_names_no_manager(self):
         text = (ROOT / "docs/PRODUCT_CONTRACT.md").read_text(encoding="utf-8")

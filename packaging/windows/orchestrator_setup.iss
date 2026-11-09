@@ -1,7 +1,7 @@
 ; Respected Orchestrator - per-user Windows installer (no administrator rights); stands alone.
-; Built by packaging/build_installer.py. The installer owns the program files in {app}; the product's own commands own
-; everything else: `setup` (install record, data folder), `repair`, `config`, `memory connect`, `uninstall` (docs/PRODUCT_CONTRACT.md).
-; Pages: maintenance (repair/update, settings, uninstall), worker, Brain memory; /SET= and /PURGE=1 for silent installs.
+; Built by packaging/build_installer.py. This script only lays the program files down in {app} and takes them away again (ADR-031).
+; Everything else is the product's own: the first start of the engine records the verified build (`setup`), and `config`,
+; `integrations`, `memory connect`, `repair` and `uninstall` (before the program is removed) are run by the desktop app or the person.
 #ifndef AppVersion
   #define AppVersion "0.1.0b4"
 #endif
@@ -11,9 +11,12 @@
 #ifndef OutputDir
   #define OutputDir "..\..\dist"
 #endif
+#ifndef AppIdValue
+  #define AppIdValue "{{8E2B4D7A-61C3-4F09-A5D8-3B9E17C2F640}"
+#endif
 
 [Setup]
-AppId={{8E2B4D7A-61C3-4F09-A5D8-3B9E17C2F640}
+AppId={#AppIdValue}
 AppName=Respected Orchestrator
 AppVerName=Respected Orchestrator
 UninstallDisplayName=Respected Orchestrator
@@ -32,7 +35,9 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayIcon={app}\rorch.exe
 SetupIconFile=icon.ico
-CloseApplications=no
+; Windows closes whatever still holds a file this script replaces (the desktop app, the engine, an AI tool's MCP server) before it copies
+CloseApplications=force
+RestartApplications=no
 SetupLogging=yes
 WizardStyle=modern
 WizardImageFile=wizard\side-164x314.bmp,wizard\side-192x366.bmp,wizard\side-246x470.bmp,wizard\side-328x628.bmp
@@ -50,12 +55,11 @@ turkish.WizardInfoAfter=Yenilikler
 turkish.InfoAfterLabel=Bu sürümde neler değişti?
 turkish.InfoAfterClickLabel=Devam etmek için Sonraki'ne tıklayın.
 turkish.WelcomeLabel1=Respected Orchestrator'a hoş geldiniz
-turkish.WelcomeLabel2=Orchestrator, ağır kodlama işlerini izole çalışma alanlarında yürütür; yamayı siz onaylamadan gerçek ağacınıza dokunmaz.%n%nYönetici izni gerekmez.%n%nDevam etmek için Sonraki'ne tıklayın.
+turkish.WelcomeLabel2=Orchestrator, kodlama ajanlarını çalıştırır ve işin gerçekten bittiğini kanıtlar; yamayı siz onaylamadan gerçek ağacınıza dokunmaz.%n%nYönetici izni gerekmez. Bu kurucu yalnızca program dosyalarını yerleştirir; ayarlar ve bağlantılar uygulamanın kendisinden yapılır.%n%nDevam etmek için Sonraki'ne tıklayın.
 turkish.FinishedHeadingLabel=Respected Orchestrator hazır
-turkish.FinishedLabel=Kurulum bitti.%n%nSon bir adım: kullandığınız AI aracını yeniden başlatın ve aracın ilgili yerinden (eklentiler, MCP) Orchestrator'a izin verin. Yoksa araç Orchestrator'ı görmez.
-turkish.FinishedLabelNoIcons=Kurulum bitti.%n%nSon bir adım: kullandığınız AI aracını yeniden başlatın ve aracın ilgili yerinden (eklentiler, MCP) Orchestrator'a izin verin. Yoksa araç Orchestrator'ı görmez.
-; the ready page's button is "Kur", not "Sonraki"
-turkish.ReadyLabel2a=Kuruluma devam etmek için Kur düğmesine, ayarları gözden geçirmek ya da değiştirmek için Önceki düğmesine tıklayın.
+turkish.FinishedLabel=Dosyalar yerleştirildi.%n%nMasaüstü uygulamasını açın; ilk açılışta kurulumu kendisi tamamlar. AI araçlarına bağlamak için uygulamanın Bağlantılar bölümünü ya da `rorch integrations` komutunu kullanın.
+turkish.FinishedLabelNoIcons=Dosyalar yerleştirildi.%n%nKurulumu `rorch setup` ile tamamlayabilirsiniz; AI araçlarına bağlamak için `rorch integrations` komutunu kullanın.
+turkish.ReadyLabel2a=Kuruluma devam etmek için Kur düğmesine tıklayın.
 turkish.ReadyLabel2b=Kuruluma başlamak için Kur düğmesine tıklayın.
 
 [Files]
@@ -68,452 +72,9 @@ Name: "{autoprograms}\Respected Orchestrator"; Filename: "{app}\respected-orches
 Name: "{autodesktop}\Respected Orchestrator"; Filename: "{app}\respected-orchestrator-desktop.exe"; WorkingDir: "{app}"
 #endif
 
-[UninstallRun]
-; the product takes back its MCP registrations and removes its install record (and with /PURGE=1 or a yes its settings and runs)
-Filename: "{app}\rorch.exe"; Parameters: "{code:UninstallArgs}"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveProduct"
-
 [InstallDelete]
 ; an update replaces the program folder whole: files of the previous version (old dist-info, renamed modules) must not stay behind
 Type: filesandordirs; Name: "{app}\app"
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
-
-[Code]
-#include "respected_cards.iss"
-
-const
-  ProductName = 'Orchestrator';
-  ProductExe = 'rorch.exe';
-  ProductFolder = 'RespectedOrchestrator';
-  InstallRecord = 'app\.respected\install.json';  // the product's own install record, relative to its folder
-  UninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{8E2B4D7A-61C3-4F09-A5D8-3B9E17C2F640}_is1';
-  Workers = 'codex,claude,antigravity,agy,cursor';
-
-var
-  MaintenancePage, WorkerPage, MemoryPage: TWizardPage;
-  Maintenance, SettingsMode, Leaving, PurgeData: Boolean;
-
-{ ---- command line and product helpers ---- }
-
-// /NAME=value command-line switches (silent installs, tests)
-function CommandValue(Name: String; Default: String): String;
-var
-  I: Integer;
-  Prefix: String;
-begin
-  Result := Default;
-  Prefix := '/' + Name + '=';
-  for I := 1 to ParamCount do
-    if CompareText(Copy(ParamStr(I), 1, Length(Prefix)), Prefix) = 0 then
-      Result := Copy(ParamStr(I), Length(Prefix) + 1, MaxInt);
-end;
-
-// one ` --set "key=value"` argument; quotes are dropped so a value cannot end its own argument
-function SetArg(Assignment: String): String;
-begin
-  StringChangeEx(Assignment, '"', '', True);
-  Result := ' --set "' + Assignment + '"';
-end;
-
-// every /SET=key=value switch, as the product's own --set arguments
-function SwitchSettings(): String;
-var
-  I: Integer;
-begin
-  Result := '';
-  for I := 1 to ParamCount do
-    if CompareText(Copy(ParamStr(I), 1, 5), '/SET=') = 0 then
-      Result := Result + SetArg(Copy(ParamStr(I), 6, MaxInt));
-end;
-
-// --set arguments as `config set` arguments
-function ConfigArgs(SetArgs: String): String;
-begin
-  Result := SetArgs;
-  StringChangeEx(Result, ' --set ', ' ', True);
-end;
-
-function ProgramExe(): String;
-begin
-  Result := ExpandConstant('{localappdata}\Respected\' + ProductFolder + '\app\' + ProductExe);
-end;
-
-function DataRoot(): String;
-begin
-  Result := ExpandConstant('{localappdata}\Respected\' + ProductFolder + '\data');
-end;
-
-// installed = the program and the product's own install record are both there; anything less is a fresh install
-function IsInstalled(): Boolean;
-begin
-  Result := FileExists(ProgramExe()) and FileExists(ExpandConstant('{localappdata}\Respected\' + ProductFolder + '\' + InstallRecord));
-end;
-
-// runs one of the product's own commands; Output gets its standard output lines
-function RunProduct(Params: String; var Output: TExecOutput): Boolean;
-var
-  Code, I: Integer;
-begin
-  Result := ExecAndCaptureOutput(ProgramExe(), Params, '', SW_HIDE, ewWaitUntilTerminated, Code, Output) and (Code = 0);
-  if not Result then begin
-    Log(ProductExe + ' ' + Params + ' failed with exit code ' + IntToStr(Code));
-    // the product explains the refusal on stdout (JSON conflicts) or stderr; without it the setup log names no cause
-    for I := 0 to GetArrayLength(Output.StdOut) - 1 do Log('  stdout: ' + Output.StdOut[I]);
-    for I := 0 to GetArrayLength(Output.StdErr) - 1 do Log('  stderr: ' + Output.StdErr[I]);
-  end;
-end;
-
-{ ---- update window (ADR-026) ----
-  Before the program files are replaced the installed program is told to stop accepting new work (`maintenance begin`), and running
-  work gets two minutes to finish (`maintenance drain`). Work that is still running is never killed unasked: a silent update is
-  postponed (nothing changes), an interactive one asks. A program that predates the command (beta.2) keeps the previous behaviour.
-  The window closes after the update (or the rollback) and also closes by itself after 30 minutes. }
-procedure EndUpdateWindow;
-var
-  Code: Integer;
-  Output: TExecOutput;
-begin
-  if FileExists(ProgramExe()) then
-    if not ExecAndCaptureOutput(ProgramExe(), 'maintenance end', '', SW_HIDE, ewWaitUntilTerminated, Code, Output) then
-      Log('maintenance end could not run');
-end;
-
-function DrainRunningWork(): String;
-var
-  Code: Integer;
-  Output: TExecOutput;
-  Waiting: String;
-begin
-  Result := '';
-  if not FileExists(ProgramExe()) then Exit;  // a first install has nothing running
-  if not ExecAndCaptureOutput(ProgramExe(), 'maintenance begin --ttl 1800 --reason update', '', SW_HIDE, ewWaitUntilTerminated, Code, Output) or (Code <> 0) then begin
-    Log('maintenance begin is not available in the installed version (exit code ' + IntToStr(Code) + '): the previous behaviour applies');
-    Exit;
-  end;
-  if ExecAndCaptureOutput(ProgramExe(), 'maintenance drain --seconds 120', '', SW_HIDE, ewWaitUntilTerminated, Code, Output) and (Code = 0) then Exit;
-  if Code <> 3 then begin
-    Log('maintenance drain gave exit code ' + IntToStr(Code) + ' (not "work still running"): continuing');
-    Exit;
-  end;
-  Waiting := 'Çalışan görevler bitmedi.';
-  if WizardSilent then begin
-    EndUpdateWindow;
-    Result := ProductName + ' güncellenemedi: ' + Waiting + ' Hiçbir şey değiştirilmedi; görevler bitince yeniden deneyin.';
-    Exit;
-  end;
-  if SuppressibleMsgBox(Waiting + #13#10#13#10 + 'Güncelleme şimdi yapılırsa bu görevler durdurulur ve "yarıda kaldı" olarak işaretlenir; otomatik uygulanmazlar, sonra siz karar verirsiniz.' + #13#10#13#10 + 'Yine de güncellensin mi?', mbConfirmation, MB_YESNO or MB_DEFBUTTON2, IDNO) = IDNO then begin
-    EndUpdateWindow;
-    Result := 'Güncelleme sizin isteğinizle ertelendi; hiçbir şey değiştirilmedi.';
-  end;
-end;
-
-// the value of `config get <key>`, whose output is {"<key>": <value>} (one line or one member per line)
-function CurrentSetting(Key: String): String;
-var
-  Output: TExecOutput;
-  I, P: Integer;
-begin
-  Result := '';
-  if not RunProduct('config get ' + Key, Output) then Exit;
-  for I := 0 to GetArrayLength(Output.StdOut) - 1 do begin
-    P := Pos('": ', Output.StdOut[I]);
-    if P > 0 then begin
-      Result := Trim(Copy(Output.StdOut[I], P + 3, MaxInt));
-      if (Result <> '') and (Result[Length(Result)] = '}') then Result := Trim(Copy(Result, 1, Length(Result) - 1)); // one-line output
-      if (Length(Result) >= 2) and (Result[1] = '"') then begin
-        Result := Copy(Result, 2, Length(Result) - 2);
-        StringChangeEx(Result, '\"', '"', True);
-        StringChangeEx(Result, '\\', '\', True);
-      end;
-    end;
-  end;
-end;
-
-// the AI tools keep our MCP server and hooks running from the program folder, and Restart Manager cannot close them:
-// stop exactly the processes of this product's program (matched by full path), so an update or removal while they are open works
-procedure StopRunningProduct;
-var
-  Code: Integer;
-  AppDir: String;
-begin
-  AppDir := ExpandConstant('{app}');
-  if not FileExists(AppDir + '\' + ProductExe) then Exit;  // a first install has nothing to stop: skip PowerShell and the wait (~1.5 s)
-  StringChangeEx(AppDir, '''', '''''', True);
-  Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
-    '-NoProfile -NonInteractive -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq ''' + ProductExe +
-    ''' -and $_.ExecutablePath -like ''' + AppDir + '\*'' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"',
-    '', SW_HIDE, ewWaitUntilTerminated, Code);
-  Sleep(700);
-end;
-
-{ ---- update safety net (shared with the Orchestrator installer) ----
-  Before an update replaces the program, the installer keeps the previous program folder and the data root's top-level
-  *.json files (the only files a format migration touches) under update-backup. When `repair` fails, or the product was
-  healthy before the update and is not afterwards, both are put back and the update is reported as failed; otherwise
-  the backup is deleted. The person's vault and the AI tools' files are never part of it (the product's own transaction
-  already undoes those). Without a backup the update does not start. }
-var
-  UpdateBackedUp, HealthyBefore: Boolean;
-  PreviousVersion: String;
-
-function UpdateBackup(): String;
-begin
-  Result := ExpandConstant('{localappdata}\Respected\' + ProductFolder + '\update-backup');
-end;
-
-function Robocopy(Arguments: String): Boolean;
-var
-  Code: Integer;
-begin
-  Result := Exec(ExpandConstant('{sys}\robocopy.exe'), Arguments + ' /NFL /NDL /NJH /NJS /NP /R:2 /W:1', '', SW_HIDE, ewWaitUntilTerminated, Code) and (Code < 8);
-  if not Result then Log('robocopy ' + Arguments + ' failed with exit code ' + IntToStr(Code));
-end;
-
-function BackUpForUpdate(): Boolean;
-var
-  Output: TExecOutput;
-begin
-  Result := True;
-  UpdateBackedUp := False;
-  if not Maintenance then Exit;
-  DelTree(UpdateBackup(), True, True, True);
-  HealthyBefore := RunProduct('health', Output);
-  if not RegQueryStringValue(HKCU, UninstallKey, 'DisplayVersion', PreviousVersion) then PreviousVersion := '';
-  UpdateBackedUp := Robocopy('"' + ExpandConstant('{app}') + '" "' + UpdateBackup() + '\program" /MIR')
-    and Robocopy('"' + DataRoot() + '" "' + UpdateBackup() + '\data" *.json');
-  Result := UpdateBackedUp;
-end;
-
-procedure CommitUpdate;
-begin
-  if UpdateBackedUp then DelTree(UpdateBackup(), True, True, True);
-  UpdateBackedUp := False;
-end;
-
-// puts the previous program and data files back and ends the update as failed (never returns)
-procedure RollBackUpdate(Reason: String);
-var
-  Restored: Boolean;
-begin
-  StopRunningProduct;
-  Restored := Robocopy('"' + UpdateBackup() + '\program" "' + ExpandConstant('{app}') + '" /MIR')
-    and Robocopy('"' + UpdateBackup() + '\data" "' + DataRoot() + '" *.json /IS /IT');
-  if not Restored then
-    RaiseException(ProductName + ' ' + Reason + ' Önceki sürüm geri yüklenemedi; kopyası şurada duruyor: ' + UpdateBackup());
-  if PreviousVersion <> '' then RegWriteStringValue(HKCU, UninstallKey, 'DisplayVersion', PreviousVersion);
-  CommitUpdate;
-  EndUpdateWindow;  // the restored program closes the window it opened
-  Log(ProductName + ' ' + Reason + ' Önceki sürüm geri yüklendi.');
-  SuppressibleMsgBox(ProductName + ' ' + Reason + #13#10 + 'Önceki sürüm geri yüklendi; ayarlarınız ve verileriniz değişmedi.', mbError, MB_OK, IDOK);
-  InstallFailed := True;  // DeinitializeSetup turns this into a non-zero exit code
-  Abort;
-end;
-
-function PrepareToInstall(var NeedsRestart: Boolean): String;
-begin
-  Result := DrainRunningWork();
-  if Result <> '' then Exit;
-  StopRunningProduct;
-  // a first install killed while it wrote its uninstaller leaves an empty unins000.dat: Inno would number the new pair unins001 beside it
-  if not Maintenance then DelTree(ExpandConstant('{app}\unins*.*'), False, True, False);
-  if not BackUpForUpdate() then begin
-    EndUpdateWindow;
-    Result := ProductName + ' güncellenmeden önce yedeği alınamadı (disk dolu ya da dosyalar kullanımda olabilir); hiçbir şey değiştirilmedi.';
-  end;
-end;
-
-function UninstallerPath(): String;
-begin
-  Result := '';
-  if RegQueryStringValue(HKCU, UninstallKey, 'UninstallString', Result) then Result := RemoveQuotes(Result);
-end;
-
-procedure CreateSharedPages;
-begin
-  MaintenancePage := NewCardPage(1, wpWelcome, ProductName + ' kurulu', 'Ayarlarınız ve not kasanız her seçenekte korunur.', False);
-  AddCard(MaintenancePage, 1, #$E895, 'Onar / Güncelle', 'Programı bu kurucudaki sürümle (v{#AppVersion}) yeniler.', True);
-  AddCard(MaintenancePage, 1, #$E713, 'Ayarları değiştir', 'Programa dokunmadan ayarları yeniden seçersiniz.', False);
-  AddCard(MaintenancePage, 1, #$E74D, 'Kaldır', 'Programı kaldırır; size sorarak ayarları ve verileri de siler.', False);
-end;
-
-{ ---- Orchestrator's own questions ---- }
-
-function WorkerName(Index: Integer): String;
-var
-  Rest: String;
-  I, P: Integer;
-begin
-  Rest := Workers + ',';
-  for I := 0 to Index - 1 do Delete(Rest, 1, Pos(',', Rest));
-  P := Pos(',', Rest);
-  Result := Copy(Rest, 1, P - 1);
-end;
-
-function BrainInstalled(): Boolean;
-begin
-  Result := FileExists(ExpandConstant('{localappdata}\Respected\RespectedBrain\app\respected-brain.exe'));
-end;
-
-procedure InitializeWizard;
-var
-  I: Integer;
-begin
-  TidyInfoPages;
-  Maintenance := IsInstalled();
-  CreateSharedPages;
-  WorkerPage := NewCardPage(3, MaintenancePage.ID, 'Varsayılan çalışan', 'Hangi AI aracı görev yapsın? Araç bu bilgisayarda kurulu olmalı.', False);
-  CompactCards(3);
-  for I := 0 to 5 do AddCard(WorkerPage, 3, #$E756, WorkerName(I), '', I = 0);
-  MemoryPage := NewCardPage(2, WorkerPage.ID, 'Brain hafızası', 'Orchestrator Brain hafızanızı kullanabilsin mi? Sonradan kapatılabilir.', True);
-  AddCard(MemoryPage, 2, #$E8F1, 'Brain hafızasını oku', 'Görevler, Brain kasanızdaki notlardan kısa özetler okur. Brain kurulu olmalı.', False);
-  AddCard(MemoryPage, 2, #$E70F, 'Gelen kutusuna not yazabilsin', 'Yeniden kullanılabilir notlar Brain gelen kutusuna bırakılır.', False);
-end;
-
-// the page answers as the product's own `config set` arguments
-function PageSettings(): String;
-begin
-  Result := ' "default_worker=' + WorkerName(CardSelectedIndex(3)) + '"';
-end;
-
-procedure LoadCurrentSettings;
-var
-  I: Integer;
-  Current: String;
-begin
-  Current := CurrentSetting('default_worker');
-  for I := 0 to 5 do
-    if WorkerName(I) = Current then SetCardChecked(3, I, True);
-  SetCardChecked(2, 0, CurrentSetting('memory_enabled') = 'true');
-  SetCardChecked(2, 1, CurrentSetting('memory_write') = 'true');
-end;
-
-// connect or disconnect the Brain memory as the page says; failures are reported, never fatal
-procedure ApplyMemoryChoice;
-var
-  Output: TExecOutput;
-begin
-  if CardChecked(2, 0) and BrainInstalled() then begin
-    if CardChecked(2, 1) then RunProduct('memory connect --write', Output) else RunProduct('memory connect', Output);
-  end else if SettingsMode then
-    RunProduct('memory disconnect', Output);
-end;
-
-{ ---- page flow ---- }
-
-procedure ProductPageChanged(CurPageID: Integer);
-begin
-end;
-
-function ShouldSkipPage(PageID: Integer): Boolean;
-begin
-  Result := False;
-  if PageID = MaintenancePage.ID then Result := WizardSilent or not Maintenance
-  else if (PageID = WorkerPage.ID) or (PageID = MemoryPage.ID) then Result := Maintenance and not SettingsMode
-  else if PageID = wpInfoAfter then Result := not Maintenance;
-end;
-
-procedure CancelButtonClick(CurPageID: Integer; var Cancel, Confirm: Boolean);
-begin
-  if Leaving then Confirm := False;
-end;
-
-procedure Leave;
-begin
-  Leaving := True;
-  WizardForm.Close;
-end;
-
-function NextButtonClick(CurPageID: Integer): Boolean;
-var
-  Output: TExecOutput;
-  Code: Integer;
-begin
-  Result := True;
-  if WizardSilent then Exit;
-  if (CurPageID = MaintenancePage.ID) and (CardSelectedIndex(1) = 1) then begin
-    SettingsMode := True;
-    LoadCurrentSettings;
-  end else if (CurPageID = MaintenancePage.ID) and (CardSelectedIndex(1) = 2) then begin
-    Exec(UninstallerPath(), '', '', SW_SHOWNORMAL, ewNoWait, Code);
-    Result := False;
-    Leave;
-  end else if (CurPageID = MemoryPage.ID) and SettingsMode then begin
-    // settings only: the product applies them itself; the program files are not touched
-    if RunProduct('config set' + PageSettings(), Output) then begin
-      ApplyMemoryChoice;
-      MsgBox('Ayarlar kaydedildi.', mbInformation, MB_OK);
-    end else
-      MsgBox('Ayarlar kaydedilemedi; hiçbir şey değişmedi. Ayrıntı için: rorch config', mbError, MB_OK);
-    Result := False;
-    Leave;
-  end;
-end;
-
-// ends a failed install or repair: the message, then Abort (non-zero exit code); the cards' finish page then says it failed
-procedure FailInstall(Message: String);
-begin
-  InstallFailed := True;
-  // a fresh install that did not finish leaves nothing behind: no Installed-apps entry, no unused program folder
-  if not Maintenance then begin
-    RegDeleteKeyIncludingSubkeys(HKCU, UninstallKey);
-    DelTree(ExpandConstant('{app}'), True, True, True);
-  end;
-  SuppressibleMsgBox(Message, mbError, MB_OK, IDOK);
-  Abort;
-end;
-
-procedure CurStepChanged(CurStep: TSetupStep);
-var
-  Output: TExecOutput;
-begin
-  if CurStep <> ssPostInstall then Exit;
-  // over an installed product the program files were just replaced: the product re-verifies them and rewrites its record
-  if Maintenance then begin
-    if not RunProduct('repair', Output) then begin
-      // an install killed halfway: repair first rolls the unfinished transaction back, which also removes the record that was never completed; set up from the start
-      if FileExists(ExpandConstant('{localappdata}\Respected\' + ProductFolder + '\' + InstallRecord)) or not RunProduct('setup', Output) then begin
-        if UpdateBackedUp then RollBackUpdate('onarılamadı.');
-        FailInstall(ProductName + ' onarılamadı; kurucuyu yeniden çalıştırabilirsiniz.');
-      end;
-    end;
-    if UpdateBackedUp and HealthyBefore and not RunProduct('health', Output) then RollBackUpdate('güncellemeden sonra sağlıklı çalışmadı.');
-    CommitUpdate;
-  end else begin
-    if not RunProduct('setup', Output) then
-      FailInstall(ProductName + ' kurulumu tamamlanamadı; kurucuyu yeniden çalıştırabilirsiniz.');
-    if not WizardSilent then begin
-      RunProduct('config set' + PageSettings(), Output);
-      ApplyMemoryChoice;
-    end;
-  end;
-  EndUpdateWindow;  // the new program accepts work again
-  if SwitchSettings() <> '' then
-    if not RunProduct('config set' + ConfigArgs(SwitchSettings()), Output) then
-      RaiseException(ProductName + ' kuruldu ama /SET ayarları uygulanamadı.');
-end;
-
-{ ---- removal ---- }
-
-// interactive removal asks about settings and data (the vault never goes); silent removal keeps them unless /PURGE=1
-function InitializeUninstall(): Boolean;
-begin
-  Result := True;
-  StopRunningProduct;
-  PurgeData := CommandValue('PURGE', '') <> '';
-  if not UninstallSilent then
-    PurgeData := MsgBox('Ayarlar ve görev çalışma kayıtları da silinsin mi?' + #13#10 + '(Hayır derseniz yeniden kurduğunuzda kaldığınız yerden devam edersiniz.)', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
-end;
-
-function UninstallArgs(Param: String): String;
-begin
-  if PurgeData then Result := 'uninstall --purge' else Result := 'uninstall';
-end;
-
-procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
-begin
-  if CurUninstallStep <> usPostUninstall then Exit;
-  if PurgeData then DelTree(DataRoot(), True, True, True);
-  RemoveDir(ExpandConstant('{localappdata}\Respected\' + ProductFolder));
-  RemoveDir(ExpandConstant('{localappdata}\Respected'));
-end;

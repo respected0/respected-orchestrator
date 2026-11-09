@@ -114,6 +114,7 @@ class Daemon:
             print(json.dumps({"daemon": "busy", "pid": os.getpid()}), flush=True)
             return 1
         try:
+            self._complete_install()
             winproc.contain_children()
             threading.Thread(target=self._watch_idle, daemon=True).start()
             print(json.dumps({"daemon": "started", **self.status()}), flush=True)
@@ -122,6 +123,18 @@ class Daemon:
             lock.release()
         print(json.dumps({"daemon": "stopped", "pid": os.getpid()}), flush=True)
         return 0
+
+    def _complete_install(self):
+        """The installer only copies files (ADR-031): the first start after a copy or an update records the verified build and migrates old data.
+        A folder whose files do not match its distribution.json is not recorded (the engine still runs; `health` and `repair` say what is wrong)."""
+        if not getattr(sys, "frozen", False):
+            return
+        from ..interfaces import installation
+        try:
+            if installation.verify(self.ctx.app_root)["install_state"] != "installed":
+                print(json.dumps({"daemon": "setup", **installation.setup(self.ctx)}), flush=True)
+        except installation.OperationError as error:
+            print(json.dumps({"daemon": "setup_failed", "code": error.code, "message": error.message}), flush=True)
 
     def stop(self):
         self.stop_event.set()

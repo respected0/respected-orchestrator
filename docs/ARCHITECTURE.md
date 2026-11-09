@@ -10,10 +10,12 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   dondurur: `rorch.exe` ve her dosyanın SHA-256'sını taşıyan `distribution.json`. Agent Framework'ün tembel
   alt modülleri toplanır; bildirilen bağımlılıkların dışındaki kurulu paketler dışarıda bırakılır, böylece yerel derleme
   temiz bir CI derlemesiyle aynı içeriği taşır. `_selfcheck` her modülü içe aktarır ve eksik olanda başarısız olur.
-- Kurucu (`packaging/windows/orchestrator_setup.iss`) programı `app\` altına yazar ve `setup` çalıştırır; `setup` dosyaları
-  `distribution.json` ile doğrulayıp kurulumu `app\.respected\install.json` olarak kaydeder. `manifest`'in `install_state`
-  değeri bu kayıttan ve dosyaların şimdiki hash'inden gelir; masaüstü uygulaması ve CLI "kurulu" ile "onarım gerekli" konusunda aynı şeyi
-  söyler.
+- Kurucu (`packaging/windows/orchestrator_setup.iss`, ADR-031) **yalnızca dosya kopyalar**: programı `app\` altına yazar, güncellemede
+  eski dosyaları siler, dosyaları kullanan süreçleri Windows'a kapattırır; sayfa, ayar, yedek, geri alma ve `setup` çağrısı içermez.
+  Kurulumu motor tamamlar: ilk açılışta (`daemon`) dosyaları `distribution.json` ile doğrular ve kurulumu `app\.respected\install.json`
+  olarak kaydeder (`rorch setup` aynı işi elle yapar). `manifest`'in `install_state` değeri bu kayıttan ve dosyaların şimdiki
+  hash'inden gelir; masaüstü uygulaması ve CLI "kurulu" ile "onarım gerekli" konusunda aynı şeyi söyler. `distribution.json` ile uyuşmayan
+  bir klasör kaydedilmez (motor çalışır, `health` ve `repair` söyler).
 - Masaüstü kabuğu (`respected-orchestrator-desktop.exe`) motorla **tek pakettir** (ADR-025): `build_dist.py --desktop <exe>` onu motor
   başlatıcısının yanına, klasör köküne koyar ve `distribution.json`'a hem `files` içinde (sha256) hem de isteğe bağlı üst düzey
   `desktop` anahtarıyla yazar; `schema_version` 1 kalır. `build_dist.py --audit` bildirimi klasörle karşılaştırır (eksik, fazla,

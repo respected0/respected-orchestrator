@@ -44,16 +44,13 @@ $exe = "$env:LOCALAPPDATA\Respected\RespectedOrchestrator\app\rorch.exe"
 & $exe status      # hangi çalışan araçları bulundu
 ```
 
-## 3. Kurucuyu yeniden çalıştırmak
+## 3. Güncelleme
 
-Ürün kuruluyken kurucu tek bir sayfa gösterir:
-
-- **Onar / Güncelle:** program dosyaları bu kurucudaki sürümle yenilenir, ardından `repair` kaydı doğrular. Ayarlar ve
-  görev çalışmaları korunur. **Güncelleme budur:** yeni sürümün kurucusunu çalıştırmak (sessiz: `/VERYSILENT`). Yeni kurucuyu
-  GitHub sürüm sayfasından indirirsiniz; ürün kendiliğinden güncellenmez.
-- **Ayarları değiştir:** varsayılan çalışan ve hafıza sayfaları mevcut değerlerle açılır; kaydetmek `config set` ve
-  `memory connect` ile aynıdır.
-- **Kaldır:** bölüm 9.
+Güncelleme, yeni sürümün kurucusunu çalıştırmaktır (sessiz: `/VERYSILENT`); kurucuyu GitHub sürüm sayfasından indirirsiniz, ürün
+kendiliğinden güncellenmez. Kurucu yalnızca program dosyalarını yenilemekle kalır: açık uygulamayı ve motoru kapatır, **yedek almaz ve
+çalışan görevleri beklemez** (yarıda kalırlar). Ayarlar ve görev kayıtları veri klasöründe olduğu için korunur. Motor yeni sürümle ilk
+açıldığında kurulumu kendisi tamamlar; elle yapmak için `rorch setup` (ya da `rorch repair`). Ayarlar ve bağlantılar için kurucu sayfası yoktur:
+`rorch config`, `rorch integrations`, `rorch memory connect` ya da masaüstü uygulaması.
 
 ## 4. İlk görev
 
@@ -244,15 +241,14 @@ yalnızca `memory connect` ile yazılır. Rollerin nasıl seçildiği: [ARCHITEC
 
 ## 9. Kaldırma
 
-Kaldırma yolları: Windows **Yüklü uygulamalar** → Respected Orchestrator → Kaldır; kurucu → Kaldır; sessiz `unins000.exe /VERYSILENT [/PURGE=1]`. Kaldırıcı "Ayarlar ve çalışma verileri de silinsin mi?" diye sorar
-(varsayılan Hayır) ve ürünün `uninstall [--purge]` komutunu çalıştırır.
+Önce `rorch uninstall [--purge]` (AI araçlarındaki kendi MCP girdilerini ve kurulum kaydını geri alır; `--purge` ayarları ve çalışma verisini de siler), sonra Windows **Yüklü uygulamalar** → Respected Orchestrator → Kaldır (sessiz: `unins000.exe /VERYSILENT`). Kaldırıcı yalnızca program dosyalarını siler.
 
 | Ne | Kaldırınca |
 |---|---|
 | Program (`app\`) | kaldırıcı siler |
-| AI araçlarındaki kendi MCP girdileri | kaldırılır (elle değiştirmiş olsanız da); diğer girdiler kalır |
-| Kurulum kaydı | her zaman kalkar |
-| Ayarlar, görev çalışmaları, kanıtlar | kalır; "Evet" / `--purge` / `/PURGE=1` ile silinir |
+| AI araçlarındaki kendi MCP girdileri | `rorch uninstall` kaldırır (elle değiştirmiş olsanız da); kaldırıcı dokunmaz; diğer girdiler kalır |
+| Kurulum kaydı | program klasöründedir, birlikte silinir (`rorch uninstall` önce de siler) |
+| Ayarlar, görev çalışmaları, kanıtlar | kalır; `rorch uninstall --purge` ile silinir |
 | Projeleriniz | hiçbir durumda dokunulmaz |
 
 Brain hafıza bağlantısı varsa önce `memory disconnect` ile kapatmak izni Brain tarafında da iptal eder.
@@ -271,7 +267,7 @@ Brain hafıza bağlantısı varsa önce `memory disconnect` ile kapatmak izni Br
 | `check` geçmiyor | Yama artık projeye uymuyor (proje değişti), kapsam dışına çıkılmış ya da doğrulama komutu başarısız; görevi yeniden deneyin |
 | MCP'den görev reddediliyor | Doğrulama komutu `mcp_acceptance_allow`'da değil ya da özel komut/uygulama klasörü istendi |
 | `memory connect` → `NOT_INSTALLED` | Brain kurulu değil |
-| "Onarım gerekli" | Kurucuyu çalıştırıp **Onar / Güncelle** seçin |
+| "Onarım gerekli" | `rorch repair` (olmazsa güncel kurucuyu yeniden çalıştırın) |
 
 Hata bildirirken `--version` çıktısı, Windows sürümü, hata kodu ve kişisel bilgilerden arındırılmış komut yeterlidir.
 Görev metninizi, projenizin kodunu ve kimlik bilgilerinizi herkese açık yere koymayın.

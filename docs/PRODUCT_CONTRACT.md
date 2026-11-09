@@ -39,25 +39,19 @@ eski yolu silinir.
 ## 4. Kurucu
 
 Derleme çıktısı `RespectedOrchestrator-Windows-Setup.exe`; yayında dosya adı `Respected-Orchestrator-<sürüm>-Windows-x64-Setup.exe`.
-Kullanıcı başına, yönetici izni istemez, varsayılan (açık) Inno görünümü, Türkçe.
+Kullanıcı başına, yönetici izni istemez, varsayılan (açık) Inno görünümü, Türkçe. **Kurucu yalnızca program dosyalarını yazar ve siler**
+(ADR-031): ayar ya da bağlantı sayfası, yedek, geri alma ve ürün komutu çağrısı yoktur. Sessiz kurulum ve güncelleme
+`/VERYSILENT /SUPPRESSMSGBOXES /NORESTART`; açık uygulamayı ve motoru Windows kapattırır.
 
-| Durum | Sayfalar |
+| Ne | Kim yapar |
 |---|---|
-| İlk kurulum | Varsayılan çalışan → Brain hafızası → kur → ürünün `setup` komutu |
-| Ürün kurulu | **Onar / Güncelle** (dosyalar + `repair`) · **Ayarları değiştir** (`config get` ile dolar, `config set` ile kaydeder) · **Kaldır** |
-| Kaldırma | "Ayarlar ve çalışma verileri de silinsin mi?" (varsayılan Hayır) |
+| Kurulum kaydı ve veri klasörü | motorun ilk açılışı (`setup` ile aynı iş); elle `rorch setup` / `rorch repair` |
+| Ayarlar, AI araçlarına bağlantı, Brain hafızası | masaüstü uygulaması ya da `rorch config`, `rorch integrations`, `rorch memory connect` |
+| Kaldırmadan önce MCP girdilerini ve kaydı geri alma | `rorch uninstall [--purge]` (kaldırıcı yalnızca program dosyalarını siler) |
 
-| Sessiz anahtar | Anlam |
-|---|---|
-| `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART` | soru sormadan; ürün kuruluysa onar/güncelle |
-| `/SET=<anahtar>=<değer>` (tekrarlanabilir) | ürün ayarı, `config set` ile aynı anahtarlar |
-| `/PURGE=1` | kaldırırken ayarları ve verileri de sil |
-
-**Güncelleme güvenlidir ve her sürümden en yeniye doğrudandır.** Kurucu güncellemeden önce önceki program klasörünü ve
-veri kökündeki `*.json` dosyalarını `update-backup\` altına yedekler; yedek alınamazsa güncelleme başlamaz. `repair`
-başarısız olursa ya da ürün güncellemeden önce sağlıklıyken sonra sağlıklı değilse yedek geri yüklenir, güncelleme
-başarısız sayılır ve kurulu sürüm değişmez; başarılıysa yedek silinir. Kurucu bu durumda ve ürünün `setup` komutu
-başarısız olduğunda sıfırdan farklı bir çıkış koduyla (8) biter. Veri biçimi değişirse her eski biçim için `STEPS` tablosuna bir
+**Güncelleme = yeni sürümün kurucusunu çalıştırmak, her sürümden en yeniye doğrudan.** Kurucu yedek almaz ve geri yüklemez; çalışan
+görevler yarıda kalır. Ayarlar ve veri, kurucuya dokunulmadığı için aynı kalır; motor yeni sürümle ilk açıldığında eski biçimli veriyi
+yerinde taşır. Veri biçimi değişirse her eski biçim için `STEPS` tablosuna bir
 adım eklenir ve **adımlar hiç silinmez**; tablo yalnızca `SHIPPED` ile `CURRENT` arasındaki gerçek boşlukları içerir, ileriye
 dönük spekülatif adım taşımaz. Her yayında o sürümün gerçek veri dosyaları `tests/fixtures/releases/<sürüm>/` altına kopyalanır,
 CI hepsini en yeniye taşıyıp ikinci çalıştırmanın hiçbir şeyi değiştirmediğini ve yayın klasöründe tanınmayan veri dosyası

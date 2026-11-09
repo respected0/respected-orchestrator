@@ -2,7 +2,7 @@
 
 ## Durum
 
-Kabul edildi (7 Kasım 2026). Görev: B3-09.03. Ortak komut listesi ve `docs/PRODUCT_CONTRACT.md` değişmedi: `maintenance` Orchestrator'a özgü bir komuttur ve kurma işlemi yapmaz.
+Kabul edildi (7 Kasım 2026); **kurucu tarafı 9 Kasım 2026'da ADR-031 ile kaldırıldı** (kurucu artık güncelleme penceresi açmaz, beklemez, yedek almaz). `maintenance` komutu ve modülü elle kullanılabilir olarak duruyor. Görev: B3-09.03. Ortak komut listesi ve `docs/PRODUCT_CONTRACT.md` değişmedi: `maintenance` Orchestrator'a özgü bir komuttur ve kurma işlemi yapmaz.
 
 ## Bağlam
 

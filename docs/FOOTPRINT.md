@@ -117,19 +117,21 @@ dosya ya da ağ sınırı koymaz. Kapsam denetimi çalışmadan sonra yamaya bak
 
 ## 6. Güncelleme ve onarım
 
-- **Onar / Güncelle:** programı yenisiyle değiştirir; çalışan süreçler durdurulur; ürün kendini onarır (dosyaları doğrular,
-  AI araçlarındaki MCP kaydını yeni sürüme göre yeniler).
-- Kurucu güncellemeden önce eski programı ve veri dosyalarını `%LOCALAPPDATA%\Respected\RespectedOrchestrator\update-backup`
-  klasörüne yedekler; ters giderse geri yükler, sıfırdan farklı bir çıkış koduyla biter ve tamamlanınca yedeği siler.
+- **Güncelleme:** yeni sürümün kurucusunu çalıştırmaktır. Kurucu **yalnızca program dosyalarını** yerleştirir: dosyaları kullanan
+  uygulamayı, motoru ve AI aracının MCP sunucusunu Windows kapattırır, program klasörü yenilenir (eski sürümden kalan dosyalar silinir).
+- Kurucu **yedek almaz, geri yüklemez, çalışan işleri beklemez**: çalışan görevler yarıda kalır ("yarıda kaldı" olarak işaretlenir,
+  kendiliğinden uygulanmaz). Ayarlarınız ve veri klasörünüz kurucuya dokunulmadığı için aynı kalır.
+- Motor yeni sürümle ilk açıldığında kurulumu kendisi tamamlar: dosyaları `distribution.json` ile doğrular, kurulum kaydını yazar,
+  eski biçimli veriyi yerinde taşır. `repair` komutu aynı işi elle yapar.
 
 ## 7. Kaldırma
 
 | Ne | Sonuç |
 |---|---|
-| Program klasörü, "Yüklü uygulamalar" kaydı, kurulum kaydı | **Silinir** |
-| AI araçlarındaki MCP girdileri | Orchestrator'ın yazdığı girdiler **silinir** (elle değiştirilmiş olsalar da; bölüm 3) |
+| Program klasörü ve "Yüklü uygulamalar" kaydı | **Silinir** (kurulum kaydı program klasöründedir, birlikte gider) |
+| AI araçlarındaki MCP girdileri | Kaldırıcı **dokunmaz**; önce `rorch uninstall` (ya da uygulamanın Bağlantılar bölümünden kapatma) ile geri alın, yoksa girdiler artık olmayan programı gösterir |
 | Brain'e verdiğiniz hafıza izni | Kaldırma bunu **iptal etmez**; Brain'de iz kalmaması için kaldırmadan önce `memory disconnect` (ya da masaüstü uygulamasında Ayarlar'dan kapatın) |
-| Ayarlar, görev geçmişi, kanıtlar, çalışma ağaçları (`data`) | **Kalır**; "çalışma verileri de silinsin" ya da `uninstall --purge` ile silinir |
+| Ayarlar, görev geçmişi, kanıtlar, çalışma ağaçları (`data`) | **Kalır**; silmek için kaldırmadan önce `rorch uninstall --purge` |
 | **Projeleriniz ve Git depolarınız** | **Dokunulmaz.** Biten görevlerin dalı ve çalışma ağacı zaten silindi; yalnızca zorla öldürülen bir görevin kalıntısı varsa `git worktree prune` temizler |
 
 ## 8. Sık sorulanlar

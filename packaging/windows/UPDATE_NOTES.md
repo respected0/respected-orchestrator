@@ -2,6 +2,9 @@ Respected Orchestrator, kodlama ajanlarını projenizde değil, yalıtılmış b
 
 beta.4'te neler değişti:
 
+- Kalıcı motor: tek bir arka plan süreci sohbet oturumlarını tutar; masaüstü, `rorch session` ve MCP aynı oturumları görür. Masaüstünü kapatmak motoru ve oturumları öldürmez.
+- Kurucu artık yalnızca program dosyalarını yerleştirir. Ayar ve bağlantı sayfaları, yedek ve geri alma, çalışan işleri bekleme kalktı; kurulumu motor ilk açılışta kendisi tamamlar. Güncellemede çalışan görevler yarıda kalır. Kaldırmadan önce `rorch uninstall` çalıştırın.
+- CLI adı `rorch` oldu (`rorch.exe`).
 - Akıllı yönlendirme: görev türü sınıflandırılır; hangi aracın hangi göreve uygun olduğu açık gerekçeyle önerilir. Sizin açıkça yaptığınız atama her zaman korunur, hiçbir şey sessizce değiştirilmez.
 - Takım profilleri ve devirler: roller, araçlar ve yetkiler tek yerde tanımlanır; ajanlar arası devirler sınırlıdır ve insana yükseltme kaydedilir. Yeni "Takım" ekranı yalnızca okunur.
 - Kullanım ve maliyet kaydı: ajanın bildirdiği kullanım ile tahmin ayrı tutulur; bilinmeyen değer sıfır sayılmaz. "Bütçe ve başarı" ekranı salt okunurdur.

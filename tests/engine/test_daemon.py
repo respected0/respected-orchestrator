@@ -116,6 +116,20 @@ class DaemonSessionTests(unittest.TestCase):
         self.engine.sessions._sessions["ses_abcdefgh12"]["state"] = "idle"  # an idle session is saved and can resume: it does not hold the engine
         self.assertFalse(self.engine.busy())
 
+    def test_the_first_start_of_a_packaged_engine_records_the_install_and_a_bad_folder_is_only_reported(self):
+        from respected_orchestrator.interfaces import installation
+        with mock.patch.object(daemon.sys, "frozen", True, create=True),                 mock.patch.object(installation, "verify", return_value={"install_state": "absent"}),                 mock.patch.object(installation, "setup", return_value={"status": "installed"}) as setup:
+            self.engine._complete_install()
+            setup.assert_called_once()
+        with mock.patch.object(daemon.sys, "frozen", True, create=True),                 mock.patch.object(installation, "verify", return_value={"install_state": "repair-needed"}),                 mock.patch.object(installation, "setup", side_effect=installation.OperationError("VERIFY_FAILED", "mismatch", "reinstall")):
+            self.engine._complete_install()  # reported, does not raise
+        with mock.patch.object(daemon.sys, "frozen", True, create=True),                 mock.patch.object(installation, "verify", return_value={"install_state": "installed"}),                 mock.patch.object(installation, "setup") as setup:
+            self.engine._complete_install()
+            setup.assert_not_called()
+        with mock.patch.object(installation, "setup") as setup:  # running from source: nothing to record
+            self.engine._complete_install()
+            setup.assert_not_called()
+
     def test_a_session_start_with_a_bad_folder_is_refused_by_the_engine(self):
         reply = self.ask(self.engine.api(Origin.MCP, "a" * 32), "a" * 32, "session.start", {"project_id": "p1", "project_root": "C:\nowhere", "text": "hi"})
         self.assertEqual((reply["ok"], reply["error"]["reason"]), (False, "ROOT_INVALID"))
