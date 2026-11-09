@@ -22,7 +22,7 @@ from .. import __version__
 from . import winproc
 from .authority import Action, Origin
 from .journal import Journal
-from .local_api import COMMANDS, IPC, MAX_REQUEST_BYTES, LocalApi, _ID, _reply
+from .local_api import COMMANDS, IPC, MAX_REQUEST_BYTES, LocalApi, _ID, _reply, session_controller
 from .supervisor import Supervisor, SupervisorBusy
 
 IDLE_SECONDS = 30 * 60  # nothing connected, no run working: the daemon leaves (ADR-030 D2)
@@ -58,13 +58,14 @@ class Daemon:
         self.started_at = time.time()
         self._connections, self._last_activity = 0, time.monotonic()
         self._guard = threading.Lock()
+        self.sessions = session_controller(ctx)  # the one set of live chat sessions every connection shares
 
     def busy(self) -> bool:
         from . import maintenance
         with self._guard:
             if self._connections:
                 return True
-        return bool(maintenance.run_pids(self.ctx))
+        return self.sessions.busy() or bool(maintenance.run_pids(self.ctx))
 
     def status(self) -> dict:
         return {"pid": os.getpid(), "version": __version__, "data_root": str(self.ctx.data_root), "started_at": self.started_at,
@@ -79,6 +80,7 @@ class Daemon:
             print(json.dumps({"daemon": "busy", "pid": os.getpid()}), flush=True)
             return 1
         try:
+            winproc.contain_children()
             threading.Thread(target=self._watch_idle, daemon=True).start()
             print(json.dumps({"daemon": "started", **self.status()}), flush=True)
             self._serve_pipe()
@@ -132,7 +134,7 @@ class Daemon:
         try:
             origin = classify(self.ctx, win32pipe.GetNamedPipeClientProcessId(handle))
             token = secrets.token_hex(16)  # local_api insists on one; the pipe's access list is the real gate
-            api = LocalApi(self.ctx, token, origin=origin, journal=Journal(self.ctx.state_dir / "events.log"), only=SERVED)
+            api = self.api(origin, token)
             buffer = b""
             while not self.stop_event.is_set():
                 try:
@@ -159,6 +161,10 @@ class Daemon:
                 win32file.CloseHandle(handle)
             except pywintypes.error:
                 pass
+
+    def api(self, origin, token):
+        """One connection's view of the engine: the served catalog only, the sessions every connection shares."""
+        return LocalApi(self.ctx, token, origin=origin, journal=Journal(self.ctx.state_dir / "events.log"), only=SERVED, sessions=self.sessions)
 
     def _answer(self, api, origin, token, line):
         try:

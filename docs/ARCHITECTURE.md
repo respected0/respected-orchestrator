@@ -39,8 +39,12 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   yeniden kullanılmış PID zinciri keser) `CHILD` olur ve hiçbir komut çalıştıramaz; diğer herkes `MCP` düzeyindedir (okuma ve görev).
   Sunulan katalog yalnız `READ` ve `TASK` komutlarıdır: onay, uygulama, ayar ve ekran görüntüsü onayı bu uçta **yoktur**.
 - Boşta (bağlantı yok, çalışan koşu yok) 30 dakika sonra motor kendiliğinden çıkar; testler için `RESPECTED_DAEMON_IDLE_SECONDS`.
-- Bu dilimde hiçbir ön yüz taşınmadı: masaüstü hâlâ kendi `_ipc` çocuğunu, MCP kendi sürecini kullanır; canlı sohbet oturumları
-  hâlâ o çocuğun belleğindedir (2. dilim).
+- Canlı sohbet oturumları (`SessionController`) artık **motorun tek örneğindedir**: her bağlantı aynı denetleyiciyi görür, `rorch session ...` ona
+  bağlanır (motor yoksa başlatır). Bir tur çalışırken motor boşta çıkmaz; boşta oturumlar kaydedilir ve `resume` ile sürdürülür.
+  Ortak uçta `session.defaults.set` (ayar) yoktur.
+- Motor, kendini Windows iş nesnesine (`winproc.contain_children`, kapanınca öldür) koyar: motor nasıl biterse bitsin ajan çocukları kalmaz.
+  Koşular `CREATE_BREAKAWAY_FROM_JOB` ile ayrık başladığından iş nesnesinin dışındadır ve motor kapanınca da devam eder.
+- Masaüstü ve MCP henüz taşınmadı: masaüstü hâlâ kendi `_ipc` çocuğunu kullanır (3. dilim), MCP kendi sürecini (4. dilim).
 
 ## 2. Görev ve sonuç denetimi
 

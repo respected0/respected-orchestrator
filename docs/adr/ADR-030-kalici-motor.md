@@ -92,7 +92,8 @@ Birim: tek örnek, ikinci başlatma, durdur/yeniden başlat idempotent, bayat u�
 
 ## Sonuçlar ve sınırlar
 
-- 1. dilim sonrası: tek kalıcı motor süreci, kullanıcıya özel boru, sunucu tarafı köken çözümü ve `rorch daemon` komutları vardır; hiçbir ön yüz taşınmadı, canlı sohbet oturumları hâlâ masaüstü çocuğunun belleğindedir.
+- 2. dilim sonrası: tek kalıcı motor süreci, kullanıcıya özel boru, sunucu tarafı köken çözümü, `rorch daemon` ve `rorch session` komutları vardır; canlı sohbet oturumları motordadır ve bağlantılar arasında ortaktır. Masaüstü ve MCP henüz taşınmadı. Varsayılan ajan/model değiştirmek ortak uçta yoktur; masaüstü bunu 3. dilimde kendi özel kanalından yapar.
+- Gerçek bir ajanla (opencode) uçtan uca oturum bu dilimde çalıştırılmadı (token harcar, ayrıca onay ister); paylaşım sahte kayıtla, kapsama gerçek süreçlerle test edildi.
 - Aynı kullanıcı olarak çalışan işçi veri kökünü okuyabilir; motor bunu kapatmaz. Kapattığı şey, işçinin insan onayı olmadan onay/uygulama komutunu tetiklemesidir.
 - Başka kullanıcı hesabıyla erişim reddi ve gerçek bir ajan işçisinin soyundan bağlanma uçtan uca denenmedi; erişim listesi içeriği ve sınıflama birim testle doğrulandı.
 - Windows dışı (Unix soketi), oturumların taşınması, masaüstü/MCP bağlanması, kurucu durdurma adımı ve tek katalog sonraki dilimlerdir.

@@ -86,6 +86,11 @@ class SessionController:
         self.store = store or SessionStore()
         self._known = {}  # agent -> (time, model ids): the CLI is asked at most once in MODELS_TTL seconds
 
+    def busy(self):
+        """True while any session is working on a turn (the persistent engine does not leave then; idle sessions are saved and can resume)."""
+        with self._lock:
+            return any(s["state"] == "running" for s in self._sessions.values())
+
     def _get(self, session_id, project_id):
         found = self._sessions.get(session_id) if isinstance(session_id, str) else None
         if found is None or found["project_id"] != project_id or found["state"] == "ended":

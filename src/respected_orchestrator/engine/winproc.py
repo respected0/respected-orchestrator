@@ -121,3 +121,23 @@ def ancestors(pid: int) -> list[int]:
         chain.append(parent)
         seen.add(parent)
         child = parent
+
+
+_job = None
+
+
+def contain_children() -> None:
+    """Put this process in a job that kills everything in it when this process ends, however it ends (Windows), so a stopped or crashed
+    engine leaves no orphan agent behind. Detached runs start with CREATE_BREAKAWAY_FROM_JOB (lanes._spawn_detached), so they are not in it
+    and keep working: closing the engine never ends a run."""
+    global _job
+    if os.name != "nt" or _job is not None:
+        return
+    import win32api
+    import win32job
+    job = win32job.CreateJobObject(None, "")
+    info = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
+    info["BasicLimitInformation"]["LimitFlags"] |= win32job.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | win32job.JOB_OBJECT_LIMIT_BREAKAWAY_OK
+    win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation, info)
+    win32job.AssignProcessToJobObject(job, win32api.GetCurrentProcess())
+    _job = job  # the handle must stay open for the life of the process

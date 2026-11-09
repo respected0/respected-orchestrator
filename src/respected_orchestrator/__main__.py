@@ -128,6 +128,47 @@ def _error(code, message, hint):
     print(json.dumps({"error": {"code": code, "message": message, "hint": hint}}, ensure_ascii=False))
 
 
+SESSION_COMMANDS = {"list": "sessions.list", "start": "session.start", "send": "session.send", "events": "session.events", "retry": "session.retry",
+                    "interrupt": "session.interrupt", "cancel": "session.cancel", "resume": "session.resume", "transcript": "session.transcript",
+                    "forget": "session.forget", "models": "session.models", "defaults": "session.defaults"}
+
+
+SESSION_ARGUMENT = {"list": "project_id", "models": "agent"}
+
+
+def _stdin_json_text():
+    return sys.stdin.buffer.read().decode("utf-8-sig").strip() or "{}"
+
+
+def _session(ctx, args):
+    """(payload, exit code) for `rorch session <action>` (ADR-030 slice 2): the persistent engine's chat sessions, payload as JSON on stdin."""
+    from .engine import daemon_client
+    if not args or args[0] not in SESSION_COMMANDS or len(args) > (2 if args[0] in SESSION_ARGUMENT else 1):
+        raise UsageError("Kullanım: session list [PROJE] | models [AJAN] | defaults | start|send|events|retry|interrupt|cancel|resume|transcript|forget  (son grupta istek gövdesi stdin'den JSON; docs/COMMANDS.md)")
+    if args[0] in SESSION_ARGUMENT:  # these take at most one plain word and never read stdin
+        payload = dict(zip([SESSION_ARGUMENT[args[0]]], args[1:]))
+    elif args[0] == "defaults":
+        payload = {}
+    else:
+        try:
+            payload = json.loads(_stdin_json_text())
+        except ValueError:
+            raise UsageError("stdin geçerli bir JSON nesnesi olmalı") from None
+        if not isinstance(payload, dict):
+            raise UsageError("stdin geçerli bir JSON nesnesi olmalı")
+    try:
+        daemon_client.start(ctx)  # the first caller starts the engine (ADR-030 D4); a different version is refused
+        reply = daemon_client.request(ctx, SESSION_COMMANDS[args[0]], payload, timeout=60)
+    except daemon_client.DaemonUnavailable as error:
+        _error("ENGINE_UNAVAILABLE", str(error), "rorch daemon status")
+        return None, 1
+    if not reply.get("ok"):
+        error = reply.get("error") or {}
+        _error(error.get("code", "ENGINE_ERROR"), error.get("message", ""), error.get("reason") or "docs/COMMANDS.md")
+        return None, 1
+    return reply["result"], 0
+
+
 def _daemon(ctx, args):
     """(payload, exit code) for `rorch daemon start|stop|restart|status` (ADR-030). status exits 1 when no engine runs."""
     from .engine import daemon_client
@@ -202,7 +243,7 @@ def main(argv=None):
     from .workflows import roles
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=default_data_root(), help=argparse.SUPPRESS)
-    parser.add_argument("command", choices=["maintenance", "status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "ledger", "team", "handoff", "inbox", "escalation", "operator", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", "github-ci-ingest", "github-ci-poll", "provider-key", "provider-models", *SHARED, "daemon", "_daemon", "_selfcheck"])
+    parser.add_argument("command", choices=["maintenance", "status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "ledger", "team", "handoff", "inbox", "escalation", "operator", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", "github-ci-ingest", "github-ci-poll", "provider-key", "provider-models", *SHARED, "daemon", "session", "_daemon", "_selfcheck"])
     parser.add_argument("args", nargs=argparse.REMAINDER)
     try:
         args = parser.parse_args(argv)
@@ -249,6 +290,11 @@ def main(argv=None):
         elif args.command == "_daemon":  # the persistent engine itself (started by `daemon start`, never by hand)
             from .engine import daemon
             return daemon.run(ctx)
+        elif args.command == "session":
+            payload, code = _session(ctx, args.args)
+            if payload is not None:
+                print(json.dumps(payload, ensure_ascii=False))
+            return code
         elif args.command == "daemon":
             payload, code = _daemon(ctx, args.args)
             if payload is not None:

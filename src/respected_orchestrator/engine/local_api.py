@@ -108,8 +108,15 @@ def _reply(corr, ok, result=None, code=None, message="", reason=None):
     return {"ipc": IPC, "id": corr, "ok": ok, "result": result, "error": error}
 
 
+def session_controller(ctx):
+    """The chat sessions of one data root: live in memory, saved under `chat/sessions.json`."""
+    data_root = getattr(ctx, "data_root", None)
+    store = SessionStore(Path(data_root) / "chat" / "sessions.json") if data_root else None
+    return session_control.SessionController(store=store)
+
+
 class LocalApi:
-    def __init__(self, ctx, token, origin=Origin.RENDERER, journal=None, only=None):
+    def __init__(self, ctx, token, origin=Origin.RENDERER, journal=None, only=None, sessions=None):
         if not isinstance(token, str) or len(token) < 16:
             raise ValueError("session token must be at least 16 characters")
         self.ctx, self._token, self.origin = ctx, token, origin
@@ -118,9 +125,7 @@ class LocalApi:
         self._seen = {}  # id -> (request digest, response)
         self._voice_api = None
         self._attach_api = None
-        data_root = getattr(ctx, "data_root", None)
-        store = SessionStore(Path(data_root) / "chat" / "sessions.json") if data_root else None
-        self.sessions = session_control.SessionController(store=store)
+        self.sessions = sessions or session_controller(ctx)  # the persistent engine hands every connection the one it owns (ADR-030)
 
     def handle_raw(self, raw):
         if isinstance(raw, str):

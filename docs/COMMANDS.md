@@ -28,6 +28,9 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 | `daemon status` | Çalışan motorun durumunu verir; çalışmıyorsa `{"running": false}` ve çıkış 1. |
 | `daemon stop` | Motoru durdurur ve sürecin çıkmasını bekler; çalışmıyorsa hata değildir (`stopped: false`). |
 | `daemon restart` | Durdurup yeniden başlatır (sürüm uyuşmazlığında çare). |
+| `session list [PROJE]` | Kalıcı motorun canlı sohbet oturumlarını ve kayıtlı konuşmaları listeler. Motor yoksa başlatır. |
+| `session models [AJAN]`, `session defaults` | Ajanın kendi model listesi; kayıtlı varsayılan ajan/model (değiştirme bu uçta yoktur). |
+| `session start\|send\|events\|retry\|interrupt\|cancel\|resume\|transcript\|forget` | İstek gövdesi stdin'den JSON: `project_id` (zorunlu, oturumu adresler), `session_id`, `project_root` (var olan mutlak klasör), `agent`, `model`, `text`, `resume_session`, `continue_conversation`. Yanıt motorun kendi yanıtıdır; hata `{"error":{code,message,hint}}`, çıkış 1 (kullanım hatası 2). Oturum başlatma yalnız doğrulanmış sohbet adaptörü olan ajanlarda (şimdilik `opencode`) çalışır. Onay komutu yoktur. |
 
 ## Brain hafızası ve AI araçları
 
