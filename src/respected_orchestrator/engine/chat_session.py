@@ -24,6 +24,13 @@ _ASK_TOOLS = {"question", "ask_user", "askuser"}
 # Tools a chat turn may not use (checked live 2026-11-07: with these denied the model's shell request never ran; without them it did).
 # Reading project files stays allowed: that is what a chat about a project is. Names cover this CLI version's `shell` and older `bash`.
 DENIED_TOOLS = ("bash", "shell", "edit", "write", "patch", "webfetch", "websearch", "task")
+# Off in every mode (checked live 2026-11-10): `execute` runs model-written JavaScript against the CLI's own meta tools, and those
+# (`opencode_worktree_create`, `opencode_session_move`, ...) change things outside the conversation. With both denied the tools are gone.
+ALWAYS_DENIED = ("execute", "opencode_*")
+# Permission mode -> the tools it opens, under the names AO uses (KALAN_ISLER 4.6). Checked live 2026-11-10 with a free model: "allow"
+# lets the tool run in the project folder, "deny" removes it, and "ask" is refused in a non-interactive turn - so there is no asking mode
+# and no `auto`: `default` is read-only. The person picks the mode; nothing in a stream can change it.
+MODES = {"default": (), "accept-edits": ("edit", "write", "patch"), "bypass-permissions": DENIED_TOOLS}
 _RATE = re.compile(r"\b429\b|rate.?limit|usage limit reached|quota", re.I)
 _ANSI = re.compile(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]|\x1b[@-Z\\-_]")
 _CTRL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
@@ -133,13 +140,16 @@ def command(agent, *, model, prompt, binary, session_id=None):
     return argv + [prompt]
 
 
-def turn_environment(cwd, environ=None):
+def turn_environment(cwd, environ=None, mode="default"):
     """Environment for one turn. The CLI takes its project directory from PWD (not from the process working directory), project
-    config is ignored so a repository cannot re-enable tools, mutating/network tools are denied, and the child is marked so it can
-    never act as the human approver (processes.execute does the same for workers)."""
+    config is ignored so a repository cannot re-enable tools, mutating/network tools are denied unless the session's permission mode
+    opens them, and the child is marked so it can never act as the human approver (processes.execute does the same for workers)."""
+    opened = MODES[mode]
+    permission = {tool: "allow" if tool in opened else "deny" for tool in DENIED_TOOLS}
+    permission.update({tool: "deny" for tool in ALWAYS_DENIED})
     env = dict(os.environ if environ is None else environ)
     env.update({"PWD": str(cwd), "OPENCODE_DISABLE_PROJECT_CONFIG": "1", "RESPECTED_ORCH_CHILD": "1",
-                "OPENCODE_CONFIG_CONTENT": json.dumps({"permission": {tool: "deny" for tool in DENIED_TOOLS}})})
+                "OPENCODE_CONFIG_CONTENT": json.dumps({"permission": permission})})
     return env
 
 

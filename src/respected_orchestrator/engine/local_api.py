@@ -206,6 +206,8 @@ class LocalApi:
                 return _reply(corr, True, self.sessions.defaults(self.origin))
             if name == "defaults.set":
                 return _reply(corr, True, self.sessions.set_defaults(self.origin, payload.get("agent", self.sessions.store.defaults()["agent"]), payload.get("model")))
+            if name == "mode.set":
+                return _reply(corr, True, self.sessions.set_mode(self.origin, sid, pid, payload.get("mode")))
             if name == "transcript":
                 return _reply(corr, True, self.sessions.transcript(self.origin, sid, payload.get("before"), payload.get("limit", session_control.PAGE_TURNS)))
             if name == "forget":
@@ -224,7 +226,8 @@ class LocalApi:
                     return _reply(corr, False, code="BAD_REQUEST", message="project_root must be an existing absolute directory.", reason="ROOT_INVALID")
                 if not (isinstance(agent, str) and isinstance(model, str)):
                     return _reply(corr, False, code="BAD_REQUEST", message="agent and model must be strings.", reason="MODEL_INVALID")
-                return _reply(corr, True, self.sessions.start(self.origin, pid, agent, model, root, payload.get("text"), wait=False, resume=resume))
+                return _reply(corr, True, self.sessions.start(self.origin, pid, agent, model, root, payload.get("text"), wait=False, resume=resume,
+                                                              mode=payload.get("mode", "default")))
             args = (self.origin, sid, pid) + ((payload.get("text"),) if name == "send" else ())
             # A turn can take minutes and this loop answers one request at a time: turns run on their own thread (wait=False)
             # so interrupt/cancel stay reachable; the result is read with session.events.

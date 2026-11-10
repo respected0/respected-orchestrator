@@ -11,7 +11,7 @@ export const PROJECT_ID = 'proj-sessions';
 export type State = 'idle' | 'running' | 'failed' | 'ended';
 export type CommandState = { enabled: boolean; reason: string | null };
 export type SessionView = {
-  id: string; project_id: string; agent: string; model: string; state: State; retries: number; last_state: string | null; turn: number;
+  id: string; project_id: string; agent: string; model: string; mode: string; state: State; retries: number; last_state: string | null; turn: number;
   project_root: string; title: string;
   commands: Record<'send' | 'retry' | 'interrupt' | 'cancel' | 'resume', CommandState>;
 };
@@ -28,7 +28,15 @@ export type Note =
   | { event: 'session.event'; data: { session_id: string; turn: number; event: StreamEvent } }
   | { event: 'session.state'; data: { session: SessionView } }
   | { event: 'stream.closed' };
-export type Defaults = { agents: string[]; agent: string; model: string };
+export type Defaults = { agents: string[]; modes: string[]; agent: string; model: string };
+
+/** The engine's permission modes (KALAN_ISLER 4.6) in words: the name on the chip and what the agent may do. Only the person picks one. */
+export const MODE_TEXT: Record<string, [string, string]> = {
+  default: ['Salt okunur', 'Ajan projeyi okur; dosya değiştiremez, komut çalıştıramaz, ağa çıkamaz.'],
+  'accept-edits': ['Düzenlemeleri kabul et', 'Ajan proje klasöründeki dosyaları sormadan değiştirir; komut çalıştıramaz, ağa çıkamaz.'],
+  'bypass-permissions': ['Tüm izinler', 'Ajan sormadan dosya değiştirir, komut çalıştırır ve ağa çıkar. Yalnız güvendiğiniz bir projede kullanın.'],
+};
+export const modeText = (id: string): [string, string] => MODE_TEXT[id] ?? [id, 'Motorun bildirdiği kip; açıklaması yok.'];
 export type StreamEvent = { kind: string; [k: string]: unknown };
 export type TurnResult = { state: string; complete: boolean; events: StreamEvent[]; error?: string } | null;
 
@@ -86,7 +94,7 @@ export const REJECT_TEXT: Record<string, string> = {
   MODEL_INVALID: 'Bu model ajanın listesinde yok.', MODELS_UNAVAILABLE: 'Ajan model listesini veremedi.', ROOT_INVALID: 'Proje klasörü geçerli bir mevcut tam yol olmalı.',
   TEXT_EMPTY: 'İleti boş.', TEXT_TOO_LONG: 'İleti çok uzun (en çok 8000 karakter).', TEXT_UNSAFE: 'İletide denetim karakteri var.',
   AGENT_NOT_INSTALLED: 'Ajan kurulu değil.', TOO_MANY_SESSIONS: 'Çok fazla açık oturum var.', SESSION_UNKNOWN: 'Oturum bulunamadı.',
-  SESSION_LIVE: 'Önce oturumu bitir.', RESUME_INVALID: 'Devam ettirilecek oturum geçersiz.',
+  SESSION_LIVE: 'Önce oturumu bitir.', RESUME_INVALID: 'Devam ettirilecek oturum geçersiz.', MODE_INVALID: 'Bu izin kipi bilinmiyor.', TURN_RUNNING: 'Bir tur çalışıyor.',
 };
 
 /** How long the screen waits before asking for the notification stream again after it closed or could not be opened. */

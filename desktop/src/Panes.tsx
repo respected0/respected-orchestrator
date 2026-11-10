@@ -87,9 +87,9 @@ export function WidePane({ kind, s, turns, root, lines, pickFolder, close }: { k
 
 function Changes({ turns }: { turns: Turn[] }) {
   const { changed } = filesOf(turns);
-  if (changed.length === 0) return <p className="mut">Bu oturumda ajan hiçbir dosyayı değiştirmedi. Sohbet oturumlarında dosya değiştiren araçlar kapalıdır; değişiklikler görevler/kampanyalar üzerinden onay merkezine gelir.</p>;
+  if (changed.length === 0) return <p className="mut">Bu oturumda ajan hiçbir dosyayı değiştirmedi. Salt okunur kipte dosya değiştiren araçlar kapalıdır; kipi mesaj kutusunun altından siz seçersiniz.</p>;
   return <>{changed.map((f) => <div key={f} className="step"><span className="mono" title={f}>{f}</span></div>)}
-    <p className="mut">Yalnız dosya adları listelenir; sohbet akışı yama içeriği taşımaz. Uygulama izni ayrı onay penceresindedir.</p></>;
+    <p className="mut">Yalnız dosya adları listelenir; sohbet akışı yama içeriği taşımaz. Değişiklikler doğrudan proje klasörüne yazılmıştır.</p></>;
 }
 
 type Entry = { name: string; dir: boolean };

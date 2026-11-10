@@ -26,7 +26,7 @@ export function Sessions() {
   const [tr, setTr] = useState<Record<string, Transcript>>({});
   const [defaults, setDefaults] = useState<Defaults | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const [form, setForm] = useState({ root: '', model: '', text: '' });
+  const [form, setForm] = useState({ root: '', model: '', text: '', mode: 'default' });
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [attach, setAttach] = useState<Record<string, string[]>>({});
   const [busy, setBusy] = useState(false);
@@ -149,7 +149,7 @@ export function Sessions() {
 
   const start = async () => {
     setBusy(true);
-    const r = await call<SessionView>(relay, 'session.start', { project_root: form.root.trim(), model: form.model, text: newText });
+    const r = await call<SessionView>(relay, 'session.start', { project_root: form.root.trim(), model: form.model, text: newText, mode: form.mode });
     setBusy(false);
     setNote(r.ok ? null : r.text);
     if (r.ok) {
@@ -194,6 +194,7 @@ export function Sessions() {
   const common = {
     models, tools, pickFiles, pickFolder, onVoice: () => setModal('voice'), onShot: () => setModal('shot'),
     usage: active ? tr[active.id]?.usage ?? null : null,
+    modes: defaults?.modes ?? ['default'], mode: active ? active.mode : form.mode,
   };
   const title = active ? active.title : archived ? archived.title : 'Yeni oturum';
   /** The conversation is read a page at a time: this asks for the page above the turns on screen, when there is one. */
@@ -221,7 +222,7 @@ export function Sessions() {
         {archived ? (
           <article aria-label="Geçmiş oturum" className="session">
             <div className="scroll"><div className="msgs">{olderOf(archived.id)}<ChatThread turns={turns[archived.id] ?? []} running={false} /></div></div>
-            <Composer {...common} usage={archT?.usage ?? null} model={archT?.model ?? ''} value={draft[archived.id] ?? ''} onChange={(v) => setDraft({ ...draft, [archived.id]: v })} onSend={() => void resumeSaved(archived)}
+            <Composer {...common} mode="default" usage={archT?.usage ?? null} model={archT?.model ?? ''} value={draft[archived.id] ?? ''} onChange={(v) => setDraft({ ...draft, [archived.id]: v })} onSend={() => void resumeSaved(archived)}
               canSend={!!(draft[archived.id] ?? '').trim() && !busy && !!archT?.resumable} disabled={!archT?.resumable}
               placeholder={archT?.resumable ? 'Kaldığın yerden devam et…' : 'Bu sohbet devam ettirilemez (ajan oturum kimliği yok)'}
               attachments={attach[archived.id] ?? []} setAttachments={(x) => setAttach({ ...attach, [archived.id]: x })} />
@@ -232,7 +233,7 @@ export function Sessions() {
             {agent && <p role="status" className="mut" style={{ textAlign: 'center' }}>{agent.text}</p>}
             <Composer {...common} value={form.text} onChange={(v) => setForm({ ...form, text: v })} onSend={() => void start()} canSend={!!form.root && !!form.text.trim() && !!form.model && !busy}
               placeholder={form.root ? 'Bir görev tanımlayın veya bir soru sorun' : 'Önce bir proje klasörü seçin…'}
-              model={form.model} onPickModel={(id) => void pickModel(id)}
+              model={form.model} onPickModel={(id) => void pickModel(id)} onPickMode={(id) => setForm((f) => ({ ...f, mode: id }))}
               lead={<span style={{ position: 'relative' }} onKeyDown={(e) => { if (e.key === 'Escape') setChipOpen(false); }}>
                 <button type="button" className="chip flat" aria-haspopup="menu" aria-expanded={chipOpen} title={form.root || 'Proje klasörü seç'} onClick={() => setChipOpen(!chipOpen)}><Ico n="folder" /> {form.root ? baseName(form.root) : 'Klasör seçilmedi'} <Ico n="down" /></button>
                 {chipOpen && <ProjectMenu className="up" known={known} current={form.root} onPick={(r) => { pickRoot(r); setChipOpen(false); }} onChoose={async () => { await chooseRoot(); setChipOpen(false); }} />}</span>}
@@ -241,7 +242,8 @@ export function Sessions() {
         ) : (
           <SessionCard key={active.id} s={active} turns={turns[active.id] ?? []} older={olderOf(active.id)} draft={draft[active.id] ?? ''} busy={busy}
             setDraft={(t) => setDraft({ ...draft, [active.id]: t })} onSend={() => void send(active)} act={(c) => void act(c, active)}
-            composer={{ ...common, model, attachments: attach[active.id] ?? [], setAttachments: (a) => setAttach({ ...attach, [active.id]: a }) }} />
+            composer={{ ...common, model, attachments: attach[active.id] ?? [], setAttachments: (a) => setAttach({ ...attach, [active.id]: a }),
+              onPickMode: active.state === 'running' ? undefined : (id) => void act('session.mode.set', active, { mode: id }) }} />
         )}
       </div>
       {panel && (active || archived) && <SessionPane s={active} usage={active ? tr[active.id]?.usage ?? null : archT?.usage ?? null} turns={active ? turns[active.id] ?? [] : archT?.turns ?? []} root={root} tools={tools} close={() => setPanel(false)} />}

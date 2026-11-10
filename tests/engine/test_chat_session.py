@@ -140,7 +140,21 @@ class CommandTests(unittest.TestCase):
         for tool in ("bash", "shell", "edit", "write", "patch", "webfetch", "websearch", "task"):
             self.assertEqual(denied[tool], "deny", tool)
         self.assertNotIn("read", denied)  # reading the project is what a chat is for
+        self.assertEqual((denied["execute"], denied["opencode_*"]), ("deny", "deny"))  # model-written code and the CLI's own meta tools: off in every mode
         self.assertEqual(env["PATH"], "p")
+
+    def test_a_permission_mode_opens_exactly_its_tools_and_never_the_meta_tools(self):
+        def permission(mode):
+            return json.loads(cs.turn_environment("/work/proj", {}, mode=mode)["OPENCODE_CONFIG_CONTENT"])["permission"]
+        self.assertEqual(list(cs.MODES), ["default", "accept-edits", "bypass-permissions"])
+        edits = permission("accept-edits")
+        self.assertEqual({t for t, v in edits.items() if v == "allow"}, {"edit", "write", "patch"})
+        self.assertEqual((edits["shell"], edits["bash"], edits["webfetch"]), ("deny", "deny", "deny"))
+        everything = permission("bypass-permissions")
+        self.assertEqual({t for t, v in everything.items() if v == "deny"}, {"execute", "opencode_*"})
+        self.assertNotIn("ask", set(everything.values()) | set(edits.values()))  # an asking permission is refused in a non-interactive turn
+        with self.assertRaises(KeyError):
+            cs.turn_environment("/work/proj", {}, mode="auto")
 
     def test_native_binary_is_never_a_cmd_shim(self):
         found = cs.native_binary("opencode")

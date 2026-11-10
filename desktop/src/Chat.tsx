@@ -1,12 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import { Ico } from './icons';
 import { addPaths, baseName, compactNumber, filesOf, itemsOf, planOf, type ModelsView, type Todo, type ToolListView, type Turn } from './chatmodel';
-import type { Usage } from './sessionlog';
+import { modeText, type Usage } from './sessionlog';
 
 /** What a loader reports: nothing yet, an answer, or why there is none. The composer draws each of these; none is drawn as success. */
 export type Loaded<T> = { s: 'loading' } | { s: 'done'; v: T };
 
-type Pop = null | 'model' | 'ctx' | 'tools' | 'attach';
+type Pop = null | 'model' | 'mode' | 'ctx' | 'tools' | 'attach';
 const IcoMini = ({ d }: { d: string }) => <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: 13, height: 13 }} dangerouslySetInnerHTML={{ __html: d }} />;
 const Svg = ({ d }: { d: string }) => <svg viewBox="0 0 24 24" aria-hidden="true" dangerouslySetInnerHTML={{ __html: d }} />;
 const P = {
@@ -25,6 +25,8 @@ export type ComposerProps = {
   onVoice: () => void; onShot: () => void;
   /** The model shown on the chip. `onPickModel` only exists before a session starts: the engine cannot change a running session's model. */
   model: string; models: Loaded<ModelsView>; onPickModel?: (id: string) => void;
+  /** The session's permission mode and the engine's list. `onPickMode` is absent where it cannot change (a saved conversation, a running turn). */
+  mode: string; modes: string[]; onPickMode?: (id: string) => void;
   usage: Usage | null; // the engine's totals for this conversation
   tools: Loaded<ToolListView>;
   attachments: string[]; setAttachments: (a: string[]) => void;
@@ -65,6 +67,11 @@ export function Composer(p: ComposerProps) {
           {ids.length === 0 && <div className="mut" style={{ padding: '4px 9px' }}>Eşleşen model yok.</div>}
         </div></>}
       <div className="mut" style={{ padding: '6px 9px', fontSize: 12 }}>Seçili: <span className="mono">{p.model || '—'}</span></div></>,
+    mode: <>
+      <div className="lab" style={{ paddingTop: 4 }}>İzin kipi {p.onPickMode ? '' : '(şu an değiştirilemez)'}</div>
+      {p.modes.map((id) => <button key={id} className={`it ${id === p.mode ? 'on' : ''}`} role="menuitemradio" aria-checked={id === p.mode} disabled={!p.onPickMode} onClick={() => { p.onPickMode?.(id); setPop(null); }}>
+        <div>{modeText(id)[0]}<div className="mut">{modeText(id)[1]}</div></div></button>)}
+      <div className="mut" style={{ padding: '6px 9px', fontSize: 12 }}>Kipi yalnız siz seçersiniz; ajan isteyemez. Değişiklik bir sonraki turdan başlar ve doğrudan proje klasörüne yazılır.</div></>,
     ctx: u && <>
       <div className="lab" style={{ paddingTop: 4 }}>Token kullanımı (ajanın bildirdiği)</div>
       {[['Son adımın girdisi', u.last_input === null ? '—' : String(u.last_input)], ['Toplam girdi', String(u.input)], ['Toplam çıktı', String(u.output)], ['Akıl yürütme', String(u.reasoning)], ['Önbellekten okunan', String(u.cache_read)], ['Maliyet', u.cost === null ? 'bildirilmedi' : String(u.cost)], ['Adım sayısı', String(u.steps)]]
@@ -80,7 +87,7 @@ export function Composer(p: ComposerProps) {
         <div className="lab">Bulunan beceriler ({p.tools.v.skills.length})</div>
         {p.tools.v.skills.slice(0, 15).map((n) => <div key={n} className="it"><div className="mono">{n}</div></div>)}
         {p.tools.v.skills.length > 15 && <div className="mut" style={{ padding: '2px 9px' }}>… ve {p.tools.v.skills.length - 15} tane daha</div>}</>}
-      <hr /><div className="mut" style={{ padding: '4px 9px', fontSize: 12 }}>Bu liste diskte bulunanlardır; sohbet oturumu bunlardan hiçbirini açmaz. Komut çalıştırma ve dosya değiştirme sohbette kapalıdır.</div>
+      <hr /><div className="mut" style={{ padding: '4px 9px', fontSize: 12 }}>Bu liste diskte bulunanlardır; sohbet oturumu bunlardan hiçbirini açmaz. Ajanın dosya değiştirmesi ve komut çalıştırması izin kipine bağlıdır.</div>
       <button className="it" onClick={() => { location.hash = '#/capabilities'; setPop(null); }}><div>Ayrıntılar: MCP ve beceriler</div></button></>,
     attach: <>
       <button className="it" onClick={() => void attach(p.pickFiles)}><Ico n="file" /><div>Dosya ekle</div></button>
@@ -113,6 +120,7 @@ export function Composer(p: ComposerProps) {
         {p.lead}
         <span className="sp" />
         {u && <button type="button" className="chip flat" title="Token kullanımı" onClick={() => toggle('ctx')}>{compactNumber(u.last_input ?? u.input)} token</button>}
+        <button type="button" className={`chip flat ${p.mode === 'default' ? '' : 'warn'}`} aria-haspopup="menu" title="İzin kipi" onClick={() => toggle('mode')}>{modeText(p.mode)[0]} <IcoMini d={P.down} /></button>
         <button type="button" className="chip flat" onClick={() => toggle('tools')}>{toolsLabel}</button>
         <button type="button" className="chip flat" aria-haspopup="menu" onClick={() => toggle('model')}>{p.model ? p.model.split('/').pop() : 'Model seç'} <IcoMini d={P.down} /></button>
       </div>
@@ -134,7 +142,7 @@ function ChangeCard({ files }: { files: string[] }) {
   return (
     <div className="card"><div className="h"><Ico n="file" /> Değişen dosyalar ({files.length})</div><div className="b">
       {files.map((f) => <div key={f} className="step"><div className="grow mono">{f}</div></div>)}
-      <p className="mut">Değişiklik projeye henüz uygulanmış sayılmaz; uygulama izni ayrı onay penceresindedir.</p></div></div>
+      <p className="mut">Ajan bu dosyaları oturumun izin kipiyle doğrudan proje klasöründe değiştirdi.</p></div></div>
   );
 }
 

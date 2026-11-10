@@ -33,7 +33,8 @@ _SESSION = re.compile(r"^(ses|loc)_[A-Za-z0-9]{8,64}$")
 
 # command -> authority class. `approve` is deliberately absent from this table.
 CLASSES = {"defaults": Action.READ, "set_defaults": Action.SETTINGS, "transcript": Action.READ, "history": Action.READ, "forget": Action.TASK, "register": Action.TASK, "start": Action.TASK, "send": Action.TASK, "retry": Action.TASK, "interrupt": Action.TASK,
-           "cancel": Action.TASK, "resume": Action.TASK, "view": Action.READ, "events": Action.READ, "models": Action.READ}
+           "cancel": Action.TASK, "resume": Action.TASK, "view": Action.READ, "events": Action.READ, "models": Action.READ,
+           "set_mode": Action.TERMINAL}  # a mode that lets the agent write or run commands is the person's choice alone (KALAN_ISLER 4.6)
 
 
 def kill_tree(proc):
@@ -146,10 +147,30 @@ class SessionController:
                                           "last": None, "last_text": None, "gen": 0, "turn": 0, "result": None, "turns": []}
         return self._dto(self._sessions[session_id])
 
-    def start(self, origin, project_id, agent, model, cwd, text, wait=True, resume=None):
+    def _check_mode(self, origin, mode):
+        if mode not in chat_session.MODES:
+            raise SessionError("Unknown permission mode", "MODE_INVALID")
+        if mode != "default":
+            authorize(origin, CLASSES["set_mode"])
+
+    def set_mode(self, origin, session_id, project_id, mode):
+        """The session's permission mode from the next turn on. Only between turns."""
+        authorize(origin, CLASSES["set_mode"])
+        if mode not in chat_session.MODES:
+            raise SessionError("Unknown permission mode", "MODE_INVALID")
+        with self._lock:
+            session = self._get(session_id, project_id)
+            if session["state"] == "running":
+                raise SessionError("A turn is running; wait for it or stop it first", "TURN_RUNNING")
+            session["mode"] = mode
+            self._changed(session)
+            return self._dto(session)
+
+    def start(self, origin, project_id, agent, model, cwd, text, wait=True, resume=None, mode="default"):
         """A new session: the first turn runs without --session; the CLI's own session id is learned from its stream. `resume` is such an id from
         an earlier session (the CLI keeps its sessions on disk): the first turn then continues that conversation instead of starting one."""
         authorize(origin, CLASSES["start"])
+        self._check_mode(origin, mode)
         text = check_input(text)
         if resume is not None and not (isinstance(resume, str) and chat_session._SESSION.match(resume)):
             raise SessionError("Invalid session to continue", "RESUME_INVALID")
@@ -160,7 +181,7 @@ class SessionController:
             if sum(1 for s in self._sessions.values() if s["state"] != "ended") >= MAX_SESSIONS:
                 raise SessionError("Too many open sessions", "TOO_MANY_SESSIONS")
             sid = "loc_" + secrets.token_hex(8)
-            self._sessions[sid] = {"id": sid, "cli_id": resume, "project_id": project_id, "agent": agent, "model": model, "cwd": str(cwd),
+            self._sessions[sid] = {"id": sid, "cli_id": resume, "project_id": project_id, "agent": agent, "model": model, "cwd": str(cwd), "mode": mode,
                                    "state": "idle", "handle": None, "retries": 0, "last": None, "last_text": None, "gen": 0, "turn": 0, "result": None, "turns": []}
             adopted = next((r for r in self.store.all() if resume and r.get("cli") == resume and r["id"] not in self._sessions), None)
             if adopted:  # the saved conversation continues here: its record moves to the new session
@@ -207,7 +228,7 @@ class SessionController:
 
     def defaults(self, origin):
         authorize(origin, CLASSES["defaults"])
-        return {"agents": list(chat_session.SUPPORTED), **self.store.defaults()}
+        return {"agents": list(chat_session.SUPPORTED), "modes": list(chat_session.MODES), **self.store.defaults()}
 
     def set_defaults(self, origin, agent, model):
         authorize(origin, CLASSES["set_defaults"])
@@ -304,7 +325,8 @@ class SessionController:
 
         def work():
             try:
-                done = self._runner(argv, cwd=session["cwd"], timeout=TURN_TIMEOUT, on_start=adopt, on_line=line, env=chat_session.turn_environment(session["cwd"]))
+                done = self._runner(argv, cwd=session["cwd"], timeout=TURN_TIMEOUT, on_start=adopt, on_line=line,
+                                    env=chat_session.turn_environment(session["cwd"], mode=session.get("mode", "default")))
                 result = chat_session.parse_stream(done.stdout.splitlines())
                 if done.returncode != 0 and result["complete"]:
                     result["state"], result["complete"] = "error", False
@@ -442,7 +464,7 @@ class SessionController:
             "send": state == "idle", "retry": state == "failed" and s["retries"] < MAX_RETRIES and s.get("last_state") != "rate_limited",
             "interrupt": state == "running", "cancel": state != "ended", "resume": state in ("idle", "failed"),
         }
-        return {"id": s["id"], "project_id": s["project_id"], "agent": s["agent"], "model": s["model"], "state": state,
+        return {"id": s["id"], "project_id": s["project_id"], "agent": s["agent"], "model": s["model"], "mode": s.get("mode", "default"), "state": state,
                 "retries": s["retries"], "last_state": s.get("last_state"),
                 "turn": s["turn"], "project_root": s["cwd"], "title": title_of(s["turns"], f"{s['agent']} · {s['model'].split('/')[-1]}"),
                 "commands": {k: {"enabled": v, "reason": None if v else why.get(state, "NOT_AVAILABLE")} for k, v in enabled.items()}}

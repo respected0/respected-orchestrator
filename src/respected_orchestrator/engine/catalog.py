@@ -133,6 +133,8 @@ ENTRIES = (
     Entry("session.models", READ, cli=("models", "agent"), desktop="session"),
     Entry("session.defaults", READ, cli=("defaults", ""), desktop="session"),
     Entry("session.defaults.set", SETTINGS, desktop="session"),
+    # Permission mode of a chat session (KALAN_ISLER 4.6): the person's choice alone, so no CLI verb and no MCP tool.
+    Entry("session.mode.set", TERMINAL, desktop="session"),
     Entry("session.transcript", READ, cli=("transcript", None), desktop="session", mcp=(
         "orchestrator_session_transcript", "The session's saved conversation, one page of turns at a time (newest first; `first` of a reply is the "
         "`before` of the page above it). Read-only.",

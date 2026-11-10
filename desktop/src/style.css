@@ -450,3 +450,6 @@ input:focus-visible, textarea:focus-visible, select:focus-visible, .concept inpu
 /* engine settings: one row per setting, label and help on the left, the input on the right */
 .setrow { display: flex; gap: 16px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line, rgba(128,128,128,.25)); }
 .setrow input[type=text], .setrow input[type=password], .setrow select { width: 240px; flex: none; }
+
+/* a permission mode that lets the agent write or run commands stands out on its chip */
+.chip.warn { color: var(--warn); font-weight: 600; }

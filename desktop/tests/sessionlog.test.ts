@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { COMMANDS } from '../src/contracts/ipc.ts';
 import { bufferOf } from '../src/terminal.ts';
 import {
-  COMMAND_TEXT, PROJECT_ID, SESSION_COMMANDS, applyLive, call, joinPages, reasonText, stateText, transcriptLines,
+  COMMAND_TEXT, MODE_TEXT, PROJECT_ID, SESSION_COMMANDS, applyLive, call, joinPages, modeText, reasonText, stateText, transcriptLines,
   type Relay, type Transcript,
 } from '../src/sessionlog.ts';
 
@@ -130,4 +130,11 @@ test('nothing in the session screen can approve or grant anything', () => {
     const src = readFileSync(new URL(f, import.meta.url), 'utf8');
     assert.ok(!/request_apply|approval\.|session\.approve|grant/i.test(src.replace(/onaylanamaz|onay/gi, '')), f);
   }
+});
+
+test('every permission mode has a name and says what the agent may do; an unknown one is shown by its id, never as a known one', () => {
+  assert.deepEqual(Object.keys(MODE_TEXT), ['default', 'accept-edits', 'bypass-permissions']);
+  assert.equal(new Set(Object.values(MODE_TEXT).map(([name]) => name)).size, 3);
+  assert.equal(modeText('plan')[0], 'plan');
+  assert.ok(SESSION_COMMANDS.includes('session.mode.set'));
 });

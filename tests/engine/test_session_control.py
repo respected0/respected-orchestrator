@@ -51,6 +51,7 @@ class AuthorityTests(unittest.TestCase):
             "models": lambda c, o: c.models(o, "opencode"), "defaults": lambda c, o: c.defaults(o),
             "set_defaults": lambda c, o: c.set_defaults(o, "opencode", MODEL), "transcript": lambda c, o: c.transcript(o, SID),
             "history": lambda c, o: c.history(o), "forget": lambda c, o: c.forget(o, SID),
+            "set_mode": lambda c, o: c.set_mode(o, SID, PID, "default"),
         }
         self.assertEqual(set(calls), set(CLASSES))
         for name, call in calls.items():
@@ -215,7 +216,7 @@ class IpcStartTests(unittest.TestCase):
         for name, action in CLASSES.items():
             if name == "register":
                 continue  # not reachable over IPC (a session id comes from a CLI, never from the renderer)
-            wire = "sessions.list" if name in ("view", "history") else "session.defaults.set" if name == "set_defaults" else f"session.{name}"
+            wire = "sessions.list" if name in ("view", "history") else {"set_defaults": "session.defaults.set", "set_mode": "session.mode.set"}.get(name, f"session.{name}")
             self.assertIs(local_api.COMMANDS[wire][1], action, wire)
         self.assertNotIn("session.register", local_api.COMMANDS)
 
