@@ -4,7 +4,7 @@
 
 Kabul edildi ve uygulandı (10 Kasım 2026, kullanıcı onayı). Kod: `engine/agent_describe.py`; test: `tests/engine/test_agent_describe.py`.
 
-## Sorun
+## Bağlam
 
 Masaüstü, bir ajanın neyi desteklediğini (sohbet, terminal, kipler, modeller, komutlar, bağlam) elle biliyor. Motorda iki ayrı yoklama var (`agents.discover`, `capabilities.matrix`); ikisini de ekran kullanmıyor. Yeni ajan eklemek ekranı değiştirmeyi gerektiriyor.
 
@@ -81,8 +81,13 @@ Kurallar:
 1. `capabilities.matrix` komutu, `capability_matrix.py` ve testi silindi; `agent.describe` yerine geçti. `agents.discover` kaldı.
 2. Kip adları: AO'nun dört ortak adı ve ajanın kendi adı birlikte verilir.
 
-## Yapılmayanlar
+## Sonuçlar ve yapılmayanlar
 
 - Ajan çalıştırarak doğrulama (3.3, 3.6; `[A]`).
 - Terminal arayüzü ve geçiş (3.4): bayrakların yeri hazır, değerleri `unsupported`.
 - Oturum içi canlı ayarlar (AO'nun `config_options`'ı): canlı oturum ve 4.4 ister.
+
+## Kaynaklar
+
+- Orchestrator.inc deposu, `main` dalı: https://github.com/OrchestratorInc/agent-orchestrator (erişim: 2026-11-10). Okunan dosyalar yukarıda sayıldı.
+- `engine/agent_describe.py`, `tests/engine/test_agent_describe.py` (erişim: 2026-11-10).

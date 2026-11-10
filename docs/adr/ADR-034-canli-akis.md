@@ -4,7 +4,7 @@
 
 Kabul edildi ve uygulandı (10 Kasım 2026; tasarım kararı yön kararı gereği ajana bırakıldı). Kod: `engine/session_control.py`, `engine/daemon.py` (`Subscriber`, `_stream`), `engine/daemon_client.py` (`subscribe`), masaüstünde `engine_connector.rs` (`subscribe`, `next_note`), `lib.rs` (`engine_subscribe`), `Sessions.tsx`. Test: `tests/engine/test_live_stream.py`, `desktop/tests/sessionlog.test.ts`, `desktop/tests/chatmodel.test.ts`, `engine_connector.rs` ve `tests/acl.rs` içindeki testler.
 
-## Sorun
+## Bağlam
 
 Sohbet ekranı çalışan oturum varken motoru saniyede bir yokluyordu. Bir turun çıktısı ancak tur bitince okunabiliyordu (ajan süreci bitene kadar bekleniyordu) ve `session.transcript` konuşmanın tamamını tek yanıtta veriyordu. 1.7 (onay isteğinin istemciye yollanması) için motorun istemciye kendiliğinden veri yollayabilmesi gerekiyor.
 
@@ -38,10 +38,15 @@ Kaynak: `KALAN_ISLER.md` 4.4 ve `RAKIP_ESKIKLERI.md` §1c (10 Kasım 2026'da res
 | MCP | Araç çağrısı bildirim alamaz; `orchestrator_session_events` çalışan turun olaylarını `live` içinde verir, `orchestrator_session_transcript` `before` ve `limit` alır |
 | Masaüstü | Kabuk akışı kendi bağlantısında açar (`engine_subscribe`) ve her bildirimi yalnız `main` penceresine `engine-event` olarak iletir; ekran çalışan turu geldikçe çizer, "Daha eski turları göster" bir üst sayfayı okur |
 
-## Yapılmayanlar
+## Sonuçlar ve yapılmayanlar
 
 - **Görev panosu hâlâ yokluyor** (4 saniyede bir). Görev koşuları motordan ayrı süreçlerde dosyaya yazar; onları akışa bağlamak dosya değişikliklerini izlemeyi gerektirir (AO'daki CDC'nin karşılığı).
 - **Harf harf akış yok.** `opencode run --format json` metni parça tamamlanınca verir; ekran parça parça ilerler. Daha ince akış ajan adaptörünün işidir (3.2).
 - **Kayıtlı konuşmanın silinmesi bildirilmez** (kayıtlar `project_id` taşımıyor); silen ekran listeyi kendisi yeniler.
 - **Sayfa imleci konum numarasıdır.** Kayıt 200 turu aşınca en eski tur düşer ve numaralar kayar; o an okunan üst sayfa bir tur kayabilir.
 - Unix soketi yok (1.4); akış bugün yalnız Windows adlandırılmış borusunda.
+
+## Kaynaklar
+
+- Rakip mekanizmaları: `docs/KALAN_ISLER.md` 4.4, `docs/RAKIP_ESKIKLERI.md` §1c (erişim: 2026-11-10).
+- Kanıt: `tests/engine/test_live_stream.py`, `desktop/tests/sessionlog.test.ts` (erişim: 2026-11-10).

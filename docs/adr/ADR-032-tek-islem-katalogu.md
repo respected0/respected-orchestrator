@@ -4,7 +4,7 @@
 
 **Kabul edildi ve uygulandı (10 Kasım 2026).** Kullanıcı iki açık soruyu ("masaüstü listeleri nasıl beslensin", "kapsam ne olsun") ürün hedefine ve rakiplere bakarak karara bağlamayı bana bıraktı; gerekçe aşağıda. Kaynak karar: `RAKIP_ESKIKLERI.md` §6 madde 3 ("CLI, MCP ve masaüstü motordaki tek katalogdan beslenir; yeni özellik üçünde birden görünür") ve ADR-030 dilim 6.
 
-## Önceki durum
+## Bağlam
 
 Aynı motor komutu beş yerde elle yazılıydı; biri unutulursa özellik o yüzde görünmüyor ya da izin listesi sessizce ayrışıyordu:
 
@@ -46,7 +46,7 @@ Ortak desen iki katmanlıdır: **biçim ve izin derleme zamanında tek kaynaktan
 - Masaüstünün `catalog.list`'i çağırıp ekranları ona göre açıp kapatması: komut hazır ve `read_call` ile iletilebilir, ama bugün ona ihtiyaç duyan ekran yok.
 - Ekrana özgü kullanım listeleri (`voicedraft.ts`, `attachdraft.ts`, `beta4.ts`) yerinde kaldı: izin listesi değiller, kendi testleri sözleşmede olduklarını ölçüyor.
 
-## Sonuç
+## Sonuçlar
 
 Yeni bir motor komutu tek satırla eklenir ve doldurulan yüzlerde görünür; beş elle yazılı liste bire indi. Yeni komutta unutulabilecek tek adım üretim komutunu çalıştırmaktır, onu da test yakalar.
 
@@ -55,3 +55,8 @@ Yeni bir motor komutu tek satırla eklenir ve doldurulan yüzlerde görünür; b
 - `tests/engine/test_local_api.py`: yüzlerin tablodan kurulduğu; MCP "salt-okunur" işaretinin motorun yetki sınıfıyla aynı olduğu; yetkili komutun hiçbir yüzü olmadığı; `catalog.list`'in köken ve bağlantıya göre süzdüğü; üretilmiş dosyaların ayrışmadığı.
 - `tests/engine/test_daemon.py`, `tests/interfaces/test_mcp_server.py`, `test_mcp_client.py`, `test_product_contract.py`: yeşil. Masaüstü: `npm test` (92), `tsc --noEmit`, `cargo test --lib engine_connector` (11) yeşil.
 - **Görülmedi:** tam Python süiti (işlerin sonunda çalıştırılacak), paketli sürüm, gerçek bir AI istemcisinden `orchestrator_session_*`.
+
+## Kaynaklar
+
+- `engine/catalog.py`, `tests/engine/test_generated_artifacts.py` (erişim: 2026-11-10).
+- Rakip mekanizmaları: `docs/RAKIP_ESKIKLERI.md` §0 ve §1c (erişim: 2026-11-10).
