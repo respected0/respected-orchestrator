@@ -199,6 +199,37 @@ class GitLaneTest(unittest.TestCase):
             self.assertEqual(run_git(lane.worktree, "branch", "--show-current").stdout.strip(), lane.branch)
             self.assertEqual(run_git(repo, "status", "--porcelain=v1", "--branch").stdout, before)
 
+    def test_worktreeinclude_copies_only_ignored_files_it_names_and_they_never_reach_the_patch(self) -> None:
+        orchestrator = load_orchestrator()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            repo = init_repo(root)  # .gitignore: .env
+            (repo / ".gitignore").write_text(".env\nbuild/\nconfig/local.json\n", encoding="utf-8")
+            (repo / ".worktreeinclude").write_text("# secrets the checks need\n.env\nconfig/local.json\nnotes.txt\n", encoding="utf-8")
+            run_git(repo, "add", ".")
+            run_git(repo, "commit", "-m", "rules")
+            (repo / ".env").write_text("KEY=1\n", encoding="utf-8")
+            (repo / "config").mkdir()
+            (repo / "config" / "local.json").write_text("{}", encoding="utf-8")
+            (repo / "build").mkdir()
+            (repo / "build" / "out.bin").write_text("x", encoding="utf-8")  # ignored, not named
+            (repo / "notes.txt").write_text("named, but not ignored", encoding="utf-8")
+
+            lane = orchestrator.create_lane(self.make_request(orchestrator), self.make_paths(orchestrator, root, repo))
+
+            self.assertEqual((lane.worktree / ".env").read_text(encoding="utf-8"), "KEY=1\n")
+            self.assertTrue((lane.worktree / "config" / "local.json").is_file())
+            self.assertFalse((lane.worktree / "build").exists())
+            self.assertFalse((lane.worktree / "notes.txt").exists())
+            self.assertEqual(run_git(lane.worktree, "status", "--porcelain=v1").stdout, "")  # still ignored there: nothing to commit or export
+
+            with mock.patch.object(orchestrator, "_INCLUDE_MAX_FILES", 1):
+                with self.assertRaisesRegex(orchestrator.LaneError, "limit is 1"):
+                    orchestrator.copy_worktree_includes(repo, root / "elsewhere")
+            (repo / ".worktreeinclude").unlink()
+            self.assertEqual(orchestrator.copy_worktree_includes(repo, root / "elsewhere"), ())
+            self.assertFalse((root / "elsewhere").exists())
+
     def test_removing_a_lane_leaves_no_worktree_record_or_branch_in_the_project(self) -> None:
         orchestrator = load_orchestrator()
         with tempfile.TemporaryDirectory() as temporary:

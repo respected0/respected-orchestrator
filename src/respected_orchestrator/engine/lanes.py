@@ -204,12 +204,44 @@ def create_lane(request: RunRequest, paths: RunPaths) -> Lane:
     )
     if result.returncode != 0:
         raise LaneError(result.stderr.strip() or result.stdout.strip())
+    copy_worktree_includes(paths.repo_root.resolve(), worktree)
     return Lane(
         repo_root=paths.repo_root.resolve(),
         worktree=worktree,
         branch=branch,
         run_root=paths.run_root.resolve(),
     )
+
+
+WORKTREE_INCLUDE = ".worktreeinclude"
+_INCLUDE_MAX_FILES, _INCLUDE_MAX_BYTES = 500, 50 * 1024 * 1024
+
+
+def copy_worktree_includes(repo_root: Path, worktree: Path) -> tuple[str, ...]:
+    """`.worktreeinclude`, the rule Claude Code and Codex share: files that are gitignored AND match one of its patterns (.gitignore
+    syntax) are copied into a new worktree, so a lane gets the `.env` its commands need. Without the file nothing is copied.
+
+    The copies stay ignored in the worktree, so they never reach the baseline commit or the exported patch."""
+    rules = repo_root / WORKTREE_INCLUDE
+    if not rules.is_file():
+        return ()
+    ignored = set(_git_path_list(repo_root, "ls-files", "-z", "--others", "--ignored", "--exclude-standard"))
+    wanted = [path for path in _git_path_list(repo_root, "ls-files", "-z", "--others", "--ignored", f"--exclude-from={rules}") if path in ignored]
+    if len(wanted) > _INCLUDE_MAX_FILES:
+        raise LaneError(f"{WORKTREE_INCLUDE} matches {len(wanted)} files; the limit is {_INCLUDE_MAX_FILES}")
+    copied, size = [], 0
+    for relative in wanted:
+        source = repo_root / relative
+        if source.is_symlink() or not source.is_file():
+            continue  # a link could point outside the project
+        size += source.stat().st_size
+        if size > _INCLUDE_MAX_BYTES:
+            raise LaneError(f"{WORKTREE_INCLUDE} matches more than {_INCLUDE_MAX_BYTES // (1024 * 1024)} MB")
+        destination = worktree / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+        copied.append(relative)
+    return tuple(copied)
 
 
 def remove_lane(lane: Lane) -> None:

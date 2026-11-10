@@ -494,6 +494,11 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   ekipler `team.view`; Bütçe ve başarı `analytics.summary`; MCP ve beceriler `capabilities.inventory`. İnceleme ekranı yoktur: `review.view`
   yalnız yerel onay penceresi içindir (bu, `KALAN_ISLER.md` 1.7 ile değişecek).
   Dosya ağacı ve seçili klasör izni kabukta kalır: izin kullanıcının yerel klasör penceresindeki seçimidir ve motora vekâlet edilemez.
+  **`.worktreeinclude` (`lanes.copy_worktree_includes`):** proje kökünde bu dosya varsa, hem gitignore'da olan hem de dosyadaki bir desene
+  (`.gitignore` sözdizimi) uyan dosyalar yeni çalışma ağacına kopyalanır; Claude Code ve Codex'in ortak kuralıdır. Dosya yoksa hiçbir şey
+  kopyalanmaz ve gitignore'daki dosyalar çalışma ağacına girmez. Kopyalar çalışma ağacında da gitignore'da kaldığı için temel commit'e ve
+  dışa aktarılan yamaya girmez. Sembolik bağlar atlanır; 500 dosya ya da 50 MB aşılırsa çalışma ağacı açılmaz. Bu, kullanıcının kendi
+  deposuna yazdığı açık bir izindir: adı geçen sırlar (ör. `.env`) işçinin okuyabildiği klasöre girer.
   **Pano şeridi saklanmaz, türetilir (`read_model.lane_of`):** `runs.list` her satırda `lane` (`needs_you`, `working`, `ready`, `archive`) ve
   `display` verir; ikisi de her okumada koşunun kendi dosyalarından hesaplanır (durum, boş olmayan `worker.patch`, `applied.json`,
   `apply-failed.json`). Doğrulanmış ama uygulanmamış değişiklik `ready` / `awaiting_approval`'dır; başarısız, yarıda kalan, bozuk kayıt ve
