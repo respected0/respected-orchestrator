@@ -5,7 +5,7 @@ use tauri::test::{get_ipc_response, mock_builder, MockRuntime, INVOKE_KEY};
 use tauri::webview::InvokeRequest;
 use tauri::{WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
-const COMMANDS: [&str; 14] = ["engine_status", "confirm_close", "request_apply", "attach_image", "share_image", "revoke_image", "capability_inventory", "session_call", "read_call", "preview_open", "pick_folder", "pick_files", "list_dir", "read_text_file"];
+const COMMANDS: [&str; 15] = ["engine_status", "confirm_close", "request_apply", "attach_image", "share_image", "revoke_image", "capability_inventory", "session_call", "engine_subscribe", "read_call", "preview_open", "pick_folder", "pick_files", "list_dir", "read_text_file"];
 
 fn call(w: &WebviewWindow<MockRuntime>, cmd: &str, from: &str, body: serde_json::Value) -> Result<serde_json::Value, serde_json::Value> {
     let request = InvokeRequest {
@@ -26,6 +26,8 @@ fn the_preview_window_has_no_ipc_while_the_app_window_still_has() {
     let ok = format!("{:?}", call(&main, "engine_status", "http://tauri.localhost/", serde_json::json!({})));
     assert!(!ok.contains("not allowed"), "the app window must keep its commands: {ok}");
     assert!(ok.contains("NotInstalled"), "{ok}");
+    let stream = format!("{:?}", call(&main, "engine_subscribe", "http://tauri.localhost/", serde_json::json!({"projectId": "proj-1"})));
+    assert!(stream.contains("NotInstalled"), "the app window may ask for the notification stream: {stream}");
 
     // the relay is a fixed list: a command outside it is refused by our code (not by the ACL) before it reaches the engine
     for cmd in ["approval.decide", "approval.apply", "session.approve", "settings.apply"] {

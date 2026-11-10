@@ -120,6 +120,33 @@ fn session_call(cmd: String, payload: serde_json::Value, state: tauri::State<Mut
         Err(e) => { *slot = None; Err(problem(e)) }
     }
 }
+#[derive(Default)]
+struct Listening(AtomicBool);
+
+/// Opens the engine's notification stream (ADR-034) on a connection of its own and hands every notification to the main window as an
+/// `engine-event`. One stream at a time: `true` when this call opened it, `false` when it was already open. When the engine ends the
+/// stream the window gets `{"event": "stream.closed"}` and may ask again. The renderer names only the project; it cannot write to the stream.
+#[tauri::command]
+fn engine_subscribe<R: tauri::Runtime>(project_id: String, app: tauri::AppHandle<R>, on: tauri::State<Listening>) -> Result<bool, EngineProblem> {
+    if on.0.swap(true, Ordering::SeqCst) { return Ok(false); }
+    let open = || -> Result<Connection, ConnectError> {
+        let mut c = Connection::connect(&engine_connector::discover_env()?)?;
+        c.subscribe(&project_id)?;
+        Ok(c)
+    };
+    match open() {
+        Ok(mut c) => {
+            std::thread::spawn(move || {
+                while let Some(note) = c.next_note() { let _ = app.emit_to("main", "engine-event", note); }
+                app.state::<Listening>().0.store(false, Ordering::SeqCst);
+                let _ = app.emit_to("main", "engine-event", serde_json::json!({"event": "stream.closed"}));
+            });
+            Ok(true)
+        }
+        Err(error) => { on.0.store(false, Ordering::SeqCst); Err(EngineProblem { hint: error.hint(), error }) }
+    }
+}
+
 /// Relays one read-only Beta.4 view to the engine. The renderer names the command but only from `READ_COMMANDS`; the engine checks the
 /// origin again and these commands can only read.
 #[tauri::command]
@@ -248,6 +275,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
         .plugin(tauri_plugin_dialog::init())
         .manage(Mutex::new(None::<Connection>))
         .manage(CloseConfirmed::default())
+        .manage(Listening::default())
         .manage(roots_store())
         .manage(Mutex::new(None::<approval::Pair>))
         .manage(approval::Gate::default())
@@ -262,7 +290,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, read_call, preview_open, pick_folder, pick_files, list_dir, read_text_file])
+        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, engine_subscribe, read_call, preview_open, pick_folder, pick_files, list_dir, read_text_file])
 }
 
 pub fn run() {

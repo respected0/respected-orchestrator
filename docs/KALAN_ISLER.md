@@ -18,7 +18,7 @@ Kısaltmalar: **CC** Claude Code (CLI ve masaüstü), **Cx** Codex (CLI ve ChatG
 
 Bu kararla kesinleşenler:
 
-1. **Arka plan süreci ve tek komut tablosu:** rakiplere göre eksik olan her şey tamamlanır: canlı akış (4.4), tablo satırlarında girdi şeması ve üretilmiş tipler (1.2), görev/proje/kampanya komutlarının motora taşınması (1.1), Unix soketi (1.4), güncellemede çalışan işin korunması (1.6).
+1. **Arka plan süreci ve tek komut tablosu:** rakiplere göre eksik olan her şey tamamlanır: canlı akış (4.4; yapıldı, ADR-034), tablo satırlarında girdi şeması ve üretilmiş tipler (1.2), görev/proje/kampanya komutlarının motora taşınması (1.1), Unix soketi (1.4), güncellemede çalışan işin korunması (1.6).
 2. **Ajanın kendi terminali Orchestrator.inc'teki gibi yapılır** (3.4): yapılandırılmış sohbet **ve** ajanın kendi terminal arayüzü, aralarında geçiş; terminal ayrı bir süreçte yaşar, arayüz kapanınca kapanmaz.
 3. **Çok ajan desteği ACP ile yapılır** (3.2): Codex kendi `app-server`'ı ile, Claude Code dahil geri kalan herkes tek ACP adaptörüyle. Ajan başına ayrı adaptör yazılmaz.
 4. **Pano durumu saklanmaz, olgulardan türetilir** (4.2); **worktree kuralları rakiplerle aynıdır** (`.worktreeinclude`, kurulum betiği, süpürme; 4.3).
@@ -45,7 +45,7 @@ Sıra `RAKIP_ESKIKLERI.md` §3'teki sıradır; rakip karşılaştırmasından ge
 1. ~~Belge borcu (§6)~~ yapıldı (10 Kasım 2026).
 2. ~~`agent.describe` şeması (§3.1)~~ yapıldı (10 Kasım 2026, ADR-033).
 3. A1 görev başlatma → A2 pano → A3 worktree ve geri alma (§4.1–4.3). `[K]`
-4. B1 canlı akış (§4.4). `[K]`
+4. ~~B1 canlı akış (§4.4)~~ yapıldı (10 Kasım 2026, ADR-034); kalanlar 4.4'te.
 5. **Ajanın kendi terminal paneli (§3.4): orkestratör sınıfındaki rakiplerin hepsinde var; ajan başına adaptör yazmadan bütün ajanları kullanılır kılar.** `[K]`
 6. E1 ayarlar ve bağlantı ekranı + C3 talimat dosyası + B3 izin kipleri (§4.5–4.7). `[K]`
 7. C1 bağlam göstergesi + E2 bildirim + E3 kısayollar; **G1 inceleme kuyruğu buraya alınır (AO ve Cx'te ürünün merkezi; bizim "kanıtla ve onayla" odağımızın ekrandaki karşılığı).** `[K]`
@@ -75,7 +75,7 @@ Sıra `RAKIP_ESKIKLERI.md` §3'teki sıradır; rakip karşılaştırmasından ge
 - [ ] **1.7 Onay ve uygulamayı rakiplerdeki gibi yap** `[K]` (yön kararı 10)
   - Bizde: `approval.decide` ve `approval.apply` `PRIVILEGED`; ortak uçta sunulmaz, yalnız kabuğun özel `--human` sürecindeki yerel pencereden verilir (ADR-004, ADR-030 karar 3).
   - Rakipler: Cx'te sunucu istemciye istek yollar (`item/commandExecution/requestApproval`, `item/fileChange/requestApproval`); yanıt `accept` / `acceptForSession` / `decline` / `cancel`; bağlı her istemci yanıtlayabilir. CC'de SDK `canUseTool`. AO'da oturum `waiting_input` olur ve yanıt dört biçimdedir: `allow_once` / `allow_always` / `reject_once` / `reject_always` (ACP'nin biçimleriyle aynı; AO kaynağı `ports/chat.go`, 10 Kasım 2026). `apply` komutu yoktur; iş dalda durur ve "Hand off", "Create branch here" ya da PR ile gerçek ağaca geçer.
-  - Yapılacak, önce tasarım notu (ADR-004'ün yerine geçecek yeni ADR): (a) onay isteği motordan istemciye; tanınan masaüstü (`RENDERER`) yanıtlar, `CHILD` yanıtlayamaz, `MCP` kökeni için ayrıca karar; (b) dört yanıt biçimi AO'daki adlarla (`allow_once`, `allow_always`, `reject_once`, `reject_always`); Codex'in `accept` / `acceptForSession` / `decline` / `cancel` yanıtlarına Codex adaptörü çevirir; (c) `apply` yerine dala çevir / yerele al / PR aç, doğrulama ve imzalı kanıt ön koşul; (d) yerel onay penceresi, `--human` süreci ve ilgili testler kalkar; `THREAT_MODEL.md` ve `ARCHITECTURE.md` aynı değişiklikte güncellenir. 4.4 (canlı akış) ön koşuldur: istek istemciye itilmelidir.
+  - Yapılacak, önce tasarım notu (ADR-004'ün yerine geçecek yeni ADR): (a) onay isteği motordan istemciye; tanınan masaüstü (`RENDERER`) yanıtlar, `CHILD` yanıtlayamaz, `MCP` kökeni için ayrıca karar; (b) dört yanıt biçimi AO'daki adlarla (`allow_once`, `allow_always`, `reject_once`, `reject_always`); Codex'in `accept` / `acceptForSession` / `decline` / `cancel` yanıtlarına Codex adaptörü çevirir; (c) `apply` yerine dala çevir / yerele al / PR aç, doğrulama ve imzalı kanıt ön koşul; (d) yerel onay penceresi, `--human` süreci ve ilgili testler kalkar; `THREAT_MODEL.md` ve `ARCHITECTURE.md` aynı değişiklikte güncellenir. Ön koşul hazır: istek, `events.subscribe` akışından (ADR-034) yeni bir bildirim adıyla istemciye yollanır; yanıt olağan komutla gelir.
 
 ## 2. Kurulum
 
@@ -119,10 +119,9 @@ Bağlayıcı kurallar (`RAKIP_ESKIKLERI.md` §6): ajanın kendi özellikleri aja
   - Bizde: motorda worktree ve `checkpoint.py` var, ekranda yok. İşçinin yaması siz onaylamadan gerçek ağaca uygulanmaz. `.worktreeinclude` tanınıyor (10 Kasım 2026, `lanes.copy_worktree_includes`): gitignore'da olup dosyada adı geçenler yeni worktree'ye kopyalanır, yamaya girmez.
   - Rakipler: CC worktree'leri `.claude/worktrees/` altında açar; `.worktreeinclude` dosyası gitignore'daki dosyaları (`.env` gibi) yeni worktree'ye kopyalar; süresi dolanları düzenli süpürür. Cx `$CODEX_HOME/worktrees` kullanır, aynı `.worktreeinclude` kuralını tanır, "Hand off" ile sohbeti worktree ↔ yerel arasında taşır, worktree sayısını sınırlar. Geri alma: CC her istemde yalnız kendi düzenleme araçlarının değiştirdiği dosyaları kaydeder (`/rewind`; kabuk komutlarının değiştirdiği dosyalar dışarıda). Cx `thread/revert` ile konuşma geçmişini geri sarar.
   - Yapılacak: ekranda dal, değişen dosyalar ve "uygulamayı geri al" (uygulanan yama için git ile). `.worktreeinclude` yapıldı; G12 kurulum betiği kaldı (AO'nun okunan belgelerinde ikisinin de karşılığı yok, örnek CC ve Cx'tir). "Uygulamayı geri al" gerçek ağaca yazdığı için 1.7 ile birlikte tasarlanır. Süpürmede AO'nun kuralı temel alınır: değişiklik içeren worktree zorla silinmez.
-- [ ] **4.4 B1 Canlı akış** `[K]`
-  - Bizde: ekran 1 saniyede bir yokluyor; `session.events` yalnız son turu veriyor.
-  - Rakipler: Cx app-server çift yönlü JSON-RPC'dir; `item/agentMessage/delta` gibi bildirimler akar. AO veritabanı değişikliklerini (CDC) SSE ile yayar, sohbet sayfalıdır ve yalnız değişen kısım yenilenir. CC `stream-json`.
-  - Yapılacak: boru zaten çift yönlü; abone ol / bildirim komutları ve tüm turları veren sayfalı geçmiş.
+- [ ] **4.4 B1 Canlı akış: kalanlar** `[K]` (akış yapıldı, 10 Kasım 2026, ADR-034)
+  - Bizde: ajanın çıktısı satır satır okunur; `events.subscribe` ile açılan ayrı bağlantıdan `session.event` ve `session.state` bildirimleri akar (AO'nun tek yönlü akışı gibi); `rorch session watch`, `session.events` içinde `live`, sayfalı `session.transcript`. Sohbet ekranı artık yoklamıyor. Gerçek uygulamada ve gerçek ajanla görülmedi.
+  - Kalan: (a) görev panosu hâlâ 4 saniyede bir yokluyor: koşular ayrı süreçlerde dosyaya yazdığı için motorun dosya değişikliğini izleyip `run.state` bildirmesi gerekir (AO'daki CDC); (b) harf harf akış yok, `opencode run` metni parça tamamlanınca verir (3.2 ile); (c) kayıtlı konuşmanın silinmesi bildirilmiyor; (d) sayfa imleci konum numarası, 200 turu aşan konuşmada kayar; (e) kenar çubuğu sohbet sayfası açık değilken güncellenmiyor (dinleyici o sayfada).
 - [ ] **4.5 E1 Ayarlar ve bağlantı ekranı (+ G14 sağlayıcı ve model ayarı)** `[K]`
   - Bizde: yalnız `rorch config`, `rorch integrations`, `rorch memory connect`. Motorda `settings.*` komutları var, ekranı yok.
   - Rakipler: AO'da ajan başına ayar sayfası ve hesap sekmesi var; hesap, CLI'ın kendi girişiyle açılmış bir ayar klasörüdür ve AO belirteci hiç okumaz. dsh'de "Settings → Models" ile sağlayıcı eklenir. CC'de "Customize" altında bağlayıcılar (grafik kurulumlu MCP sunucuları), beceriler ve eklentiler tek yerde.

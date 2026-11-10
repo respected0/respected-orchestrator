@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-engine-subscribe"
+description = "Enables the engine_subscribe command without any pre-configured scope."
+commands.allow = ["engine_subscribe"]
+
+[[permission]]
+identifier = "deny-engine-subscribe"
+description = "Denies the engine_subscribe command without any pre-configured scope."
+commands.deny = ["engine_subscribe"]

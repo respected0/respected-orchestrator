@@ -4,14 +4,9 @@ import { readFileSync } from 'node:fs';
 import { COMMANDS } from '../src/contracts/ipc.ts';
 import { bufferOf } from '../src/terminal.ts';
 import {
-  COMMAND_TEXT, PROJECT_ID, SESSION_COMMANDS, call, reasonText, shouldPoll, stateText, transcriptLines,
-  type Relay, type SessionView,
+  COMMAND_TEXT, PROJECT_ID, SESSION_COMMANDS, applyLive, call, joinPages, reasonText, stateText, transcriptLines,
+  type Relay, type Transcript,
 } from '../src/sessionlog.ts';
-
-const view = (state: SessionView['state']): SessionView => ({
-  id: 'loc_abcdef0123456789', project_id: PROJECT_ID, agent: 'opencode', model: 'a/b', state, retries: 0, last_state: null,
-  commands: Object.fromEntries(['send', 'retry', 'interrupt', 'cancel', 'resume'].map((k) => [k, { enabled: true, reason: null }])) as SessionView['commands'],
-});
 
 test('every event kind becomes a labelled plain line; the question line says it cannot be answered here', () => {
   const lines = transcriptLines([
@@ -53,8 +48,35 @@ test('every state and command has Turkish text; the reason of a disabled command
   assert.equal(reasonText(null), '');
 });
 
-test('only a running session is polled', () => {
-  assert.deepEqual((['idle', 'running', 'failed', 'ended'] as const).map((s) => shouldPoll(view(s))), [false, true, false, false]);
+const page = (first: number, users: string[], total = 9): Transcript => ({
+  id: 'loc_abcdef0123456789', title: 't', project_root: 'C:/p', agent: 'opencode', model: 'a/b', resumable: true, usage: null, live: null, first, total,
+  turns: users.map((user) => ({ n: 1, user, result: null })),
+});
+const users = (t: Transcript): (string | null)[] => t.turns.map((x) => x.user);
+
+test('pages of one conversation join: older in front, newer over the tail, and a hole keeps only the new page', () => {
+  assert.deepEqual(joinPages(undefined, page(4, ['e', 'f'])), page(4, ['e', 'f']));
+  const older = joinPages(page(4, ['e', 'f']), page(2, ['c', 'd']));
+  assert.deepEqual([older.first, users(older)], [2, ['c', 'd', 'e', 'f']]);
+  const newer = joinPages(older, { ...page(5, ['F', 'g']), live: { turn: 3, events: [] } }); // the last turn finished and one more began
+  assert.deepEqual([newer.first, users(newer), newer.live], [2, ['c', 'd', 'e', 'F', 'g'], { turn: 3, events: [] }]);
+  assert.deepEqual(users(joinPages(page(0, ['a']), page(5, ['f']))), ['f']); // turns 1-4 were never read: nothing is shown as if they were
+  assert.deepEqual(users(joinPages(page(4, ['e', 'f']), page(4, ['e', 'f', 'g']))), ['e', 'f', 'g']);
+  const ahead = { turn: 3, events: [{ kind: 'message' }, { kind: 'message' }] }, behind = { turn: 3, events: [{ kind: 'message' }] };
+  assert.equal(joinPages({ ...page(4, ['e']), live: ahead }, { ...page(4, ['e']), live: behind }).live, ahead); // a late page does not take pushed events back
+  assert.equal(joinPages({ ...page(4, ['e']), live: ahead }, page(4, ['e'])).live, null); // but the turn's end does
+});
+
+test('pushed events extend the running turn in order; a repeat is ignored and a missed one asks for a fresh read', () => {
+  const ev = (seq: unknown) => ({ kind: 'message', seq });
+  const one = applyLive(null, 2, ev(0));
+  assert.deepEqual(one, { turn: 2, events: [ev(0)] });
+  assert.deepEqual(applyLive(one, 2, ev(1))?.events.length, 2);
+  assert.equal(applyLive(one, 2, ev(0)), one);
+  assert.equal(applyLive(one, 2, ev(2)), null);
+  assert.equal(applyLive(null, 2, ev(3)), null);
+  assert.equal(applyLive(one, 2, ev('1')), null);
+  assert.deepEqual(applyLive(one, 3, ev(0)), { turn: 3, events: [ev(0)] }); // a new turn starts from nothing
 });
 
 test('the screen only sends listed commands, always with its project id, and turns engine refusals into text', async () => {

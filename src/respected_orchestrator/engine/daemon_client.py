@@ -25,23 +25,62 @@ class DaemonVersionMismatch(DaemonUnavailable):
     pass
 
 
+def _open(path: str):
+    deadline = time.monotonic() + 2
+    while True:
+        try:
+            return open(path, "r+b", buffering=0)
+        except FileNotFoundError:
+            raise DaemonUnavailable("The engine is not running.") from None
+        except OSError as error:
+            if getattr(error, "winerror", None) != ERROR_PIPE_BUSY or time.monotonic() > deadline:
+                raise DaemonUnavailable(f"The engine could not be reached: {error}") from None
+            time.sleep(0.05)
+
+
+def subscribe(ctx, project_id: str):
+    """The engine's notifications about one project's sessions (ADR-034), one dict at a time, until the engine closes the stream.
+    The subscription is in place when this returns; closing the returned generator closes the connection."""
+    handle = _open(pipe_path(ctx))
+    try:
+        message = {"ipc": "1", "id": "c-" + secrets.token_hex(8), "session": "-", "cmd": "events.subscribe", "payload": {"project_id": project_id}}
+        handle.write(json.dumps(message).encode("utf-8") + b"\n")
+        lines = _lines(handle)
+        reply = next(lines, None)
+    except OSError as error:
+        handle.close()
+        raise DaemonUnavailable(f"The engine did not answer: {error}") from None
+    if not reply or not reply.get("ok"):
+        handle.close()
+        raise DaemonUnavailable(((reply or {}).get("error") or {}).get("message") or "The engine refused the subscription.")
+    return lines
+
+
+def _lines(handle):
+    with handle:
+        buffer = b""
+        while True:
+            while b"\n" not in buffer:
+                try:
+                    chunk = handle.read(1 << 16)
+                except OSError:  # the engine went away
+                    return
+                if not chunk:
+                    return
+                buffer += chunk
+            line, buffer = buffer.split(b"\n", 1)
+            yield json.loads(line)
+
+
 def _exchange(path: str, line: bytes, timeout: float) -> dict:
     result: dict = {}
 
     def work():
-        deadline = time.monotonic() + 2
-        while True:
-            try:
-                handle = open(path, "r+b", buffering=0)
-                break
-            except FileNotFoundError:
-                result["error"] = DaemonUnavailable("The engine is not running.")
-                return
-            except OSError as error:
-                if getattr(error, "winerror", None) != ERROR_PIPE_BUSY or time.monotonic() > deadline:
-                    result["error"] = DaemonUnavailable(f"The engine could not be reached: {error}")
-                    return
-                time.sleep(0.05)
+        try:
+            handle = _open(path)
+        except DaemonUnavailable as error:
+            result["error"] = error
+            return
         with handle:
             try:
                 handle.write(line)

@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { Modal } from './ui';
 import { ChatThread, Composer, type Loaded } from './Chat';
 import { SessionPane, WIDE_TITLE, WidePane, type Wide } from './Panes';
-import { agentLine, baseName, modelsView, toolListView, withAttachments, type AgentLine, type ModelsView, type ToolListView, type Turn } from './chatmodel';
+import { agentLine, baseName, modelsView, toolListView, withAttachments, withLive, type AgentLine, type ModelsView, type ToolListView, type Turn } from './chatmodel';
 import { Voice } from './Voice';
 import { Screenshot } from './Screenshot';
 import { Ico } from './icons';
 import { setConvStore, useConvStore } from './sessionstore';
 import {
-  COMMAND_TEXT, POLL_MS, call, reasonText, shouldPoll, stateText, transcriptLines,
-  type Conversation, type Defaults, type Relay, type SessionView, type Transcript,
+  COMMAND_TEXT, PROJECT_ID, RESUBSCRIBE_MS, applyLive, call, joinPages, reasonText, stateText, transcriptLines,
+  type Conversation, type Defaults, type Note, type Relay, type SessionView, type Transcript,
 } from './sessionlog';
 
 const relay: Relay = (cmd, payload) => invoke('session_call', { cmd, payload });
@@ -32,7 +33,7 @@ export function Sessions() {
   const [tools, setTools] = useState<Loaded<ToolListView>>({ s: 'loading' });
   const [agent, setAgent] = useState<AgentLine | null>(null);
   const { sel, newRoot } = useConvStore();
-  const turns = Object.fromEntries(Object.entries(tr).map(([k, v]) => [k, v.turns]));
+  const turns = Object.fromEntries(Object.entries(tr).map(([k, v]) => [k, withLive(v.turns, v.live)]));
   useEffect(() => { if (newRoot) { setForm((f) => ({ ...f, root: newRoot })); setConvStore({ newRoot: null }); } }, [newRoot]);
 
   const refresh = useCallback(async () => {
@@ -40,13 +41,23 @@ export function Sessions() {
     if (r.ok) { setList(r.value.sessions); setConversations(r.value.conversations); setListState('ok'); setNote(null); } else { setListState('error'); setNote(r.text); }
   }, []);
 
-  const seen = useRef<Record<string, string>>({}); // conversation -> the engine state already fetched, so a poll fetches nothing twice
-  const collect = useCallback(async (id: string, marker: string) => {
-    if (seen.current[id] === marker) return;
-    seen.current[id] = marker;
-    const r = await call<Transcript>(relay, 'session.transcript', { session_id: id });
-    if (r.ok) setTr((all) => ({ ...all, [id]: r.value })); else seen.current[id] = '';
+  const trNow = useRef<Record<string, Transcript>>({}); // the transcripts on screen, readable by the stream handler between renders
+  const put = useCallback((id: string, next: (old: Transcript | undefined) => Transcript | undefined) => {
+    const v = next(trNow.current[id]);
+    if (!v || v === trNow.current[id]) return;
+    trNow.current = { ...trNow.current, [id]: v };
+    setTr(trNow.current);
   }, []);
+  const seen = useRef<Record<string, string>>({}); // conversation -> the engine state already fetched, so nothing is fetched twice
+  /** Reads the newest page of a conversation once per `marker`, or (with `before`) the page above the turns already shown. */
+  const collect = useCallback(async (id: string, marker: string, before?: number) => {
+    if (before === undefined) {
+      if (seen.current[id] === marker) return;
+      seen.current[id] = marker;
+    }
+    const r = await call<Transcript>(relay, 'session.transcript', { session_id: id, ...(before === undefined ? {} : { before }) });
+    if (r.ok) put(id, (old) => joinPages(old, r.value)); else if (before === undefined) seen.current[id] = '';
+  }, [put]);
 
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => {
@@ -92,12 +103,28 @@ export function Sessions() {
     return () => { live = false; };
   }, [root]);
 
-  const running = list.filter(shouldPoll);
+  // The engine tells what changes (ADR-034), nothing is polled: a session's new state re-reads the list, an event of the running turn is
+  // added where it is shown. When the stream closes it is asked for again, and the list is read anew once it is back.
   useEffect(() => {
-    if (running.length === 0) return;
-    const t = setInterval(async () => { await refresh(); }, POLL_MS);
-    return () => clearInterval(t);
-  }, [running.map((s) => s.id).join(','), collect, refresh]);
+    let on = true, timer: ReturnType<typeof setTimeout> | undefined;
+    const subscribe = () => {
+      invoke('engine_subscribe', { projectId: PROJECT_ID }).then(() => { if (on) void refresh(); }, () => { if (on) timer = setTimeout(subscribe, RESUBSCRIBE_MS); });
+    };
+    const off = listen<Note>('engine-event', ({ payload: n }) => {
+      if (!on) return;
+      if (n.event === 'stream.closed') timer = setTimeout(subscribe, RESUBSCRIBE_MS);
+      else if (n.event === 'session.state') void refresh();
+      else if (n.event === 'session.event') {
+        const { session_id: id, turn, event } = n.data;
+        const cur = trNow.current[id];
+        if (!cur) return; // not read yet: the first read brings the running turn's events with it
+        const live = applyLive(cur.live, turn, event);
+        if (live) put(id, (old) => (old ? { ...old, live } : old)); else void collect(id, `missed:${turn}:${String(event.seq)}`);
+      }
+    });
+    subscribe();
+    return () => { on = false; clearTimeout(timer); void off.then((stop) => stop()); };
+  }, [refresh, collect, put]);
   useEffect(() => { list.forEach((s) => void collect(s.id, `${s.state}:${s.turn}`)); }, [list, collect]);
 
   const act = async (cmd: Parameters<typeof call>[1], s: SessionView, extra: Record<string, unknown> = {}) => {
@@ -157,6 +184,8 @@ export function Sessions() {
     usage: active ? tr[active.id]?.usage ?? null : null,
   };
   const title = active ? active.title : archived ? archived.title : 'Yeni oturum';
+  /** The conversation is read a page at a time: this asks for the page above the turns on screen, when there is one. */
+  const olderOf = (id: string) => (tr[id]?.first ?? 0) > 0 && <button type="button" className="btn sm" onClick={() => void collect(id, '', tr[id].first)}>Daha eski turları göster ({tr[id].first})</button>;
 
   return (
     <section aria-labelledby="sessions-h" className="chatpage">
@@ -178,7 +207,7 @@ export function Sessions() {
         {note && <div role="alert"><p>{note}</p>{listState === 'error' && <button className="btn sm" onClick={() => void refresh()}>Yeniden dene</button>}</div>}
         {archived ? (
           <article aria-label="Geçmiş oturum" className="session">
-            <div className="scroll"><div className="msgs"><ChatThread turns={turns[archived.id] ?? []} running={false} /></div></div>
+            <div className="scroll"><div className="msgs">{olderOf(archived.id)}<ChatThread turns={turns[archived.id] ?? []} running={false} /></div></div>
             <Composer {...common} usage={archT?.usage ?? null} model={archT?.model ?? ''} value={draft[archived.id] ?? ''} onChange={(v) => setDraft({ ...draft, [archived.id]: v })} onSend={() => void resumeSaved(archived)}
               canSend={!!(draft[archived.id] ?? '').trim() && !busy && !!archT?.resumable} disabled={!archT?.resumable}
               placeholder={archT?.resumable ? 'Kaldığın yerden devam et…' : 'Bu sohbet devam ettirilemez (ajan oturum kimliği yok)'}
@@ -197,7 +226,7 @@ export function Sessions() {
               attachments={attach[NEW] ?? []} setAttachments={(a) => setAttach({ ...attach, [NEW]: a })} />
           </div>
         ) : (
-          <SessionCard key={active.id} s={active} turns={turns[active.id] ?? []} draft={draft[active.id] ?? ''} busy={busy}
+          <SessionCard key={active.id} s={active} turns={turns[active.id] ?? []} older={olderOf(active.id)} draft={draft[active.id] ?? ''} busy={busy}
             setDraft={(t) => setDraft({ ...draft, [active.id]: t })} onSend={() => void send(active)} act={(c) => void act(c, active)}
             composer={{ ...common, model, attachments: attach[active.id] ?? [], setAttachments: (a) => setAttach({ ...attach, [active.id]: a }) }} />
         )}
@@ -228,17 +257,17 @@ function ProjectMenu({ known, current, onPick, onChoose, className = '' }: { kno
   );
 }
 
-function SessionCard({ s, turns, draft, setDraft, onSend, act, busy, composer }: {
-  s: SessionView; turns: Turn[]; draft: string; setDraft: (t: string) => void; onSend: () => void; act: (c: 'session.retry' | 'session.interrupt' | 'session.cancel' | 'session.resume') => void;
+function SessionCard({ s, turns, older, draft, setDraft, onSend, act, busy, composer }: {
+  s: SessionView; turns: Turn[]; older: React.ReactNode; draft: string; setDraft: (t: string) => void; onSend: () => void; act: (c: 'session.retry' | 'session.interrupt' | 'session.cancel' | 'session.resume') => void;
   busy: boolean; composer: CommonComposer;
 }) {
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }); }, [turns, s.state]);
+  useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }); }, [turns[turns.length - 1], s.state]); // new output scrolls down; older turns put in front do not
   return (
     <article aria-label={`Oturum ${s.agent}`} className="session">
       <div className="scroll"><div className="msgs">
         {turns.length === 0 ? <p className="mut">Bu pencerede bu oturumun geçmişi yok; yalnızca bundan sonrakiler görünür.</p>
-          : <ChatThread turns={turns} running={s.state === 'running'} />}
+          : <>{older}<ChatThread turns={turns} running={s.state === 'running'} /></>}
         {s.state === 'failed' && <div role="alert" className="row" style={{ flexWrap: 'wrap', gap: 8 }}><span>Son tur başarısız oldu{s.last_state ? ` (${s.last_state})` : ''}.</span>
           {(['retry', 'resume'] as const).map((k) => <button key={k} className="btn sm" disabled={!s.commands[k].enabled} title={reasonText(s.commands[k].reason)} onClick={() => act(`session.${k}`)}>{COMMAND_TEXT[k]}</button>)}</div>}
         <div ref={end} />

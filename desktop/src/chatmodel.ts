@@ -54,6 +54,14 @@ export function itemsOf(turns: Turn[]): Item[] {
   return out;
 }
 
+/** The turns plus what the running turn has said so far, so the thread grows while the agent works. The engine's finished turn replaces it. */
+export function withLive(turns: Turn[], live: { events: StreamEvent[] } | null): Turn[] {
+  if (!live || live.events.length === 0) return turns;
+  const partial = { state: 'running', complete: false, events: live.events };
+  const last = turns[turns.length - 1];
+  return last && last.result === null ? [...turns.slice(0, -1), { ...last, result: partial }] : [...turns, { n: null, user: null, result: partial }];
+}
+
 /** The plan is the agent's own todo list: the last `todowrite` tool call of the session. No such call, no plan. */
 export function planOf(turns: Turn[]): Todo[] | null {
   let plan: Todo[] | null = null;

@@ -18,7 +18,16 @@ export type SessionView = {
 /** One sidebar row, ordered and titled by the engine. `saved`: a conversation from an earlier run (read-only until continued). */
 export type Conversation = { id: string; title: string; state: State; project_root: string; updated: number; saved: boolean };
 export type Usage = { input: number; output: number; reasoning: number; cache_read: number; cost: number | null; last_input: number | null; steps: number };
-export type Transcript = { id: string; title: string; project_root: string; agent: string; model: string; resumable: boolean; turns: import('./chatmodel').Turn[]; usage: Usage | null };
+/** The running turn's events so far (ADR-034). */
+export type Live = { turn: number; events: StreamEvent[] };
+/** One page of a conversation: `turns` start at turn index `first` of `total`; `first` is the `before` of the page above. */
+export type Transcript = { id: string; title: string; project_root: string; agent: string; model: string; resumable: boolean; turns: import('./chatmodel').Turn[]; usage: Usage | null;
+  first: number; total: number; live: Live | null };
+/** What the engine pushes on the notification stream; `stream.closed` is the shell's own word for "ask again". */
+export type Note =
+  | { event: 'session.event'; data: { session_id: string; turn: number; event: StreamEvent } }
+  | { event: 'session.state'; data: { session: SessionView } }
+  | { event: 'stream.closed' };
 export type Defaults = { agents: string[]; agent: string; model: string };
 export type StreamEvent = { kind: string; [k: string]: unknown };
 export type TurnResult = { state: string; complete: boolean; events: StreamEvent[]; error?: string } | null;
@@ -80,7 +89,25 @@ export const REJECT_TEXT: Record<string, string> = {
   SESSION_LIVE: 'Önce oturumu bitir.', RESUME_INVALID: 'Devam ettirilecek oturum geçersiz.',
 };
 
-export const POLL_MS = 1000;
-/** A running turn is polled; nothing else is. */
-export const shouldPoll = (s: SessionView): boolean => s.state === 'running';
+/** How long the screen waits before asking for the notification stream again after it closed or could not be opened. */
+export const RESUBSCRIBE_MS = 2000;
+
+/** A page the engine just returned joined onto the turns already on screen (an older page goes in front, a newer one replaces the tail).
+ *  Everything else is the page's, because it is the newer answer. Pages that do not touch leave a hole: then only the page is kept. */
+export function joinPages(old: Transcript | undefined, page: Transcript): Transcript {
+  if (!old) return page;
+  const [a, b] = page.first < old.first ? [page, old] : [old, page];
+  if (b.first > a.first + a.turns.length) return page;
+  // pushed events can be ahead of a page that was on its way: the longer view of the same running turn stays
+  const live = old.live && page.live && old.live.turn === page.live.turn && old.live.events.length > page.live.events.length ? old.live : page.live;
+  return { ...page, live, first: a.first, turns: [...a.turns.slice(0, b.first - a.first), ...b.turns] };
+}
+
+/** One pushed event added to the running turn. A repeat changes nothing; `null` means an event was missed and the transcript must be read again. */
+export function applyLive(cur: Live | null, turn: number, event: StreamEvent): Live | null {
+  const base = cur && cur.turn === turn ? cur : { turn, events: [] };
+  const seq = event.seq;
+  if (typeof seq !== 'number' || seq > base.events.length) return null;
+  return seq < base.events.length ? base : { turn, events: [...base.events, event] };
+}
 

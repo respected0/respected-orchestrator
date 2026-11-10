@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addPaths, agentLine, baseName, compactNumber, filesOf, itemsOf, modelsView, planOf, toolCount, toolListView, withAttachments, type Turn } from '../src/chatmodel.ts';
+import { addPaths, agentLine, baseName, compactNumber, filesOf, itemsOf, modelsView, planOf, toolCount, toolListView, withAttachments, withLive, type Turn } from '../src/chatmodel.ts';
 
 const done = (events: Record<string, unknown>[], extra = {}): Turn['result'] => ({ state: 'complete', complete: true, events: events as { kind: string }[], ...extra });
 const turns: Turn[] = [
@@ -61,4 +61,14 @@ test('agent line: ready only when the engine says ready and chat is native; anyt
   assert.match(agentLine(d('unknown', 'native')).text, /durumu bilinmiyor/);
   assert.match(agentLine({ ok: true, value: { agent: 'x', readiness: { effective: 'great' } } }).text, /beklenen biçimde değil/);
   assert.match(agentLine({ ok: false, text: 'Motor yanıt vermedi' }).text, /okunamadı: Motor yanıt vermedi/);
+});
+
+test('the running turn shows what the agent has said so far, in the turn that asked or as a turn of its own for a retry', () => {
+  const live = { events: [{ kind: 'message', text: 'yazıyorum' }] };
+  const asked: Turn[] = [...turns, { n: null, user: 'devam', result: null }];
+  assert.deepEqual(itemsOf(withLive(asked, live)).slice(-2), [{ t: 'user', text: 'devam' }, { t: 'agent', text: 'yazıyorum' }]);
+  assert.equal(withLive(turns, live).length, turns.length + 1);
+  assert.deepEqual(itemsOf(withLive(turns, live)).at(-1), { t: 'agent', text: 'yazıyorum' });
+  assert.equal(withLive(asked, null), asked);
+  assert.equal(withLive(asked, { events: [] }), asked);
 });

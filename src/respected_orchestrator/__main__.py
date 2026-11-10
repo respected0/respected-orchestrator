@@ -139,7 +139,7 @@ def _session(ctx, args, group="session"):
     word = entry.cli[1] if entry else None  # None: JSON on stdin; "": no input; a name: one optional plain word
     if entry is None or len(args) > (2 if word else 1):
         raise UsageError("Kullanım: task start (istek gövdesi stdin'den JSON) | status|cancel|retry RUN_ID  (docs/COMMANDS.md)" if group == "task" else
-                         "Kullanım: session list [PROJE] | models [AJAN] | describe [AJAN] | defaults | start|send|events|retry|interrupt|cancel|resume|transcript|forget  (son grupta istek gövdesi stdin'den JSON; docs/COMMANDS.md)")
+                         "Kullanım: session list [PROJE] | watch PROJE | models [AJAN] | describe [AJAN] | defaults | start|send|events|retry|interrupt|cancel|resume|transcript|forget  (son grupta istek gövdesi stdin'den JSON; docs/COMMANDS.md)")
     if word is not None:  # these never read stdin
         payload = dict(zip([word], args[1:]))
     else:
@@ -151,6 +151,15 @@ def _session(ctx, args, group="session"):
             raise UsageError("stdin geçerli bir JSON nesnesi olmalı")
     try:
         daemon_client.start(ctx)  # the first caller starts the engine (ADR-030 D4); a different version is refused
+        if entry.name == "events.subscribe":  # `session watch PROJE`: one notification per line until Ctrl+C or the engine stops
+            if "project_id" not in payload:
+                raise UsageError("Kullanım: session watch PROJE")
+            try:
+                for note in daemon_client.subscribe(ctx, payload["project_id"]):
+                    print(json.dumps(note, ensure_ascii=False), flush=True)
+            except KeyboardInterrupt:
+                pass
+            return None, 0
         reply = daemon_client.request(ctx, entry.name, payload, timeout=60)
     except daemon_client.DaemonUnavailable as error:
         _error("ENGINE_UNAVAILABLE", str(error), "rorch daemon status")

@@ -46,6 +46,9 @@ ENTRIES = (
     Entry("memory.status", READ, "memory.status"),
     Entry("events.snapshot", READ),
     Entry("events.since", READ),
+    # Live stream (ADR-034): the connection that sends this becomes one-way. No desktop relay list: the shell opens the stream itself.
+    # No MCP tool: a tool call cannot receive pushes; MCP clients read `live` from orchestrator_session_events.
+    Entry("events.subscribe", READ, cli=("watch", "project_id")),
     Entry("runs.active", READ),
     Entry("runs.list", READ, desktop="read"),
     Entry("projects.list", READ, desktop="read"),
@@ -107,7 +110,8 @@ ENTRIES = (
                 text=_TEXT, agent={"type": "string"}, model={"type": "string"}, resume_session={"type": "string"},
                 continue_conversation={"type": "string"}), False)),
     Entry("session.events", READ, cli=("events", None), desktop="session", mcp=(
-        "orchestrator_session_events", "Events and result of the session's latest turn. Read-only.", _TURN, True)),
+        "orchestrator_session_events", "Events and result of the session's latest turn; while a turn runs, `live` holds its events so far. Read-only.",
+        _TURN, True)),
     Entry("session.send", TASK, cli=("send", None), desktop="session", mcp=(
         "orchestrator_session_send", "Send the next message to a session.",
         _object(["project_id", "session_id", "text"], project_id=_PROJECT_ID, session_id=_SESSION_ID, text=_TEXT), False)),
@@ -121,7 +125,9 @@ ENTRIES = (
     Entry("session.defaults", READ, cli=("defaults", ""), desktop="session"),
     Entry("session.defaults.set", SETTINGS, desktop="session"),
     Entry("session.transcript", READ, cli=("transcript", None), desktop="session", mcp=(
-        "orchestrator_session_transcript", "The session's saved conversation. Read-only.", _object(["session_id"], session_id=_SESSION_ID), True)),
+        "orchestrator_session_transcript", "The session's saved conversation, one page of turns at a time (newest first; `first` of a reply is the "
+        "`before` of the page above it). Read-only.",
+        _object(["session_id"], session_id=_SESSION_ID, before={"type": "integer", "minimum": 0}, limit={"type": "integer", "minimum": 1, "maximum": 200}), True)),
     Entry("session.forget", TASK, cli=("forget", None), desktop="session"),
 )
 BY_NAME = {entry.name: entry for entry in ENTRIES}

@@ -42,7 +42,7 @@ Sütunlar: **Biz** (masaüstü + motor), **CC-App** Claude Code masaüstü, **CC
 | Onay kipleri (salt-okunur / onaylı / tam) | ✗ | ✓ (Manual, Accept edits, Plan, Auto, Bypass) | ✓ | ✓ (salt-okunur / workspace-write + on-request / never) | ✓ | ✓ | ◐ |
 | İzin kuralları (izin / yasak listesi) | ✗ | ✓ | ✓ | ◐ | ◐ | ✓ | ✗ |
 | Sandbox | – (yok ve **eklenmeyecek**; eksik sayılmaz, karar §6; ajanın kendi sandbox'ı kullanılır) | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
-| Canlı akış | ✗ (1 sn yoklama) | ✓ | ✓ | ✓ | ✓ | ✓ | ◐ |
+| Canlı akış | ✓ (ADR-034; pano hariç) | ✓ | ✓ | ✓ | ✓ | ✓ | ◐ |
 | Geri alma / kontrol noktası | ✗ (motorda `checkpoint.py` var, ekranda yok) | ✓ | ✓ | ◐ | ◐ | ✗ (belgede yok) | ◐ |
 | Proje talimat dosyası | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ◐ |
 | Alt ajanlar / paralel çalışma | ✗ (sohbette) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (30'a kadar) |
@@ -132,7 +132,7 @@ Kaynak: resmî belge ve depo sayfaları, 10 Kasım 2026'da indirildi; hiçbir ü
 
 **Bu okumadan çıkan sonuçlar:**
 
-1. Arka plan süreci, tek protokol ve üretilmiş tipler artık sınıfın tabanı; ADR-030 ve ADR-032 ile aynı yerdeyiz. Eksiğimiz: canlı akış (hâlâ yoklama) ve güncellemede çalışan işin korunması.
+1. Arka plan süreci, tek protokol ve üretilmiş tipler artık sınıfın tabanı; ADR-030 ve ADR-032 ile aynı yerdeyiz. Canlı akış yapıldı (ADR-034; görev panosu hâlâ yokluyor). Eksiğimiz: güncellemede çalışan işin korunması.
 2. Orkestratör sınıfında **ajanın kendi terminali taban**, yapılandırılmış sohbet onun üstüne ek. Bizde tersine yalnız sohbet var ve tek ajanla. Terminal paneli öne alınmalı.
 3. Çok ajanı desteklemenin yolu ajan başına adaptör değil **ACP**: AO, Claude Code dahil hemen herkesi ACP ile sürüyor; yalnız Codex kendi app-server'ı ile.
 4. Pano durumu saklanmaz, olgulardan türetilir (AO). Bizim `effective_status` aynı ilkede.
@@ -181,7 +181,7 @@ Her maddede: **Rakipler** · **Bizde şimdi** · **Hedef** · **Motor işi** · 
 
 **B1. Canlı akış** · Boyut M · Öncelik 4
 - Rakipler: hepsi.
-- Bizde: tur bitince tek sonuç; ekran 1 sn yoklar.
+- Bizde (10 Kasım 2026, ADR-034): yapıldı; aşağıdaki plan yerine AO'nun yolu seçildi (ayrı tek yönlü bildirim bağlantısı, sayfalı geçmiş). Önceki durum: tur bitince tek sonuç; ekran 1 sn yoklar.
 - Hedef: Metin ve araç çağrıları geldikçe görünsün.
 - Motor: `session.events` artımlı (`since` imleci); tur iş parçacığı olayları ara belleğe yazar. Her olay güvenilmeyen veri olmayı sürdürür.
 - Masaüstü: artımlı çizim; yoklama aralığı dışında mantık yok.

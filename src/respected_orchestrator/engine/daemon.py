@@ -15,6 +15,7 @@ import getpass
 import hashlib
 import json
 import os
+import queue
 import secrets
 import sys
 import threading
@@ -29,6 +30,7 @@ from .local_api import COMMANDS, IPC, MAX_REQUEST_BYTES, LocalApi, _ID, _reply, 
 from .supervisor import Supervisor, SupervisorBusy
 
 IDLE_SECONDS = 30 * 60  # nothing connected, no run working: the daemon leaves (ADR-030 D2)
+MAX_PENDING = 2000  # notifications one subscriber may have waiting
 CONTROL = ("daemon.status", "daemon.stop")
 SERVED = frozenset(name for name, (_op, action) in COMMANDS.items() if action in (Action.READ, Action.TASK))
 SERVED_DESKTOP = SERVED | frozenset(name for name, (_op, action) in COMMANDS.items() if action is Action.SETTINGS)
@@ -90,6 +92,20 @@ def classify(ctx, pid: int) -> Origin:
     if working & {pid, *winproc.ancestors(pid)}:
         return Origin.CHILD
     return Origin.RENDERER if is_desktop(pid) else Origin.MCP
+
+
+class Subscriber:
+    """One connection's waiting notifications about one project's sessions (ADR-034). Called by the session controller; never blocks."""
+
+    def __init__(self, project_id):
+        self.project_id, self.pending, self.lost = project_id, queue.Queue(MAX_PENDING), threading.Event()
+
+    def __call__(self, project_id, name, data):
+        if project_id == self.project_id:
+            try:
+                self.pending.put_nowait({"ipc": IPC, "event": name, "data": data})
+            except queue.Full:
+                self.lost.set()
 
 
 class Daemon:
@@ -185,7 +201,7 @@ class Daemon:
         import pywintypes
         import win32file
         import win32pipe
-        origin = None
+        origin, stream = None, []  # stream: this connection's subscriber, once it has subscribed
         with self._guard:
             self._connections += 1
         try:
@@ -193,7 +209,11 @@ class Daemon:
             with self._guard:
                 self._origins[origin.value] = self._origins.get(origin.value, 0) + 1
             token = secrets.token_hex(16)  # local_api insists on one; the pipe's access list is the real gate
-            api = self.api(origin, token)
+            def subscribe(project_id):  # listening starts before the reply goes out: nothing between the reply and the client's first read is missed
+                stream.append(Subscriber(project_id))
+                self.sessions.listen(stream[0])
+
+            api = self.api(origin, token, subscribe)
             buffer = b""
             while not self.stop_event.is_set():
                 try:
@@ -205,12 +225,16 @@ class Daemon:
                     line, buffer = buffer.split(b"\n", 1)
                     reply = self._answer(api, origin, token, line)
                     win32file.WriteFile(handle, json.dumps(reply, ensure_ascii=True).encode("ascii") + b"\n")
+                    if stream:
+                        return self._stream(handle, stream[0])
                 if len(buffer) > MAX_REQUEST_BYTES:
                     win32file.WriteFile(handle, json.dumps(_reply(None, False, code="PAYLOAD_TOO_LARGE", message="Request exceeds the size limit.")).encode() + b"\n")
                     return
         except pywintypes.error:
             return
         finally:
+            for subscriber in stream:
+                self.sessions.unlisten(subscriber)
             with self._guard:
                 self._connections -= 1
                 if origin is not None:
@@ -225,10 +249,24 @@ class Daemon:
             except pywintypes.error:
                 pass
 
-    def api(self, origin, token):
+    def _stream(self, handle, subscriber):
+        """From here on the connection is one-way, like a server-sent event stream (ADR-034): notifications of one project's sessions are
+        written as they happen and nothing more is read; the client closes the connection to stop. One thread writes, so nothing interleaves.
+        A reader that falls MAX_PENDING behind is cut off: it connects again and reads the state anew."""
+        import win32file
+        import win32pipe
+        while not self.stop_event.is_set() and not subscriber.lost.is_set():
+            try:
+                note = subscriber.pending.get(timeout=2)
+            except queue.Empty:
+                win32pipe.PeekNamedPipe(handle, 0)  # raises once the client has gone, so a dead subscriber does not keep the engine awake
+                continue
+            win32file.WriteFile(handle, json.dumps(note, ensure_ascii=True).encode("ascii") + b"\n")
+
+    def api(self, origin, token, subscribe=None):
         """One connection's view of the engine: the served catalog only, the sessions every connection shares."""
         return LocalApi(self.ctx, token, origin=origin, journal=Journal(self.ctx.state_dir / "events.log"),
-                        only=SERVED_DESKTOP if origin is Origin.RENDERER else SERVED, sessions=self.sessions)
+                        only=SERVED_DESKTOP if origin is Origin.RENDERER else SERVED, sessions=self.sessions, subscribe=subscribe)
 
     def _answer(self, api, origin, token, line):
         try:

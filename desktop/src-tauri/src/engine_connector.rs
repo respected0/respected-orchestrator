@@ -283,6 +283,24 @@ impl Connection {
         self.raw("settings.readback", json!({}))
     }
 
+    /// Turns this connection into the engine's one-way notification stream for one project's sessions (ADR-034). After this, only `next_note`.
+    pub fn subscribe(&mut self, project_id: &str) -> Result<(), ConnectError> {
+        let v = self.raw("events.subscribe", json!({"project_id": project_id}))?;
+        if v["ok"] != true {
+            return Err(ConnectError::Refused(v["error"]["message"].as_str().unwrap_or("events.subscribe").chars().take(120).collect()));
+        }
+        Ok(())
+    }
+
+    /// The next notification, as the engine wrote it; `None` once the stream has ended (engine stopped, or it cut off a slow reader).
+    pub fn next_note(&mut self) -> Option<Value> {
+        let mut line = String::new();
+        match self.reader.read_line(&mut line) {
+            Ok(n) if n > 0 => serde_json::from_str(&line).ok(),
+            _ => None,
+        }
+    }
+
     /// Ends a private engine; for the persistent one only this connection is dropped (the engine keeps running).
     pub fn kill(&mut self) {
         if let Some(child) = self.child.as_mut() { let _ = child.kill(); let _ = child.wait(); }
@@ -467,6 +485,19 @@ TOKEN = \"sk-SHOULDNEVERAPPEAR123456\"
         assert!(matches!(c.status(), Err(ConnectError::Disconnected(_))));
         let mut again = Connection::connect(&launch).expect("reconnect");
         assert!(again.status().is_ok());
+    }
+
+    #[test]
+    fn a_subscribed_connection_is_accepted_by_the_engine_and_ends_when_the_engine_stops() {
+        let launch = real("stream");
+        let _stop = StopEngine(launch.clone());
+        let mut stream = Connection::connect(&launch).expect("connect");
+        assert!(matches!(stream.subscribe(""), Err(ConnectError::Refused(_))), "a project is required");
+        stream.subscribe("proj-1").expect("subscribe");
+        let mut other = Connection::connect(&launch).expect("second");
+        assert!(other.status().is_ok(), "ordinary requests go on beside the stream");
+        launch.daemon("stop").unwrap();
+        assert_eq!(stream.next_note(), None);
     }
 
     #[test]

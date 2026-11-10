@@ -50,12 +50,13 @@ def session_controller(ctx):
 
 
 class LocalApi:
-    def __init__(self, ctx, token, origin=Origin.RENDERER, journal=None, only=None, sessions=None):
+    def __init__(self, ctx, token, origin=Origin.RENDERER, journal=None, only=None, sessions=None, subscribe=None):
         if not isinstance(token, str) or len(token) < 16:
             raise ValueError("session token must be at least 16 characters")
         self.ctx, self._token, self.origin = ctx, token, origin
         self.journal = journal
         self.only = only  # a connection that may use just these commands (the native approval pipe)
+        self.subscribe = subscribe  # fn(project_id): the transport turns this connection into a notification stream (persistent engine only)
         self._seen = {}  # id -> (request digest, response)
         self._voice_api = None
         self._attach_api = None
@@ -203,7 +204,7 @@ class LocalApi:
             if name == "defaults.set":
                 return _reply(corr, True, self.sessions.set_defaults(self.origin, payload.get("agent", self.sessions.store.defaults()["agent"]), payload.get("model")))
             if name == "transcript":
-                return _reply(corr, True, self.sessions.transcript(self.origin, sid))
+                return _reply(corr, True, self.sessions.transcript(self.origin, sid, payload.get("before"), payload.get("limit", session_control.PAGE_TURNS)))
             if name == "forget":
                 return _reply(corr, True, self.sessions.forget(self.origin, sid))
             if name == "start":
@@ -264,6 +265,14 @@ class LocalApi:
             return _reply(corr, False, code="BAD_REQUEST", message=str(error))
 
     def _events(self, corr, command, payload):
+        if command == "events.subscribe":  # ADR-034: after this reply the connection only carries notifications of that project's sessions
+            project = payload.get("project_id")
+            if not isinstance(project, str) or not project:
+                return _reply(corr, False, code="BAD_REQUEST", message="events.subscribe needs project_id.")
+            if self.subscribe is None:
+                return _reply(corr, False, code="ENGINE_ERROR", message="Notifications need a connection to the persistent engine.")
+            self.subscribe(project)
+            return _reply(corr, True, {"subscribed": True, "events": list(session_control.NOTIFICATIONS)})
         if self.journal is None:
             return _reply(corr, False, code="ENGINE_ERROR", message="No event journal.")
         if command == "events.snapshot":

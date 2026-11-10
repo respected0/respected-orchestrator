@@ -481,6 +481,12 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   `PWD` ile verilir, süreç `RESPECTED_ORCH_CHILD=1` ile işaretlenir (insan onayı veremez), `.cmd` shim'i çalıştırılmaz. Akıştaki her
   olay güvenilmeyen veridir; oturumda `approve` komutu yoktur (onaylar yalnız onay merkezinde). Canlı oturumlar süreç içidir; konuşma kayıtları
   (`chat/sessions.json`) yeniden başlatmada kalır ve `continue_conversation` ile sürdürülür. `interrupt` süreç ağacını öldürür; tur sonucu `session.events` ile okunur.
+  **Canlı akış (ADR-034):** ajanın çıktısı satır satır okunur; her olay turun `live` listesine girer ve abonelere bildirilir. Abonelik ayrı bir
+  boru bağlantısıdır: `events.subscribe {project_id}` yanıtından sonra o bağlantıdan yalnız motor yazar (`session.event`, `session.state`; `id` taşımaz),
+  istemciden bir şey okunmaz. Abone yalnız kendi `project_id`'sinin oturumlarını duyar; komut `READ` sınıfıdır, `CHILD` kökeni abone olamaz. Geride kalan
+  abone (2000 bekleyen bildirim) kesilir ve durumu yeniden okur. Bildirimdeki her olay da güvenilmeyen veridir ve hiçbir yetki taşımaz. Masaüstünde akışı
+  kabuk açar (`engine_subscribe`) ve bildirimleri yalnız `main` penceresine iletir; sohbet ekranı motoru yoklamaz. Konuşma geçmişi sayfalıdır
+  (`session.transcript` `before`/`limit`; varsayılan 50 tur).
   **Masaüstü yalnız görsel katmandır.** Varsayılan ajan/model, geçerli model denetimi (başlatma ve `session.defaults.set` modeli ajanın kendi listesine
   karşı doğrular), konuşma geçmişi, başlık, oturum-klasör eşlemesi, sıralama ve token/maliyet toplamları motorda hesaplanır ve saklanır
   (`engine/session_store.py`, veri kökünde `chat/sessions.json`); masaüstü bunları çizer ve kullanıcının seçimini iletir. Tarayıcı depolaması
@@ -520,7 +526,7 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   `session.models` (salt okunur) ajan CLI'ının kendi `models` çıktısını döndürür; yalnız `sağlayıcı/ad` biçimindeki satırlar kalır ve
   ajan CLI'ını çalıştırır. Sohbet ekranı model listesini, token kullanımını (`usage`
   olayları), planı (`todowrite` araç çağrısı), okunan/değişen dosyaları (araç girdileri) ve sağ paneli yalnız bu yanıtlardan ve
-  `session.events` akışından üretir; motorun vermediği hiçbir değer (bağlam yüzdesi gibi) çizilmez. Eklenen dosya yolları mesaj
+  `session.transcript` sayfalarından ve akış bildirimlerinden üretir; motorun vermediği hiçbir değer (bağlam yüzdesi gibi) çizilmez. Eklenen dosya yolları mesaj
   metninin içinde (`@yol`) gider; oturum komutları yalnız metin alır. Proje/dosya seçimi Tauri'nin yerel iletişim kutusuyla
   (`pick_folder`, `pick_files`; yalnız bu iki uygulama komutu `main` penceresine izinlidir, `dialog`/`fs` eklenti komutlarının
   hiçbiri hiçbir pencereye verilmez) yapılır.

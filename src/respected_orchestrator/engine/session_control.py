@@ -24,6 +24,9 @@ MAX_INPUT = 8000
 MAX_SESSIONS = 20
 TURN_TIMEOUT = 180
 MODELS_TTL = 300
+PAGE_TURNS, MAX_PAGE_TURNS = 50, 200
+# What a subscriber is told (ADR-034): one event of the running turn as it arrives; a session's new state (turn started, finished, stopped).
+NOTIFICATIONS = ("session.event", "session.state")
 _UNSAFE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")  # tabs and newlines pass; ESC, CR, NUL and C1 do not
 _SESSION = re.compile(r"^(ses|loc)_[A-Za-z0-9]{8,64}$")
 
@@ -40,19 +43,33 @@ def kill_tree(proc):
         proc.terminate()
 
 
-def run_killable(argv, on_start=None, timeout=TURN_TIMEOUT, cwd=None, env=None, **_ignored):
-    """Run one turn so that another thread can end it: the process is handed to `on_start` before we wait for it."""
-    proc = winproc.popen(argv, cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+def run_killable(argv, on_start=None, timeout=TURN_TIMEOUT, cwd=None, env=None, on_line=None, **_ignored):
+    """Run one turn so that another thread can end it: the process is handed to `on_start` before we wait for it.
+    Each line the process prints goes to `on_line` as it arrives (the live stream, ADR-034); the whole output is still returned at the end."""
+    proc = winproc.popen(argv, cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
                          encoding="utf-8", errors="replace", shell=False)
     if on_start:
         on_start(proc)
+    lines = []
+
+    def read():
+        with proc.stdout:
+            for line in proc.stdout:
+                lines.append(line)
+                if on_line:
+                    on_line(line)
+
+    reader = threading.Thread(target=read, daemon=True)
+    reader.start()
     try:
-        out, err = proc.communicate(timeout=timeout)
+        proc.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
         kill_tree(proc)
-        proc.communicate()
+        proc.wait()
+        reader.join(5)
         raise
-    return subprocess.CompletedProcess(argv, proc.returncode, out, err)
+    reader.join(5)  # a grandchild that kept the pipe open does not hold the finished turn back
+    return subprocess.CompletedProcess(argv, proc.returncode, "".join(lines), "")
 
 
 class SessionApprovalRefused(PermissionError):
@@ -85,6 +102,20 @@ class SessionController:
         self._sessions, self._lock = {}, threading.RLock()
         self.store = store or SessionStore()
         self._known = {}  # agent -> (time, model ids): the CLI is asked at most once in MODELS_TTL seconds
+        self._listeners = []  # fn(project_id, name, data), called for every notification; must not block
+
+    def listen(self, fn):
+        self._listeners.append(fn)
+
+    def unlisten(self, fn):
+        self._listeners.remove(fn)
+
+    def _emit(self, session, name, data):
+        for fn in list(self._listeners):
+            fn(session["project_id"], name, data)
+
+    def _changed(self, session):
+        self._emit(session, "session.state", {"session": self._dto(session)})
 
     def busy(self):
         """True while any session is working on a turn (the persistent engine does not leave then; idle sessions are saved and can resume)."""
@@ -187,13 +218,25 @@ class SessionController:
         self.store.put({"id": session["id"], "project_root": session["cwd"], "agent": session["agent"], "model": session["model"],
                         "cli": session["cli_id"], "turns": turns, "title": title_of(turns, f"{session['agent']} · {session['model'].split('/')[-1]}")})
 
-    def transcript(self, origin, session_id):
+    def transcript(self, origin, session_id, before=None, limit=PAGE_TURNS):
+        """One page of a conversation, newest by default: the `limit` turns that end just before turn index `before`. `first` is the index of
+        the first turn returned (0: nothing older); send it back as `before` for the page above. `live`: the running turn's events so far."""
         authorize(origin, CLASSES["transcript"])
-        record = self.store.get(session_id) if isinstance(session_id, str) else None
-        if record is None:
-            raise SessionError("Unknown conversation", "SESSION_UNKNOWN")
-        return {"id": record["id"], "title": record["title"], "project_root": record["project_root"], "agent": record["agent"],
-                "model": record["model"], "resumable": bool(record.get("cli")), "turns": record["turns"], "usage": usage_of(record["turns"])}
+        with self._lock:
+            record = self.store.get(session_id) if isinstance(session_id, str) else None
+            if record is None:
+                raise SessionError("Unknown conversation", "SESSION_UNKNOWN")
+            turns = record["turns"]
+            end = len(turns) if before is None else before
+            if type(end) is not int or not 0 <= end <= len(turns) or type(limit) is not int or not 1 <= limit <= MAX_PAGE_TURNS:
+                raise SessionError("before and limit must be whole numbers in range", "PAGE_INVALID")
+            # shortcut: the cursor is a position in the saved list, which drops its oldest turn past MAX_TURNS; use a stable turn id if pages must survive that
+            first = max(0, end - limit)
+            session = self._sessions.get(session_id)
+            live = {"turn": session["turn"], "events": list(session.get("live", ()))} if session and session["state"] == "running" else None
+            return {"id": record["id"], "title": record["title"], "project_root": record["project_root"], "agent": record["agent"],
+                    "model": record["model"], "resumable": bool(record.get("cli")), "turns": turns[first:end], "first": first, "total": len(turns),
+                    "usage": usage_of(turns), "live": live}
 
     def history(self, origin):
         """Saved conversations that no session of this run owns (after a restart: all of them), newest first."""
@@ -239,7 +282,16 @@ class SessionController:
         self._persist(session)
         session["gen"] += 1
         session["turn"] += 1  # a client tells two equally-shaped results apart by this, never by their content
-        gen = session["gen"]
+        gen, turn = session["gen"], session["turn"]
+        live = session["live"] = []  # this turn's events so far; a stopped turn's late lines land in its own list, never in the next turn's
+        self._changed(session)
+
+        def line(text):  # no lock: with wait=True the caller holds it for the whole turn
+            for event in chat_session.normalize(text):
+                event["seq"] = len(live)  # the same numbering parse_stream gives the finished turn
+                live.append(event)
+                if session["gen"] == gen:
+                    self._emit(session, "session.event", {"session_id": session["id"], "turn": turn, "event": event})
 
         def adopt(proc):
             session["handle"] = proc
@@ -248,7 +300,7 @@ class SessionController:
 
         def work():
             try:
-                done = self._runner(argv, cwd=session["cwd"], timeout=TURN_TIMEOUT, on_start=adopt, env=chat_session.turn_environment(session["cwd"]))
+                done = self._runner(argv, cwd=session["cwd"], timeout=TURN_TIMEOUT, on_start=adopt, on_line=line, env=chat_session.turn_environment(session["cwd"]))
                 result = chat_session.parse_stream(done.stdout.splitlines())
                 if done.returncode != 0 and result["complete"]:
                     result["state"], result["complete"] = "error", False
@@ -268,6 +320,7 @@ class SessionController:
                 else:
                     turns.append({"n": session["turn"], "user": None, "result": result})
                 self._persist(session)
+                self._changed(session)
             return result
 
         if wait:
@@ -299,11 +352,13 @@ class SessionController:
             return self._turn(session, session["last_text"], wait, new_message=False)
 
     def events(self, origin, session_id, project_id):
-        """The last finished turn of a session (untrusted stream events, already normalised), or None while one runs."""
+        """The last finished turn of a session (untrusted stream events, already normalised), or None while one runs; then `live` holds
+        the running turn's events so far."""
         authorize(origin, CLASSES["events"])
         with self._lock:
             session = self._get(session_id, project_id)
-            return {"state": session["state"], "turn": session["turn"], "result": session["result"], "usage": usage_of(session["turns"])}
+            return {"state": session["state"], "turn": session["turn"], "result": session["result"], "usage": usage_of(session["turns"]),
+                    "live": list(session.get("live", ())) if session["state"] == "running" else None}
 
     def _stop(self, session):
         session["gen"] += 1  # whatever the turn's thread reports from now on is discarded
@@ -321,6 +376,7 @@ class SessionController:
             self._stop(session)
             session["state"] = "failed" if session["last_text"] else "idle"
             session["last_state"] = "interrupted"
+            self._changed(session)
             return self._dto(session)
 
     def cancel(self, origin, session_id, project_id):
@@ -329,6 +385,7 @@ class SessionController:
             session = self._get(session_id, project_id)
             self._stop(session)
             session["state"] = "ended"
+            self._changed(session)
             return self._dto(session)
 
     def resume(self, origin, session_id, project_id):
@@ -339,6 +396,7 @@ class SessionController:
             if session["state"] == "running":
                 raise SessionError("Session is already running")
             session["state"] = "idle"
+            self._changed(session)
             return self._dto(session)
 
     def approve(self, *_args, **_kwargs):
