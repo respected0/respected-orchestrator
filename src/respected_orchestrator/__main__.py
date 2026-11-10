@@ -138,7 +138,7 @@ def _session(ctx, args):
     entry = catalog.CLI.get(args[0]) if args else None
     word = entry.cli[1] if entry else None  # None: JSON on stdin; "": no input; a name: one optional plain word
     if entry is None or len(args) > (2 if word else 1):
-        raise UsageError("Kullanım: session list [PROJE] | models [AJAN] | defaults | start|send|events|retry|interrupt|cancel|resume|transcript|forget  (son grupta istek gövdesi stdin'den JSON; docs/COMMANDS.md)")
+        raise UsageError("Kullanım: session list [PROJE] | models [AJAN] | describe [AJAN] | defaults | start|send|events|retry|interrupt|cancel|resume|transcript|forget  (son grupta istek gövdesi stdin'den JSON; docs/COMMANDS.md)")
     if word is not None:  # these never read stdin
         payload = dict(zip([word], args[1:]))
     else:

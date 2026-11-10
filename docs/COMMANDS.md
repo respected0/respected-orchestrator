@@ -29,6 +29,7 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 | `daemon stop` | Motoru durdurur ve sürecin çıkmasını bekler; çalışmıyorsa hata değildir (`stopped: false`). |
 | `daemon restart` | Durdurup yeniden başlatır (sürüm uyuşmazlığında çare). |
 | `session list [PROJE]` | Kalıcı motorun canlı sohbet oturumlarını ve kayıtlı konuşmaları listeler. Motor yoksa başlatır. |
+| `session describe [AJAN]` | Ajanın tanımı (`agent.describe`, ADR-033): hazırlık, arayüzler, yetenekler, izin kipleri, model seçimi; her alan `native` / `unsupported` / `unverified` ve kaynağıyla. Ajan verilmezse bilinen bütün ajanlar (`{"agents": [...]}`). Yalnız salt-okunur yoklama yapar, ajan başlatmaz. |
 | `session models [AJAN]`, `session defaults` | Ajanın kendi model listesi; kayıtlı varsayılan ajan/model (değiştirme bu uçta yoktur). |
 | `session start\|send\|events\|retry\|interrupt\|cancel\|resume\|transcript\|forget` | İstek gövdesi stdin'den JSON: `project_id` (zorunlu, oturumu adresler), `session_id`, `project_root` (var olan mutlak klasör), `agent`, `model`, `text`, `resume_session`, `continue_conversation`. Yanıt motorun kendi yanıtıdır; hata `{"error":{code,message,hint}}`, çıkış 1 (kullanım hatası 2). Oturum başlatma yalnız doğrulanmış sohbet adaptörü olan ajanlarda (şimdilik `opencode`) çalışır. Onay komutu yoktur. |
 
@@ -51,7 +52,7 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 `integrations.plan|apply|rollback`, `memory.connect|disconnect|status`, `evidence.view`,
 `github.issue_import|pr_plan|pr_create|ci_plan`.
 
-**Masaüstü sohbet IPC komutları** (`rpp` değil, uygulamanın yerel motor bağlantısı): `sessions.list`, `session.start|send|events|retry|interrupt|cancel|resume`, `session.models` (ajan CLI'ının model listesi; `{"agent"}` ister).
+**Masaüstü sohbet IPC komutları** (`rpp` değil, uygulamanın yerel motor bağlantısı): `sessions.list`, `session.start|send|events|retry|interrupt|cancel|resume`, `session.models` (ajan CLI'ının model listesi; `{"agent"}` ister), `agent.describe` (ajan tanımı; `{"agent"}` isteğe bağlı).
 
 **Komut kataloğu:** motor komutlarının tek tablosu `engine/catalog.py`'dir; `rorch session` fiilleri, `orchestrator_session_*` MCP araçları ve masaüstünün iletebildiği komut listeleri ondan üretilir. `catalog.list` (salt okunur) çağıranın çalıştırabildiği komutları verir: `{"commands": [{"name", "action", "cli", "mcp", "desktop"}]}`; yetkili komutlar ortak uçta görünmez. Yeni komut eklerken tabloya bir satır yazın, sonra `python -m respected_orchestrator.engine.catalog` ile masaüstü dosyalarını yeniden üretin.
 Motor, masaüstünün göstereceği her şeyi tutar: `sessions.list` → `{sessions, conversations}` (`conversations`: bu çalışmanın oturumları ve kaydedilmiş
@@ -67,6 +68,7 @@ model ajanın listesinde değilse `MODEL_INVALID` ile reddedilir ve kaydedilmez)
 
 **MCP oturum araçları** (kalıcı motorun canlı sohbet oturumları; `rorch session` ve masaüstüyle aynı oturumlar): `orchestrator_session_list`, `_start`, `_send`,
 `_events`, `_transcript`, `_interrupt`, `_cancel`, `_resume`. Alanlar `rorch session` ile aynıdır; onay ve varsayılan değiştirme yoktur.
+`orchestrator_agent_describe` (salt okunur) `rorch session describe` ile aynı cevabı verir.
 
 ## Görevler
 

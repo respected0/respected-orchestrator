@@ -91,13 +91,8 @@ def classify(agent, row, probe, path):
     return _result(agent, "verified", "logged in and the chat flag is present in the CLI's own help", row, path)
 
 
-def discover(agent, *, probe=None, which=None, use_cache=True):
-    if agent not in agent_adapters.ADAPTERS:
-        raise ValueError("Unknown agent")
-    real = probe is None and which is None  # only the real machine view is cached; injected fakes never are
-    if real and use_cache and agent in _cache and time.monotonic() - _cache[agent][0] < _CACHE_SECONDS:
-        return _cache[agent][1]
-    probe, which = probe or Probe(), which or shutil.which
+def inspect(agent, probe, which):
+    """(adapter row, discovery result) from one probe pass, for a caller that needs both."""
     seen = {}
 
     def tracked_which(name):
@@ -106,7 +101,16 @@ def discover(agent, *, probe=None, which=None, use_cache=True):
             seen["path"] = found
         return found
     row = agent_adapters.verify(agent, probe, tracked_which)
-    result = classify(agent, row, probe, seen.get("path"))
+    return row, classify(agent, row, probe, seen.get("path"))
+
+
+def discover(agent, *, probe=None, which=None, use_cache=True):
+    if agent not in agent_adapters.ADAPTERS:
+        raise ValueError("Unknown agent")
+    real = probe is None and which is None  # only the real machine view is cached; injected fakes never are
+    if real and use_cache and agent in _cache and time.monotonic() - _cache[agent][0] < _CACHE_SECONDS:
+        return _cache[agent][1]
+    _row, result = inspect(agent, probe or Probe(), which or shutil.which)
     if real:
         _cache[agent] = (time.monotonic(), result)
     return result

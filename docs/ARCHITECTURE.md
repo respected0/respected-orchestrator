@@ -238,7 +238,7 @@ reject|escalate` diye sınıflar: aynı `operation_id` yinelenmez; hop bütçesi
 bağımsız gözden geçirme isteniyorken gözden geçiren yazarla aynı araç/profildeyse, ya da aynı kenar yeni kanıt olmadan tekrarlanırsa
 `reject`. `apply` diye bir eylem yoktur.
 
-**Yetenek uyumluluğu, önerisi, izin kartı ve etkinleştirme planı (B4-03; yerel API'de `capabilities.matrix` ve `capabilities.recommend`):** hepsi
+**Yetenek uyumluluğu, önerisi, izin kartı ve etkinleştirme planı (B4-03; yerel API'de `capabilities.recommend`):** hepsi
 `engine/capabilities/` altında, çevrimdışı ve salt okunur; keşif kaydı (`normalize.build`) girdi olur. (1) `compatibility.resolve`
 her kayıt için `compatible|incompatible|unknown` ve nedenleri verir (istemci/tür desteği keşif matrisinden; yalnız `stdio` aktarımı
 onaylı; paket çalıştırıcıları ve diğer aktarımlar `unknown`; eksik program, yanlış proje `incompatible`); güveni okumaz. (2)
@@ -494,6 +494,14 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   ekipler `team.view`; Bütçe ve başarı `analytics.summary`; MCP ve beceriler `capabilities.inventory`. İnceleme ekranı yoktur: `review.view`
   yalnız yerel onay penceresi içindir (bu, `KALAN_ISLER.md` 1.7 ile değişecek).
   Dosya ağacı ve seçili klasör izni kabukta kalır: izin kullanıcının yerel klasör penceresindeki seçimidir ve motora vekâlet edilemez.
+  **Ajan tanımı (`agent.describe`, ADR-033, `engine/agent_describe.py`):** bir ajan CLI'ının ne olduğunu ve neyi desteklediğini her ajan için
+  aynı biçimde verir: hazırlık (kurulum, giriş, `ready` / `not_ready` / `unknown`), arayüzler (`chat`, `terminal`, `handoff`), yetenek
+  bayrakları (Orchestrator.inc'in adlarıyla), izin kipleri (dört ortak ad + ajanın kendi adı), model seçimi, komutlar, bağlam. Her alan
+  `native` / `unsupported` / `unverified` durumu ve kaynağı (`probe` / `doc` / `none`) taşır; `native` yalnız yüklü CLI'ın kendi yardım
+  metninde bu makinede görülünce verilir, sürüm doğrulanan tabandan eskiyse verilmez. Yalnız salt-okunur yoklamalar çalışır (`--version`,
+  `--help`, giriş durumu); ajan başlatılmaz. Sohbet arayüzü yalnız akışı gerçekten doğrulanmış ajanda (`chat_session.SUPPORTED`) `native`'dir.
+  Komut listesi ve bağlam canlı oturum ister; o zamana kadar boş ve `unverified` kalır. Ekran yalnız bu cevabı çizer: yeni sohbet
+  sayfası varsayılan ajanın durum satırını buradan gösterir. Eski `capabilities.matrix` komutu ve `capability_matrix.py` bununla kalktı.
   `session.models` (salt okunur) ajan CLI'ının kendi `models` çıktısını döndürür; yalnız `sağlayıcı/ad` biçimindeki satırlar kalır ve
   ajan CLI'ını çalıştırır. Sohbet ekranı model listesini, token kullanımını (`usage`
   olayları), planı (`todowrite` araç çağrısı), okunan/değişen dosyaları (araç girdileri) ve sağ paneli yalnız bu yanıtlardan ve

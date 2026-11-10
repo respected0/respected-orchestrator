@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addPaths, baseName, compactNumber, filesOf, itemsOf, modelsView, planOf, toolCount, toolListView, withAttachments, type Turn } from '../src/chatmodel.ts';
+import { addPaths, agentLine, baseName, compactNumber, filesOf, itemsOf, modelsView, planOf, toolCount, toolListView, withAttachments, type Turn } from '../src/chatmodel.ts';
 
 const done = (events: Record<string, unknown>[], extra = {}): Turn['result'] => ({ state: 'complete', complete: true, events: events as { kind: string }[], ...extra });
 const turns: Turn[] = [
@@ -53,3 +53,12 @@ test('model and tool replies that are not exactly the documented shape become er
   assert.equal(toolListView({ ok: true, result: {} }).kind, 'error');
 });
 
+test('agent line: ready only when the engine says ready and chat is native; anything else carries the engine reason', () => {
+  const d = (effective: string, chat: string) => ({ ok: true as const, value: { agent: 'opencode', version: '2.2.3', readiness: { effective, reason: 'auth_required: not logged in' }, interfaces: { chat: { status: chat, note: 'never verified' } } } });
+  assert.deepEqual(agentLine(d('ready', 'native')), { ready: true, text: 'Ajan: opencode (2.2.3) · hazır' });
+  assert.deepEqual(agentLine(d('not_ready', 'native')), { ready: false, text: 'Ajan: opencode (2.2.3) · hazır değil: auth_required: not logged in' });
+  assert.deepEqual(agentLine(d('ready', 'unverified')), { ready: false, text: 'Ajan: opencode (2.2.3) · sohbet doğrulanmadı: never verified' });
+  assert.match(agentLine(d('unknown', 'native')).text, /durumu bilinmiyor/);
+  assert.match(agentLine({ ok: true, value: { agent: 'x', readiness: { effective: 'great' } } }).text, /beklenen biçimde değil/);
+  assert.match(agentLine({ ok: false, text: 'Motor yanıt vermedi' }).text, /okunamadı: Motor yanıt vermedi/);
+});

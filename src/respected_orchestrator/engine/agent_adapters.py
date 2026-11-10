@@ -17,6 +17,8 @@ GATED = "unsupported"  # explicit, not "unknown"
 
 # cap -> (help argv after the binary, token that must appear in that help text) or None (no CLI surface claimed)
 # `note` says where the claim comes from; every claim not backed by a help token stays "source" (documented, not probed).
+# `modes`: (help argv, [(common permission-mode id, the agent's own name, token that must appear in that help)]); the common ids are
+# default / accept-edits / auto / bypass-permissions (ADR-033), any other id is the agent's own mode. `model`: (help argv, flag).
 ADAPTERS = {
     "codex": {
         "binaries": ["codex"], "verified_version": (0, 160, 1),
@@ -29,6 +31,8 @@ ADAPTERS = {
             "usage": (None, None, "token counts not probed in the JSONL stream"),
         },
         "auth": (["login", "status"], r"logged in"),
+        "modes": (["--help"], [("bypass-permissions", "--dangerously-bypass-approvals-and-sandbox", "--dangerously-bypass-approvals-and-sandbox")]),
+        "model": (["exec", "--help"], "--model"),
     },
     "claude": {
         "binaries": ["claude"], "verified_version": (2, 1, 318),
@@ -41,6 +45,10 @@ ADAPTERS = {
             "usage": (None, None, "result message usage fields not probed"),
         },
         "auth": (["auth", "status"], r'"loggedIn":\s*true'),
+        "modes": (["--help"], [("accept-edits", "acceptEdits", '"acceptEdits"'), ("auto", "auto", '"auto"'),
+                               ("bypass-permissions", "bypassPermissions", '"bypassPermissions"'), ("plan", "plan", '"plan"'),
+                               ("dontAsk", "dontAsk", '"dontAsk"')]),
+        "model": (["--help"], "--model"),
     },
     "cursor": {
         "binaries": ["cursor-agent", "agent"], "verified_version": None,  # date-style versions: compared as text, see below
@@ -53,6 +61,7 @@ ADAPTERS = {
             "usage": (None, None, "not probed"),
         },
         "auth": (["status"], r"logged in"),
+        "model": (["--help"], "--model"),
     },
     "opencode": {
         "binaries": ["opencode"], "verified_version": (2, 2, 3),
@@ -66,8 +75,11 @@ ADAPTERS = {
         },
         # stored credentials are not proof they are valid, so a hit only means "configured"
         "auth": (["auth", "list"], r"stored"),
+        "modes": (["run", "--help"], [("auto", "--auto", "--auto"),
+                                      ("bypass-permissions", "--dangerously-skip-permissions", "--dangerously-skip-permissions")]),
+        "model": (["run", "--help"], "--model"),
     },
-    "antigravity": {"binaries": ["agy", "antigravity"], "verified_version": None, "caps": {}, "auth": None},
+    "antigravity": {"binaries": ["agy", "antigravity"], "verified_version": None, "caps": {}, "auth": None, "model": (["--help"], "--model")},
     "custom": {"binaries": [], "verified_version": None, "caps": {}, "auth": None},  # nothing is assumed about user commands
 }
 

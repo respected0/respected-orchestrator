@@ -16,7 +16,7 @@ from .authority import Action, Origin, authorize, effective_origin
 from .capabilities import normalize as capability_normalize, paths as capability_paths
 from . import catalog, session_control, supervisor
 from .session_store import SessionStore
-from . import activity, agent_discovery, capability_matrix, approval, artifact_view, read_model, review_model
+from . import activity, agent_describe, agent_discovery, approval, artifact_view, read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control, role_editor, roles
 from .runner import SUPPORTED_AGENTS, tool_available
 from .journal import Journal
@@ -373,8 +373,12 @@ class LocalApi:
                 response = _reply(corr, True, result)
             except (ValueError, TypeError) as error:
                 response = _reply(corr, False, code="BAD_REQUEST", message=str(error)[:300])
-        elif command == "capabilities.matrix":
-            response = _reply(corr, True, capability_matrix.build())
+        elif command == "agent.describe":
+            try:
+                agent = payload.get("agent")
+                response = _reply(corr, True, {"agents": agent_describe.describe_all()} if agent is None else agent_describe.describe(agent))
+            except ValueError as error:
+                response = _reply(corr, False, code="BAD_REQUEST", message=str(error)[:200])
         elif command == "capabilities.scan":
             root = payload.get("project_root")
             if root is not None and not (isinstance(root, str) and os.path.isabs(root) and os.path.isdir(root)):

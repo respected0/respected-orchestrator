@@ -58,9 +58,12 @@ ENTRIES = (
     Entry("review.view", READ),
     Entry("activity.list", READ, desktop="read"),
     Entry("agents.discover", READ),
+    Entry("agent.describe", READ, cli=("describe", "agent"), desktop="session", mcp=(
+        "orchestrator_agent_describe", "What an agent CLI on this machine is and can do: readiness, chat and terminal interfaces, capabilities, "
+        "permission modes, model selection (ADR-033). Without `agent`: every known agent. Read-only probes only; no agent is started.",
+        _object([], agent={"type": "string"}), True)),
     Entry("capabilities.scan", READ),
     Entry("capabilities.inventory", READ),
-    Entry("capabilities.matrix", READ),
     Entry("capabilities.recommend", READ, desktop="read"),
     Entry("team.view", READ, desktop="read"),
     Entry("analytics.summary", READ, desktop="read"),

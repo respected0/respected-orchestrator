@@ -43,7 +43,7 @@ Bu kararla kesinleşenler:
 Sıra `RAKIP_ESKIKLERI.md` §3'teki sıradır; rakip karşılaştırmasından gelen üç değişiklik **kalın** yazıldı (onaylandı).
 
 1. ~~Belge borcu (§6)~~ yapıldı (10 Kasım 2026).
-2. **`agent.describe` şeması (§3.1): masaüstündeki her ajan özelliğinin ön koşulu; Codex ve ACP yolları belgelenmiş olduğu için ajan koşusu olmadan tasarlanabilir.** `[K]`
+2. ~~`agent.describe` şeması (§3.1)~~ yapıldı (10 Kasım 2026, ADR-033).
 3. A1 görev başlatma → A2 pano → A3 worktree ve geri alma (§4.1–4.3). `[K]`
 4. B1 canlı akış (§4.4). `[K]`
 5. **Ajanın kendi terminal paneli (§3.4): orkestratör sınıfındaki rakiplerin hepsinde var; ajan başına adaptör yazmadan bütün ajanları kullanılır kılar.** `[K]`
@@ -85,17 +85,17 @@ Sıra `RAKIP_ESKIKLERI.md` §3'teki sıradır; rakip karşılaştırmasından ge
 
 ## 3. Ajan adaptörü
 
-- [ ] **3.1 `agent.describe {agent}` ortak şeması ve motor komutu** `[K]`
-  - Bizde: yok. Ekran model listesini, kipleri, komutları ajana göre elle biliyor; sohbet yalnız `opencode` ile doğrulanmış.
-  - Rakipler: AO'da her adaptör neyi desteklediğini açıkça bildirir ve bunu kayıt sözleşmesi testleri ölçer; yüklü CLI'ın yardım metni yalıtılmış ev dizininde yoklanır (bizim `agent_adapters.py` ile aynı yöntem). Ekrandaki ajan seçici "hazırlık anlık görüntüsü"nü okur. Arayüz değişimi (sohbet ↔ terminal) yetenek bayrağına bağlıdır.
-  - Yapılacak: şema (kipler, modeller, komutlar, bağlam, her alan için `native` / `unsupported` / `doğrulanmadı` + kaynak) ve komut; katalogda `read` yüzü. Ekran yalnız motorun verdiğini çizer.
+- [ ] **3.1 `agent.describe` kalanları** `[K]` (şema ve komut yapıldı: ADR-033)
+  - Masaüstü yalnız yeni sohbet sayfasında varsayılan ajanın durum satırını gösteriyor; ajan seçici yok, çünkü sohbet tek ajanla (`opencode`) çalışıyor. Seçici 3.2 ile gelir.
+  - `openrouter` adaptör tablosunda (`agent_adapters.ADAPTERS`) yok, bu yüzden cevapta da yok. Cursor ve Antigravity için kip eşlemesi yazılmadı (`modes: unsupported`). Codex'te yalnız yardım metninde görülen iki kip var (`default`, `bypass-permissions`).
+  - AO'nun tazelik durumları (`fresh` / `stale` / `checking`) alınmadı; 30 saniyelik önbellek var. İlk çağrı altı ajanı sırayla yoklar.
 - [ ] **3.2 Adaptör yolları: üç yol yeter** `[K]` tasarım, `[A]` doğrulama
   - Rakipler: AO sohbet için iki yol kullanır: Codex'e yerel `app-server`, **Claude Code dahil** geri kalan herkese ACP (Claude Code için `claude-agent-acp`; ayrıca Cursor, OpenCode, Droid, Kimi, Pi, Qwen, DeepSeek Harness, GitHub Copilot). dsh de `acp` profiliyle kendini ACP sunucusu olarak açar.
   - Karar (yön kararı 3): ajan başına ayrı adaptör yerine (a) Codex: `codex app-server`, (b) geri kalanlar: tek ACP adaptörü (`opencode` ACP istemcimiz var; Claude Code, `dsh`, `agy`, `cursor` buradan gelir), (c) Claude Code'da ACP'nin vermediği alanlar (bağlam doluluğu, `/compact`) için üstüne `stream-json` / Agent SDK. `RAKIP_ESKIKLERI.md` §7'deki ajan başına sıra bununla değişti.
   - Codex için ajan koşusu olmadan bilinenler (resmî `app-server` belgesi): `model/list` model ve çaba listesini verir, `thread/compact/start` sıkıştırır, `turn/steer` çalışan tura mesaj ekler, `turn/interrupt` keser, `thread/revert` geçmişi geri sarar, `account/usage/read` kullanım verir, onaylar sunucudan istemciye istek olarak gelir. Claude Code'da belgelenmiş model listesi sorgusu hâlâ yok.
-- [ ] **3.3 Claude Code adaptörünün alan doğrulaması** `[A]`: `init` mesajının şeması (`slash_commands`, `skills`, `model`, `permissionMode`), `compact_boundary`, `get_context_usage` ya da `statusLine` yolu; etkileşimsiz yolu doğrulanmamış komutlar (`/usage`, `/goal`, `/fork`, `/resume`, `/add-dir`, …; tablo `RAKIP_ESKIKLERI.md` §7).
+- [ ] **3.3 Claude Code adaptörünün alan doğrulaması** `[A]` (`agent.describe` içinde `commands` ve `context` bu doğrulamaya kadar boş ve `unverified`): `init` mesajının şeması (`slash_commands`, `skills`, `model`, `permissionMode`), `compact_boundary`, `get_context_usage` ya da `statusLine` yolu; etkileşimsiz yolu doğrulanmamış komutlar (`/usage`, `/goal`, `/fork`, `/resume`, `/add-dir`, …; tablo `RAKIP_ESKIKLERI.md` §7).
 - [ ] **3.4 Ajanın kendi terminal arayüzü paneli** `[K]`
-  - Bizde: karar 11 ile ürünün resmî parçası, yapılmadı (ConPTY yolu açık).
+  - Bizde: karar 11 ile ürünün resmî parçası, yapılmadı (ConPTY yolu açık). `agent.describe` cevabında `interfaces.terminal` ve `interfaces.handoff` yeri hazır, değeri `unsupported`.
   - Rakipler: Herdr, MXterm, Munder Difflin ve Kitchen yalnız gerçek terminal çalıştırır (ajanın kendi arayüzü; Kitchen tmux ile). AO, Orca ve Vi3ecode ikisini birden sunar: yapılandırılmış sohbet **ve** ajanın kendi terminali, aralarında geçiş. AO'da terminal WebSocket üzerinden çoğullanır ve ayrı bir PTY süreci tutar; arayüz kapanınca terminal yaşar.
   - Ajan durumu nasıl okunuyor: Herdr ekran kazımaz; program durumunu açık bir terminal dizisiyle (OSC 7501: çalışıyor / bitti / sizi bekliyor) bildirir. AO Claude ve Codex'in kendi hook'larından gelen olayları kullanır.
   - Yapılacak (yön kararı 2, Orchestrator.inc gibi): terminal ayrı bir PTY sürecinde yaşar (Windows'ta ConPTY), motor boru üzerinden bağlar/ayırır; masaüstünde terminal bölmesi ve oturum başına "sohbet arayüzüne geç / terminal arayüzüne geç" (yalnız ajan ikisini de destekliyorsa, `agent.describe` bayrağıyla). Durum için ajanın kendi hook'u, yoksa "bilinmiyor"; ekran kazıma yok.

@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { Modal } from './ui';
 import { ChatThread, Composer, type Loaded } from './Chat';
 import { SessionPane, WIDE_TITLE, WidePane, type Wide } from './Panes';
-import { baseName, modelsView, toolListView, withAttachments, type ModelsView, type ToolListView, type Turn } from './chatmodel';
+import { agentLine, baseName, modelsView, toolListView, withAttachments, type AgentLine, type ModelsView, type ToolListView, type Turn } from './chatmodel';
 import { Voice } from './Voice';
 import { Screenshot } from './Screenshot';
 import { Ico } from './icons';
@@ -30,6 +30,7 @@ export function Sessions() {
   const [busy, setBusy] = useState(false);
   const [models, setModels] = useState<Loaded<ModelsView>>({ s: 'loading' });
   const [tools, setTools] = useState<Loaded<ToolListView>>({ s: 'loading' });
+  const [agent, setAgent] = useState<AgentLine | null>(null);
   const { sel, newRoot } = useConvStore();
   const turns = Object.fromEntries(Object.entries(tr).map(([k, v]) => [k, v.turns]));
   useEffect(() => { if (newRoot) { setForm((f) => ({ ...f, root: newRoot })); setConvStore({ newRoot: null }); } }, [newRoot]);
@@ -54,6 +55,12 @@ export function Sessions() {
     void call<unknown>(relay, 'session.models', {}).then((r) => { if (live) setModels({ s: 'done', v: modelsView(r) }); });
     return () => { live = false; };
   }, []);
+  useEffect(() => {
+    if (!defaults?.agent) return;
+    let live = true;
+    void call<unknown>(relay, 'agent.describe', { agent: defaults.agent }).then((r) => { if (live) setAgent(agentLine(r)); });
+    return () => { live = false; };
+  }, [defaults?.agent]);
 
   const active = sel === NEW ? null : list.find((x) => x.id === sel) ?? null;
   const archived = sel === NEW || active ? null : conversations.find((c) => c.id === sel) ?? null;
@@ -180,6 +187,7 @@ export function Sessions() {
         ) : !active ? (
           <div className="newchat">
             <div className="mid"><ProjectMenu known={known} current={form.root} onPick={pickRoot} onChoose={chooseRoot} /></div>
+            {agent && <p role="status" className="mut" style={{ textAlign: 'center' }}>{agent.text}</p>}
             <Composer {...common} value={form.text} onChange={(v) => setForm({ ...form, text: v })} onSend={() => void start()} canSend={!!form.root && !!form.text.trim() && !!form.model && !busy}
               placeholder={form.root ? 'Bir görev tanımlayın veya bir soru sorun' : 'Önce bir proje klasörü seçin…'}
               model={form.model} onPickModel={(id) => void pickModel(id)}

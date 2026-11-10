@@ -398,7 +398,7 @@ Her maddede: **Rakipler** · **Bizde şimdi** · **Hedef** · **Motor işi** · 
 
 **Üç tür özellik:** (A) ajanın kendi özelliği: ajandan gelir; (B) ajandan bağımsız bizim değerimiz: geçmiş, maliyet kaydı, kanıt, pano, worktree, bildirim: hepsinde aynı, bizde; (C) taklit: yapılmaz (karar 12).
 
-**Mevcut zemin:** `engine/agent_adapters.py` (yetenek yoklaması: yalnız salt-okunur `--version`/`--help`/giriş durumu; bir yetenek ancak CLI'ın kendi yardım metninde görünürse "doğrulandı"), `engine/capability_matrix.py` (ajan başına kip hücresi: doğrulandı / doğrulanmadı / desteklenmiyor; düğme yalnız doğrulanmışsa açık), `engine/opencode_acp.py` (OpenCode ACP istemcisi).
+**Mevcut zemin:** `engine/agent_adapters.py` (yetenek yoklaması: yalnız salt-okunur `--version`/`--help`/giriş durumu; bir yetenek ancak CLI'ın kendi yardım metninde görünürse "doğrulandı"), `engine/agent_describe.py` (`agent.describe`, ADR-033: ajan başına ortak şema; eski `capability_matrix.py` bununla kalktı), `engine/opencode_acp.py` (OpenCode ACP istemcisi).
 
 **Ajanla konuşma yolları (güvenilirlik sırasıyla):**
 1. Protokol: ACP, Codex app server, Claude Agent SDK. İki yönlü, yapılandırılmış: kip değiştirme, komut listesi, bağlam, izin soruları.

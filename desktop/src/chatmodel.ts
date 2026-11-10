@@ -114,6 +114,23 @@ export function modelsView(r: { ok: true; value: unknown } | { ok: false; text: 
   return ids.length ? { kind: 'models', ids: ids as string[] } : { kind: 'empty' };
 }
 
+export type AgentLine = { ready: boolean; text: string };
+
+/** The engine's `agent.describe` reply (ADR-033) -> the one line the new-chat page shows. Only what the engine said; any other shape is an error line. */
+export function agentLine(r: { ok: true; value: unknown } | { ok: false; text: string }): AgentLine {
+  if (!r.ok) return { ready: false, text: `Ajan durumu okunamadı: ${r.text}` };
+  const d = r.value as { agent?: unknown; version?: unknown; readiness?: { effective?: unknown; reason?: unknown }; interfaces?: { chat?: { status?: unknown; note?: unknown } } } | null;
+  const state = d?.readiness?.effective, chat = d?.interfaces?.chat;
+  if (typeof d?.agent !== 'string' || (state !== 'ready' && state !== 'not_ready' && state !== 'unknown') || typeof chat?.status !== 'string') {
+    return { ready: false, text: 'Ajan durumu beklenen biçimde değil; gösterilmedi.' };
+  }
+  const name = typeof d.version === 'string' && d.version ? `${d.agent} (${d.version})` : d.agent;
+  if (state === 'ready' && chat.status === 'native') return { ready: true, text: `Ajan: ${name} · hazır` };
+  const why = state === 'ready' ? chat.note : d.readiness?.reason;
+  const label = state === 'unknown' ? 'durumu bilinmiyor' : state === 'ready' ? 'sohbet doğrulanmadı' : 'hazır değil';
+  return { ready: false, text: `Ajan: ${name} · ${label}${typeof why === 'string' && why ? `: ${why}` : ''}` };
+}
+
 export type ToolListView =
   | { kind: 'rows'; mcp: string[]; skills: string[] }
   | { kind: 'error'; text: string };
