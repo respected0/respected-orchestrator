@@ -58,7 +58,7 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
 
 ## 2. Görev ve sonuç denetimi
 
-- Her görev projenin yalıtılmış bir Git çalışma ağacında çalışır. Sonuç bir iddiadır: kapsam (`ownership` / `forbidden`),
+- Her görev projenin ayrı bir Git çalışma ağacında çalışır (ayrı klasör ve dal; işletim sistemi düzeyinde yalıtım değildir). Sonuç bir iddiadır: kapsam (`ownership` / `forbidden`),
   doğrulama komutları, yamanın projeye hâlâ uyması, imzalı kanıt ve projenin güncelliği ayrı ayrı geçmelidir. Hiçbir şey
   kendiliğinden uygulanmaz; `apply` `check`'i yeniden çalıştırır, `git apply --check` yapar, commit atmaz ve çalışan
   süreçlerin içinden reddedilir. Yeniden denemeler açık ve sınırlıdır; süre sınırları ve süreç ağacı temizliği korunur.
@@ -387,7 +387,7 @@ Sunucu, istem enjeksiyonuna uğramış olabilecek bir modelin isteğini alır. B
 - İzin atlayan bayraklar (bölüm 2).
 
 Özyineleme yoktur: `RESPECTED_ORCH_CHILD` ya da `RESPECTED_ORCH_DELEGATED` tanımlıyken bütün araçlar gizlenir ve reddedilir;
-sunucunun başlattığı her şey `RESPECTED_ORCH_DELEGATED=1` taşır. Çalışanlar yalıtılmış çalışma alanlarını düzenler; gerçek
+sunucunun başlattığı her şey `RESPECTED_ORCH_DELEGATED=1` taşır. Çalışanlar kendi ayrı çalışma ağaçlarını düzenler; gerçek
 ağaç yalnızca doğrulanmış `patch_sha256` ile `orchestrator_apply` üzerinden değişir.
 
 Sınırlar: listelenen bir önek her argümana izin verir (`pytest -p eklenti` projeden kod çalıştırır); dar önekler yazın.

@@ -74,8 +74,8 @@ Sıra `RAKIP_ESKIKLERI.md` §3'teki sıradır; rakip karşılaştırmasından ge
 
 - [ ] **1.7 Onay ve uygulamayı rakiplerdeki gibi yap** `[K]` (yön kararı 10)
   - Bizde: `approval.decide` ve `approval.apply` `PRIVILEGED`; ortak uçta sunulmaz, yalnız kabuğun özel `--human` sürecindeki yerel pencereden verilir (ADR-004, ADR-030 karar 3).
-  - Rakipler: Cx'te sunucu istemciye istek yollar (`item/commandExecution/requestApproval`, `item/fileChange/requestApproval`); yanıt `accept` / `acceptForSession` / `decline` / `cancel`; bağlı her istemci yanıtlayabilir. CC'de SDK `canUseTool`. AO'da oturum `waiting_input` olur. `apply` komutu yoktur; iş dalda durur ve "Hand off", "Create branch here" ya da PR ile gerçek ağaca geçer.
-  - Yapılacak, önce tasarım notu (ADR-004'ün yerine geçecek yeni ADR): (a) onay isteği motordan istemciye; tanınan masaüstü (`RENDERER`) yanıtlar, `CHILD` yanıtlayamaz, `MCP` kökeni için ayrıca karar; (b) dört yanıt biçimi; (c) `apply` yerine dala çevir / yerele al / PR aç, doğrulama ve imzalı kanıt ön koşul; (d) yerel onay penceresi, `--human` süreci ve ilgili testler kalkar; `THREAT_MODEL.md` ve `ARCHITECTURE.md` aynı değişiklikte güncellenir. 4.4 (canlı akış) ön koşuldur: istek istemciye itilmelidir.
+  - Rakipler: Cx'te sunucu istemciye istek yollar (`item/commandExecution/requestApproval`, `item/fileChange/requestApproval`); yanıt `accept` / `acceptForSession` / `decline` / `cancel`; bağlı her istemci yanıtlayabilir. CC'de SDK `canUseTool`. AO'da oturum `waiting_input` olur ve yanıt dört biçimdedir: `allow_once` / `allow_always` / `reject_once` / `reject_always` (ACP'nin biçimleriyle aynı; AO kaynağı `ports/chat.go`, 10 Kasım 2026). `apply` komutu yoktur; iş dalda durur ve "Hand off", "Create branch here" ya da PR ile gerçek ağaca geçer.
+  - Yapılacak, önce tasarım notu (ADR-004'ün yerine geçecek yeni ADR): (a) onay isteği motordan istemciye; tanınan masaüstü (`RENDERER`) yanıtlar, `CHILD` yanıtlayamaz, `MCP` kökeni için ayrıca karar; (b) dört yanıt biçimi AO'daki adlarla (`allow_once`, `allow_always`, `reject_once`, `reject_always`); Codex'in `accept` / `acceptForSession` / `decline` / `cancel` yanıtlarına Codex adaptörü çevirir; (c) `apply` yerine dala çevir / yerele al / PR aç, doğrulama ve imzalı kanıt ön koşul; (d) yerel onay penceresi, `--human` süreci ve ilgili testler kalkar; `THREAT_MODEL.md` ve `ARCHITECTURE.md` aynı değişiklikte güncellenir. 4.4 (canlı akış) ön koşuldur: istek istemciye itilmelidir.
 
 ## 2. Kurulum
 
@@ -117,7 +117,7 @@ Bağlayıcı kurallar (`RAKIP_ESKIKLERI.md` §6): ajanın kendi özellikleri aja
 - [ ] **4.3 A3 Worktree, dal ve değişiklik görünümü, geri alma** `[K]`
   - Bizde: motorda worktree ve `checkpoint.py` var, ekranda yok. İşçinin yaması siz onaylamadan gerçek ağaca uygulanmaz.
   - Rakipler: CC worktree'leri `.claude/worktrees/` altında açar; `.worktreeinclude` dosyası gitignore'daki dosyaları (`.env` gibi) yeni worktree'ye kopyalar; süresi dolanları düzenli süpürür. Cx `$CODEX_HOME/worktrees` kullanır, aynı `.worktreeinclude` kuralını tanır, "Hand off" ile sohbeti worktree ↔ yerel arasında taşır, worktree sayısını sınırlar. Geri alma: CC her istemde yalnız kendi düzenleme araçlarının değiştirdiği dosyaları kaydeder (`/rewind`; kabuk komutlarının değiştirdiği dosyalar dışarıda). Cx `thread/revert` ile konuşma geçmişini geri sarar.
-  - Yapılacak: ekranda dal, değişen dosyalar ve "uygulamayı geri al" (uygulanan yama için git ile). `.worktreeinclude` iki büyük rakibin ortak kuralı olduğu için aynen tanınır (G12 kurulum betiği ile birlikte).
+  - Yapılacak: ekranda dal, değişen dosyalar ve "uygulamayı geri al" (uygulanan yama için git ile). `.worktreeinclude` iki büyük rakibin ortak kuralı olduğu için aynen tanınır (G12 kurulum betiği ile birlikte); AO'nun okunan belgelerinde bunun karşılığı yok, bu yüzden örnek CC ve Cx'tir. Süpürmede AO'nun kuralı temel alınır: değişiklik içeren worktree zorla silinmez.
 - [ ] **4.4 B1 Canlı akış** `[K]`
   - Bizde: ekran 1 saniyede bir yokluyor; `session.events` yalnız son turu veriyor.
   - Rakipler: Cx app-server çift yönlü JSON-RPC'dir; `item/agentMessage/delta` gibi bildirimler akar. AO veritabanı değişikliklerini (CDC) SSE ile yayar, sohbet sayfalıdır ve yalnız değişen kısım yenilenir. CC `stream-json`.
@@ -129,12 +129,12 @@ Bağlayıcı kurallar (`RAKIP_ESKIKLERI.md` §6): ajanın kendi özellikleri aja
 - [ ] **4.6 B3 İzin kipleri (+ G11 kural dosyası ve korunan yollar)** `[K]`
   - Bizde: karar verildi (tüm kipler sunulur, kullanıcı seçer), ekranda yok.
   - Rakipler: CC ve Cx'te kip seçici istem kutusunun altındadır ve oturum sürerken değişir. Cx'te komut kuralları Starlark `.rules` dosyasıdır, `codex execpolicy check` ile sınanır. dsh'de `permission-presets` ve `guard` var.
-  - Yapılacak: kipler 3.1'den gelir ve ajana olduğu gibi iletilir; kural dosyasını biz yazmayız, ajanınkini gösteririz (karar 8). Ajanın ek izin isteği (Cx `request_permissions`, ACP `session/request_permission`) ekranda sorulur; kullanıcı tur ya da oturum için verir. Kipi yine yalnız kullanıcı değiştirir.
+  - Yapılacak: AO'daki gibi dört ortak kip adı (`default`, `accept-edits`, `auto`, `bypass-permissions`) kullanılır ve adaptör bunu ajanın kendi adına çevirir; ajanın bu dördün dışındaki kipleri (ör. `plan`) kendi adıyla listelenir. Liste 3.1'den gelir; kural dosyasını biz yazmayız, ajanınkini gösteririz (karar 8). Ajanın ek izin isteği (Cx `request_permissions`, ACP `session/request_permission`) ekranda sorulur; kullanıcı tur ya da oturum için verir. Kipi yine yalnız kullanıcı değiştirir.
 - [ ] **4.7 C3 Proje talimat dosyası** `[K]`: `AGENTS.md` / `CLAUDE.md` görüntüleme ve düzenleme. Rakiplerin hepsi ajanın kendi dosyasını kullanır; Herdr kendi ayar klasörüne ajan için bir `AGENTS.md` koyar.
 - [ ] **4.8 G1 İnceleme kuyruğu ve satır yorumlu diff** `[K]`
   - Bizde: diff paneli ve motorda `review.view` var; yorum, kabul, reddet, kuyruk yok.
   - Rakipler: Cx'in inceleme bölmesinde satıra yorum yazılır, dosya dosya "görüldü" işaretlenir, dosya sahnelenir ya da geri alınır; yorumlar ajana gider. AO'da başarısız CI, inceleme yorumu ve birleştirme çakışması **dalın sahibi işçiye** geri yollanır; bir inceleyici ajan PR'ı insandan önce okuyabilir. CC'de diff görünümü ve `/code-review` var.
-  - Yapılacak: her işçi çıktısı kuyruğa düşer; satır yorumu işçiye geri gider; onay ve uygulama bugünkü yerel onay penceresinde kalır.
+  - Yapılacak: her işçi çıktısı kuyruğa düşer; satır yorumu ve başarısız doğrulama AO'daki gibi dalın sahibi işçiye geri gider; onay ve gerçek ağaca geçiş 1.7'deki yolla yapılır.
 - [ ] **4.9 C1 Bağlam göstergesi ve G8 oturum ayrıntı paneli** `[K]` ekran, `[A]` veri yolu
   - Rakipler: CC'de sohbetin yanında kartlar var (nerede çalışıyor, ne değiştirdi, ne çalıştırıyor, bağlam doluluğu). Cx'te `/status`. dsh'de `token-meter`.
   - Yapılacak: veri 3.1'den; ajan vermiyorsa kart çıkmaz, "bilinmiyor" uydurulmaz.
@@ -146,7 +146,7 @@ Bağlayıcı kurallar (`RAKIP_ESKIKLERI.md` §6): ajanın kendi özellikleri aja
   - Bizde: motorda takım, devir ve posta kutusu var (`team_profiles`, `handoff`, `team_loop`); ekran salt okunur.
   - Rakipler: CC'de bir oturum diğerlerini listeler, okur, mesaj yollar. Herdr'de bir ajan yardımcı ajan başlatır ve raporu kendi girdisine düşer. Vi3ecode'da roller tek konuşmayı paylaşır; otomatik devir "sıçrama sınırı" ve bütçe ile durur. Munder Difflin'de ajanlar ortak posta kutusu ve kara tahta paylaşır.
   - Yapılacak: var olan devir ve sınır mantığını ekrana bağla; yeni koordinasyon katmanı yazma.
-- [ ] **4.13 E4 Geçmiş araçları** `[K]`: arama, yeniden adlandırma, sabitleme, arşiv, dışa aktarma. Cx bunları app-server'da verir (`thread/list` süzgeçleri, `threadSection/*`, `thread/archive`); CC'de gruplama, sıralama, arşiv var.
+- [ ] **4.13 E4 Geçmiş araçları** `[K]`: arama, yeniden adlandırma, sabitleme, arşiv, dışa aktarma. AO'da listeleme, yeniden adlandırma, öldürme ve geri yükleme arka plan sürecinin HTTP ucundadır; temel budur (motor komutu olarak, katalogda). Arama, sabitleme ve bölümler için örnek Cx'tir (`thread/list` süzgeçleri, `threadSection/*`, `thread/archive`); CC'de gruplama, sıralama, arşiv var.
 - [ ] **4.14 B2 Sohbette dosya düzenleme ve komut çalıştırma** `[K]`: karar verildi (ajanın izin kipiyle açılır); 4.6'dan sonra.
 - [ ] **4.15 D1 MCP yönetimi ve C2 sıkıştırma** `[K]` ekran, `[A]` doğrulama: MCP'de bugün salt liste var. Sıkıştırmayı ajan yapar (CC `/compact`, Cx `thread/compact/start`); biz yalnız tetikleriz.
 - [ ] **4.16 A4 PR ve CI akışı** `[K]` kod, `[O]` gerçek uzak PR
