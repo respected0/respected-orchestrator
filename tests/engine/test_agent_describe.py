@@ -42,7 +42,9 @@ class DescribeTests(unittest.TestCase):
         self.assertIn(d["readiness"]["effective"], ("ready", "not_ready", "unknown"))
         self.assertIn(d["readiness"]["installation"]["state"], ("installed", "not_installed", "unknown"))
         self.assertIn(d["readiness"]["authentication"]["state"], ("authorized", "unauthorized", "unknown", "not_applicable", "configured"))
-        self.assertEqual(d["interfaces"]["terminal"]["status"], "unsupported")  # no terminal panel yet (KALAN_ISLER 3.4)
+        self.assertEqual(d["interfaces"]["terminal"]["status"] == "native", d["readiness"]["installation"]["state"] == "installed")  # ADR-035: an installed program runs in a terminal host
+        if d["interfaces"]["handoff"]["status"] == "native":
+            self.assertEqual((d["agent"], d["interfaces"]["chat"]["status"]), ("opencode", "native"))  # the one CLI with a verified chat and a documented way to continue a session
         self.assertEqual(d["commands"]["items"], [])  # only a live session can list them
         if d["modes"]["status"] != "native":
             self.assertEqual(d["modes"]["items"], [])

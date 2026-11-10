@@ -9,6 +9,7 @@ import { Voice } from './Voice';
 import { Screenshot } from './Screenshot';
 import { Ico } from './icons';
 import { setConvStore, useConvStore } from './sessionstore';
+import { refusalText } from './terminalio';
 import {
   COMMAND_TEXT, PROJECT_ID, RESUBSCRIBE_MS, applyLive, call, joinPages, reasonText, stateText, transcriptLines,
   type Conversation, type Defaults, type Note, type Relay, type SessionView, type Transcript,
@@ -166,6 +167,17 @@ export function Sessions() {
     if (ok) { setDraft({ ...draft, [s.id]: '' }); setAttach({ ...attach, [s.id]: [] }); }
   };
 
+  // Chat -> terminal (ADR-035): the engine starts the agent's own interface on the same agent session and lets the chat side go; the
+  // conversation stays in the list and the terminal pane of its folder shows the new terminal.
+  const toTerminal = async (s: SessionView) => {
+    try {
+      const r = await invoke<{ ok: boolean; error: { code?: string; message?: string; reason?: string } | null }>('session_call', { cmd: 'terminal.start', payload: { project_id: PROJECT_ID, session_id: s.id } });
+      setNote(r.ok ? null : refusalText(r.error));
+      if (r.ok) setWideBy((w) => ({ ...w, [s.id]: 'terminal' }));
+    } catch { setNote('Motora ulaşılamadı.'); }
+    await refresh();
+  };
+
   const [chipOpen, setChipOpen] = useState(false);
   const pickRoot = (r: string) => { setForm({ ...form, root: r }); setNote(null); };
   const chooseRoot = async () => { try { const p = await pickFolder(); if (p) pickRoot(p); } catch { setNote('Klasör seçici açılamadı.'); } };
@@ -200,6 +212,7 @@ export function Sessions() {
             {active && <button className="ib" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)} title="Diğer" aria-label="Diğer işlemler"><Ico n="more" /></button>}
           </div>
           {menu && <div className="pop" role="menu" style={{ position: 'fixed', top: 40, right: 140, zIndex: 60 }} onKeyDown={(e) => { if (e.key === 'Escape') setMenu(false); }}>
+            {active && <button className="it" role="menuitem" disabled={active.state === 'running'} title={active.state === 'running' ? 'Bir tur çalışıyor.' : 'Ajanın kendi arayüzü, aynı ajan oturumuyla'} onClick={() => { setMenu(false); void toTerminal(active); }}><div>Terminalde sürdür</div></button>}
             {active && <button className="it" role="menuitem" disabled={!active.commands.cancel.enabled} title={reasonText(active.commands.cancel.reason)} onClick={() => { setMenu(false); void act('session.cancel', active); }}><div>Oturumu bitir</div></button>}
             {[['Yan sohbet', 'Motorda karşılığı yok'], ['Arka plan görevleri', 'Motorda karşılığı yok'], ['Bilgisayarı uyanık tut', 'Motorda karşılığı yok']].map(([a, b]) => <div key={a} className="it" role="menuitem" aria-disabled="true"><div>{a}<div className="mut">{b}</div></div></div>)}</div>}
         </div></div>

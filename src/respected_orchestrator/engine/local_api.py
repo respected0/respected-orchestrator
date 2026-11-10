@@ -242,8 +242,14 @@ class LocalApi:
             if command == "terminal.list":
                 return _reply(corr, True, {"terminals": self.terminals.list(pid)})
             if command == "terminal.start":
-                return _reply(corr, True, self.terminals.start(pid, payload.get("project_root"), payload.get("agent", self.sessions.store.defaults()["agent"]),
-                                                               payload.get("cols", 120), payload.get("rows", 30)))
+                cols, rows = payload.get("cols", 120), payload.get("rows", 30)
+                if payload.get("session_id") is not None:  # switch a chat session over: same folder, agent and agent-side session; the chat side is released after the terminal is up
+                    sid = payload["session_id"]
+                    source = self.sessions.handoff(self.origin, sid, pid)
+                    started = self.terminals.start(pid, source["project_root"], source["agent"], cols, rows, resume=source["resume"], conversation=source["conversation"])
+                    self.sessions.release(self.origin, sid, pid)
+                    return _reply(corr, True, started)
+                return _reply(corr, True, self.terminals.start(pid, payload.get("project_root"), payload.get("agent", self.sessions.store.defaults()["agent"]), cols, rows))
             if command == "terminal.input":
                 return _reply(corr, True, self.terminals.input(tid, pid, payload.get("data")))
             if command == "terminal.resize":
@@ -254,8 +260,10 @@ class LocalApi:
                 return _reply(corr, False, code="ENGINE_ERROR", message="A terminal is watched over a connection to the persistent engine.")
             self.attach((tid, self.terminals.attach(tid, pid)))
             return _reply(corr, True, {"attached": tid})
-        except TerminalError as error:
+        except (TerminalError, session_control.SessionError) as error:
             return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300], reason=error.reason)
+        except PermissionError:
+            return _reply(corr, False, code="FORBIDDEN", message="Not allowed for this origin.")
         except OSError as error:
             return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300], reason="TERMINAL_UNREACHABLE")
 

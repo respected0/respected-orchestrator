@@ -10,7 +10,7 @@ import datetime as dt
 import shutil
 import time
 
-from . import agent_adapters, agent_discovery, chat_session
+from . import agent_adapters, agent_discovery, chat_session, terminals
 
 STATUSES = ("native", "unsupported", "unverified")
 SOURCES = ("probe", "doc", "none")
@@ -98,12 +98,17 @@ def describe(agent, *, probe=None, which=None, now=None, use_cache=True):
     if chat["status"] == "native" and agent not in chat_session.SUPPORTED:
         chat = _field("unverified", "doc", "flag present, but the chat stream was never verified with this agent: " + chat["note"])
     live = LIVE.get(agent, {})
+    # ADR-035: the agent's own interface runs in a terminal host as soon as its program is on this machine; chat -> terminal keeps the
+    # same agent session only where the CLI has a documented way to continue one (terminals.RESUME_ARGS).
+    terminal = _field("native", "probe", "the program is installed; it runs in its own terminal host") if path else _field("unsupported", "none", "the agent CLI is not installed")
+    both = chat["status"] == "native" and terminal["status"] == "native" and agent in terminals.RESUME_ARGS
+    handoff = _field("native", "probe", "an idle chat session continues in the terminal with the same agent session") if both else _field("unsupported", "none", "needs both interfaces and a documented way to continue a session")
     result = {
         "agent": agent,
         "checked_at": (now or dt.datetime.now(dt.timezone.utc)).isoformat(),
         "version": found["version"],
         "readiness": _readiness(agent, found),
-        "interfaces": {"chat": chat, "terminal": _claim(row["caps"]["pty"]), "handoff": _field("unsupported", "none", "needs both interfaces")},
+        "interfaces": {"chat": chat, "terminal": terminal, "handoff": handoff},
         "capabilities": {flag: _claim(row["caps"][cap]) for cap, flag in FLAGS.items() if row["caps"][cap]["status"] != agent_adapters.GATED},
         "modes": _modes(spec.get("modes"), path, row, probe),
         "models": _models(agent, spec.get("model"), path, row, probe),

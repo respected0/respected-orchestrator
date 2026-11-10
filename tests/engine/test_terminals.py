@@ -15,11 +15,15 @@ from unittest import mock
 from respected_orchestrator.context import EngineContext
 from respected_orchestrator.engine import catalog, daemon, daemon_client, lanes, local_api, pty_host
 from respected_orchestrator.engine.authority import Origin
+from respected_orchestrator.engine.session_control import SessionController
 from respected_orchestrator.engine.terminals import TerminalError, Terminals
+
+OK_STREAM = (Path(__file__).resolve().parents[1] / "fixtures" / "chat" / "opencode_ok_text.jsonl").read_text(encoding="utf-8")
+MODEL = "opencode/deepseek-v4.1-flash-free"
 
 PID = "proj-1"
 PROGRAM = ("import os, sys\n"
-           "print('hazir', os.environ.get('RESPECTED_ORCH_CHILD'), sys.stdout.isatty(), flush=True)\n"
+           "print('hazir', os.environ.get('RESPECTED_ORCH_CHILD'), sys.stdout.isatty(), *sys.argv[1:], flush=True)\n"
            "line = input()\n"
            "print('yanit', line, os.get_terminal_size().columns, flush=True)\n"
            "sys.exit(3)\n")
@@ -128,6 +132,37 @@ class TerminalTests(unittest.TestCase):
             Terminals(self.ctx).start(PID, self.root, "no-such-agent")
         self.assertEqual(refused.exception.reason, "AGENT_UNKNOWN")
         self.assertEqual(self.terminals._records(), {})
+
+    def test_an_idle_chat_session_continues_in_a_terminal_and_stays_as_a_saved_conversation(self):
+        def agent(argv, **kw):  # the chat side: a finished turn that carries the agent's own session id
+            return subprocess.CompletedProcess(argv, 0, MODEL + "\n" if argv[1:2] == ["models"] else OK_STREAM, "")
+
+        api = local_api.LocalApi(self.ctx, "t" * 32, origin=Origin.RENDERER, terminals=self.terminals)
+        api.sessions = SessionController(binary="oc", runner=agent, store=local_api.session_controller(self.ctx).store)
+        calls = iter(range(100))
+
+        def call(cmd, payload):
+            return api.handle({"ipc": "1", "id": f"handoff-{next(calls):04d}", "session": "t" * 32, "cmd": cmd, "payload": {"project_id": PID, **payload}})
+
+        native = api.sessions.start(Origin.RENDERER, PID, "opencode", MODEL, self.root, "selam")["session_id"]
+        sid = next(iter(api.sessions._sessions))
+        self.assertEqual(call("terminal.start", {"session_id": "loc_0000000000000000"})["error"]["reason"], "SESSION_UNKNOWN")
+        api.sessions._sessions[sid]["state"] = "running"
+        self.assertEqual(call("terminal.start", {"session_id": sid})["error"]["reason"], "TURN_RUNNING")  # only a session that is not working is handed over
+        api.sessions._sessions[sid]["state"] = "idle"
+        started = call("terminal.start", {"session_id": sid, "cols": 100, "rows": 30})
+        self.assertTrue(started["ok"], started)
+        self.assertEqual((started["result"]["conversation"], started["result"]["project_root"], started["result"]["agent"]), (sid, self.root, "opencode"))
+        watcher = Watcher(self.terminals.attach(started["result"]["id"], PID))
+        self.assertTrue(wait_for(lambda: f"hazir 1 True --session {native}".encode() in watcher.data), watcher.data)  # the same agent session, in the session's folder
+        listed = call("sessions.list", {})["result"]
+        self.assertEqual(listed["sessions"], [])  # the chat side has let go of it...
+        self.assertEqual([(c["id"], c["saved"]) for c in listed["conversations"]], [(sid, True)])  # ...and it is kept as a conversation that can be continued
+        self.assertTrue(call("session.transcript", {"session_id": sid})["result"]["resumable"])
+        with self.assertRaises(TerminalError) as refused:  # no documented way to continue a session in this agent's terminal
+            self.terminals.start(PID, self.root, "claude", resume=native)
+        self.assertEqual(refused.exception.reason, "HANDOFF_UNSUPPORTED")
+        self.assertEqual(len(self.terminals._records()), 1)
 
     def ask(self, cmd, payload):
         return daemon_client.request(self.ctx, cmd, {"project_id": PID, **payload}, timeout=30)

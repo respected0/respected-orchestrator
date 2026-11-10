@@ -27,4 +27,5 @@ test('refusals are worded from the engine code', () => {
   assert.match(refusalText({ code: 'FORBIDDEN', message: 'Not allowed for this origin.' }), /kurulu masaüstü/);
   assert.match(refusalText({ code: 'ENGINE_ERROR', reason: 'AGENT_NOT_INSTALLED', message: 'x' }), /kurulu değil/);
   assert.match(refusalText({ code: 'ENGINE_ERROR', message: 'something else' }), /something else/);
+  assert.match(refusalText({ code: 'ENGINE_ERROR', reason: 'TURN_RUNNING', message: 'x' }), /çalışıyor/);
 });

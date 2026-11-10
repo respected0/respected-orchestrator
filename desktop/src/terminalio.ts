@@ -1,7 +1,8 @@
 // Pure helpers of the agent terminal pane (ADR-035), testable under `node --test`: bytes <-> base64, the size the engine accepts,
 // which terminal belongs to a folder. What a terminal draws is the program's own output; it is only ever handed to the terminal emulator.
 
-export type TerminalView = { id: string; project_root: string; agent: string; started: number; alive: boolean | null; exit: number | null; cols: number | null; rows: number | null };
+/** `conversation`: the chat conversation this terminal continues, when it was switched over from one. */
+export type TerminalView = { id: string; project_root: string; agent: string; conversation?: string | null; started: number; alive: boolean | null; exit: number | null; cols: number | null; rows: number | null };
 export type TerminalNote =
   | { event: 'terminal.data'; data: { terminal_id: string; data: string } }
   | { event: 'terminal.exit'; data: { terminal_id: string; exit: number } }
@@ -36,6 +37,8 @@ const WORDS: Record<string, string> = {
   FORBIDDEN: 'Ajan terminali yalnız kurulu masaüstü uygulamasından açılabilir.', AGENT_NOT_INSTALLED: 'Ajan kurulu değil.', AGENT_UNKNOWN: 'Bu ajan tanınmıyor.',
   ROOT_INVALID: 'Proje klasörü geçerli bir mevcut tam yol olmalı.', TOO_MANY_TERMINALS: 'Çok fazla açık terminal var.', TERMINAL_UNKNOWN: 'Terminal bulunamadı ya da kapandı.',
   TERMINAL_START_FAILED: 'Terminal başlatılamadı.', TERMINAL_UNREACHABLE: 'Terminale ulaşılamadı.',
+  TURN_RUNNING: 'Bir tur çalışıyor; bitmesini bekle ya da durdur.', RESUME_INVALID: 'Ajan bu oturuma henüz kimlik vermedi; terminalde sürdürülemez.',
+  HANDOFF_UNSUPPORTED: 'Bu ajanın oturumu terminalde sürdürülemiyor.', SESSION_UNKNOWN: 'Oturum bulunamadı.',
 };
 /** An engine refusal as words; the engine's code decides, its English message is only the last resort. */
 export function refusalText(error: { code?: string; message?: string; reason?: string } | null): string {

@@ -403,6 +403,30 @@ class SessionController:
             self._changed(session)
             return self._dto(session)
 
+    def handoff(self, origin, session_id, project_id):
+        """What another interface needs to continue this session (ADR-035): its folder, agent and the agent's own session id. Only a session
+        that is not working and that the agent has given an id can be handed over."""
+        authorize(origin, CLASSES["cancel"])
+        with self._lock:
+            session = self._get(session_id, project_id)
+            if session["state"] == "running":
+                raise SessionError("A turn is running; wait for it or stop it first", "TURN_RUNNING")
+            if not session["cli_id"]:
+                raise SessionError("The agent has not given this session an id yet", "RESUME_INVALID")
+            return {"conversation": session["id"], "agent": session["agent"], "project_root": session["cwd"], "resume": session["cli_id"]}
+
+    def release(self, origin, session_id, project_id):
+        """The session leaves this engine's live set and stays as a saved conversation (it can be continued later). Used after a handoff."""
+        authorize(origin, CLASSES["cancel"])
+        with self._lock:
+            session = self._get(session_id, project_id)
+            if session["state"] == "running":
+                raise SessionError("A turn is running; wait for it or stop it first", "TURN_RUNNING")
+            session["state"] = "ended"
+            del self._sessions[session_id]
+            self._changed(session)
+            return self._dto(session)
+
     def approve(self, *_args, **_kwargs):
         raise SessionApprovalRefused("A session cannot be approved here; permission decisions belong to the approval center")
 

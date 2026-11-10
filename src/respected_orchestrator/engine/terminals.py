@@ -21,6 +21,9 @@ MAX_TERMINALS = 8
 MAX_INPUT_BYTES = 64 * 1024
 START_TIMEOUT = 15
 _ID = re.compile(r"term_[0-9a-f]{16}\Z")
+# agent -> the arguments that make its terminal interface continue a session it already has. Only what the CLI's own help shows
+# (opencode: `--session, -s  Session ID to continue`, read 2026-11-10); an agent that is not here cannot be switched from chat to terminal.
+RESUME_ARGS = {"opencode": lambda session: ["--session", session]}
 
 
 class TerminalError(ValueError):
@@ -93,10 +96,12 @@ class Terminals:
 
     def _dto(self, record, status=None):
         return {"id": record["id"], "project_id": record["project_id"], "project_root": record["project_root"], "agent": record["agent"],
+                "conversation": record.get("conversation"),  # the chat conversation this terminal continues, when it was switched over from one
                 "started": record["started"], "alive": status["alive"] if status else None, "exit": status["exit"] if status else None,
                 "cols": status["cols"] if status else None, "rows": status["rows"] if status else None}
 
-    def start(self, project_id, project_root, agent, cols=120, rows=30):
+    def start(self, project_id, project_root, agent, cols=120, rows=30, resume=None, conversation=None):
+        """`resume`: the agent's own session id to continue in the terminal (a switch from chat); `conversation`: the chat record it came from."""
         from .lanes import _spawn_detached
         if not isinstance(project_id, str) or not project_id:
             raise TerminalError("project_id is required", "PROJECT_INVALID")
@@ -104,6 +109,10 @@ class Terminals:
             raise TerminalError("project_root must be an existing absolute directory", "ROOT_INVALID")
         cols, rows = _size(cols, rows)
         argv = self._command(agent)
+        if resume is not None:
+            if agent not in RESUME_ARGS or not isinstance(resume, str) or not chat_session._SESSION.match(resume):
+                raise TerminalError("This agent's session cannot be continued in a terminal", "HANDOFF_UNSUPPORTED")
+            argv = argv + RESUME_ARGS[agent](resume)
         with self._lock:
             records = self._records()
             if len(records) >= MAX_TERMINALS:
@@ -122,7 +131,8 @@ class Terminals:
                     if time.monotonic() > deadline:
                         raise TerminalError(f"The terminal did not start; see {self.ctx.state_dir / 'pty-host.log'}", "TERMINAL_START_FAILED") from None
                     time.sleep(0.1)
-            record = {"id": terminal_id, "project_id": project_id, "project_root": project_root, "agent": agent, "host_pid": host_pid, "started": time.time()}
+            record = {"id": terminal_id, "project_id": project_id, "project_root": project_root, "agent": agent, "host_pid": host_pid, "started": time.time(),
+                      "conversation": conversation}
             atomic_write_json(self._path, {**records, terminal_id: record})
         view = self._dto(record, status)
         self._notify(project_id, "terminal.state", {"terminal": view})

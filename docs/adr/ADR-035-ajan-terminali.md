@@ -2,7 +2,7 @@
 
 ## Durum
 
-Kabul edildi (10 Kasım 2026, kullanıcı; aşağıdaki üç karar önerildiği gibi onaylandı). **Motor tarafı ve masaüstü bölmesi uygulandı; sohbet ↔ terminal geçişi yapılmadı. Bölme gerçek uygulamada görülmedi.** KALAN_ISLER 3.4, yön kararı 2 ve karar 11'in tasarım notudur. Kod: `engine/conpty.py`, `engine/pty_host.py`, `engine/terminals.py`, `engine/daemon.py` (`accept_loop`, `_relay`); masaüstünde `AgentTerminal.tsx`, `terminalio.ts`, `lib.rs` (`terminal_attach`, `terminal_detach`); test: `tests/engine/test_terminals.py`, `desktop/tests/terminalio.test.ts`, `engine_connector.rs` ve `tests/acl.rs` içindeki testler.
+Kabul edildi (10 Kasım 2026, kullanıcı; aşağıdaki üç karar önerildiği gibi onaylandı). **Motor tarafı, masaüstü bölmesi ve sohbet ↔ terminal geçişi uygulandı. Bölme ve geçiş gerçek uygulamada ve gerçek ajanla görülmedi.** KALAN_ISLER 3.4, yön kararı 2 ve karar 11'in tasarım notudur. Kod: `engine/conpty.py`, `engine/pty_host.py`, `engine/terminals.py`, `engine/daemon.py` (`accept_loop`, `_relay`); masaüstünde `AgentTerminal.tsx`, `terminalio.ts`, `lib.rs` (`terminal_attach`, `terminal_detach`); test: `tests/engine/test_terminals.py`, `desktop/tests/terminalio.test.ts`, `engine_connector.rs` ve `tests/acl.rs` içindeki testler.
 
 ## Bağlam
 
@@ -54,6 +54,8 @@ Kaynak: AO deposu `main`, 10 Kasım 2026'da okundu (`backend/internal/terminal/d
 
 - **xterm.js'in varsayılan çizicisi uygulamanın CSP'siyle çalışmıyor** (10 Kasım 2026'da tarayıcıda, uygulamanın CSP başlığıyla denendi): `style-src 'self'` çizicinin eklediği `<style>` öğelerini engelliyor, ekran boş kalıyor. WebGL çizicisi (`@xterm/addon-webgl`, MIT; AO da kullanıyor) aynı CSP altında doğru çiziyor. Bu yüzden onaylanan iki pakete üçüncüsü eklendi ve CSP'ye dokunulmadı. Engellenen stil öğeleri konsolda uyarı olarak kalır.
 - Kabuk her `terminal_attach` çağrısında yeni bir akış açar (saklanan çıktı yeniden çizilsin diye) ve aynı terminalin eski okuyucusunu emekliye ayırır; bildirimleri yalnız `main` penceresine `terminal-event` olarak iletir.
+
+- **Geçiş (madde 8) nasıl yapıldı:** sohbetten terminale `terminal.start {session_id}` ile geçilir. Motor oturumun boşta olduğunu ve ajanın ona kimlik verdiğini denetler, terminali oturumun klasöründe aynı ajan oturumuyla başlatır (`opencode --session ses_…`; seçenek CLI'ın kendi yardım metninden, 10 Kasım 2026) ve ancak terminal ayağa kalkınca sohbet tarafını bırakır: oturum canlı kümeden çıkar, kayıtlı konuşma olarak kalır. Terminal kaydı o konuşmanın kimliğini (`conversation`) taşır. Terminalden sohbete dönüş ekrandadır: terminal kapatılır ve o konuşma açılır; kişi yazınca `continue_conversation` aynı ajan oturumunu sürdürür. Sohbet dökümü terminalde yapılanları içermez (ajan kendi oturumunda hatırlar). Hangi ajanın geçebildiği `terminals.RESUME_ARGS` tablosundadır; bugün yalnız `opencode`. `agent.describe` içinde `interfaces.terminal` program kuruluysa, `interfaces.handoff` bu tabloya göre `native` olur.
 
 ## Doğrulama planı
 

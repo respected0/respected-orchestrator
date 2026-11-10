@@ -6,6 +6,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebglAddon } from '@xterm/addon-webgl';
 import '@xterm/xterm/css/xterm.css';
 import { PROJECT_ID } from './sessionlog';
+import { setConvStore } from './sessionstore';
 import { clampSize, fromBase64, keysToBase64, refusalText, terminalFor, type TerminalNote, type TerminalView } from './terminalio';
 
 type Reply<T> = { ok: boolean; result: T; error: { code?: string; message?: string; reason?: string } | null };
@@ -33,6 +34,8 @@ export function AgentTerminals({ root }: { root: string }) {
       <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
         {current ? <>
           <span className="grow mut">{current.agent}{current.alive === false ? ` · bitti (çıkış kodu ${current.exit ?? '?'})` : ''}</span>
+          {current.conversation && <button type="button" className="btn sm" disabled={busy} title="Terminali kapatır ve bu oturumun sohbetini açar; sohbet dökümü terminalde yapılanları içermez, ajan kendi oturumunda hatırlar."
+            onClick={() => { const back = current.conversation; void act('terminal.kill', { terminal_id: current.id }).then(() => { if (back) setConvStore({ sel: back }); }); }}>Sohbete dön</button>}
           <button type="button" className="btn sm" disabled={busy} onClick={() => void act('terminal.kill', { terminal_id: current.id })}>Terminali kapat</button></>
           : <button type="button" className="btn sm" disabled={busy || list === null} onClick={() => void act('terminal.start', { project_root: root, cols: 120, rows: 30 })}>Ajan terminali aç</button>}
       </div>
