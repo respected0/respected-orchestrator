@@ -20,11 +20,12 @@ class Action(Enum):
     TASK = "task"              # start / cancel
     SETTINGS = "settings"
     PRIVILEGED = "privileged"  # approve, apply, privileged MCP keys
+    TERMINAL = "terminal"      # start, type into, watch or end an agent terminal: the same as running commands as the user (ADR-035)
 
 
 _ALLOWED = {
     Origin.HUMAN: set(Action),
-    Origin.RENDERER: {Action.READ, Action.TASK, Action.SETTINGS},
+    Origin.RENDERER: {Action.READ, Action.TASK, Action.SETTINGS, Action.TERMINAL},
     Origin.MCP: {Action.READ, Action.TASK},
     Origin.WORKER: set(),
     Origin.CHILD: set(),

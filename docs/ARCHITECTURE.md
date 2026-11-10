@@ -487,6 +487,13 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   abone (2000 bekleyen bildirim) kesilir ve durumu yeniden okur. Bildirimdeki her olay da güvenilmeyen veridir ve hiçbir yetki taşımaz. Masaüstünde akışı
   kabuk açar (`engine_subscribe`) ve bildirimleri yalnız `main` penceresine iletir; sohbet ekranı motoru yoklamaz. Konuşma geçmişi sayfalıdır
   (`session.transcript` `before`/`limit`; varsayılan 50 tur).
+  **Ajanın kendi terminali (ADR-035, motor tarafı):** her terminal ayrı, kopuk bir süreçte yaşar (`rorch _pty-host`, `engine/pty_host.py`); sözde konsolu
+  (ConPTY, `engine/conpty.py`) o tutar, bu yüzden motor ya da masaüstü kapansa da terminal çalışır. Bu, `winproc`'tan geçmeyen tek süreç başlatmadır
+  (sözde konsol pencere açmaz). Sunucunun kendi borusu yalnız geçerli kullanıcıya açıktır ve yalnız o veri kökünün kalıcı motorunu kabul eder; port yoktur.
+  Canlı terminaller `state/terminals.json`'da tutulur. `terminal.start|input|resize|kill|attach` `TERMINAL` yetki sınıfındadır (yalnız tanınan masaüstü ve
+  insan kökeni; terminale yazmak kullanıcı adına komut çalıştırmaktır), `terminal.list` `READ`. `terminal.attach` bağlantıyı o terminalin çıktı akışına çevirir;
+  baytlar programın kendisinindir, motor yorumlamaz. Terminaldeki ajan proje klasöründe, kendi izin kipiyle ve `RESPECTED_ORCH_CHILD=1` ile çalışır;
+  motor yalıtım eklemez.
   **Masaüstü yalnız görsel katmandır.** Varsayılan ajan/model, geçerli model denetimi (başlatma ve `session.defaults.set` modeli ajanın kendi listesine
   karşı doğrular), konuşma geçmişi, başlık, oturum-klasör eşlemesi, sıralama ve token/maliyet toplamları motorda hesaplanır ve saklanır
   (`engine/session_store.py`, veri kökünde `chat/sessions.json`); masaüstü bunları çizer ve kullanıcının seçimini iletir. Tarayıcı depolaması

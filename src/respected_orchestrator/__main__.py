@@ -138,7 +138,8 @@ def _session(ctx, args, group="session"):
     entry = catalog.CLI.get((group, args[0])) if args else None
     word = entry.cli[1] if entry else None  # None: JSON on stdin; "": no input; a name: one optional plain word
     if entry is None or len(args) > (2 if word else 1):
-        raise UsageError("Kullanım: task start (istek gövdesi stdin'den JSON) | status|cancel|retry RUN_ID  (docs/COMMANDS.md)" if group == "task" else
+        raise UsageError("Kullanım: terminal list [PROJE]  (docs/COMMANDS.md)" if group == "terminal" else
+                         "Kullanım: task start (istek gövdesi stdin'den JSON) | status|cancel|retry RUN_ID  (docs/COMMANDS.md)" if group == "task" else
                          "Kullanım: session list [PROJE] | watch PROJE | models [AJAN] | describe [AJAN] | defaults | start|send|events|retry|interrupt|cancel|resume|transcript|forget  (son grupta istek gövdesi stdin'den JSON; docs/COMMANDS.md)")
     if word is not None:  # these never read stdin
         payload = dict(zip([word], args[1:]))
@@ -218,7 +219,7 @@ def main(argv=None):
     from .workflows import roles
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=default_data_root(), help=argparse.SUPPRESS)
-    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "ledger", "team", "handoff", "inbox", "escalation", "operator", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", "github-ci-ingest", "github-ci-poll", "provider-key", "provider-models", *SHARED, "daemon", "session", "task", "_daemon", "_selfcheck"])
+    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "ledger", "team", "handoff", "inbox", "escalation", "operator", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", "github-ci-ingest", "github-ci-poll", "provider-key", "provider-models", *SHARED, "daemon", "session", "task", "terminal", "_daemon", "_pty-host", "_selfcheck"])
     parser.add_argument("args", nargs=argparse.REMAINDER)
     try:
         args = parser.parse_args(argv)
@@ -265,7 +266,10 @@ def main(argv=None):
         elif args.command == "_daemon":  # the persistent engine itself (started by `daemon start`, never by hand)
             from .engine import daemon
             return daemon.run(ctx)
-        elif args.command in ("session", "task"):
+        elif args.command == "_pty-host":  # one agent terminal's own process (started by the engine, never by hand; ADR-035)
+            from .engine import pty_host
+            return pty_host.run(ctx, args.args[0])
+        elif args.command in ("session", "task", "terminal"):
             payload, code = _session(ctx, args.args, args.command)
             if payload is not None:
                 print(json.dumps(payload, ensure_ascii=False))

@@ -16,6 +16,7 @@ from .authority import Action, Origin, authorize, effective_origin
 from .capabilities import normalize as capability_normalize, paths as capability_paths
 from . import catalog, runner, session_control, supervisor
 from .session_store import SessionStore
+from .terminals import TerminalError, Terminals
 from . import activity, agent_describe, agent_discovery, approval, artifact_view, read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control, role_editor, roles
 from .runner import SUPPORTED_AGENTS, tool_available
@@ -50,13 +51,15 @@ def session_controller(ctx):
 
 
 class LocalApi:
-    def __init__(self, ctx, token, origin=Origin.RENDERER, journal=None, only=None, sessions=None, subscribe=None):
+    def __init__(self, ctx, token, origin=Origin.RENDERER, journal=None, only=None, sessions=None, subscribe=None, terminals=None, attach=None):
         if not isinstance(token, str) or len(token) < 16:
             raise ValueError("session token must be at least 16 characters")
         self.ctx, self._token, self.origin = ctx, token, origin
         self.journal = journal
         self.only = only  # a connection that may use just these commands (the native approval pipe)
         self.subscribe = subscribe  # fn(project_id): the transport turns this connection into a notification stream (persistent engine only)
+        self.attach = attach  # fn((terminal_id, source)): the transport turns this connection into that terminal's output stream
+        self.terminals = terminals or Terminals(ctx)
         self._seen = {}  # id -> (request digest, response)
         self._voice_api = None
         self._attach_api = None
@@ -232,6 +235,30 @@ class LocalApi:
         except (ValueError, TypeError, KeyError, OSError, RuntimeError) as error:
             return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300], reason=getattr(error, "reason", None))
 
+    def _terminal(self, corr, command, payload):
+        """Agent terminals (ADR-035). The origin check in handle() already kept everyone but the recognised desktop away from all but the list."""
+        pid, tid = payload.get("project_id"), payload.get("terminal_id")
+        try:
+            if command == "terminal.list":
+                return _reply(corr, True, {"terminals": self.terminals.list(pid)})
+            if command == "terminal.start":
+                return _reply(corr, True, self.terminals.start(pid, payload.get("project_root"), payload.get("agent", self.sessions.store.defaults()["agent"]),
+                                                               payload.get("cols", 120), payload.get("rows", 30)))
+            if command == "terminal.input":
+                return _reply(corr, True, self.terminals.input(tid, pid, payload.get("data")))
+            if command == "terminal.resize":
+                return _reply(corr, True, self.terminals.resize(tid, pid, payload.get("cols"), payload.get("rows")))
+            if command == "terminal.kill":
+                return _reply(corr, True, self.terminals.kill(tid, pid))
+            if self.attach is None:
+                return _reply(corr, False, code="ENGINE_ERROR", message="A terminal is watched over a connection to the persistent engine.")
+            self.attach((tid, self.terminals.attach(tid, pid)))
+            return _reply(corr, True, {"attached": tid})
+        except TerminalError as error:
+            return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300], reason=error.reason)
+        except OSError as error:
+            return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300], reason="TERMINAL_UNREACHABLE")
+
     def _plan(self, corr, command, payload):
         """Draft editing and the separate start action. Every rule is enforced by plan_draft from the stored draft."""
         try:
@@ -372,6 +399,10 @@ class LocalApi:
             response = self._voice(corr, command, payload)
         elif command.startswith("session"):
             response = self._session(corr, command, payload)
+        elif command.startswith("terminal."):
+            response = self._terminal(corr, command, payload)
+            if command in ("terminal.input", "terminal.attach"):
+                return response  # keystrokes are not kept in the replay cache, and an attach is never replayed
         elif command == "activity.list":
             if self.journal is None:
                 response = _reply(corr, False, code="ENGINE_ERROR", message="No event journal.")

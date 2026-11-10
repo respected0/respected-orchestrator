@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .authority import Action
 
-READ, TASK, SETTINGS, PRIVILEGED = Action.READ, Action.TASK, Action.SETTINGS, Action.PRIVILEGED
+READ, TASK, SETTINGS, PRIVILEGED, TERMINAL = Action.READ, Action.TASK, Action.SETTINGS, Action.PRIVILEGED, Action.TERMINAL
 
 
 @dataclass(frozen=True)
@@ -20,8 +20,8 @@ class Entry:
     op: str | None = None  # the RPP operation it wraps, when it wraps one
     cli: tuple | None = None  # (`rorch <group>` verb, input): None = JSON object on stdin, "" = no input, a name = one optional plain word
     mcp: tuple | None = None  # (tool name, description, input schema, read-only)
-    desktop: str | None = None  # the relay list the renderer may use it through: session | task | voice | attach | read
-    group: str = "session"  # the `rorch` command its CLI verb lives under: session | task
+    desktop: str | None = None  # the relay list the renderer may use it through: session | task | terminal | voice | attach | read
+    group: str = "session"  # the `rorch` command its CLI verb lives under: session | task | terminal
 
 
 def _object(required, **properties):
@@ -64,6 +64,14 @@ ENTRIES = (
     Entry("task.status", READ, cli=("status", "run_id"), group="task", desktop="task"),
     Entry("task.cancel", TASK, cli=("cancel", "run_id"), group="task", desktop="task"),
     Entry("task.retry", TASK, cli=("retry", "run_id"), group="task", desktop="task"),
+    # The agent's own terminal (ADR-035). Typing into one is running commands as the user: only the recognised desktop may (TERMINAL class).
+    # `terminal.attach` has no relay list: the shell opens that stream itself, like events.subscribe.
+    Entry("terminal.list", READ, cli=("list", "project_id"), group="terminal", desktop="terminal"),
+    Entry("terminal.start", TERMINAL, desktop="terminal"),
+    Entry("terminal.input", TERMINAL, desktop="terminal"),
+    Entry("terminal.resize", TERMINAL, desktop="terminal"),
+    Entry("terminal.kill", TERMINAL, desktop="terminal"),
+    Entry("terminal.attach", TERMINAL),
     Entry("review.view", READ),
     Entry("activity.list", READ, desktop="read"),
     Entry("agents.discover", READ),
@@ -135,7 +143,7 @@ assert len(BY_NAME) == len(ENTRIES), "a command is listed twice"
 
 CLI = {(entry.group, entry.cli[0]): entry for entry in ENTRIES if entry.cli}  # (`rorch` command, verb) -> entry
 MCP = {entry.mcp[0]: entry for entry in ENTRIES if entry.mcp}  # tool name -> entry
-DESKTOP_GROUPS = ("session", "task", "voice", "attach", "read")
+DESKTOP_GROUPS = ("session", "task", "terminal", "voice", "attach", "read")
 
 
 def desktop(group):

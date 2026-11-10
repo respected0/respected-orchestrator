@@ -4,7 +4,7 @@ from respected_orchestrator.engine.authority import Action, Grant, Origin, autho
 
 OK = {
     Origin.HUMAN: set(Action),
-    Origin.RENDERER: {Action.READ, Action.TASK, Action.SETTINGS},
+    Origin.RENDERER: {Action.READ, Action.TASK, Action.SETTINGS, Action.TERMINAL},
     Origin.MCP: {Action.READ, Action.TASK},
     Origin.WORKER: set(),
     Origin.CHILD: set(),

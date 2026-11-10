@@ -25,8 +25,9 @@ MAX_SESSIONS = 20
 TURN_TIMEOUT = 180
 MODELS_TTL = 300
 PAGE_TURNS, MAX_PAGE_TURNS = 50, 200
-# What a subscriber is told (ADR-034): one event of the running turn as it arrives; a session's new state (turn started, finished, stopped).
-NOTIFICATIONS = ("session.event", "session.state")
+# What a subscriber is told (ADR-034): one event of the running turn as it arrives; a session's new state (turn started, finished, stopped);
+# an agent terminal that was started or ended (ADR-035; its output never travels here).
+NOTIFICATIONS = ("session.event", "session.state", "terminal.state")
 _UNSAFE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")  # tabs and newlines pass; ESC, CR, NUL and C1 do not
 _SESSION = re.compile(r"^(ses|loc)_[A-Za-z0-9]{8,64}$")
 
@@ -110,9 +111,12 @@ class SessionController:
     def unlisten(self, fn):
         self._listeners.remove(fn)
 
-    def _emit(self, session, name, data):
+    def notify(self, project_id, name, data):
         for fn in list(self._listeners):
-            fn(session["project_id"], name, data)
+            fn(project_id, name, data)
+
+    def _emit(self, session, name, data):
+        self.notify(session["project_id"], name, data)
 
     def _changed(self, session):
         self._emit(session, "session.state", {"session": self._dto(session)})

@@ -28,12 +28,13 @@ from .authority import Action, Origin
 from .journal import Journal
 from .local_api import COMMANDS, IPC, MAX_REQUEST_BYTES, LocalApi, _ID, _reply, session_controller
 from .supervisor import Supervisor, SupervisorBusy
+from .terminals import Terminals
 
 IDLE_SECONDS = 30 * 60  # nothing connected, no run working: the daemon leaves (ADR-030 D2)
 MAX_PENDING = 2000  # notifications one subscriber may have waiting
 CONTROL = ("daemon.status", "daemon.stop")
 SERVED = frozenset(name for name, (_op, action) in COMMANDS.items() if action in (Action.READ, Action.TASK))
-SERVED_DESKTOP = SERVED | frozenset(name for name, (_op, action) in COMMANDS.items() if action is Action.SETTINGS)
+SERVED_DESKTOP = SERVED | frozenset(name for name, (_op, action) in COMMANDS.items() if action in (Action.SETTINGS, Action.TERMINAL))
 DESKTOP_EXE = "respected-orchestrator-desktop.exe"
 
 
@@ -118,6 +119,7 @@ class Daemon:
         self._origins: dict = {}  # origin name -> open connections, for `daemon status`
         self._guard = threading.Lock()
         self.sessions = session_controller(ctx)  # the one set of live chat sessions every connection shares
+        self.terminals = Terminals(ctx, lambda project_id, name, data: self.sessions.notify(project_id, name, data))  # agent terminals live in their own processes (ADR-035)
 
     def busy(self) -> bool:
         with self._guard:
@@ -176,32 +178,13 @@ class Daemon:
                 self.stop()
 
     def _serve_pipe(self):
-        import pywintypes
-        import win32file
-        import win32pipe
-        security = _own_user_only()
-        flags = win32pipe.PIPE_TYPE_BYTE | win32pipe.PIPE_READMODE_BYTE | win32pipe.PIPE_WAIT | win32pipe.PIPE_REJECT_REMOTE_CLIENTS
-        first = 0x00080000  # FILE_FLAG_FIRST_PIPE_INSTANCE (not exported by pywin32): nobody else may have created this name before us
-        while not self.stop_event.is_set():
-            handle = win32pipe.CreateNamedPipe(pipe_path(self.ctx), win32pipe.PIPE_ACCESS_DUPLEX | first, flags,
-                                               win32pipe.PIPE_UNLIMITED_INSTANCES, 1 << 16, 1 << 16, 0, security)
-            first = 0
-            try:
-                win32pipe.ConnectNamedPipe(handle, None)
-            except pywintypes.error as error:
-                if error.winerror != 535:  # ERROR_PIPE_CONNECTED: the client was faster than us
-                    win32file.CloseHandle(handle)
-                    continue
-            if self.stop_event.is_set():
-                win32file.CloseHandle(handle)
-                break
-            threading.Thread(target=self._connection, args=(handle,), daemon=True).start()
+        accept_loop(pipe_path(self.ctx), self.stop_event, self._connection)
 
     def _connection(self, handle):
         import pywintypes
         import win32file
         import win32pipe
-        origin, stream = None, []  # stream: this connection's subscriber, once it has subscribed
+        origin, stream, relay = None, [], []  # stream: this connection's subscriber, once it has subscribed; relay: the terminal it attached to
         with self._guard:
             self._connections += 1
         try:
@@ -213,7 +196,7 @@ class Daemon:
                 stream.append(Subscriber(project_id))
                 self.sessions.listen(stream[0])
 
-            api = self.api(origin, token, subscribe)
+            api = self.api(origin, token, subscribe, relay.append)
             buffer = b""
             while not self.stop_event.is_set():
                 try:
@@ -227,6 +210,8 @@ class Daemon:
                     win32file.WriteFile(handle, json.dumps(reply, ensure_ascii=True).encode("ascii") + b"\n")
                     if stream:
                         return self._stream(handle, stream[0])
+                    if relay:
+                        return self._relay(handle, *relay[0])
                 if len(buffer) > MAX_REQUEST_BYTES:
                     win32file.WriteFile(handle, json.dumps(_reply(None, False, code="PAYLOAD_TOO_LARGE", message="Request exceeds the size limit.")).encode() + b"\n")
                     return
@@ -235,6 +220,8 @@ class Daemon:
         finally:
             for subscriber in stream:
                 self.sessions.unlisten(subscriber)
+            for _terminal_id, source in relay:
+                source.close()
             with self._guard:
                 self._connections -= 1
                 if origin is not None:
@@ -263,10 +250,23 @@ class Daemon:
                 continue
             win32file.WriteFile(handle, json.dumps(note, ensure_ascii=True).encode("ascii") + b"\n")
 
-    def api(self, origin, token, subscribe=None):
-        """One connection's view of the engine: the served catalog only, the sessions every connection shares."""
+    def _relay(self, handle, terminal_id, source):
+        """From here on the connection carries one terminal's output (ADR-035): what the terminal host writes is passed on as
+        `terminal.data` / `terminal.exit` / `terminal.ping` notifications; nothing more is read. A viewer that has gone is found out at the
+        next write (the host pings every two seconds). The bytes are the program's own and are never interpreted here."""
+        import win32file
+        for note in source:
+            if self.stop_event.is_set():
+                return
+            kind = next(iter(note), "ping")
+            out = {"ipc": IPC, "event": f"terminal.{kind}", "data": {"terminal_id": terminal_id, **({kind: note[kind]} if kind != "ping" else {})}}
+            win32file.WriteFile(handle, json.dumps(out, ensure_ascii=True).encode("ascii") + b"\n")
+
+    def api(self, origin, token, subscribe=None, attach=None):
+        """One connection's view of the engine: the served catalog only, the sessions and terminals every connection shares."""
         return LocalApi(self.ctx, token, origin=origin, journal=Journal(self.ctx.state_dir / "events.log"),
-                        only=SERVED_DESKTOP if origin is Origin.RENDERER else SERVED, sessions=self.sessions, subscribe=subscribe)
+                        only=SERVED_DESKTOP if origin is Origin.RENDERER else SERVED, sessions=self.sessions, subscribe=subscribe,
+                        terminals=self.terminals, attach=attach)
 
     def _answer(self, api, origin, token, line):
         try:
@@ -287,6 +287,31 @@ class Daemon:
             return _reply(corr, True, self.status())
         request["session"] = token
         return api.handle(request)
+
+
+def accept_loop(path, stop_event, connection):
+    """Serve a named pipe that only the current user can open: every client gets `connection(handle)` on a thread of its own, until
+    `stop_event` is set and one more open wakes the accept. Used by the engine and by each terminal host (ADR-035)."""
+    import pywintypes
+    import win32file
+    import win32pipe
+    security = _own_user_only()
+    flags = win32pipe.PIPE_TYPE_BYTE | win32pipe.PIPE_READMODE_BYTE | win32pipe.PIPE_WAIT | win32pipe.PIPE_REJECT_REMOTE_CLIENTS
+    first = 0x00080000  # FILE_FLAG_FIRST_PIPE_INSTANCE (not exported by pywin32): nobody else may have created this name before us
+    while not stop_event.is_set():
+        handle = win32pipe.CreateNamedPipe(path, win32pipe.PIPE_ACCESS_DUPLEX | first, flags,
+                                           win32pipe.PIPE_UNLIMITED_INSTANCES, 1 << 16, 1 << 16, 0, security)
+        first = 0
+        try:
+            win32pipe.ConnectNamedPipe(handle, None)
+        except pywintypes.error as error:
+            if error.winerror != 535:  # ERROR_PIPE_CONNECTED: the client was faster than us
+                win32file.CloseHandle(handle)
+                continue
+        if stop_event.is_set():
+            win32file.CloseHandle(handle)
+            break
+        threading.Thread(target=connection, args=(handle,), daemon=True).start()
 
 
 def _own_user_only():
