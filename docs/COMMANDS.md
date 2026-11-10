@@ -57,6 +57,8 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 
 **Masaüstü sohbet IPC komutları** (`rpp` değil, uygulamanın yerel motor bağlantısı): `sessions.list`, `session.start|send|events|retry|interrupt|cancel|resume`, `session.models` (ajan CLI'ının model listesi; `{"agent"}` ister), `agent.describe` (ajan tanımı; `{"agent"}` isteğe bağlı). `runs.list` satırları `lane` (`needs_you` / `working` / `ready` / `archive`) ve `display` taşır; ikisi de okuma anında türetilir. **Görev komutları:** `task.start` (istek gövdesi `create` ile aynı; `{run_id, status, pid}` döner), `task.status|cancel|retry` (`{"run_id"}`).
 
+**Ayarlar ekranı:** masaüstü `settings.schema`, `settings.readback` ve `settings.validate`'i okur; `settings.apply` ekrandan iletilmez, değişiklik kabuğun yerel onay penceresinden geçer (ARCHITECTURE "Masaüstü ayarlar ekranı").
+
 **Komut kataloğu:** motor komutlarının tek tablosu `engine/catalog.py`'dir; `rorch session` fiilleri, `orchestrator_session_*` MCP araçları ve masaüstünün iletebildiği komut listeleri ondan üretilir. `catalog.list` (salt okunur) çağıranın çalıştırabildiği komutları verir: `{"commands": [{"name", "action", "cli", "mcp", "desktop"}]}`; yetkili komutlar ortak uçta görünmez. Yeni komut eklerken tabloya bir satır yazın, sonra `python -m respected_orchestrator.engine.catalog` ile masaüstü dosyalarını yeniden üretin.
 Motor, masaüstünün göstereceği her şeyi tutar: `sessions.list` → `{sessions, conversations}` (`conversations`: bu çalışmanın oturumları ve kaydedilmiş
 konuşmalar, başlık ve klasörle, en yeni önce); `session.defaults` (okuma) → `{agents, agent, model}`; `session.defaults.set {model, agent?}` (ayar sınıfı;

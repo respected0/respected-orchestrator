@@ -430,6 +430,7 @@ anahtarlar saklı değerini korur. Gizli anahtarda `***set***` ya da yokluk koru
 `receipts/<operation_id>.json` makbuzu yazar (yalnızca işlem kimliği, zaman ve ayarların özeti, değerler değil); aynı
 işlem kimliği aynı ayarlarla tekrarlanırsa saklı makbuz döner, farklı ayarlarla `OPERATION_ID_CONFLICT`. Bilinmeyen
 anahtar hatadır.
+**Masaüstü ayarlar ekranı** (Ayarlar → Genel → Motor ayarları) formu motorun kendi şemasından çizer (`settings.schema`, `settings.readback`; ikisi de `read_call` listesindedir) ve yalnız değişen anahtarları yollar. `settings.apply` ekrandan **iletilmez**: ekran `settings_request` ile yalnız ister; kabuk değişikliği motora doğrulatır (`settings.validate`), sonra motorun etiketleri ve kayıtlı değerleriyle kurduğu yerel bir onay penceresi gösterir ve ancak Evet yanıtında kendi bağlantısından uygular (`settings_change.rs`). Gerekçe: bazı ayarlar WebView'ın kendi başına açamaması gereken izin anahtarlarıdır (yerel önizleme, mikrofon, ekran yakalama, konuşma tanıma programı, kabul komutu listesi). Gizli değer pencerede ve formda gösterilmez.
 
 Biçim sürümü `interfaces/migrate.py` içindeki `CURRENT` ile tutulur. Bir dosyanın biçimi değiştiğinde sürüm artırılır,
 `STEPS`'e eski sürümden yenisine bir adım ve `tests/fixtures/releases/<sürüm>/` altına o sürümün yazdığı gerçek dosyalar

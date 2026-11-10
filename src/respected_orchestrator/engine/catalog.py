@@ -38,9 +38,10 @@ ENTRIES = (
     Entry("catalog.list", READ, desktop="read"),
     Entry("engine.manifest", READ, "manifest"),
     Entry("engine.health", READ, "health"),
-    Entry("settings.schema", READ, "settings.schema"),
-    Entry("settings.readback", READ, "settings.readback"),
-    Entry("settings.validate", READ, "settings.validate"),
+    # The settings screen reads these three; a change is not relayed from the renderer: the shell asks the person in a native dialog first (settings_change.rs).
+    Entry("settings.schema", READ, "settings.schema", desktop="read"),
+    Entry("settings.readback", READ, "settings.readback", desktop="read"),
+    Entry("settings.validate", READ, "settings.validate", desktop="read"),
     Entry("settings.apply", SETTINGS, "settings.apply"),
     Entry("evidence.view", READ, "evidence.view"),
     Entry("memory.status", READ, "memory.status"),

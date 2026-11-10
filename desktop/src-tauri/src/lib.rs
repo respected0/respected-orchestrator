@@ -1,4 +1,5 @@
 pub mod approval;
+pub mod settings_change;
 pub mod catalog;
 pub mod image_consent;
 pub mod preview;
@@ -145,6 +146,28 @@ fn engine_subscribe<R: tauri::Runtime>(project_id: String, app: tauri::AppHandle
         }
         Err(error) => { on.0.store(false, Ordering::SeqCst); Err(EngineProblem { hint: error.hint(), error }) }
     }
+}
+
+/// The settings screen may only *ask* for a change: the engine validates it and the person confirms it in a native dialog built from the
+/// engine's own labels and stored values (settings_change.rs). The answer is data: applied, declined, unchanged or the engine's field errors.
+#[tauri::command]
+async fn settings_request(changes: serde_json::Value, state: tauri::State<'_, Mutex<Option<Connection>>>, gate: tauri::State<'_, approval::Gate>) -> Result<serde_json::Value, String> {
+    // one lock per engine call, so the rest of the app keeps working while the dialog is open
+    let mut call = |cmd: &str, payload: serde_json::Value| -> Result<serde_json::Value, String> {
+        let mut slot = state.lock().unwrap();
+        if slot.is_none() {
+            let launch = engine_connector::discover_env().map_err(|e| format!("{e:?}"))?;
+            *slot = Some(Connection::connect(&launch).map_err(|e| format!("{e:?}"))?);
+        }
+        match slot.as_mut().unwrap().raw(cmd, payload) {
+            Ok(v) => Ok(v),
+            Err(e) => { *slot = None; Err(format!("{e:?}")) }
+        }
+    };
+    #[cfg(windows)]
+    return settings_change::request(&changes, &mut call, &approval::NativeDialog, &gate);
+    #[cfg(not(windows))]
+    { let _ = (&changes, &mut call, &gate); Err("Native confirmation is only available on Windows.".into()) }
 }
 
 /// Terminals this window is watching: terminal id -> the flag that tells its reader thread to leave.
@@ -330,7 +353,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, engine_subscribe, terminal_attach, terminal_detach, read_call, preview_open, pick_folder, pick_files, list_dir, read_text_file])
+        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, engine_subscribe, terminal_attach, terminal_detach, settings_request, read_call, preview_open, pick_folder, pick_files, list_dir, read_text_file])
 }
 
 pub fn run() {

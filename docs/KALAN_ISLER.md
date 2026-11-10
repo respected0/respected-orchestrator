@@ -47,7 +47,7 @@ Sıra `RAKIP_ESKIKLERI.md` §3'teki sıradır; rakip karşılaştırmasından ge
 3. A1 görev başlatma → A2 pano → A3 worktree ve geri alma (§4.1–4.3). `[K]`
 4. ~~B1 canlı akış (§4.4)~~ yapıldı (10 Kasım 2026, ADR-034); kalanlar 4.4'te.
 5. **Ajanın kendi terminal paneli (§3.4): orkestratör sınıfındaki rakiplerin hepsinde var; ajan başına adaptör yazmadan bütün ajanları kullanılır kılar.** `[K]` Yapıldı (10 Kasım 2026, ADR-035: motor, bölme, geçiş); gerçek uygulamada görülmedi, kalanlar 3.4'te.
-6. E1 ayarlar ve bağlantı ekranı + C3 talimat dosyası + B3 izin kipleri (§4.5–4.7). `[K]`
+6. E1 ayarlar ve bağlantı ekranı + C3 talimat dosyası + B3 izin kipleri (§4.5–4.7). `[K]` Ayarlar formu yapıldı (10 Kasım 2026); bağlantı ekranı, talimat dosyası ve kipler sırada.
 7. C1 bağlam göstergesi + E2 bildirim + E3 kısayollar; **G1 inceleme kuyruğu buraya alınır (AO ve Cx'te ürünün merkezi; bizim "kanıtla ve onayla" odağımızın ekrandaki karşılığı).** `[K]`
 8. B4 çoklu ajan + E4 geçmiş araçları → B2 → D1 + C2 → A4 + D4 → D2/D3/D5 → B5/B6 → E7.
 
@@ -120,10 +120,10 @@ Bağlayıcı kurallar (`RAKIP_ESKIKLERI.md` §6): ajanın kendi özellikleri aja
 - [ ] **4.4 B1 Canlı akış: kalanlar** `[K]` (akış yapıldı, 10 Kasım 2026, ADR-034)
   - Bizde: ajanın çıktısı satır satır okunur; `events.subscribe` ile açılan ayrı bağlantıdan `session.event` ve `session.state` bildirimleri akar (AO'nun tek yönlü akışı gibi); `rorch session watch`, `session.events` içinde `live`, sayfalı `session.transcript`. Sohbet ekranı artık yoklamıyor. Gerçek uygulamada ve gerçek ajanla görülmedi.
   - Kalan: (a) görev panosu hâlâ 4 saniyede bir yokluyor: koşular ayrı süreçlerde dosyaya yazdığı için motorun dosya değişikliğini izleyip `run.state` bildirmesi gerekir (AO'daki CDC); (b) harf harf akış yok, `opencode run` metni parça tamamlanınca verir (3.2 ile); (c) kayıtlı konuşmanın silinmesi bildirilmiyor; (d) sayfa imleci konum numarası, 200 turu aşan konuşmada kayar; (e) kenar çubuğu sohbet sayfası açık değilken güncellenmiyor (dinleyici o sayfada).
-- [ ] **4.5 E1 Ayarlar ve bağlantı ekranı (+ G14 sağlayıcı ve model ayarı)** `[K]`
-  - Bizde: yalnız `rorch config`, `rorch integrations`, `rorch memory connect`. Motorda `settings.*` komutları var, ekranı yok.
-  - Rakipler: AO'da ajan başına ayar sayfası ve hesap sekmesi var; hesap, CLI'ın kendi girişiyle açılmış bir ayar klasörüdür ve AO belirteci hiç okumaz. dsh'de "Settings → Models" ile sağlayıcı eklenir. CC'de "Customize" altında bağlayıcılar (grafik kurulumlu MCP sunucuları), beceriler ve eklentiler tek yerde.
-  - Yapılacak: `settings.schema` / `readback` / `validate` üstüne ekran; `settings.apply` yetki sınıfı `SETTINGS` olduğu için bugün yalnız tanınan masaüstü çağırabilir (ADR-030). 2.2 buraya girer.
+- [ ] **4.5 E1 Ayarlar ve bağlantı ekranı: kalanlar** `[K]` (ayarlar formu yapıldı, 10 Kasım 2026)
+  - Bizde: Ayarlar → Genel'de "Motor ayarları" formu motorun şemasından çizilir (etiket, yardım, tür), yalnız değişen anahtarları yollar. Kaydetme yerel bir onay penceresinden geçer: ekran `settings_request` ile ister, kabuk motora doğrulatır, kişiye eski → yeni değerleri gösterir, Evet'te uygular. `settings.apply` ekrandan iletilmez. Gerçek uygulamada görülmedi.
+  - Rakiplerle fark: AO, CC ve dsh'de ayar ekranı doğrudan yazar; bizde araya onay penceresi girer, çünkü önizleme, mikrofon, ekran yakalama, konuşma programı ve kabul komutu listesi WebView'ın kendi açamaması gereken izinlerdir. 1.7 yerel onay penceresini kaldırırsa bu da onunla birlikte karara bağlanır `[S]`.
+  - Kalan: (a) bağlantı ekranı: `integrations` (AI araçlarına MCP girdisi) ve `memory connect|disconnect|status` hâlâ yalnız CLI'da; (b) G14 sağlayıcı ve model ayarı, AO'daki ajan başına ayar sayfası ve hesap sekmesi; (c) 2.2 "Kaldırmaya hazırla"; (d) form düz bir liste: gruplama, arama ve `default_roles` gibi JSON alanları için özel düzenleyici yok; (e) geliştirme kipinde (tanınmayan masaüstü) kaydetme `FORBIDDEN` döner.
 - [ ] **4.6 B3 İzin kipleri (+ G11 kural dosyası ve korunan yollar)** `[K]`
   - Bizde: karar verildi (tüm kipler sunulur, kullanıcı seçer), ekranda yok.
   - Rakipler: CC ve Cx'te kip seçici istem kutusunun altındadır ve oturum sürerken değişir. Cx'te komut kuralları Starlark `.rules` dosyasıdır, `codex execpolicy check` ile sınanır. dsh'de `permission-presets` ve `guard` var.

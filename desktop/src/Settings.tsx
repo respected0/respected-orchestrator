@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Page } from './ui';
 import { Ico } from './icons';
 import { PreviewPanel } from './PreviewPanel';
+import { EngineSettings } from './EngineSettings';
 import type { RouteId } from './shell';
 
 const GROUPS: { title: string; items: [RouteId, string][] }[] = [
@@ -52,6 +53,7 @@ export function General({ theme, toggleTheme, status }: { theme: 'light' | 'dark
           <button role="radio" aria-checked={theme === 'dark'} className={theme === 'dark' ? 'on' : ''} onClick={() => theme !== 'dark' && toggleTheme()}>Koyu</button>
         </div></div></div>
       <div className="card"><div className="h">Motor</div><div className="b row"><span className="grow">Durum</span><span role="status">{status}</span></div></div>
+      <EngineSettings />
       <div className="card"><div className="b"><PreviewPanel /></div></div>
     </Page>
   );

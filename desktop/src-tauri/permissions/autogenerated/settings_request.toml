@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-settings-request"
+description = "Enables the settings_request command without any pre-configured scope."
+commands.allow = ["settings_request"]
+
+[[permission]]
+identifier = "deny-settings-request"
+description = "Denies the settings_request command without any pre-configured scope."
+commands.deny = ["settings_request"]

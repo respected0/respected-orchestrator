@@ -4,4 +4,4 @@ pub const TASK_COMMANDS: [&str; 4] = ["task.start", "task.status", "task.cancel"
 pub const TERMINAL_COMMANDS: [&str; 5] = ["terminal.list", "terminal.start", "terminal.input", "terminal.resize", "terminal.kill"];
 pub const VOICE_COMMANDS: [&str; 4] = ["voice.start", "voice.feed", "voice.stop", "voice.cancel"];
 pub const ATTACH_COMMANDS: [&str; 5] = ["attachment.arm", "attachment.part", "attachment.stage", "attachment.cancel", "attachment.delete"];
-pub const READ_COMMANDS: [&str; 12] = ["catalog.list", "runs.list", "projects.list", "project.status", "activity.list", "capabilities.recommend", "team.view", "analytics.summary", "voice.status", "attachment.status", "attachment.preview", "attachment.list"];
+pub const READ_COMMANDS: [&str; 15] = ["catalog.list", "settings.schema", "settings.readback", "settings.validate", "runs.list", "projects.list", "project.status", "activity.list", "capabilities.recommend", "team.view", "analytics.summary", "voice.status", "attachment.status", "attachment.preview", "attachment.list"];

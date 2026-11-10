@@ -5,4 +5,4 @@ export const TASK_COMMANDS = ['task.start', 'task.status', 'task.cancel', 'task.
 export const TERMINAL_COMMANDS = ['terminal.list', 'terminal.start', 'terminal.input', 'terminal.resize', 'terminal.kill'] as const;
 export const VOICE_COMMANDS = ['voice.start', 'voice.feed', 'voice.stop', 'voice.cancel'] as const;
 export const ATTACH_COMMANDS = ['attachment.arm', 'attachment.part', 'attachment.stage', 'attachment.cancel', 'attachment.delete'] as const;
-export const READ_COMMANDS = ['catalog.list', 'runs.list', 'projects.list', 'project.status', 'activity.list', 'capabilities.recommend', 'team.view', 'analytics.summary', 'voice.status', 'attachment.status', 'attachment.preview', 'attachment.list'] as const;
+export const READ_COMMANDS = ['catalog.list', 'settings.schema', 'settings.readback', 'settings.validate', 'runs.list', 'projects.list', 'project.status', 'activity.list', 'capabilities.recommend', 'team.view', 'analytics.summary', 'voice.status', 'attachment.status', 'attachment.preview', 'attachment.list'] as const;
