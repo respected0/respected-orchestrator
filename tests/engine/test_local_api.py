@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 
 from respected_orchestrator.context import EngineContext
-from respected_orchestrator.engine import local_api
-from respected_orchestrator.engine.authority import Origin
+from respected_orchestrator.engine import catalog, daemon, local_api
+from respected_orchestrator.engine.authority import Action, Origin
 from respected_orchestrator.engine.local_api import ERRORS, LocalApi, MAX_REQUEST_BYTES
 
 TOKEN = "t" * 32
@@ -93,8 +93,37 @@ class LocalApiTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             LocalApi(self.api.ctx, "short")
 
+    def test_the_catalog_lists_only_what_the_caller_may_run(self):
+        def names(**options):
+            api = LocalApi(self.api.ctx, TOKEN, **options)
+            reply = api.handle({"ipc": "1", "id": "catalog-0001", "session": TOKEN, "cmd": "catalog.list", "payload": {}})
+            return reply, {row["name"] for row in (reply["result"] or {}).get("commands", [])}
+        reply, renderer = names()
+        self.assertIn({"name": "session.start", "action": "task", "cli": "start", "mcp": "orchestrator_session_start", "desktop": "session"}, reply["result"]["commands"])
+        self.assertIn("session.defaults.set", renderer)
+        self.assertNotIn("approval.apply", renderer)  # privileged: not the renderer's
+        _reply, mcp = names(origin=Origin.MCP, only=daemon.SERVED)
+        self.assertTrue({"session.start", "catalog.list"} <= mcp)
+        self.assertTrue({"approval.decide", "approval.apply", "settings.apply", "session.defaults.set", "attachment.commit"}.isdisjoint(mcp))
+        self.assertEqual(mcp, {n for n in daemon.SERVED if n in mcp})
+        self.assertEqual(self.code(names(origin=Origin.CHILD)[0]), "FORBIDDEN")  # a worker's descendant learns nothing
+
+    def test_every_face_is_built_from_the_one_table(self):
+        from respected_orchestrator.interfaces import mcp_server
+        self.assertEqual(list(local_api.COMMANDS), [entry.name for entry in catalog.ENTRIES])
+        for tool, entry in catalog.MCP.items():
+            self.assertEqual(mcp_server.TOOLS[tool], entry.mcp[1:])
+            self.assertEqual(entry.mcp[3], entry.action is Action.READ, tool)  # "read-only" is the engine's class, not a second opinion
+        for entry in catalog.ENTRIES:
+            self.assertIn(entry.desktop, (None, *catalog.DESKTOP_GROUPS), entry.name)
+            if entry.desktop == "read":
+                self.assertIs(entry.action, Action.READ, entry.name)
+            self.assertFalse(entry.action is Action.PRIVILEGED and (entry.cli or entry.mcp or entry.desktop), entry.name)
+
     def test_typescript_contract_matches_python(self):
-        ts_cmds = re.findall(r"'([a-z._]+)'", TS[TS.index("COMMANDS"):TS.index("export type Command")])
+        for path, text in catalog.generated(Path(__file__).resolve().parents[2]).items():  # run `python -m respected_orchestrator.engine.catalog`
+            self.assertEqual(path.read_text(encoding="utf-8"), text, f"{path.name} is not what the catalog generates")
+        ts_cmds = re.findall(r"'([a-z._]+)'", catalog.render_ts().splitlines()[1])
         ts_errs = re.findall(r"'([A-Z_]+)'", TS[TS.index("ERROR_CODES"):TS.index("export type ErrorCode")])
         self.assertEqual(sorted(ts_cmds), sorted(local_api.COMMANDS))
         self.assertEqual(sorted(ts_errs), sorted(ERRORS))

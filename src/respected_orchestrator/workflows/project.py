@@ -389,8 +389,6 @@ def _spawn(ctx, project_id, directory, spec):
 
 
 def start_project(ctx, request):
-    from ..engine import maintenance
-    maintenance.refuse_if_active(ctx, "proje başlatma")
     project_id, directory = create_project(ctx, request)
     return dict(project_id=project_id, status="started", pid=_spawn(ctx, project_id, directory, load_signed(ctx, directory / "project.json")["spec"]))
 
@@ -401,8 +399,6 @@ def _supervisor_alive(ctx, directory):
 
 
 def resume_project(ctx, project_id):
-    from ..engine import maintenance
-    maintenance.refuse_if_active(ctx, "proje devam ettirme")
     directory = project_dir(ctx, project_id)
     state = load_signed(ctx, directory / "project.json")
     if state["status"] in _TERMINAL:

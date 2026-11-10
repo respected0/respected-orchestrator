@@ -128,27 +128,19 @@ def _error(code, message, hint):
     print(json.dumps({"error": {"code": code, "message": message, "hint": hint}}, ensure_ascii=False))
 
 
-SESSION_COMMANDS = {"list": "sessions.list", "start": "session.start", "send": "session.send", "events": "session.events", "retry": "session.retry",
-                    "interrupt": "session.interrupt", "cancel": "session.cancel", "resume": "session.resume", "transcript": "session.transcript",
-                    "forget": "session.forget", "models": "session.models", "defaults": "session.defaults"}
-
-
-SESSION_ARGUMENT = {"list": "project_id", "models": "agent"}
-
-
 def _stdin_json_text():
     return sys.stdin.buffer.read().decode("utf-8-sig").strip() or "{}"
 
 
 def _session(ctx, args):
     """(payload, exit code) for `rorch session <action>` (ADR-030 slice 2): the persistent engine's chat sessions, payload as JSON on stdin."""
-    from .engine import daemon_client
-    if not args or args[0] not in SESSION_COMMANDS or len(args) > (2 if args[0] in SESSION_ARGUMENT else 1):
+    from .engine import catalog, daemon_client
+    entry = catalog.CLI.get(args[0]) if args else None
+    word = entry.cli[1] if entry else None  # None: JSON on stdin; "": no input; a name: one optional plain word
+    if entry is None or len(args) > (2 if word else 1):
         raise UsageError("Kullanım: session list [PROJE] | models [AJAN] | defaults | start|send|events|retry|interrupt|cancel|resume|transcript|forget  (son grupta istek gövdesi stdin'den JSON; docs/COMMANDS.md)")
-    if args[0] in SESSION_ARGUMENT:  # these take at most one plain word and never read stdin
-        payload = dict(zip([SESSION_ARGUMENT[args[0]]], args[1:]))
-    elif args[0] == "defaults":
-        payload = {}
+    if word is not None:  # these never read stdin
+        payload = dict(zip([word], args[1:]))
     else:
         try:
             payload = json.loads(_stdin_json_text())
@@ -158,7 +150,7 @@ def _session(ctx, args):
             raise UsageError("stdin geçerli bir JSON nesnesi olmalı")
     try:
         daemon_client.start(ctx)  # the first caller starts the engine (ADR-030 D4); a different version is refused
-        reply = daemon_client.request(ctx, SESSION_COMMANDS[args[0]], payload, timeout=60)
+        reply = daemon_client.request(ctx, entry.name, payload, timeout=60)
     except daemon_client.DaemonUnavailable as error:
         _error("ENGINE_UNAVAILABLE", str(error), "rorch daemon status")
         return None, 1
@@ -189,33 +181,6 @@ def _daemon(ctx, args):
         return None, 1
 
 
-def _maintenance(ctx, args):
-    """(payload, exit code). drain exits 0 when nothing is running any more and 3 when work is still running (nothing is stopped)."""
-    from .engine import maintenance
-    action, rest = (args[:1] or [""])[0], args[1:]
-    options = {}
-    while rest:
-        flag = rest.pop(0)
-        if flag not in ("--ttl", "--reason", "--seconds") or not rest:
-            raise UsageError("Kullanım: maintenance begin [--ttl SN] [--reason METİN] | end | status | drain [--seconds SN]")
-        options[flag] = rest.pop(0)
-    try:
-        ttl = int(options.get("--ttl", maintenance.DEFAULT_TTL))
-        seconds = float(options.get("--seconds", 0))
-    except ValueError:
-        raise UsageError("--ttl ve --seconds sayı olmalı") from None
-    if action == "begin":
-        return {"window": maintenance.begin(ctx, reason=options.get("--reason", "update"), ttl=ttl), "running": maintenance.running(ctx)}, 0
-    if action == "end":
-        return {"window": maintenance.end(ctx)}, 0
-    if action == "status":
-        return maintenance.status(ctx), 0
-    if action == "drain":
-        result = maintenance.drain(ctx, seconds)
-        return result, 0 if result["drained"] else 3
-    raise UsageError("Kullanım: maintenance begin [--ttl SN] [--reason METİN] | end | status | drain [--seconds SN]")
-
-
 def main(argv=None):
     if sys.platform == "win32":  # JSON goes out (and RPP comes in) as UTF-8 whatever the console code page is
         for stream in (sys.stdin, sys.stdout, sys.stderr):
@@ -243,7 +208,7 @@ def main(argv=None):
     from .workflows import roles
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, default=default_data_root(), help=argparse.SUPPRESS)
-    parser.add_argument("command", choices=["maintenance", "status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "ledger", "team", "handoff", "inbox", "escalation", "operator", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", "github-ci-ingest", "github-ci-poll", "provider-key", "provider-models", *SHARED, "daemon", "session", "_daemon", "_selfcheck"])
+    parser.add_argument("command", choices=["status", "create", "start", "list", "inspect", "evidence", "artifact", "cancel", "check", "retry", "_execute", "maf", "maf-approve", "apply", "integrate", "campaign-start", "campaign-run", "campaign-status", "campaign-cancel", "campaign-list", "project-start", "project-run", "project-resume", "project-approve", "project-status", "project-cancel", "rpp", "roles", "ledger", "team", "handoff", "inbox", "escalation", "operator", "plan", "coordinate", "mcp", "github-import-issue", "github-pr-plan", "github-pr-create", "github-ci-plan", "github-ci-ingest", "github-ci-poll", "provider-key", "provider-models", *SHARED, "daemon", "session", "_daemon", "_selfcheck"])
     parser.add_argument("args", nargs=argparse.REMAINDER)
     try:
         args = parser.parse_args(argv)
@@ -299,10 +264,6 @@ def main(argv=None):
             payload, code = _daemon(ctx, args.args)
             if payload is not None:
                 print(json.dumps(payload, ensure_ascii=False))
-            return code
-        elif args.command == "maintenance":  # the update window (ADR-026): begin [--ttl N] [--reason TEXT] | end | status | drain [--seconds N]
-            payload, code = _maintenance(ctx, args.args)
-            print(json.dumps(payload, ensure_ascii=False))
             return code
         elif args.command == "create":
             payload = runner.create_task(ctx, _stdin_json())
@@ -399,9 +360,6 @@ def main(argv=None):
             if args.command == "artifact":
                 payload = runner.artifact_data(ctx, args.args[0], _stdin_json().get("name"))
             elif args.command == "maf":
-                from .engine import maintenance
-                maintenance.refuse_if_active(ctx, "yeni MAF çalışması")
-                maintenance.admit()  # accepted: a later update window must not break its own fix rounds
                 from .workflows.maf_workflow import run_maf_coding_task
                 payload = run_maf_coding_task(ctx=ctx, run_id=args.args[0])
             elif args.command == "maf-approve":
@@ -410,23 +368,14 @@ def main(argv=None):
                 payload = runner.apply_task(ctx, args.args[0])
             elif args.command.startswith("project-"):
                 from .workflows import project
-                if args.command == "project-run":
-                    from .engine import maintenance
-                    maintenance.admit()  # the supervisor of work that was accepted before an update window
                 payload = {"project-run": project.run_project, "project-resume": project.resume_project,
                            "project-approve": project.approve_project_resume,
                            "project-status": project.project_status, "project-cancel": project.cancel_project}[args.command](ctx, args.args[0])
             elif args.command in {"campaign-run", "campaign-status", "campaign-cancel"}:
                 from .workflows import campaign
-                if args.command == "campaign-run":
-                    from .engine import maintenance
-                    maintenance.admit()
                 payload = {"campaign-run": campaign.run_campaign, "campaign-status": campaign.campaign_status,
                            "campaign-cancel": campaign.cancel_campaign}[args.command](ctx, args.args[0])
             else:
-                if args.command == "_execute":
-                    from .engine import maintenance
-                    maintenance.admit()  # a worker of an accepted run
                 method = {"start": runner.start_task, "inspect": runner.inspect_task, "cancel": runner.cancel_task,
                           "check": runner.check_result, "retry": runner.retry_task, "_execute": runner.execute_task}[args.command]
                 payload = method(ctx, args.args[0])

@@ -52,6 +52,8 @@ Ortak kurallar (üç ürün aynı, bkz. [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.m
 `github.issue_import|pr_plan|pr_create|ci_plan`.
 
 **Masaüstü sohbet IPC komutları** (`rpp` değil, uygulamanın yerel motor bağlantısı): `sessions.list`, `session.start|send|events|retry|interrupt|cancel|resume`, `session.models` (ajan CLI'ının model listesi; `{"agent"}` ister).
+
+**Komut kataloğu:** motor komutlarının tek tablosu `engine/catalog.py`'dir; `rorch session` fiilleri, `orchestrator_session_*` MCP araçları ve masaüstünün iletebildiği komut listeleri ondan üretilir. `catalog.list` (salt okunur) çağıranın çalıştırabildiği komutları verir: `{"commands": [{"name", "action", "cli", "mcp", "desktop"}]}`; yetkili komutlar ortak uçta görünmez. Yeni komut eklerken tabloya bir satır yazın, sonra `python -m respected_orchestrator.engine.catalog` ile masaüstü dosyalarını yeniden üretin.
 Motor, masaüstünün göstereceği her şeyi tutar: `sessions.list` → `{sessions, conversations}` (`conversations`: bu çalışmanın oturumları ve kaydedilmiş
 konuşmalar, başlık ve klasörle, en yeni önce); `session.defaults` (okuma) → `{agents, agent, model}`; `session.defaults.set {model, agent?}` (ayar sınıfı;
 model ajanın listesinde değilse `MODEL_INVALID` ile reddedilir ve kaydedilmez); `session.transcript {session_id}` → konuşma turları + `usage` toplamı;

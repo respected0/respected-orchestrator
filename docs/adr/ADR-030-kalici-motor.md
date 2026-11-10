@@ -2,7 +2,7 @@
 
 ## Durum
 
-**Kabul edildi (9 Kasım 2026): D1–D4 önerildiği gibi onaylandı. 1. dilim uygulandı** (daemon iskeleti: kilit, boru, köken çözümü, `rorch daemon`); 2–6. dilimler bekliyor. Kaynak karar: `RAKIP_ESKIKLERI.md` §6 madde 2 (motor tek, kalıcı bir arka plan süreci olur) ve madde 3 (tek işlem kataloğu). Bu belge yalnız madde 2'yi ve onun güvenlik sonuçlarını ele alır; katalog birleştirmesi ayrı dilimdir (§9).
+**Kabul edildi (9 Kasım 2026): D1–D4 önerildiği gibi onaylandı. 1–6. dilimler uygulandı** (durum ve doğrulanmayanlar: §9 tablosu; açık işler: `KALAN_ISLER.md`). Kaynak karar: `RAKIP_ESKIKLERI.md` §6 madde 2 (motor tek, kalıcı bir arka plan süreci olur) ve madde 3 (tek işlem kataloğu). Bu belge yalnız madde 2'yi ve onun güvenlik sonuçlarını ele alır; katalog birleştirmesi ayrı dilimdir (§9).
 
 ## Bağlam: bugün nasıl çalışıyor (koddan doğrulandı)
 
@@ -96,10 +96,10 @@ Durum: `[x]` bitti ve doğrulandı, `[~]` yapıldı ama bir kısmı doğrulanmad
 | 2. Oturumlar | Tek `SessionController`, `rorch session ...`, tur sürerken boşta çıkmama, iş nesnesiyle yetim koruması | `[~]` | Gerçek ajanla (opencode) uçtan uca oturum çalıştırılmadı (token harcar, onay ister) |
 | 3. Masaüstü | Kabuk motora boruyla bağlanır, motor masaüstü programını dosya ve karmayla tanır (`renderer` düzeyi), onay bağlantısı özel çocukta kalır | `[~]` | Gerçek uygulamayla bağlantı, tanıma ve "uygulama kapanınca motor kalır" görüldü; ekrandaki rozet ve `session.defaults.set`'in uygulamadan çağrılması görülmedi |
 | 4. MCP oturum araçları | `rorch mcp`'ye 8 `orchestrator_session_*` aracı; çağrı motora iletilir (motor yoksa başlatılır), özyineleme koruması korunur | `[~]` | **Kapsam değişti:** mevcut araçlar (görev, proje, kampanya, apply, not) canlı durum tutmaz ve `apply` yetkili komuttur (ortak uçta sunulmaz), bu yüzden motora yönlendirilmedi; yarar yeni oturum araçlarındadır. Gerçek bir AI istemcisiyle (Claude Code) bağlanıp denenmedi |
-| 5. Kurucu ve yükseltme | **Değişti (ADR-031):** kurucu yalnız kopyalar, açık süreçleri Windows kapattırır (`daemon stop` adımı gerekmedi); motor ilk açılışta kurulumu tamamlar; `FOOTPRINT`/`USAGE`/`ARCHITECTURE`/sözleşme güncellendi | `[~]` | Gerçek Inno kurucusuyla temiz kurulum, çalışan motor ve uygulamanın üstüne güncelleme ve kaldırma denendi. Sürüm/karma uyuşmazlığı hâlâ yalnız sürüm denetimidir (paket karması karşılaştırması yok); imzalı kurucu ve Hub başlatışı denenmedi |
-| 6. Tek katalog | `catalog.list`; CLI, MCP ve masaüstü komutlarının tek tablodan üretilmesi (karar 3) | `[ ]` | Ayrı iş |
+| 5. Kurucu ve yükseltme | **Değişti (ADR-031):** kurucu yalnız kopyalar, açık süreçleri Windows kapattırır (`daemon stop` adımı gerekmedi); motor ilk açılışta kurulumu tamamlar; `FOOTPRINT`/`USAGE`/`ARCHITECTURE`/sözleşme güncellendi | `[~]` | Gerçek Inno kurucusuyla temiz kurulum, çalışan motor ve uygulamanın üstüne güncelleme ve kaldırma denendi. İstemci sürümün yanında paket karmasını da (`distribution.json` özeti, `daemon status` → `build`) karşılaştırır (10 Kasım 2026; paketli sürümde denenmedi); imzalı kurucu ve Hub başlatışı denenmedi |
+| 6. Tek katalog | `engine/catalog.py` tek tablo; `local_api.COMMANDS`, `rorch session`, `orchestrator_session_*` ve masaüstü listeleri ondan üretilir; `catalog.list` ([ADR-032](ADR-032-tek-islem-katalogu.md)) | `[~]` | Motor komutları için bitti (Python, `npm test`, `tsc`, `cargo test` yeşil). Süreç içi MCP araçları ve eski CLI komutları tabloda değil; paketli sürümde denenmedi |
 
-Dilimler arası kalan işler: Unix soketi (Windows dışı), `session.defaults.set` dışında masaüstünün ayar ihtiyacı doğarsa yeniden değerlendirme, `daemon` günlüğünün dönmesi/boyutu.
+Tüm açık işlerin tek listesi: [KALAN_ISLER.md](../KALAN_ISLER.md). Dilimler arası kalan işler: Unix soketi (Windows dışı), `session.defaults.set` dışında masaüstünün ayar ihtiyacı doğarsa yeniden değerlendirme. `daemon.log` 1 MB'ı aşınca bir sonraki motor başlangıcında `daemon.log.1`'e taşınır.
 
 ## Doğrulama planı
 
@@ -107,12 +107,12 @@ Birim: tek örnek, ikinci başlatma, durdur/yeniden başlat idempotent, bayat u�
 
 ## Sonuçlar ve sınırlar
 
-- 2. dilim sonrası: tek kalıcı motor süreci, kullanıcıya özel boru, sunucu tarafı köken çözümü, `rorch daemon` ve `rorch session` komutları vardır; canlı sohbet oturumları motordadır ve bağlantılar arasında ortaktır. MCP henüz taşınmadı.
+- 2. dilim sonrası: tek kalıcı motor süreci, kullanıcıya özel boru, sunucu tarafı köken çözümü, `rorch daemon` ve `rorch session` komutları vardır; canlı sohbet oturumları motordadır ve bağlantılar arasında ortaktır. Sonraki dilimlerde masaüstü ve MCP oturum araçları da motora bağlandı (§9).
 - 3. dilimde `session.defaults.set` için karar: ayar komutları ortak uçta herkese açılmaz; yalnız **kurulu masaüstü programı** (dosya yolu ve `distribution.json` karması eşleşen süreç) `RENDERER` düzeyi alır. Masaüstünün başka ayar komutu yoktur. Bu, 'ayar yoktur' ilkesinden bilinçli ve dar bir sapmadır.
 - Gerçek bir ajanla (opencode) uçtan uca oturum bu dilimde çalıştırılmadı (token harcar, ayrıca onay ister); paylaşım sahte kayıtla, kapsama gerçek süreçlerle test edildi.
 - Aynı kullanıcı olarak çalışan işçi veri kökünü okuyabilir; motor bunu kapatmaz. Kapattığı şey, işçinin insan onayı olmadan onay/uygulama komutunu tetiklemesidir.
 - Başka kullanıcı hesabıyla erişim reddi ve gerçek bir ajan işçisinin soyundan bağlanma uçtan uca denenmedi; erişim listesi içeriği ve sınıflama birim testle doğrulandı.
-- Windows dışı (Unix soketi), oturumların taşınması, masaüstü/MCP bağlanması, kurucu durdurma adımı ve tek katalog sonraki dilimlerdir.
+- Windows dışı (Unix soketi) yapılmadı; oturumların taşınması, masaüstü ve MCP bağlanması, kurucu (ADR-031) ve tek katalog (ADR-032) sonraki dilimlerde yapıldı.
 
 ## Kaynaklar
 

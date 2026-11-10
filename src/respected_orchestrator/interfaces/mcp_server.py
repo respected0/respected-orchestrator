@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .. import __version__
 from ..workflows import campaign, project, roles
-from ..engine import runner
+from ..engine import catalog, runner
 from ..context import EngineContext
 from ..engine.evidence import load_signed
 
@@ -63,31 +63,9 @@ TOOLS = {
 }
 
 
-def _object(required, **properties):
-    return {"type": "object", "properties": properties, "required": required, "additionalProperties": False}
-
-
-_PROJECT_ID = {"type": "string", "description": "Any name you choose for the project; a session is addressed by (session_id, project_id)"}
-_SESSION_ID = {"type": "string", "description": "loc_* id returned by orchestrator_session_start"}
-_TEXT = {"type": "string"}
-# name -> (description, persistent-engine command, input schema, read-only). The sessions live in the persistent engine (ADR-030), shared with
-# the desktop app and `rorch session`; the engine, not this server, decides what this caller may do (it can read and start, never approve).
-SESSION_TOOLS = {
-    "orchestrator_session_list": ("List the engine's live chat sessions and saved conversations for a project_id. Read-only.", "sessions.list",
-                                  _object([], project_id=_PROJECT_ID), True),
-    "orchestrator_session_start": ("Start a chat session with a coding agent in a project folder and send its first message (the turn runs in the "
-                                   "background; read it with orchestrator_session_events). Only agents with a verified chat adapter work.", "session.start",
-                                   _object(["project_id", "project_root", "text"], project_id=_PROJECT_ID, project_root={"type": "string", "description": "existing absolute folder"},
-                                           text=_TEXT, agent={"type": "string"}, model={"type": "string"}, resume_session={"type": "string"},
-                                           continue_conversation={"type": "string"}), False),
-    "orchestrator_session_send": ("Send the next message to a session.", "session.send", _object(["project_id", "session_id", "text"], project_id=_PROJECT_ID, session_id=_SESSION_ID, text=_TEXT), False),
-    "orchestrator_session_events": ("Events and result of the session's latest turn. Read-only.", "session.events", _object(["project_id", "session_id"], project_id=_PROJECT_ID, session_id=_SESSION_ID), True),
-    "orchestrator_session_transcript": ("The session's saved conversation. Read-only.", "session.transcript", _object(["session_id"], session_id=_SESSION_ID), True),
-    "orchestrator_session_interrupt": ("Interrupt the turn that is running.", "session.interrupt", _object(["project_id", "session_id"], project_id=_PROJECT_ID, session_id=_SESSION_ID), False),
-    "orchestrator_session_cancel": ("End a session.", "session.cancel", _object(["project_id", "session_id"], project_id=_PROJECT_ID, session_id=_SESSION_ID), False),
-    "orchestrator_session_resume": ("Resume an interrupted session.", "session.resume", _object(["project_id", "session_id"], project_id=_PROJECT_ID, session_id=_SESSION_ID), False),
-}
-TOOLS.update({name: (description, schema, read_only) for name, (description, _command, schema, read_only) in SESSION_TOOLS.items()})
+# The session tools come from the engine's one table (ADR-032). The sessions live in the persistent engine (ADR-030), shared with the
+# desktop app and `rorch session`; the engine, not this server, decides what this caller may do (it can read and start, never approve).
+TOOLS.update({name: entry.mcp[1:] for name, entry in catalog.MCP.items()})
 
 
 def _session_call(ctx, command, args):
@@ -168,8 +146,8 @@ def _refuse_privileged(value, allow):
 
 
 def _dispatch(ctx, name, args, allow_auto_apply, allow_privileged=False):
-    if name in SESSION_TOOLS:
-        return _session_call(ctx, SESSION_TOOLS[name][1], args)
+    if name in catalog.MCP:
+        return _session_call(ctx, catalog.MCP[name].name, args)
     if name in ("orchestrator_task_start", "orchestrator_project_start"):
         _refuse_privileged(args, allow_privileged)
         _refuse_unlisted_commands(ctx, args, allow_privileged)

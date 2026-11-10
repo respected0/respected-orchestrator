@@ -139,8 +139,6 @@ def create_campaign(ctx, request):
 
 
 def start_campaign(ctx, request):
-    from ..engine import maintenance
-    maintenance.refuse_if_active(ctx, "kampanya başlatma")
     campaign_id, directory = create_campaign(ctx, request)
     engine = _snapshot_engine(ctx)
     command = engine_command("--data-root", str(ctx.data_root),

@@ -31,7 +31,7 @@ TEST_GROUPS = {
     "intervention_negatives": ("tests.engine.test_session_control", "tests.engine.test_authority"),
     "chat_adapter": ("tests.engine.test_chat_session",),
     "installer_and_hash": ("tests.packaging.test_desktop_package", "tests.packaging.test_frozen_build"),
-    "update_and_migration": ("tests.engine.test_maintenance", "tests.interfaces.test_migration_faults"),
+    "update_and_migration": ("tests.engine.test_run_pids", "tests.interfaces.test_migration_faults"),
     "offline_no_telemetry": ("tests.engine.test_no_telemetry",),
 }
 COMMAND_GATES = ("full_suite", "desktop_check", "distribution_audit", "installer_hash", "roadmap_p0")

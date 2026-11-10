@@ -77,6 +77,21 @@ class DaemonProcessTests(unittest.TestCase):
             with self.assertRaises(daemon_client.DaemonVersionMismatch):
                 daemon_client.start(self.ctx)
 
+    def test_an_engine_of_another_build_of_the_same_version_is_refused(self):
+        self.assertIsNone(daemon_client.start(self.ctx)["build"])  # not a packaged install: no build identity on either side
+        with mock.patch.object(daemon_client, "build_id", return_value="a" * 64):
+            with self.assertRaisesRegex(daemon_client.DaemonVersionMismatch, "another build"):
+                daemon_client.start(self.ctx)
+
+    def test_a_large_engine_log_is_set_aside_before_the_next_start(self):
+        log = self.ctx.state_dir / "daemon.log"
+        log.parent.mkdir(parents=True, exist_ok=True)
+        log.write_bytes(b"x" * 50)
+        with mock.patch.object(daemon_client, "LOG_LIMIT", 10):
+            daemon_client.start(self.ctx)
+        self.assertEqual(log.with_name("daemon.log.1").read_bytes(), b"x" * 50)
+        self.assertNotIn(b"x" * 50, log.read_bytes())  # the new engine writes to a fresh file
+
     def test_an_idle_engine_leaves(self):
         with mock.patch.dict(os.environ, {"RESPECTED_DAEMON_IDLE_SECONDS": "1"}):
             pid = daemon_client.start(self.ctx)["pid"]
@@ -151,12 +166,12 @@ class DaemonSecurityTests(unittest.TestCase):
         child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
         self.addCleanup(child.wait)
         self.addCleanup(child.kill)
-        with mock.patch("respected_orchestrator.engine.maintenance.run_pids", return_value={"run-1": os.getpid()}):
+        with mock.patch("respected_orchestrator.engine.supervisor.run_pids", return_value={"run-1": os.getpid()}):
             self.assertIs(daemon.classify(self.ctx, os.getpid()), Origin.CHILD)
             self.assertIs(daemon.classify(self.ctx, child.pid), Origin.CHILD)  # a descendant, however deep
-        with mock.patch("respected_orchestrator.engine.maintenance.run_pids", return_value={"run-1": 4}):
+        with mock.patch("respected_orchestrator.engine.supervisor.run_pids", return_value={"run-1": 4}):
             self.assertIs(daemon.classify(self.ctx, child.pid), Origin.MCP)  # unrelated: read and task only
-        with mock.patch("respected_orchestrator.engine.maintenance.run_pids", return_value={}):
+        with mock.patch("respected_orchestrator.engine.supervisor.run_pids", return_value={}):
             self.assertIs(daemon.classify(self.ctx, child.pid), Origin.MCP)
 
     def test_the_ancestor_chain_stops_at_a_reused_pid(self):

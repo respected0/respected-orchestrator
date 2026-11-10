@@ -47,18 +47,17 @@ impl ConnectError {
     }
 }
 
+// The four relay lists are generated from the engine's one table (ADR-032): see catalog.rs.
+pub use crate::catalog::{ATTACH_COMMANDS, READ_COMMANDS, SESSION_COMMANDS, VOICE_COMMANDS};
+
 /// The chat-session commands the renderer may relay. Nothing else goes through `session_call`, and there is no approve here:
 /// permission decisions stay in the native dialog (approval.rs).
-pub const SESSION_COMMANDS: [&str; 13] = ["sessions.list", "session.start", "session.events", "session.send", "session.retry", "session.interrupt", "session.cancel", "session.resume", "session.models", "session.defaults", "session.defaults.set", "session.transcript", "session.forget"];
 /// Push-to-talk (B4-06): TASK-class commands relayed through `session_call` as well. No confirm/approve here; a voice draft is text only.
-pub const VOICE_COMMANDS: [&str; 4] = ["voice.start", "voice.feed", "voice.stop", "voice.cancel"];
 /// Screenshot attachment steps the renderer may take itself (B4-07). Commit, share and revoke are not here: they only exist on the native consent path.
-pub const ATTACH_COMMANDS: [&str; 5] = ["attachment.arm", "attachment.part", "attachment.stage", "attachment.cancel", "attachment.delete"];
 pub fn session_command_allowed(cmd: &str) -> bool { SESSION_COMMANDS.contains(&cmd) || VOICE_COMMANDS.contains(&cmd) || ATTACH_COMMANDS.contains(&cmd) }
 
 /// The read-only views of the Beta.4 screens (team, capability recommendations, budget). `read_call` relays only these; every one is a
 /// READ command in the engine, so nothing they return can start, approve, apply, enable or change anything.
-pub const READ_COMMANDS: [&str; 11] = ["team.view", "capabilities.recommend", "analytics.summary", "voice.status", "attachment.status", "attachment.preview", "attachment.list", "runs.list", "projects.list", "project.status", "activity.list"];
 pub fn read_command_allowed(cmd: &str) -> bool { READ_COMMANDS.contains(&cmd) }
 #[derive(Debug, Serialize, PartialEq)]
 pub struct Status {

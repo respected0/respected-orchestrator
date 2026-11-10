@@ -10,9 +10,10 @@ import time
 
 from .. import __version__
 from ..context import engine_command
-from .daemon import pipe_path
+from .daemon import build_id, pipe_path
 
 START_TIMEOUT = 15
+LOG_LIMIT = 1 << 20  # bytes; daemon.log is moved to daemon.log.1 before a new engine starts once it is larger
 ERROR_PIPE_BUSY = 231
 
 
@@ -86,7 +87,13 @@ def start(ctx) -> dict:
     if current is None:
         ctx.state_dir.mkdir(parents=True, exist_ok=True)
         env = {k: v for k, v in os.environ.items() if k not in ("RESPECTED_ORCH_CHILD", "RESPECTED_ORCH_DELEGATED")}
-        _spawn_detached(engine_command("--data-root", str(ctx.data_root), "_daemon"), ctx.data_root, ctx.state_dir / "daemon.log", env=env)
+        log = ctx.state_dir / "daemon.log"
+        try:
+            if log.stat().st_size > LOG_LIMIT:  # no engine runs now, so nothing holds the file
+                os.replace(log, log.with_name("daemon.log.1"))
+        except OSError:
+            pass  # no log yet, or still held by an engine that is on its way out: it rotates next time
+        _spawn_detached(engine_command("--data-root", str(ctx.data_root), "_daemon"), ctx.data_root, log, env=env)
         deadline = time.monotonic() + START_TIMEOUT
         while current is None and time.monotonic() < deadline:
             time.sleep(0.2)
@@ -95,6 +102,8 @@ def start(ctx) -> dict:
             raise DaemonUnavailable(f"The engine did not start; see {ctx.state_dir / 'daemon.log'}.")
     if current["version"] != __version__:
         raise DaemonVersionMismatch(f"The running engine is {current['version']}, this program is {__version__}: restart it with `rorch daemon restart`.")
+    if current.get("build") != build_id():  # same version number, different package (None on both sides outside a packaged install)
+        raise DaemonVersionMismatch("The running engine is from another build of this version: restart it with `rorch daemon restart`.")
     return current
 
 

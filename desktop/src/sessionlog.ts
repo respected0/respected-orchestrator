@@ -1,8 +1,9 @@
 // Pure session-screen logic (no React, no Tauri) so it can be tested under `node --test`.
 // Everything a session stream contains is untrusted data: it is turned into plain text lines and never into an action.
 
-/** The only commands the screen sends; src-tauri/src/engine_connector.rs keeps the same list and a test compares them. There is no approve. */
-export const SESSION_COMMANDS = ['sessions.list', 'session.start', 'session.events', 'session.send', 'session.retry', 'session.interrupt', 'session.cancel', 'session.resume', 'session.models', 'session.defaults', 'session.defaults.set', 'session.transcript', 'session.forget'] as const;
+/** The only commands the screen sends; generated from the engine's one table, like the Rust relay's list (ADR-032). There is no approve. */
+import { SESSION_COMMANDS } from './contracts/catalog.ts';
+export { SESSION_COMMANDS };
 export type SessionCommand = (typeof SESSION_COMMANDS)[number];
 
 export const PROJECT_ID = 'proj-sessions';

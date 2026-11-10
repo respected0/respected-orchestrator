@@ -22,7 +22,7 @@ import time
 from pathlib import Path
 
 from .. import __version__
-from . import winproc
+from . import supervisor, winproc
 from .authority import Action, Origin
 from .journal import Journal
 from .local_api import COMMANDS, IPC, MAX_REQUEST_BYTES, LocalApi, _ID, _reply, session_controller
@@ -47,6 +47,16 @@ def pipe_name(ctx) -> str:
 
 def pipe_path(ctx) -> str:
     return "\\\\.\\pipe\\" + pipe_name(ctx)
+
+
+def build_id() -> str | None:
+    """Hash of the package manifest next to the launcher: two builds of one version differ here. None outside a packaged install."""
+    if not getattr(sys, "frozen", False):
+        return None
+    try:
+        return hashlib.sha256((Path(sys.executable).parent / "distribution.json").read_bytes()).hexdigest()
+    except OSError:
+        return None
 
 
 _hashed: dict = {}
@@ -76,8 +86,7 @@ def is_desktop(pid: int, app_dir: Path | None = None) -> bool:
 def classify(ctx, pid: int) -> Origin:
     """CHILD when `pid` is, or descends from, a process that is working on a run right now; RENDERER for the installed desktop program;
     otherwise MCP-level."""
-    from . import maintenance
-    working = {int(p) for p in maintenance.run_pids(ctx).values()}
+    working = {int(p) for p in supervisor.run_pids(ctx).values()}
     if working & {pid, *winproc.ancestors(pid)}:
         return Origin.CHILD
     return Origin.RENDERER if is_desktop(pid) else Origin.MCP
@@ -88,20 +97,20 @@ class Daemon:
         self.ctx, self.idle_seconds = ctx, idle_seconds
         self.stop_event = threading.Event()
         self.started_at = time.time()
+        self.build = build_id()  # read once: the files on disk may be replaced while this process keeps running the old ones
         self._connections, self._last_activity = 0, time.monotonic()
         self._origins: dict = {}  # origin name -> open connections, for `daemon status`
         self._guard = threading.Lock()
         self.sessions = session_controller(ctx)  # the one set of live chat sessions every connection shares
 
     def busy(self) -> bool:
-        from . import maintenance
         with self._guard:
             if self._connections:
                 return True
-        return self.sessions.busy() or bool(maintenance.run_pids(self.ctx))
+        return self.sessions.busy() or bool(supervisor.run_pids(self.ctx))
 
     def status(self) -> dict:
-        return {"pid": os.getpid(), "version": __version__, "data_root": str(self.ctx.data_root), "started_at": self.started_at,
+        return {"pid": os.getpid(), "version": __version__, "build": self.build, "data_root": str(self.ctx.data_root), "started_at": self.started_at,
                 "pipe": pipe_name(self.ctx), "idle_seconds": self.idle_seconds, "connections": self._connections,
                 "origins": dict(self._origins)}
 

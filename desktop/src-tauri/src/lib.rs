@@ -1,4 +1,5 @@
 pub mod approval;
+pub mod catalog;
 pub mod image_consent;
 pub mod preview;
 pub mod files;

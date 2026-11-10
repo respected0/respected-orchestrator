@@ -90,3 +90,34 @@ class Supervisor:
         claims = self.claims()
         if claims.pop(run_id, None) is not None:
             atomic_write_json(self._claims, claims)
+
+
+RUN_SCAN_LIMIT = 500  # newest run folders examined (ids embed their creation time); older runs are finished or long interrupted
+
+
+def _alive(pid):
+    return isinstance(pid, int) and not isinstance(pid, bool) and pid > 0 and _pid_is_alive(pid)
+
+
+def run_pids(ctx):
+    """run id -> pid of the process that is working on it right now. Same facts `runner.effective_status` uses: a `running` status whose
+    pid is alive, or a `queued` run whose detached starter (`supervisor.json`) is alive; plus any live supervisor claim."""
+    from .evidence import load_signed
+    found = {}
+    for run, pid in Supervisor(ctx).claims().items():
+        if _alive(int(pid) if str(pid).isdigit() else -1):
+            found[run] = int(pid)
+    root = ctx.state_dir
+    if root.is_dir():
+        for directory in sorted((p for p in root.glob("run-*") if p.is_dir()), reverse=True)[:RUN_SCAN_LIMIT]:
+            try:
+                status = load_signed(ctx, directory / "status.json")
+                if status.get("status") == "running" and _alive(status.get("pid")):
+                    found[directory.name] = status["pid"]
+                elif status.get("status") == "queued" and (directory / "supervisor.json").is_file():
+                    pid = load_signed(ctx, directory / "supervisor.json").get("pid")
+                    if _alive(pid):
+                        found[directory.name] = pid
+            except (ValueError, OSError, KeyError):
+                continue  # a damaged run record is reported by its own status, it is not "running"
+    return found

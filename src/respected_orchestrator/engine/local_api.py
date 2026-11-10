@@ -14,7 +14,7 @@ from ..interfaces import rpp
 from .evidence import load_signed
 from .authority import Action, Origin, authorize, effective_origin
 from .capabilities import normalize as capability_normalize, paths as capability_paths
-from . import maintenance, session_control
+from . import catalog, session_control, supervisor
 from .session_store import SessionStore
 from . import activity, agent_discovery, capability_matrix, approval, artifact_view, read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control, role_editor, roles
@@ -29,76 +29,8 @@ MAX_EVENTS_PER_CALL = 500
 _ID = re.compile(r"[A-Za-z0-9_-]{8,64}\Z")
 _CACHE_LIMIT = 256
 
-# command -> (RPP op, authority class). Anything not listed does not exist for the shell.
-COMMANDS = {
-    "hello": (None, Action.READ),
-    "engine.manifest": ("manifest", Action.READ),
-    "engine.health": ("health", Action.READ),
-    "settings.schema": ("settings.schema", Action.READ),
-    "settings.readback": ("settings.readback", Action.READ),
-    "settings.validate": ("settings.validate", Action.READ),
-    "settings.apply": ("settings.apply", Action.SETTINGS),
-    "evidence.view": ("evidence.view", Action.READ),
-    "memory.status": ("memory.status", Action.READ),
-    "events.snapshot": (None, Action.READ),
-    "events.since": (None, Action.READ),
-    "runs.active": (None, Action.READ),
-    "runs.list": (None, Action.READ),
-    "projects.list": (None, Action.READ),
-    "plan.view": (None, Action.READ),
-    "plan.create": (None, Action.TASK),
-    "plan.edit": (None, Action.TASK),
-    "plan.start": (None, Action.TASK),
-    "project.status": (None, Action.READ),
-    "project.cancel": (None, Action.TASK),
-    "project.resume": (None, Action.TASK),
-    "review.view": (None, Action.READ),
-    "activity.list": (None, Action.READ),
-    "agents.discover": (None, Action.READ),
-    "capabilities.scan": (None, Action.READ),
-    "capabilities.inventory": (None, Action.READ),
-    "capabilities.matrix": (None, Action.READ),
-    "capabilities.recommend": (None, Action.READ),
-    "team.view": (None, Action.READ),
-    "analytics.summary": (None, Action.READ),
-    "voice.status": (None, Action.READ),
-    "voice.start": (None, Action.TASK),
-    "voice.feed": (None, Action.TASK),
-    "voice.stop": (None, Action.TASK),
-    "voice.cancel": (None, Action.TASK),
-    "attachment.status": (None, Action.READ),
-    "attachment.arm": (None, Action.TASK),
-    "attachment.part": (None, Action.TASK),
-    "attachment.stage": (None, Action.TASK),
-    "attachment.preview": (None, Action.READ),
-    "attachment.describe": (None, Action.READ),
-    "attachment.list": (None, Action.READ),
-    "attachment.cancel": (None, Action.TASK),
-    "attachment.delete": (None, Action.TASK),
-    "attachment.commit": (None, Action.PRIVILEGED),
-    "attachment.share": (None, Action.PRIVILEGED),
-    "attachment.revoke": (None, Action.PRIVILEGED),
-    "roles.view": (None, Action.READ),
-    "roles.plan_edit": (None, Action.READ),
-    "artifact.list": (None, Action.READ),
-    "artifact.read": (None, Action.READ),
-    "approval.open": (None, Action.TASK),
-    "approval.decide": (None, Action.PRIVILEGED),
-    "approval.apply": (None, Action.PRIVILEGED),
-    "sessions.list": (None, Action.READ),
-    "session.start": (None, Action.TASK),
-    "session.events": (None, Action.READ),
-    "session.send": (None, Action.TASK),
-    "session.retry": (None, Action.TASK),
-    "session.interrupt": (None, Action.TASK),
-    "session.cancel": (None, Action.TASK),
-    "session.resume": (None, Action.TASK),
-    "session.models": (None, Action.READ),
-    "session.defaults": (None, Action.READ),
-    "session.defaults.set": (None, Action.SETTINGS),
-    "session.transcript": (None, Action.READ),
-    "session.forget": (None, Action.TASK),
-}
+# command -> (RPP op, authority class), from the one table (ADR-032). Anything not listed does not exist for the shell.
+COMMANDS = {entry.name: (entry.op, entry.action) for entry in catalog.ENTRIES}
 ERRORS = ("BAD_REQUEST", "UNSUPPORTED_VERSION", "UNAUTHENTICATED", "UNKNOWN_COMMAND", "FORBIDDEN",
           "PAYLOAD_TOO_LARGE", "REPLAY_CONFLICT", "ENGINE_ERROR")
 
@@ -126,6 +58,16 @@ class LocalApi:
         self._voice_api = None
         self._attach_api = None
         self.sessions = sessions or session_controller(ctx)  # the persistent engine hands every connection the one it owns (ADR-030)
+
+    def _may(self, entry):
+        """True when this connection could run the command: the same two checks `handle` makes."""
+        if self.only is not None and entry.name not in self.only:
+            return False
+        try:
+            authorize(self.origin, entry.action)
+        except PermissionError:
+            return False
+        return True
 
     def handle_raw(self, raw):
         if isinstance(raw, str):
@@ -365,8 +307,10 @@ class LocalApi:
             if self._seen[corr][0] != digest:
                 return _reply(corr, False, code="REPLAY_CONFLICT", message="id was already used for a different request.")
             return self._seen[corr][1]
-        if command == "runs.active":
-            response = _reply(corr, True, {"runs": maintenance.run_pids(self.ctx)})  # real liveness, not only supervisor claims
+        if command == "catalog.list":
+            response = _reply(corr, True, {"commands": catalog.listing(self._may)})
+        elif command == "runs.active":
+            response = _reply(corr, True, {"runs": supervisor.run_pids(self.ctx)})  # real liveness, not only supervisor claims
         elif command.startswith("project."):
             response = self._project(corr, command, payload)
         elif command in ("plan.create", "plan.edit", "plan.start"):

@@ -94,9 +94,9 @@ test('the screen carries no model, agent or start rule of its own', () => {
 });
 
 test('the screen, the Rust relay and the engine contract list exactly the same session commands', () => {
-  const rust = readFileSync(new URL('../src-tauri/src/engine_connector.rs', import.meta.url), 'utf8');
+  const rust = readFileSync(new URL('../src-tauri/src/catalog.rs', import.meta.url), 'utf8');
   const block = /pub const SESSION_COMMANDS: \[&str; (\d+)\] = \[([^\]]*)\]/.exec(rust);
-  assert.ok(block, 'SESSION_COMMANDS not found in engine_connector.rs');
+  assert.ok(block, 'SESSION_COMMANDS not found in catalog.rs');
   const inRust = [...block![2].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
   assert.equal(Number(block![1]), inRust.length);
   assert.deepEqual([...SESSION_COMMANDS].sort(), [...inRust].sort());

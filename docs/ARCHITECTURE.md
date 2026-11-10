@@ -54,7 +54,7 @@ protokol) [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md) dosyasındadır; burada tek
   Aynı kullanıcının kabuk sürecine kod enjekte etmesi bu kontrolün kapsamı dışındadır.
 - Yerli onay bağlantısı (`approval.decide/apply`, ekran görüntüsü onayı) kabuğun **özel** çocuk motorudur (`connect_private`, `_ipc --human`): yalnız
   kabuğun kendi borularından erişilir. Onay durumu imzalı dosyalardadır, bu yüzden ortak motorla tutarlıdır.
-- MCP henüz taşınmadı: `rorch mcp` hâlâ kendi sürecidir (4. dilim). Sesli giriş ve ekran görüntüsü hazırlığı bağlantı başınadır; kabuk tek bağlantı tutar.
+- `rorch mcp` kendi sürecidir; `orchestrator_session_*` araçlarını motora iletir (4. dilim). Görev, proje, kampanya, apply ve not araçları süreç içinde çalışır (`KALAN_ISLER.md` 1.1). Sesli giriş ve ekran görüntüsü hazırlığı bağlantı başınadır; kabuk tek bağlantı tutar.
 
 ## 2. Görev ve sonuç denetimi
 
@@ -182,7 +182,7 @@ Her rol için öncelik:
    profil, daha düşük ortalama belirteç, havuz sırası. Her aday için 3'ten az kayıt varsa bu bir ölçüm değildir: ilk uygun
    aday alınır ve `basis: pool_order` olarak kaydedilir. Görev zorluğu ve fiyat modellenmez.
 
-**Akıllı yönlendirme (B4-01, henüz çözümleyiciye bağlı değil):** `engine/task_classifier.py` görevi yapıdan `low|medium|high|unknown`
+**Akıllı yönlendirme (B4-01; görev oluşturulurken `workflows/run_hooks.route` çağırır):** `engine/task_classifier.py` görevi yapıdan `low|medium|high|unknown`
 diye sınıflar (görev metni izin vermez, düzeyi düşüremez; risk yetki genişletmez). `workflows/routing_policy.py` aday başına
 neden kaydederek **öneri** üretir; bilinmeyen maliyet `unknown`'dır, 0 değildir; yüksek/bilinmeyen risk ölçülü geçmiş ister;
 açık atama olduğu gibi kalır. `routing_mode`: `shadow` (varsayılan; yalnız `routing-log.jsonl`'a öneri/gerçek farkını yazar),
@@ -193,7 +193,7 @@ sentetik/eksik/yarım/sıfır-yazılmış/10×3×2'den küçük raporu reddeder,
 rapor yoksa kapı **başarısız** olur; ölçülmemiş benchmark geçmiş sayılmaz. Raporun orkestre kolundan `routing_policy.suggest` için
 geçmiş tablosu üretilebilir.
 
-**Takım ve ajan profilleri (B4-02.01, henüz çalışma akışına/CLI'ya bağlı değil):** `workflows/team_profiles.py`, `<veri>/teams.json`
+**Takım ve ajan profilleri (B4-02.01; görev oluşturulurken `run_hooks.apply_profile`, CLI'da `rorch team`):** `workflows/team_profiles.py`, `<veri>/teams.json`
 (şema 1). Profil = kalıcı kimlik (`id`, ad, takım rolü `lead|implementer|reviewer|qa|designer`, araç/model ataması, bütçe,
 yetenekler, `rev`); **oturum** ayrı kimliktir (`ss-…`) ve profil kimliğinden türetilmez. Profil düzenlenince `rev` artar; bir koşu
 başladığı profilin `snapshot()`'ını (kimlik, rev, özet) saklar, sonraki düzenleme eski kaydı değiştirmez. Bilinmeyen anahtar, kimlik
@@ -202,7 +202,7 @@ bilgisi benzeri değer ve rol/araçla uyumsuz yetenek (ör. reviewer/qa için `w
 kaldırılan araç `check()` ile `tool_missing` raporlanır ve yerine başkası konmaz. `teams.json` yoksa takım mevcut rol ayarlarından
 türetilir (yazılmaz); bilinmeyen şema `UNSUPPORTED_SCHEMA`.
 
-**Devir mesajı ve posta kutusu (B4-02.02, henüz ajan akışına bağlı değil):** `workflows/handoff.py`. Bir ajanın devir önerisi
+**Devir mesajı ve posta kutusu (B4-02.02; CLI'da `rorch handoff` ve `rorch inbox`, `workflows/team_commands` üzerinden):** `workflows/handoff.py`. Bir ajanın devir önerisi
 güvenilmez girdidir: kapalı alan kümesi, küçük boyut (ham 8 KB, zarf 4 KB), gönderen motorun bildiği oturumdan alınır (mesajdaki
 `from` farklıysa `SPOOFED_SENDER`), alıcı takımda olmalı ve `next_action` alıcının rolüne uymalıdır, yol kapsamı yalnız göndericinin
 sahip olduklarının alt kümesi olabilir (`SCOPE_WIDENING`), kanıt referansları bu kurulumun imzalı `result.json` yama özetiyle
@@ -226,19 +226,19 @@ kaynak özetli, ayıklayıcı kritik kanıtı asla kırpmayan bağlam), `workflo
 (ses yalnız taslak metin; ADR-027); `engine/attachment.py` (yakalama/ekleme/model paylaşımı üç ayrı karar; ADR-028); `interfaces/observer.py` (salt okunur, döngü
 adresi, hiçbir yerden başlatılmaz; ADR-029).
 
-**Kurtarma kararı (B4-08.01, henüz yürütme yoluna bağlı değil):** `workflows/recovery.py` `decide(reason, provider_status, state, limits)`
+**Kurtarma kararı (B4-08.01; yeniden denemeden önce `run_hooks.retry_guard` çağırır):** `workflows/recovery.py` `decide(reason, provider_status, state, limits)`
 saf bir karar verir (`retry|pause|operator|stop`), kendisi hiçbir şey yapmaz. Sıra: önce kaynak sınırları (deneme ≤ 3 varsayılan/5
 tavan, devir, süre, belirteç; ölçülemeyen belirteç bütçesi `pause`), sonra `policy_denied` → `stop`, `auth` → `operator`,
 `quota` → `pause` (otomatik devam yok), yalnız test hatası/zaman aşımı/altyapı/bayat yama/düzeltme isteği sınıf başına tavanla
 `retry` olabilir, aynı sınıf tekrar ederse devre kesici `pause`; sınıflanamayan hata `operator`. Geçersiz sınır istisna fırlatır,
 sessizce varsayılana düşmez. `retry` her zaman sayılan bir denemedir, bu yüzden her döngü biter.
-**Takım döngüsü (B4-02.03, henüz koordinatöre bağlı değil):** `workflows/team_loop.py` `evaluate` doğrulanmış devri `deliver|duplicate|
+**Takım döngüsü (B4-02.03; `workflows/team_commands` üzerinden):** `workflows/team_loop.py` `evaluate` doğrulanmış devri `deliver|duplicate|
 reject|escalate` diye sınıflar: aynı `operation_id` yinelenmez; hop bütçesi (zarf `max_hops` ile `max_handoffs`'ın küçüğü) ve yeniden
 çalışma bütçesi aşılınca `escalate` (insana) ve durdurulacak oturumlar döner; alıcı aracı yoksa, çalışan oturumla yol çakışırsa,
 bağımsız gözden geçirme isteniyorken gözden geçiren yazarla aynı araç/profildeyse, ya da aynı kenar yeni kanıt olmadan tekrarlanırsa
 `reject`. `apply` diye bir eylem yoktur.
 
-**Yetenek uyumluluğu, önerisi, izin kartı ve etkinleştirme planı (B4-03, henüz CLI/arayüze bağlı değil):** hepsi
+**Yetenek uyumluluğu, önerisi, izin kartı ve etkinleştirme planı (B4-03; yerel API'de `capabilities.matrix` ve `capabilities.recommend`):** hepsi
 `engine/capabilities/` altında, çevrimdışı ve salt okunur; keşif kaydı (`normalize.build`) girdi olur. (1) `compatibility.resolve`
 her kayıt için `compatible|incompatible|unknown` ve nedenleri verir (istemci/tür desteği keşif matrisinden; yalnız `stdio` aktarımı
 onaylı; paket çalıştırıcıları ve diğer aktarımlar `unknown`; eksik program, yanlış proje `incompatible`); güveni okumaz. (2)
@@ -251,13 +251,13 @@ açıklar (proje bazlı, hedef yapılandırma dosyası proje içinde), yalnız H
 kullanımlık ve süreli; `consume` taze envanterle yeniden denetler (bayat/oynanmış/başka proje/başka plan) ve yalnız "yazılabilir"
 der. Hiçbiri dosya yazmaz; yürütme kapısı bağımsız ve son sözdür.
 
-**Kullanım olayı (B4-04.01, henüz çalışma akışına bağlı değil):** `engine/usage_event.py` her model çağrısı için tipli `UsageEvent`
+**Kullanım olayı (B4-04.01; `engine/ledger_source` üzerinden):** `engine/usage_event.py` her model çağrısı için tipli `UsageEvent`
 üretir (taze girdi, önbellek okuma/yazma, çıktı, akıl yürütme; her alan için `reported|derived|absent|invalid` kaynağı). Raporlanmayan
 değer `None`'dır, 0 değil; önbelleğin girdiye dahil olup olmadığı olayda `cache_semantics` olarak yazılır ve yalnız dahil olduğu bilinen
 motor sözlüğünden taze girdi türetilir. Abonelik/bilinmeyen faturalama `cost_eligible: false` taşır, API maliyeti sayılmaz. Aynı
 `event_id` iki kez sayılmaz; farklı rakamlı tekrar `conflicts`'te raporlanır. Olay yalnız sayı ve kimlik içerir.
 
-**Maliyet/kalite defteri (B4-04.02, henüz gerçek koşulara bağlı değil):** `engine/cost_ledger.py` fiyat kataloğunu özetli bir
+**Maliyet/kalite defteri (B4-04.02; CLI'da `rorch ledger`, yerel API'de `analytics.summary`):** `engine/cost_ledger.py` fiyat kataloğunu özetli bir
 anlık görüntüye (`snapshot`) dondurur ve koşu kayıtlarından görev sınıfı başına rapor üretir (çevrimdışı, aynı girdi aynı `digest`).
 Bir koşunun maliyeti yalnız API-faturalı, tüm sayıları bilinen, fiyatı katalogda bulunan/yürürlükte/bayat olmayan ve tek para
 birimli olaylardan hesaplanır; aksi halde o koşu `uncomputable` (nedenli) olur ve grup toplamı `None`'dır (fiyatlanabilen kısım
@@ -485,6 +485,14 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   karşı doğrular), konuşma geçmişi, başlık, oturum-klasör eşlemesi, sıralama ve token/maliyet toplamları motorda hesaplanır ve saklanır
   (`engine/session_store.py`, veri kökünde `chat/sessions.json`); masaüstü bunları çizer ve kullanıcının seçimini iletir. Tarayıcı depolaması
   yalnız görünüm tercihlerini (tema, kenar çubuğu, grup sırası, sıralama ölçütü) tutar; `desktop/tests/engine_owns.test.ts` bunu denetler.
+  **Motor komutlarının tek tablosu `engine/catalog.py`'dir (ADR-032):** yerel API'nin komut listesi, `rorch session`, `orchestrator_session_*`
+  ve kabuğun iletebildiği komut listeleri (`desktop/src/contracts/catalog.ts`, `desktop/src-tauri/src/catalog.rs`; üretilir, elle düzenlenmez,
+  `tests/engine/test_local_api.py` ayrışmayı yakalar) ondan kurulur. Kabuğun izin listesi derleme zamanında sabittir, çalışırken motordan alınmaz.
+  **Ekranların kaynağı (sahte veri yoktur; veri yoksa boş durum, motora ulaşılamazsa hata çizilir):** Sohbet ve sağ paneller `session.*`,
+  `session.models`, `capabilities.inventory` ve yalnız seçilen klasörde `list_dir`/`read_text_file`; Görevler ve Gelen kutusu `runs.list`
+  (Gelen kutusu: başarısız, yarıda kalan, bozuk kayıtlar); Projeler `projects.list`; Etkinlik `activity.list` (en yeni 100 olay); Ajanlar ve
+  ekipler `team.view`; Bütçe ve başarı `analytics.summary`; MCP ve beceriler `capabilities.inventory`. İnceleme ekranı yoktur: `review.view`
+  yalnız yerel onay penceresi içindir (bu, `KALAN_ISLER.md` 1.7 ile değişecek).
   Dosya ağacı ve seçili klasör izni kabukta kalır: izin kullanıcının yerel klasör penceresindeki seçimidir ve motora vekâlet edilemez.
   `session.models` (salt okunur) ajan CLI'ının kendi `models` çıktısını döndürür; yalnız `sağlayıcı/ad` biçimindeki satırlar kalır ve
   ajan CLI'ını çalıştırır. Sohbet ekranı model listesini, token kullanımını (`usage`
