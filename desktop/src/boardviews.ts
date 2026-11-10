@@ -10,7 +10,7 @@ export const RUN_STATE: Record<string, { text: string; tone: Tone }> = {
 export const stateInfo = (s: string): { text: string; tone: Tone } => RUN_STATE[s] ?? { text: s || 'Bilinmiyor', tone: '' };
 export const ATTENTION_STATES = ['failed', 'stale', 'invalid'] as const;
 
-export type RunRow = { run_id: string; state: string; task: string; kind: string | null; agent: string | null; project_root: string | null; created_at: string | null; updated_at: string | null; error: string | null };
+export type RunRow = { run_id: string; state: string; lane: string; display: string; task: string; kind: string | null; agent: string | null; project_root: string | null; created_at: string | null; updated_at: string | null; error: string | null };
 export type ProjectRow = { project_id: string; state: string; goal: string; created_at: string | null; alive: boolean; stages: { name: string; status: string | null; after: string[]; attempts: number }[]; error: string | null };
 export type ActivityRow = { seq: number; ts: number | null; op: string; run: string | null; type: string; stage: string | null };
 
@@ -35,7 +35,7 @@ export function runsView(reply: unknown): View<RunRow> {
   const b = body(reply, 'Görevler okunamadı', 'runs');
   if (!b.ok) return b.f;
   const rows = b.list.filter((x): x is Record<string, unknown> => obj(x, 'run_id') && typeof x.run_id === 'string')
-    .map((x) => ({ run_id: s(x.run_id), state: s(x.state) || 'invalid', task: s(x.task), kind: sn(x.kind), agent: sn(x.agent), project_root: sn(x.project_root), created_at: sn(x.created_at), updated_at: sn(x.updated_at), error: sn(x.error) }));
+    .map((x) => ({ run_id: s(x.run_id), state: s(x.state) || 'invalid', lane: s(x.lane), display: s(x.display), task: s(x.task), kind: sn(x.kind), agent: sn(x.agent), project_root: sn(x.project_root), created_at: sn(x.created_at), updated_at: sn(x.updated_at), error: sn(x.error) }));
   return rows.length === b.list.length ? { kind: 'rows', rows, more: b.r.next_cursor != null } : fail('Görev listesi beklenen biçimde değil; gösterilmedi.', SHAPE);
 }
 
@@ -103,3 +103,20 @@ export function readyAgents(reply: unknown): string[] {
   if (!Array.isArray(list)) return [];
   return list.filter((a): a is { agent: string } => typeof a?.agent === 'string' && a.agent !== 'custom' && a?.readiness?.effective === 'ready').map((a) => a.agent);
 }
+
+/** The board's lanes, in the engine's order. The lane of a run is the engine's (derived from its records on every read); nothing is moved here. */
+export const LANES: { id: string; title: string }[] = [
+  { id: 'needs_you', title: 'Sizi bekliyor' }, { id: 'working', title: 'Çalışıyor' }, { id: 'ready', title: 'Onaya hazır' }, { id: 'archive', title: 'Arşiv' },
+];
+const DISPLAY: Record<string, string> = { awaiting_approval: 'Onayınızı bekliyor', apply_failed: 'Uygulama başarısız oldu', applied: 'Uygulandı' };
+export const displayText = (r: RunRow): string => DISPLAY[r.display] ?? stateInfo(r.state).text;
+
+/** Rows grouped by lane. A run whose lane this screen does not know stays visible: it goes to "Sizi bekliyor", never out of sight. */
+export function lanesOf(rows: RunRow[]): { id: string; title: string; rows: RunRow[] }[] {
+  const known = new Set(LANES.map((l) => l.id));
+  return LANES.map((l) => ({ ...l, rows: rows.filter((r) => (known.has(r.lane) ? r.lane : 'needs_you') === l.id) }));
+}
+
+/** What a card may ask the engine for: cancel while it works, retry after it failed or was cut off. The engine decides again. */
+export const cardAction = (r: RunRow): 'task.cancel' | 'task.retry' | null =>
+  r.lane === 'working' ? 'task.cancel' : r.display === 'failed' || r.display === 'stale' ? 'task.retry' : null;

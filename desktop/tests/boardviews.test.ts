@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { activityView, newestCursor, projectsView, readyAgents, runsView, startedView, stateInfo, taskRequest, when } from '../src/boardviews.ts';
+import { cardAction, displayText, lanesOf, activityView, newestCursor, projectsView, readyAgents, runsView, startedView, stateInfo, taskRequest, when } from '../src/boardviews.ts';
 
-const run = { run_id: 'run-20261108120000-aaaaaaaaaaaa', state: 'done', task: 'oku', kind: 'read', agent: 'codex', project_root: 'C:/p', created_at: '2026-11-08T12:00:00Z', updated_at: null, error: null };
+const run = { run_id: 'run-20261108120000-aaaaaaaaaaaa', state: 'done', lane: 'archive', display: 'done', task: 'oku', kind: 'read', agent: 'codex', project_root: 'C:/p', created_at: '2026-11-08T12:00:00Z', updated_at: null, error: null };
 
 test('runs: documented rows become rows; any other shape is an error, never an empty list', () => {
   const v = runsView({ ok: true, result: { runs: [run], next_cursor: 'x' } });
@@ -53,4 +53,12 @@ test('new task: the reply is a run id or the engine refusal in words; only ready
   const agents = [{ agent: 'codex', readiness: { effective: 'ready' } }, { agent: 'claude', readiness: { effective: 'not_ready' } }, { agent: 'custom', readiness: { effective: 'ready' } }, { nope: 1 }];
   assert.deepEqual(readyAgents({ ok: true, result: { agents } }), ['codex']);
   assert.deepEqual(readyAgents({ ok: false }), []);
+});
+
+test('board: lanes come from the engine, an unknown lane stays in sight, and a card offers only what fits its state', () => {
+  const row = (run_id: string, state: string, lane: string, display: string) => ({ run_id, state, lane, display, task: '', kind: null, agent: null, project_root: null, created_at: null, updated_at: null, error: null });
+  const rows = [row('a', 'in_progress', 'working', 'in_progress'), row('b', 'done', 'ready', 'awaiting_approval'), row('c', 'failed', 'needs_you', 'failed'), row('d', 'done', 'archive', 'applied'), row('e', 'done', 'later', 'x')];
+  assert.deepEqual(lanesOf(rows).map((l) => [l.id, l.rows.map((r) => r.run_id)]), [['needs_you', ['c', 'e']], ['working', ['a']], ['ready', ['b']], ['archive', ['d']]]);
+  assert.deepEqual(rows.map(cardAction), ['task.cancel', null, 'task.retry', null, null]);
+  assert.deepEqual(rows.slice(0, 4).map(displayText), ['Çalışıyor', 'Onayınızı bekliyor', 'Başarısız', 'Uygulandı']);
 });

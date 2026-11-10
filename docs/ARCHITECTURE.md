@@ -494,6 +494,10 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   ekipler `team.view`; Bütçe ve başarı `analytics.summary`; MCP ve beceriler `capabilities.inventory`. İnceleme ekranı yoktur: `review.view`
   yalnız yerel onay penceresi içindir (bu, `KALAN_ISLER.md` 1.7 ile değişecek).
   Dosya ağacı ve seçili klasör izni kabukta kalır: izin kullanıcının yerel klasör penceresindeki seçimidir ve motora vekâlet edilemez.
+  **Pano şeridi saklanmaz, türetilir (`read_model.lane_of`):** `runs.list` her satırda `lane` (`needs_you`, `working`, `ready`, `archive`) ve
+  `display` verir; ikisi de her okumada koşunun kendi dosyalarından hesaplanır (durum, boş olmayan `worker.patch`, `applied.json`,
+  `apply-failed.json`). Doğrulanmış ama uygulanmamış değişiklik `ready` / `awaiting_approval`'dır; başarısız, yarıda kalan, bozuk kayıt ve
+  başarısız uygulama `needs_you`'dur. Ekran kartı sürükleyip durum değiştiremez; karttan yalnız `task.cancel` ve `task.retry` istenir.
   **Görev komutları (`task.start`, `task.status`, `task.cancel`, `task.retry`):** tek görev koşusunu motor üzerinden başlatır ve izler; kayıtlar
   `rorch create/start` ve süreç içi MCP araçlarının yazdığı kayıtlarla aynıdır (`runner.create_task`, `start_task`), yani üç yüz aynı koşuları
   görür. Masaüstündeki "Yeni görev" formu ve `rorch task` bu komutları kullanır. Terminaldeki operatör (`HUMAN`) dışındaki her çağıran için MCP

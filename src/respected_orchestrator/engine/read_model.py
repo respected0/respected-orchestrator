@@ -16,12 +16,29 @@ MAX_PAGE = 200
 STATE_OF = {"queued": "queued", "running": "in_progress", "completed": "done", "failed": "failed", "timed_out": "failed",
             "error": "failed", "cancelled": "cancelled", "interrupted": "stale"}
 STATES = frozenset(STATE_OF.values()) | {"invalid"}
+LANES = ("needs_you", "working", "ready", "archive")  # board order: what waits for the person comes first
 _RUN = re.compile(r"run-\d{14}-[0-9a-f]{12}\Z")
 _PROJECT = re.compile(r"proj-[a-z0-9-]{1,60}\Z")
 
 
 def _title(text, limit=160):
     return " ".join(str(text or "").split())[:limit]
+
+
+def lane_of(state, patch=False, applied=False, apply_failed=False):
+    """(lane, display) of a run on the board. Never stored: derived from the run's own files on every read, like the state."""
+    if state in ("failed", "stale", "invalid"):
+        return "needs_you", state
+    if state in ("queued", "in_progress"):
+        return "working", state
+    if state == "done" and patch and not applied:  # a verified change that only a person can let into the real tree
+        return ("needs_you", "apply_failed") if apply_failed else ("ready", "awaiting_approval")
+    return "archive", "applied" if applied else state
+
+
+def _with_lane(dto, **facts):
+    lane, display = lane_of(dto["state"], **facts)
+    return {**dto, "lane": lane, "display": display}
 
 
 def run_dto(ctx, run_id):
@@ -32,9 +49,9 @@ def run_dto(ctx, run_id):
         request = load_signed(ctx, directory / "request.json")
         status = runner.effective_status(ctx, directory)
     except (ValueError, OSError, KeyError) as error:
-        return {**base, "error": f"unreadable: {str(error)[:160]}"}
+        return _with_lane({**base, "error": f"unreadable: {str(error)[:160]}"})
     if request.get("run_id") != run_id or status.get("run_id") != run_id:
-        return {**base, "error": "identity_mismatch"}
+        return _with_lane({**base, "error": "identity_mismatch"})
     raw = status.get("status")
     dto = {**base, "status": raw if isinstance(raw, str) else None, "reason": status.get("reason"),
            "task": _title(request.get("task")), "kind": request.get("kind"), "agent": request.get("worker"),
@@ -44,8 +61,10 @@ def run_dto(ctx, run_id):
            "evidence": {"patch": (directory / "worker.patch").is_file(),
                         "logs": sorted(p.name for p in directory.glob("*.log"))}}
     if raw not in STATE_OF:
-        return {**dto, "error": "unknown_status"}
-    return {**dto, "state": STATE_OF[raw]}
+        return _with_lane({**dto, "error": "unknown_status"})
+    patch = directory / "worker.patch"
+    return _with_lane({**dto, "state": STATE_OF[raw]}, patch=patch.is_file() and patch.stat().st_size > 0,
+                      applied=(directory / "applied.json").is_file(), apply_failed=(directory / "apply-failed.json").is_file())
 
 
 def runs_page(ctx, *, states=None, query=None, newest_first=True, cursor=None, limit=50):
@@ -64,7 +83,7 @@ def runs_page(ctx, *, states=None, query=None, newest_first=True, cursor=None, l
         if cursor is not None and ((name >= cursor) if newest_first else (name <= cursor)):
             continue
         if not _RUN.fullmatch(name):
-            dto = {"run_id": name, "state": "invalid", "error": "bad_run_id"}
+            dto = _with_lane({"run_id": name, "state": "invalid", "error": "bad_run_id"})
         else:
             dto = run_dto(ctx, name)
         if wanted is not None and dto["state"] not in wanted:

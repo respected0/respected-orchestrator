@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Empty, Failed, Loading, Modal, Page } from './ui';
-import { ATTENTION_STATES, RUN_STATE, activityView, newestCursor, projectsView, readyAgents, runsView, startedView, stateInfo, taskRequest, when, type ActivityView, type ProjectRow, type RunRow, type TaskForm, type View } from './boardviews';
+import { ATTENTION_STATES, RUN_STATE, activityView, cardAction, displayText, lanesOf, newestCursor, projectsView, readyAgents, runsView, startedView, stateInfo, taskRequest, when, type ActivityView, type ProjectRow, type RunRow, type TaskForm, type View } from './boardviews';
 import { baseName } from './chatmodel';
 
 /** One read-only engine call. A failure to reach the engine is a view, not an exception. */
@@ -68,8 +68,36 @@ function NewTask({ close, started }: { close: () => void; started: () => void })
   );
 }
 
+/** The board: one column per lane, in the engine's order. Cards are not dragged; a run changes lane only when its records change. */
+function RunBoard({ rows, changed }: { rows: RunRow[]; changed: () => void }) {
+  const [note, setNote] = useState<string | null>(null);
+  const ask = async (cmd: 'task.cancel' | 'task.retry', run_id: string) => {
+    const r = await invoke('session_call', { cmd, payload: { run_id } }).then(startedView, () => startedView(null));
+    setNote(r.ok ? null : r.text);
+    changed();
+  };
+  return (
+    <>{note && <p role="alert">{note}</p>}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, alignItems: 'start' }}>
+        {lanesOf(rows).map((l) => (
+          <section key={l.id} aria-label={l.title}><h3 style={{ margin: '0 0 8px' }}>{l.title} <span className="mut">{l.rows.length}</span></h3>
+            {l.rows.length === 0 && <p className="mut">Boş</p>}
+            {l.rows.map((r) => { const action = cardAction(r); return (
+              <div key={r.run_id} className="card" style={{ padding: 10, marginBottom: 8 }}>
+                <div>{r.task || <span className="mut">(görev metni yok)</span>}</div>
+                <div className="mut">{displayText(r)} · {r.agent ?? '—'} · {when(r.updated_at ?? r.created_at)}</div>
+                {r.error && <div className="mut">{r.error}</div>}
+                <div className="row"><span className="mono mut grow" title={r.project_root ?? ''}>{r.run_id}</span>
+                  {action && <button className="btn sm" onClick={() => void ask(action, r.run_id)}>{action === 'task.cancel' ? 'İptal et' : 'Yeniden dene'}</button>}</div>
+              </div>); })}
+          </section>))}
+      </div></>
+  );
+}
+
 export function Tasks() {
   const [state, setState] = useState('all');
+  const [board, setBoard] = useState(true);
   const [creating, setCreating] = useState(false);
   const [q, setQ] = useState('');
   const [v, reload] = useBoard<View<RunRow>>(() => read('runs.list', { limit: 100, ...(state !== 'all' ? { states: [state] } : {}), ...(q.trim() ? { query: q.trim() } : {}) }, runsView), [state, q],
@@ -81,11 +109,12 @@ export function Tasks() {
         <select className="seg" value={state} onChange={(e) => setState(e.target.value)} aria-label="Duruma göre süz">
           <option value="all">Tüm durumlar</option>{Object.entries(RUN_STATE).map(([k, i]) => <option key={k} value={k}>{i.text}</option>)}</select>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Görev, ajan ya da kimlik ara…" aria-label="Görevlerde ara" style={{ flex: 1, maxWidth: 360 }} />
+        <button className="btn sm" aria-pressed={board} onClick={() => setBoard(!board)}>{board ? 'Liste görünümü' : 'Pano görünümü'}</button>
       </div>
       {v === null ? <Loading text="Görevler okunuyor…" />
         : v.kind === 'error' ? <Failed text={v.text} hint={v.hint} retry={reload} />
         : v.rows.length === 0 ? <Empty title={state !== 'all' || q ? 'Bu süzgece uyan görev yok.' : 'Henüz görev yok.'} hint="Yeni görev düğmesiyle, `rorch task start` komutuyla ya da bir AI aracının MCP bağlantısıyla başlatılan görevler burada görünür." />
-        : <><RunTable rows={v.rows} />{v.more && <p className="mut">En yeni 100 görev gösteriliyor.</p>}</>}
+        : <>{board ? <RunBoard rows={v.rows} changed={reload} /> : <RunTable rows={v.rows} />}{v.more && <p className="mut">En yeni 100 görev gösteriliyor.</p>}</>}
     </Page>
   );
 }

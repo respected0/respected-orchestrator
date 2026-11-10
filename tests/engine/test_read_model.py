@@ -44,6 +44,25 @@ class ReadModelTests(unittest.TestCase):
         cli = {r["run_id"]: r["status"] for r in runner.list_tasks(self.ctx)["runs"]}
         self.assertEqual({k: v["status"] for k, v in page.items()}, cli)
 
+    def test_board_lanes_are_derived_from_the_run_files_on_every_read(self):
+        ids = {s: self.make(i, s) for i, s in enumerate(["queued", "completed", "failed", "cancelled", "interrupted"], 1)}
+        lanes = lambda: {r["run_id"]: (r["lane"], r["display"]) for r in read_model.runs_page(self.ctx)["runs"]}
+        seen = lanes()
+        self.assertEqual([seen[ids[s]] for s in ("queued", "completed", "failed", "cancelled", "interrupted")],
+                         [("working", "queued"), ("archive", "done"), ("needs_you", "failed"), ("archive", "cancelled"), ("needs_you", "stale")])
+        done = self.ctx.run_dir(ids["completed"])
+        (done / "worker.patch").write_bytes(b"")  # an empty patch is nothing to approve
+        self.assertEqual(lanes()[ids["completed"]], ("archive", "done"))
+        (done / "worker.patch").write_bytes(b"diff --git a/x b/x\n")
+        self.assertEqual(lanes()[ids["completed"]], ("ready", "awaiting_approval"))  # nothing was stored: the same record moved
+        (done / "apply-failed.json").write_text("{}")
+        self.assertEqual(lanes()[ids["completed"]], ("needs_you", "apply_failed"))
+        (done / "applied.json").write_text("{}")
+        self.assertEqual(lanes()[ids["completed"]], ("archive", "applied"))
+        (self.ctx.state_dir / "run-broken").mkdir()
+        self.assertEqual(lanes()["run-broken"], ("needs_you", "invalid"))
+        self.assertTrue(all(r["lane"] in read_model.LANES for r in read_model.runs_page(self.ctx)["runs"]))
+
     def test_a_live_worker_is_in_progress(self):
         rid = self.make(1, "running")
         directory = self.ctx.run_dir(rid)
