@@ -18,9 +18,10 @@ class Entry:
     name: str
     action: Action
     op: str | None = None  # the RPP operation it wraps, when it wraps one
-    cli: tuple | None = None  # (`rorch session` verb, input): None = JSON object on stdin, "" = no input, a name = one optional plain word
+    cli: tuple | None = None  # (`rorch <group>` verb, input): None = JSON object on stdin, "" = no input, a name = one optional plain word
     mcp: tuple | None = None  # (tool name, description, input schema, read-only)
-    desktop: str | None = None  # the relay list the renderer may use it through: session | voice | attach | read
+    desktop: str | None = None  # the relay list the renderer may use it through: session | task | voice | attach | read
+    group: str = "session"  # the `rorch` command its CLI verb lives under: session | task
 
 
 def _object(required, **properties):
@@ -55,6 +56,11 @@ ENTRIES = (
     Entry("project.status", READ, desktop="read"),
     Entry("project.cancel", TASK),
     Entry("project.resume", TASK),
+    # One isolated task run: the same records `rorch create/start` and the in-process MCP tools write (KALAN_ISLER 1.1).
+    Entry("task.start", TASK, cli=("start", None), group="task", desktop="task"),
+    Entry("task.status", READ, cli=("status", "run_id"), group="task", desktop="task"),
+    Entry("task.cancel", TASK, cli=("cancel", "run_id"), group="task", desktop="task"),
+    Entry("task.retry", TASK, cli=("retry", "run_id"), group="task", desktop="task"),
     Entry("review.view", READ),
     Entry("activity.list", READ, desktop="read"),
     Entry("agents.discover", READ),
@@ -121,9 +127,9 @@ ENTRIES = (
 BY_NAME = {entry.name: entry for entry in ENTRIES}
 assert len(BY_NAME) == len(ENTRIES), "a command is listed twice"
 
-CLI = {entry.cli[0]: entry for entry in ENTRIES if entry.cli}  # `rorch session <verb>` -> entry
+CLI = {(entry.group, entry.cli[0]): entry for entry in ENTRIES if entry.cli}  # (`rorch` command, verb) -> entry
 MCP = {entry.mcp[0]: entry for entry in ENTRIES if entry.mcp}  # tool name -> entry
-DESKTOP_GROUPS = ("session", "voice", "attach", "read")
+DESKTOP_GROUPS = ("session", "task", "voice", "attach", "read")
 
 
 def desktop(group):
@@ -132,7 +138,7 @@ def desktop(group):
 
 def listing(allowed):
     """What `catalog.list` answers: the entries `allowed(entry)` accepts, with the faces each one has."""
-    return [{"name": e.name, "action": e.action.name.lower(), "cli": e.cli[0] if e.cli else None, "mcp": e.mcp[0] if e.mcp else None,
+    return [{"name": e.name, "action": e.action.name.lower(), "cli": f"{e.group} {e.cli[0]}" if e.cli else None, "mcp": e.mcp[0] if e.mcp else None,
              "desktop": e.desktop} for e in ENTRIES if allowed(e)]
 
 

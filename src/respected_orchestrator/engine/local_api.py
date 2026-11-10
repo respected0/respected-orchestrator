@@ -14,7 +14,7 @@ from ..interfaces import rpp
 from .evidence import load_signed
 from .authority import Action, Origin, authorize, effective_origin
 from .capabilities import normalize as capability_normalize, paths as capability_paths
-from . import catalog, session_control, supervisor
+from . import catalog, runner, session_control, supervisor
 from .session_store import SessionStore
 from . import activity, agent_describe, agent_discovery, approval, artifact_view, read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control, role_editor, roles
@@ -28,6 +28,8 @@ MAX_REQUEST_BYTES = 64 * 1024
 MAX_EVENTS_PER_CALL = 500
 _ID = re.compile(r"[A-Za-z0-9_-]{8,64}\Z")
 _CACHE_LIMIT = 256
+_RUN = re.compile(r"run-[A-Za-z0-9-]{1,80}\Z")
+_LOG_TAIL = 3000
 
 # command -> (RPP op, authority class), from the one table (ADR-032). Anything not listed does not exist for the shell.
 COMMANDS = {entry.name: (entry.op, entry.action) for entry in catalog.ENTRIES}
@@ -87,6 +89,34 @@ class LocalApi:
                 return _reply(corr, True, project_control.status(self.ctx, pid))
             action = project_control.cancel if command == "project.cancel" else project_control.resume
             return _reply(corr, True, action(self.ctx, pid, corr))
+        except (ValueError, TypeError, KeyError, OSError) as error:
+            return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300])
+
+    def _task(self, corr, command, payload):
+        """One isolated task run. Anyone but the operator at a terminal gets the MCP rules: no custom worker or command, and
+        acceptance commands only from the user's own list (setting mcp_acceptance_allow)."""
+        try:
+            if command == "task.start":
+                if self.origin is not Origin.HUMAN:
+                    from ..interfaces import mcp_server  # the one place these two rules live
+                    mcp_server._refuse_privileged(payload, False)
+                    mcp_server._refuse_unlisted_commands(self.ctx, payload, False)
+                created = runner.create_task(self.ctx, payload)
+                return _reply(corr, True, dict(created, **runner.start_task(self.ctx, created["run_id"])))
+            run_id = payload.get("run_id")
+            if not isinstance(run_id, str) or not _RUN.fullmatch(run_id):
+                return _reply(corr, False, code="BAD_REQUEST", message="run_id must be a run-* identity.")
+            if command == "task.cancel":
+                return _reply(corr, True, runner.cancel_task(self.ctx, run_id))
+            if command == "task.retry":
+                retried = runner.retry_task(self.ctx, run_id)
+                return _reply(corr, True, dict(retried, **runner.start_task(self.ctx, retried["run_id"])) if "run_id" in retried else retried)
+            entry = dict(runner.inspect_task(self.ctx, run_id))
+            entry["logs"] = {name: text[-_LOG_TAIL:] for name, text in entry.get("logs", {}).items()}
+            entry["patch_preview"] = entry.get("patch_preview", "")[:_LOG_TAIL]
+            return _reply(corr, True, entry)
+        except FileNotFoundError:  # its message would carry a path of the data folder
+            return _reply(corr, False, code="ENGINE_ERROR", message="Unknown run.")
         except (ValueError, TypeError, KeyError, OSError) as error:
             return _reply(corr, False, code="ENGINE_ERROR", message=str(error)[:300])
 
@@ -313,6 +343,8 @@ class LocalApi:
             response = _reply(corr, True, {"runs": supervisor.run_pids(self.ctx)})  # real liveness, not only supervisor claims
         elif command.startswith("project."):
             response = self._project(corr, command, payload)
+        elif command.startswith("task."):
+            response = self._task(corr, command, payload)
         elif command in ("plan.create", "plan.edit", "plan.start"):
             response = self._plan(corr, command, payload)
         elif command == "plan.view":

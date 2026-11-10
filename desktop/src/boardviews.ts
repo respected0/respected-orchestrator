@@ -69,3 +69,37 @@ export function when(v: string | number | null): string {
   const d = new Date(typeof v === 'number' ? v * 1000 : v);
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' });
 }
+
+export type TaskForm = { root: string; task: string; kind: 'read' | 'write'; worker: string; ownership: string; acceptance: string };
+type Checked<T> = { ok: true; value: T } | { ok: false; text: string };
+const refuse = (text: string): { ok: false; text: string } => ({ ok: false, text });
+
+/** The new-task form -> the engine's `task.start` payload. Only obvious gaps are caught here; the engine checks everything again. */
+export function taskRequest(f: TaskForm): Checked<Record<string, unknown>> {
+  const lines = (s: string) => s.split('\n').map((x) => x.trim()).filter(Boolean);
+  if (!f.root.trim()) return refuse('Proje klasörünü seçin.');
+  if (!f.task.trim()) return refuse('Görevi yazın.');
+  const ownership = lines(f.ownership);
+  if (!ownership.length) return refuse('En az bir kapsam yolu yazın (ör. src ya da .).');
+  // shortcut: a command line is split on spaces, so an argument that contains a space cannot be written; use a quoting parser when one is needed
+  const acceptance = lines(f.acceptance).map((l) => l.split(/\s+/));
+  if (f.kind === 'write' && !acceptance.length) return refuse('Yazan görev en az bir kabul komutu ister.');
+  return { ok: true, value: { project_root: f.root.trim(), task: f.task.trim(), kind: f.kind, ownership, ...(f.worker ? { worker: f.worker } : {}), ...(acceptance.length ? { acceptance } : {}) } };
+}
+
+/** The engine's `task.start` reply -> the run id, or the engine's refusal as a sentence. */
+export function startedView(reply: unknown): Checked<string> {
+  const r = reply as { ok?: unknown; result?: { run_id?: unknown }; error?: { code?: string; message?: string } } | null;
+  if (r?.ok === true) return typeof r.result?.run_id === 'string' ? { ok: true, value: r.result.run_id } : refuse('Motorun yanıtı beklenen biçimde değil.');
+  const message = r?.error?.message ?? '';
+  if (message.includes('mcp_acceptance_allow')) return refuse('Kabul komutu izin listenizde yok. Önce `rorch config set mcp_acceptance_allow=...` ile komutun başını ekleyin.');
+  if (r?.error?.code === 'FORBIDDEN') return refuse('Bu işleme izin yok.');
+  return refuse(message ? `Motor reddetti: ${message.slice(0, 300)}` : 'Motor yanıt vermedi.');
+}
+
+/** Agents the form may offer as the worker: the ones `agent.describe` calls ready. A user-defined command is never offered here. */
+export function readyAgents(reply: unknown): string[] {
+  const list = (reply as { ok?: unknown; result?: { agents?: unknown } } | null)?.result?.agents;
+  if (!Array.isArray(list)) return [];
+  return list.filter((a): a is { agent: string } => typeof a?.agent === 'string' && a.agent !== 'custom' && a?.readiness?.effective === 'ready').map((a) => a.agent);
+}

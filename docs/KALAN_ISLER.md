@@ -54,9 +54,9 @@ Sıra `RAKIP_ESKIKLERI.md` §3'teki sıradır; rakip karşılaştırmasından ge
 ## 1. Motor
 
 - [ ] **1.1 Görev, proje ve kampanya komutlarını motora taşı** `[K]`, `apply` için `[S]`
-  - Bizde: motor komutları tek tabloda (`engine/catalog.py`, ADR-032). Süreç içi MCP araçları (`orchestrator_task_start`, `_project_start`, `_progress`, …) ve ~45 eski CLI komutu hâlâ kendi listelerinde, süreç içinde çalışıyor.
+  - Bizde: motor komutları tek tabloda (`engine/catalog.py`, ADR-032). Tek görev koşusu motora taşındı (10 Kasım 2026): `task.start|status|cancel|retry`, `rorch task …` ve masaüstü "Yeni görev" bunları kullanır. Süreç içi MCP araçları (`orchestrator_task_start`, `_project_start`, `_progress`, …) ve eski CLI komutları (`create`, `start`, `project-*`, `campaign-*`, …) hâlâ kendi listelerinde, süreç içinde çalışıyor; aynı kayıtları yazdıkları için koşular her yüzde görünür.
   - Rakipler: AO'da oturumun bütün yaşam döngüsü (başlat, öldür, geri yükle, yeniden adlandır) arka plan sürecinin HTTP ucundan geçer; CLI, masaüstü ve mobil aynı ucu kullanır. Cx'te her şey `codex app-server` üzerindendir (`thread/start`, `turn/start`, `review/start`). CC'de arka plan oturumlarını "supervisor" süreci tutar.
-  - Yapılacak: bu komutları motor komutu yap, tabloya ekle. `apply` yetkili komut olduğu için ortak uçta sunulamaz; nerede duracağı karar ister.
+  - Yapılacak: (a) MCP görev araçlarını motor komutlarına yönlendir (`--allow-privileged` ve `--allow-auto-apply` kayıt bayraklarının motora nasıl taşınacağı çözülmeli; bugün bu yüzden süreç içinde); (b) proje ve kampanya başlatmayı motor komutu yap (plan taslağı yolu `plan.create|edit|start` zaten motorda); (c) eski süreç içi CLI komutlarını `rorch task|project|campaign` altında motora bağla ve eskilerini sil; (d) `rorch task` terminaldeki kişiyi operatör saymıyor (boruya bağlanan her süreç MCP düzeyinde), bu yüzden `custom` işçi yalnız eski `create` ile seçilebiliyor. `apply` 1.7'de çözülür.
 - [ ] **1.2 Katalog satırlarına girdi şeması** `[K]`
   - Bizde: tablo komut adını ve yetki sınıfını taşıyor; girdi şeması yalnız MCP yüzü olan 8 komutta var.
   - Rakipler: AO OpenAPI tanımını Go veri tiplerinden, TypeScript tiplerini de ondan üretir ve ayrışmayı CI'da denetler (bizim katalog testiyle aynı yöntem). Cx `codex app-server generate-ts` ile tipleri üretir. Herdr `hc schema` ile API'yi OpenRPC olarak verir.
@@ -108,9 +108,9 @@ Sıra `RAKIP_ESKIKLERI.md` §3'teki sıradır; rakip karşılaştırmasından ge
 Bağlayıcı kurallar (`RAKIP_ESKIKLERI.md` §6): ajanın kendi özellikleri ajandan gelir, biz yeniden üretmeyiz; telemetri yok; kipi yalnız kullanıcı seçer; sandbox yok ve eklenmeyecek. Her maddede birincil örnek AO'dur; diğer rakipler iyileştirme içindir ("Yön kararı").
 
 - [ ] **4.1 A1 Görev ve plan başlatma ekranı** `[K]`
-  - Bizde: masaüstü görev başlatamıyor (yazan komutlar izin listesinde bilerek yok); motor ve CLI'da var.
+  - Bizde: masaüstü tek görev başlatabiliyor (10 Kasım 2026): Görevler sayfasında "Yeni görev" formu (klasör, görev, tür, ajan, kapsam, kabul komutları) `task.start`'ı çağırır; ajan listesi `agent.describe`'tan gelir. Gerçek uygulamada ve gerçek ajanla denenmedi.
   - Rakipler: CC'de istem kutusunun altındaki satırda ortam, klasör, izin kipi ve model seçilir. AO'da projenin "ana ajanı"na hedef yazılır; o planlar ve her parça için kendi worktree'sinde bir işçi başlatır. Vi3ecode'da hedef bir kez yazılır, lider yönlendirir.
-  - Yapılacak: 1.1 ile birlikte; başlatma komutları tabloya `session` benzeri yeni bir yüzle girer. Kip ve model seçimi 3.1'in verdiği listeden.
+  - Yapılacak: (a) AO'daki gibi hedef yazıp planlatma: plan taslağı ekranı (`plan.create|edit|start` motorda hazır, ekranı yok) ve proje başlatma; (b) formda izin kipi ve model seçimi (`agent.describe` kipleri veriyor; işçiye kip geçirme yolu yok); (c) kabul komutu satırı boşluklardan bölünüyor, tırnaklı argüman yazılamıyor; (d) görev satırından iptal ve yeniden deneme düğmeleri (`task.cancel`, `task.retry` motorda hazır); (e) `mcp_acceptance_allow` listesini ekrandan düzenleme (4.5 ayarlar ekranı).
 - [ ] **4.2 A2 Pano** `[K]`
   - Rakipler: AO'da oturumlar şeritlere **kendiliğinden** dizilir; şerit saklanan bir durum değildir, ajan, PR, CI ve inceleme olgularından okuma anında türetilir ("kalıcı olgu, türetilmiş durum"). CC'nin ajan görünümü oturumları "Girdi bekliyor / İncelemeye hazır / Çalışıyor / Bitti" diye gruplar, sizi bekleyen en üsttedir; satır özeti küçük bir modelle üretilir. Cx'te sohbetler bölümlere ayrılır, sabitlenir, aranır.
   - Yapılacak: şeritleri motor türetsin (`effective_status` zaten böyle çalışıyor); ekran sürükle-bırak durum değiştirmesin. Model ile satır özeti üretmek token harcar; eklenmez, son olay metni gösterilir.

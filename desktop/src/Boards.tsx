@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { Empty, Failed, Loading, Page } from './ui';
-import { ATTENTION_STATES, RUN_STATE, activityView, newestCursor, projectsView, runsView, stateInfo, when, type ActivityView, type ProjectRow, type RunRow, type View } from './boardviews';
+import { Empty, Failed, Loading, Modal, Page } from './ui';
+import { ATTENTION_STATES, RUN_STATE, activityView, newestCursor, projectsView, readyAgents, runsView, startedView, stateInfo, taskRequest, when, type ActivityView, type ProjectRow, type RunRow, type TaskForm, type View } from './boardviews';
 import { baseName } from './chatmodel';
 
 /** One read-only engine call. A failure to reach the engine is a view, not an exception. */
@@ -32,13 +32,51 @@ function RunTable({ rows }: { rows: RunRow[] }) {
   );
 }
 
+const BOX = { border: '1px solid color-mix(in srgb, currentColor 25%, transparent)', borderRadius: 6, padding: 6 };
+
+/** Start one task run. The form only collects; the engine validates the request, refuses what this caller may not ask for, and starts it. */
+function NewTask({ close, started }: { close: () => void; started: () => void }) {
+  const [f, setF] = useState<TaskForm>({ root: '', task: '', kind: 'read', worker: '', ownership: '.', acceptance: '' });
+  const [agents, setAgents] = useState<string[]>([]);
+  const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { let live = true; invoke('session_call', { cmd: 'agent.describe', payload: {} }).then((r) => { if (live) setAgents(readyAgents(r)); }, () => undefined); return () => { live = false; }; }, []);
+  const pick = async () => { try { const p = await invoke<string | null>('pick_folder', { start: null }); if (p) setF((x) => ({ ...x, root: p })); } catch { setNote('Klasör seçici açılamadı.'); } };
+  const start = async () => {
+    const req = taskRequest(f);
+    if (!req.ok) { setNote(req.text); return; }
+    setBusy(true);
+    const r = await invoke('session_call', { cmd: 'task.start', payload: req.value }).then(startedView, () => startedView(null));
+    setBusy(false);
+    if (r.ok) { started(); close(); } else setNote(r.text);
+  };
+  return (
+    <Modal title="Yeni görev" onClose={close} foot={<><button className="btn" onClick={close}>Vazgeç</button><button className="btn pri" disabled={busy} onClick={() => void start()}>Başlat</button></>}>
+      <div className="col" style={{ display: 'grid', gap: 10 }}>
+        <div className="row"><button type="button" className="btn sm" onClick={() => void pick()}>Proje klasörü seç…</button><span className="mut" title={f.root}>{f.root || 'Seçilmedi (Git deposunun kökü olmalı)'}</span></div>
+        <label>Görev<textarea style={BOX} rows={4} value={f.task} onChange={(e) => setF({ ...f, task: e.target.value })} placeholder="Ne yapılacağını yazın" /></label>
+        <div className="row">
+          <label>Tür <select className="seg" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as TaskForm['kind'] })}><option value="read">Yalnız okur</option><option value="write">Dosya değiştirir</option></select></label>
+          <label>Ajan <select className="seg" value={f.worker} onChange={(e) => setF({ ...f, worker: e.target.value })}><option value="">Varsayılan</option>{agents.map((a) => <option key={a} value={a}>{a}</option>)}</select></label>
+        </div>
+        <label>Kapsam (her satıra bir yol; ajan yalnız bunlara dokunabilir)<textarea style={BOX} rows={2} value={f.ownership} onChange={(e) => setF({ ...f, ownership: e.target.value })} /></label>
+        <label>Kabul komutları (her satıra bir komut; dosya değiştiren görevde zorunlu)<textarea style={BOX} rows={2} value={f.acceptance} onChange={(e) => setF({ ...f, acceptance: e.target.value })} placeholder="python -m pytest -q" /></label>
+        <p className="mut">İş ayrı bir çalışma ağacında yürür; gerçek ağaca siz onaylamadan uygulanmaz. Kabul komutları yalnız izin listenizdekilerden olabilir (<span className="mono">mcp_acceptance_allow</span> ayarı).</p>
+        {note && <p role="alert">{note}</p>}
+      </div>
+    </Modal>
+  );
+}
+
 export function Tasks() {
   const [state, setState] = useState('all');
+  const [creating, setCreating] = useState(false);
   const [q, setQ] = useState('');
   const [v, reload] = useBoard<View<RunRow>>(() => read('runs.list', { limit: 100, ...(state !== 'all' ? { states: [state] } : {}), ...(q.trim() ? { query: q.trim() } : {}) }, runsView), [state, q],
     (b) => b.kind === 'rows' && b.rows.some((r) => r.state === 'in_progress' || r.state === 'queued'));
   return (
-    <Page title="Görevler" sub="Motorun kayıtlı çalışmaları" actions={<Refresh onClick={reload} />}>
+    <Page title="Görevler" sub="Motorun kayıtlı çalışmaları" actions={<><button className="btn sm" onClick={() => setCreating(true)}>Yeni görev</button><Refresh onClick={reload} /></>}>
+      {creating && <NewTask close={() => setCreating(false)} started={reload} />}
       <div className="row" style={{ marginBottom: 12 }}>
         <select className="seg" value={state} onChange={(e) => setState(e.target.value)} aria-label="Duruma göre süz">
           <option value="all">Tüm durumlar</option>{Object.entries(RUN_STATE).map(([k, i]) => <option key={k} value={k}>{i.text}</option>)}</select>
@@ -46,7 +84,7 @@ export function Tasks() {
       </div>
       {v === null ? <Loading text="Görevler okunuyor…" />
         : v.kind === 'error' ? <Failed text={v.text} hint={v.hint} retry={reload} />
-        : v.rows.length === 0 ? <Empty title={state !== 'all' || q ? 'Bu süzgece uyan görev yok.' : 'Henüz görev yok.'} hint="Görevler `rorch create/start` komutlarıyla ya da bir AI aracının MCP bağlantısıyla başlatılır; başlayınca burada görünür." />
+        : v.rows.length === 0 ? <Empty title={state !== 'all' || q ? 'Bu süzgece uyan görev yok.' : 'Henüz görev yok.'} hint="Yeni görev düğmesiyle, `rorch task start` komutuyla ya da bir AI aracının MCP bağlantısıyla başlatılan görevler burada görünür." />
         : <><RunTable rows={v.rows} />{v.more && <p className="mut">En yeni 100 görev gösteriliyor.</p>}</>}
     </Page>
   );

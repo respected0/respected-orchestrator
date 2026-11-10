@@ -494,6 +494,12 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   ekipler `team.view`; Bütçe ve başarı `analytics.summary`; MCP ve beceriler `capabilities.inventory`. İnceleme ekranı yoktur: `review.view`
   yalnız yerel onay penceresi içindir (bu, `KALAN_ISLER.md` 1.7 ile değişecek).
   Dosya ağacı ve seçili klasör izni kabukta kalır: izin kullanıcının yerel klasör penceresindeki seçimidir ve motora vekâlet edilemez.
+  **Görev komutları (`task.start`, `task.status`, `task.cancel`, `task.retry`):** tek görev koşusunu motor üzerinden başlatır ve izler; kayıtlar
+  `rorch create/start` ve süreç içi MCP araçlarının yazdığı kayıtlarla aynıdır (`runner.create_task`, `start_task`), yani üç yüz aynı koşuları
+  görür. Masaüstündeki "Yeni görev" formu ve `rorch task` bu komutları kullanır. Terminaldeki operatör (`HUMAN`) dışındaki her çağıran için MCP
+  kuralları motorda uygulanır: `custom` işçi, `command`, `apply_root`, `engine_source` reddedilir; kabul komutları yalnız kullanıcının
+  `mcp_acceptance_allow` listesindeki öneklerle başlayabilir. İşçi soyundan gelen bağlantı (`CHILD`) hiçbirini çağıramaz. Onay ve uygulama
+  bu komutlarda yoktur.
   **Ajan tanımı (`agent.describe`, ADR-033, `engine/agent_describe.py`):** bir ajan CLI'ının ne olduğunu ve neyi desteklediğini her ajan için
   aynı biçimde verir: hazırlık (kurulum, giriş, `ready` / `not_ready` / `unknown`), arayüzler (`chat`, `terminal`, `handoff`), yetenek
   bayrakları (Orchestrator.inc'in adlarıyla), izin kipleri (dört ortak ad + ajanın kendi adı), model seçimi, komutlar, bağlam. Her alan

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { activityView, newestCursor, projectsView, runsView, stateInfo, when } from '../src/boardviews.ts';
+import { activityView, newestCursor, projectsView, readyAgents, runsView, startedView, stateInfo, taskRequest, when } from '../src/boardviews.ts';
 
 const run = { run_id: 'run-20261108120000-aaaaaaaaaaaa', state: 'done', task: 'oku', kind: 'read', agent: 'codex', project_root: 'C:/p', created_at: '2026-11-08T12:00:00Z', updated_at: null, error: null };
 
@@ -34,4 +34,23 @@ test('states have Turkish text, unknown ones are shown as given; unreadable time
   assert.equal(when(null), '—');
   assert.equal(when('not a date'), '—');
   assert.notEqual(when(1_700_000_000), '—');
+});
+
+test('new task: the form becomes the engine request; gaps are named before anything is sent', () => {
+  const f = { root: ' C:/p ', task: ' oku ', kind: 'read' as const, worker: '', ownership: 'src\n\n docs ', acceptance: '' };
+  assert.deepEqual(taskRequest(f), { ok: true, value: { project_root: 'C:/p', task: 'oku', kind: 'read', ownership: ['src', 'docs'] } });
+  assert.deepEqual(taskRequest({ ...f, kind: 'write', worker: 'codex', acceptance: 'python -m pytest -q\n' }),
+    { ok: true, value: { project_root: 'C:/p', task: 'oku', kind: 'write', ownership: ['src', 'docs'], worker: 'codex', acceptance: [['python', '-m', 'pytest', '-q']] } });
+  for (const bad of [{ ...f, root: ' ' }, { ...f, task: '' }, { ...f, ownership: '\n' }, { ...f, kind: 'write' as const }]) assert.equal(taskRequest(bad).ok, false);
+});
+
+test('new task: the reply is a run id or the engine refusal in words; only ready agents are offered', () => {
+  assert.deepEqual(startedView({ ok: true, result: { run_id: 'run-1' } }), { ok: true, value: 'run-1' });
+  assert.equal(startedView({ ok: true, result: {} }).ok, false);
+  assert.match((startedView({ ok: false, error: { code: 'ENGINE_ERROR', message: 'add a command prefix to the Orchestrator setting mcp_acceptance_allow' } }) as { text: string }).text, /izin listenizde yok/);
+  assert.match((startedView({ ok: false, error: { code: 'ENGINE_ERROR', message: 'Select the Git project root' } }) as { text: string }).text, /Motor reddetti: Select the Git project root/);
+  assert.match((startedView(null) as { text: string }).text, /yanıt vermedi/);
+  const agents = [{ agent: 'codex', readiness: { effective: 'ready' } }, { agent: 'claude', readiness: { effective: 'not_ready' } }, { agent: 'custom', readiness: { effective: 'ready' } }, { nope: 1 }];
+  assert.deepEqual(readyAgents({ ok: true, result: { agents } }), ['codex']);
+  assert.deepEqual(readyAgents({ ok: false }), []);
 });

@@ -99,7 +99,7 @@ class LocalApiTests(unittest.TestCase):
             reply = api.handle({"ipc": "1", "id": "catalog-0001", "session": TOKEN, "cmd": "catalog.list", "payload": {}})
             return reply, {row["name"] for row in (reply["result"] or {}).get("commands", [])}
         reply, renderer = names()
-        self.assertIn({"name": "session.start", "action": "task", "cli": "start", "mcp": "orchestrator_session_start", "desktop": "session"}, reply["result"]["commands"])
+        self.assertIn({"name": "session.start", "action": "task", "cli": "session start", "mcp": "orchestrator_session_start", "desktop": "session"}, reply["result"]["commands"])
         self.assertIn("session.defaults.set", renderer)
         self.assertNotIn("approval.apply", renderer)  # privileged: not the renderer's
         _reply, mcp = names(origin=Origin.MCP, only=daemon.SERVED)
