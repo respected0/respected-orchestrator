@@ -7,6 +7,7 @@ import { Suggestions } from './Beta4Screens';
 import { PreviewPanel } from './PreviewPanel';
 import { TerminalPane } from './TerminalPane';
 import { AgentTerminals } from './AgentTerminal';
+import { Instructions } from './Instructions';
 import { baseName, compactNumber, filesOf, toolCount, type ToolListView, type Turn } from './chatmodel';
 import { reasonText, stateText, type SessionView, type Usage } from './sessionlog';
 import { bufferOf } from './terminal';
@@ -33,6 +34,7 @@ export function SessionPane({ s, turns, usage, root, tools }: { s: SessionView |
         {s && s.state === 'failed' && !s.commands.retry.enabled && <p className="mut">{reasonText(s.commands.retry.reason)}</p>}
       </details>
       {usage && <details open><summary>Bağlam</summary><Tokens u={usage} /></details>}
+      {root && <details><summary>Proje talimatları</summary><Instructions root={root} /></details>}
       <details open><summary>Bağdaştırıcılar</summary>
         {tools.s === 'loading' && <p className="mut" role="status">Taranıyor…</p>}
         {tools.s === 'done' && tools.v.kind === 'error' && <p role="alert">{tools.v.text}</p>}

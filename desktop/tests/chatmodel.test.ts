@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addPaths, agentLine, baseName, compactNumber, filesOf, itemsOf, modelsView, planOf, toolCount, toolListView, withAttachments, withLive, type Turn } from '../src/chatmodel.ts';
+import { addPaths, agentLine, baseName, childPath, compactNumber, filesOf, itemsOf, modelsView, planOf, toolCount, toolListView, withAttachments, withLive, type Turn } from '../src/chatmodel.ts';
 
 const done = (events: Record<string, unknown>[], extra = {}): Turn['result'] => ({ state: 'complete', complete: true, events: events as { kind: string }[], ...extra });
 const turns: Turn[] = [
@@ -71,4 +71,9 @@ test('the running turn shows what the agent has said so far, in the turn that as
   assert.deepEqual(itemsOf(withLive(turns, live)).at(-1), { t: 'agent', text: 'yazıyorum' });
   assert.equal(withLive(asked, null), asked);
   assert.equal(withLive(asked, { events: [] }), asked);
+});
+
+test('a file inside a folder keeps the folder\'s own separator', () => {
+  assert.equal(childPath('C:\\p\\one\\', 'AGENTS.md'), 'C:\\p\\one\\AGENTS.md');
+  assert.equal(childPath('/home/a/p', 'CLAUDE.md'), '/home/a/p/CLAUDE.md');
 });

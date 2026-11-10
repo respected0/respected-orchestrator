@@ -47,7 +47,7 @@ Sıra `RAKIP_ESKIKLERI.md` §3'teki sıradır; rakip karşılaştırmasından ge
 3. A1 görev başlatma → A2 pano → A3 worktree ve geri alma (§4.1–4.3). `[K]`
 4. ~~B1 canlı akış (§4.4)~~ yapıldı (10 Kasım 2026, ADR-034); kalanlar 4.4'te.
 5. **Ajanın kendi terminal paneli (§3.4): orkestratör sınıfındaki rakiplerin hepsinde var; ajan başına adaptör yazmadan bütün ajanları kullanılır kılar.** `[K]` Yapıldı (10 Kasım 2026, ADR-035: motor, bölme, geçiş); gerçek uygulamada görülmedi, kalanlar 3.4'te.
-6. E1 ayarlar ve bağlantı ekranı + C3 talimat dosyası + B3 izin kipleri (§4.5–4.7). `[K]` Ayarlar formu yapıldı (10 Kasım 2026); bağlantı ekranı, talimat dosyası ve kipler sırada.
+6. E1 ayarlar ve bağlantı ekranı + C3 talimat dosyası + B3 izin kipleri (§4.5–4.7). `[K]` Ayarlar formu ve talimat dosyası yapıldı (10 Kasım 2026); bağlantı ekranı ve izin kipleri (4.6, sohbet tarafı `[A]`) sırada.
 7. C1 bağlam göstergesi + E2 bildirim + E3 kısayollar; **G1 inceleme kuyruğu buraya alınır (AO ve Cx'te ürünün merkezi; bizim "kanıtla ve onayla" odağımızın ekrandaki karşılığı).** `[K]`
 8. B4 çoklu ajan + E4 geçmiş araçları → B2 → D1 + C2 → A4 + D4 → D2/D3/D5 → B5/B6 → E7.
 
@@ -128,7 +128,9 @@ Bağlayıcı kurallar (`RAKIP_ESKIKLERI.md` §6): ajanın kendi özellikleri aja
   - Bizde: karar verildi (tüm kipler sunulur, kullanıcı seçer), ekranda yok.
   - Rakipler: CC ve Cx'te kip seçici istem kutusunun altındadır ve oturum sürerken değişir. Cx'te komut kuralları Starlark `.rules` dosyasıdır, `codex execpolicy check` ile sınanır. dsh'de `permission-presets` ve `guard` var.
   - Yapılacak: AO'daki gibi dört ortak kip adı (`default`, `accept-edits`, `auto`, `bypass-permissions`) kullanılır ve adaptör bunu ajanın kendi adına çevirir; ajanın bu dördün dışındaki kipleri (ör. `plan`) kendi adıyla listelenir. Liste 3.1'den gelir; kural dosyasını biz yazmayız, ajanınkini gösteririz (karar 8). Ajanın ek izin isteği (Cx `request_permissions`, ACP `session/request_permission`) ekranda sorulur; kullanıcı tur ya da oturum için verir. Kipi yine yalnız kullanıcı değiştirir.
-- [ ] **4.7 C3 Proje talimat dosyası** `[K]`: `AGENTS.md` / `CLAUDE.md` görüntüleme ve düzenleme. Rakiplerin hepsi ajanın kendi dosyasını kullanır; Herdr kendi ayar klasörüne ajan için bir `AGENTS.md` koyar.
+- [ ] **4.7 C3 Proje talimat dosyası: kalanlar** `[K]` (görüntüleme ve düzenleme yapıldı, 10 Kasım 2026)
+  - Bizde: oturum çubuğunda "Proje talimatları" `AGENTS.md` ve `CLAUDE.md`'yi gösterir, düz metin olarak düzenler ya da oluşturur; kayıt yerel onay penceresinden geçer. Gerçek uygulamada görülmedi.
+  - Kalan: alt klasörlerdeki ve kullanıcı düzeyindeki talimat dosyaları (`~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`) listelenmiyor; Markdown önizleme yok; dosya dışarıda değişmişse uyarı yok (son yazan kazanır).
 - [ ] **4.8 G1 İnceleme kuyruğu ve satır yorumlu diff** `[K]`
   - Bizde: diff paneli ve motorda `review.view` var; yorum, kabul, reddet, kuyruk yok.
   - Rakipler: Cx'in inceleme bölmesinde satıra yorum yazılır, dosya dosya "görüldü" işaretlenir, dosya sahnelenir ya da geri alınır; yorumlar ajana gider. AO'da başarısız CI, inceleme yorumu ve birleştirme çakışması **dalın sahibi işçiye** geri yollanır; bir inceleyici ajan PR'ı insandan önce okuyabilir. CC'de diff görünümü ve `/code-review` var.

@@ -109,6 +109,9 @@ export const addPaths = (cur: string[], picked: string[]): string[] => [...new S
 
 export const baseName = (p: string): string => p.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || p;
 
+/** A file directly inside a folder, with the separator the folder's own path uses. */
+export const childPath = (folder: string, name: string): string => `${folder.replace(/[\\/]+$/, '')}${folder.includes('/') && !folder.includes('\\') ? '/' : '\\'}${name}`;
+
 export type ModelsView =
   | { kind: 'models'; ids: string[] }
   | { kind: 'empty' }

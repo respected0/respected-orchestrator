@@ -247,6 +247,16 @@ fn list_dir(path: String, roots: tauri::State<'_, files::Roots>) -> Result<Vec<f
 #[tauri::command]
 fn read_text_file(path: String, roots: tauri::State<'_, files::Roots>) -> Result<String, String> { roots.read_text(std::path::Path::new(&path)) }
 
+/// Saves one of the two project instruction files (AGENTS.md, CLAUDE.md) in a folder the person picked, after a native confirmation that
+/// names the real path (files.rs). `true`: written; `false`: the person said no.
+#[tauri::command]
+async fn write_instruction_file(folder: String, name: String, text: String, roots: tauri::State<'_, files::Roots>, gate: tauri::State<'_, approval::Gate>) -> Result<bool, String> {
+    #[cfg(windows)]
+    return files::request_write(&roots, std::path::Path::new(&folder), &name, &text, &approval::NativeDialog, &gate);
+    #[cfg(not(windows))]
+    { let _ = (&folder, &name, &text, &roots, &gate); Err("Native confirmation is only available on Windows.".into()) }
+}
+
 /// Native file chooser for message attachments; returns the picked paths (possibly none). Nothing is read or uploaded here.
 #[tauri::command]
 async fn pick_files<R: tauri::Runtime>(window: tauri::Window<R>, app: tauri::AppHandle<R>) -> Result<Vec<String>, String> {
@@ -353,7 +363,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, engine_subscribe, terminal_attach, terminal_detach, settings_request, read_call, preview_open, pick_folder, pick_files, list_dir, read_text_file])
+        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, engine_subscribe, terminal_attach, terminal_detach, settings_request, read_call, preview_open, pick_folder, pick_files, list_dir, read_text_file, write_instruction_file])
 }
 
 pub fn run() {
