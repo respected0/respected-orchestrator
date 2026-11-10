@@ -48,14 +48,16 @@ impl ConnectError {
 }
 
 // The four relay lists are generated from the engine's one table (ADR-032): see catalog.rs.
-pub use crate::catalog::{ATTACH_COMMANDS, READ_COMMANDS, SESSION_COMMANDS, TASK_COMMANDS, VOICE_COMMANDS};
+pub use crate::catalog::{ATTACH_COMMANDS, READ_COMMANDS, SESSION_COMMANDS, TASK_COMMANDS, TERMINAL_COMMANDS, VOICE_COMMANDS};
 
 /// The chat-session commands the renderer may relay. Nothing else goes through `session_call`, and there is no approve here:
 /// permission decisions stay in the native dialog (approval.rs).
 /// Push-to-talk (B4-06): TASK-class commands relayed through `session_call` as well. No confirm/approve here; a voice draft is text only.
 /// Screenshot attachment steps the renderer may take itself (B4-07). Commit, share and revoke are not here: they only exist on the native consent path.
 /// Task runs (start, status, cancel, retry): the engine refuses custom workers and unlisted acceptance commands for every caller but the operator.
-pub fn session_command_allowed(cmd: &str) -> bool { SESSION_COMMANDS.contains(&cmd) || TASK_COMMANDS.contains(&cmd) || VOICE_COMMANDS.contains(&cmd) || ATTACH_COMMANDS.contains(&cmd) }
+/// Agent terminals (ADR-035): list, start, type, resize, end. The engine lets only this program do all but the first; watching one is not
+/// relayed (the shell opens that stream itself, see `attach_terminal`).
+pub fn session_command_allowed(cmd: &str) -> bool { SESSION_COMMANDS.contains(&cmd) || TASK_COMMANDS.contains(&cmd) || TERMINAL_COMMANDS.contains(&cmd) || VOICE_COMMANDS.contains(&cmd) || ATTACH_COMMANDS.contains(&cmd) }
 
 /// The read-only views of the Beta.4 screens (team, capability recommendations, budget). `read_call` relays only these; every one is a
 /// READ command in the engine, so nothing they return can start, approve, apply, enable or change anything.
@@ -292,6 +294,15 @@ impl Connection {
         Ok(())
     }
 
+    /// Turns this connection into one agent terminal's output stream (ADR-035). After this, only `next_note`.
+    pub fn attach_terminal(&mut self, project_id: &str, terminal_id: &str) -> Result<(), ConnectError> {
+        let v = self.raw("terminal.attach", json!({"project_id": project_id, "terminal_id": terminal_id}))?;
+        if v["ok"] != true {
+            return Err(ConnectError::Refused(v["error"]["message"].as_str().unwrap_or("terminal.attach").chars().take(120).collect()));
+        }
+        Ok(())
+    }
+
     /// The next notification, as the engine wrote it; `None` once the stream has ended (engine stopped, or it cut off a slow reader).
     pub fn next_note(&mut self) -> Option<Value> {
         let mut line = String::new();
@@ -434,7 +445,8 @@ mod tests {
             assert!(!read_command_allowed(cmd), "{cmd:?} must not be relayed by read_call");
         }
         assert!(READ_COMMANDS.iter().all(|c| !c.contains("approv") && !c.contains("apply") && !c.contains("start") && !c.contains("grant")));
-        for cmd in SESSION_COMMANDS.iter().chain(VOICE_COMMANDS.iter()).chain(ATTACH_COMMANDS.iter()) { assert!(session_command_allowed(cmd), "{cmd}"); }
+        for cmd in SESSION_COMMANDS.iter().chain(VOICE_COMMANDS.iter()).chain(ATTACH_COMMANDS.iter()).chain(TERMINAL_COMMANDS.iter()) { assert!(session_command_allowed(cmd), "{cmd}"); }
+        assert!(!session_command_allowed("terminal.attach") && !read_command_allowed("terminal.list"), "the terminal stream is opened by the shell, never relayed");
         assert!(VOICE_COMMANDS.iter().all(|c| !c.contains("confirm") && !c.contains("approv") && !c.contains("apply")) && !read_command_allowed("voice.start"));
         for cmd in ["attachment.commit", "attachment.share", "attachment.revoke", "attachment.describe"] { assert!(!session_command_allowed(cmd) && !read_command_allowed(cmd), "{cmd} must not be relayed by the renderer paths"); }
         for cmd in ["approval.decide", "approval.apply", "approval.open", "session.approve", "session.grant", "settings.apply", "plan.start",
@@ -498,6 +510,15 @@ TOKEN = \"sk-SHOULDNEVERAPPEAR123456\"
         assert!(other.status().is_ok(), "ordinary requests go on beside the stream");
         launch.daemon("stop").unwrap();
         assert_eq!(stream.next_note(), None);
+    }
+
+    #[test]
+    fn the_engine_does_not_let_an_unrecognised_program_watch_a_terminal() {
+        let launch = real("term");
+        let _stop = StopEngine(launch.clone());
+        let mut c = Connection::connect(&launch).expect("connect"); // this test binary is not the installed desktop program
+        assert!(matches!(c.attach_terminal("proj-1", "term_0000000000000000"), Err(ConnectError::Refused(_))));
+        assert_eq!(c.raw("terminal.list", json!({"project_id": "proj-1"})).unwrap()["result"]["terminals"], json!([]));
     }
 
     #[test]

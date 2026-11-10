@@ -147,6 +147,45 @@ fn engine_subscribe<R: tauri::Runtime>(project_id: String, app: tauri::AppHandle
     }
 }
 
+/// Terminals this window is watching: terminal id -> the flag that tells its reader thread to leave.
+#[derive(Default)]
+struct Watched(Mutex<std::collections::HashMap<String, std::sync::Arc<AtomicBool>>>);
+
+/// Opens one agent terminal's output stream (ADR-035) on a connection of its own and hands every piece to the main window as a
+/// `terminal-event` (`terminal.data` is base64 of what the program drew, `terminal.exit` its exit code). When the stream ends the window
+/// gets `terminal.closed`. Typing goes through `session_call` (`terminal.input`); the renderer cannot write to this stream.
+/// Every call opens a fresh stream (so the output kept by the terminal is drawn again) and retires an older reader of the same terminal.
+#[tauri::command]
+fn terminal_attach<R: tauri::Runtime>(project_id: String, terminal_id: String, app: tauri::AppHandle<R>, watched: tauri::State<Watched>) -> Result<bool, EngineProblem> {
+    let open = || -> Result<Connection, ConnectError> {
+        let mut c = Connection::connect(&engine_connector::discover_env()?)?;
+        c.attach_terminal(&project_id, &terminal_id)?;
+        Ok(c)
+    };
+    let mut c = open().map_err(|error| EngineProblem { hint: error.hint(), error })?;
+    let leave = std::sync::Arc::new(AtomicBool::new(false));
+    if let Some(older) = watched.0.lock().unwrap().insert(terminal_id.clone(), leave.clone()) { older.store(true, Ordering::SeqCst); }
+    std::thread::spawn(move || {
+        // the engine sends a ping every two seconds, so a request to leave is noticed without anything being drawn
+        while let Some(note) = c.next_note() {
+            if leave.load(Ordering::SeqCst) { break; }
+            if note["event"] != "terminal.ping" { let _ = app.emit_to("main", "terminal-event", note); }
+        }
+        if leave.load(Ordering::SeqCst) { return; } // retired or asked to leave: the window is not told anything
+        let state = app.state::<Watched>();
+        let mut map = state.0.lock().unwrap();
+        if map.get(&terminal_id).is_some_and(|mine| std::sync::Arc::ptr_eq(mine, &leave)) { map.remove(&terminal_id); }
+        let _ = app.emit_to("main", "terminal-event", serde_json::json!({"event": "terminal.closed", "data": {"terminal_id": terminal_id}}));
+    });
+    Ok(true)
+}
+
+/// Stops watching a terminal (the terminal itself keeps running in its own process).
+#[tauri::command]
+fn terminal_detach(terminal_id: String, watched: tauri::State<Watched>) {
+    if let Some(leave) = watched.0.lock().unwrap().remove(&terminal_id) { leave.store(true, Ordering::SeqCst); }
+}
+
 /// Relays one read-only Beta.4 view to the engine. The renderer names the command but only from `READ_COMMANDS`; the engine checks the
 /// origin again and these commands can only read.
 #[tauri::command]
@@ -276,6 +315,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
         .manage(Mutex::new(None::<Connection>))
         .manage(CloseConfirmed::default())
         .manage(Listening::default())
+        .manage(Watched::default())
         .manage(roots_store())
         .manage(Mutex::new(None::<approval::Pair>))
         .manage(approval::Gate::default())
@@ -290,7 +330,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, engine_subscribe, read_call, preview_open, pick_folder, pick_files, list_dir, read_text_file])
+        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, engine_subscribe, terminal_attach, terminal_detach, read_call, preview_open, pick_folder, pick_files, list_dir, read_text_file])
 }
 
 pub fn run() {

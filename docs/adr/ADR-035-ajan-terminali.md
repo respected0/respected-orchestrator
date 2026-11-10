@@ -2,7 +2,7 @@
 
 ## Durum
 
-Kabul edildi (10 Kasım 2026, kullanıcı; aşağıdaki üç karar önerildiği gibi onaylandı). **Motor tarafı uygulandı; masaüstü bölmesi ve sohbet ↔ terminal geçişi yapılmadı.** KALAN_ISLER 3.4, yön kararı 2 ve karar 11'in tasarım notudur. Kod: `engine/conpty.py`, `engine/pty_host.py`, `engine/terminals.py`, `engine/daemon.py` (`accept_loop`, `_relay`); test: `tests/engine/test_terminals.py`.
+Kabul edildi (10 Kasım 2026, kullanıcı; aşağıdaki üç karar önerildiği gibi onaylandı). **Motor tarafı ve masaüstü bölmesi uygulandı; sohbet ↔ terminal geçişi yapılmadı. Bölme gerçek uygulamada görülmedi.** KALAN_ISLER 3.4, yön kararı 2 ve karar 11'in tasarım notudur. Kod: `engine/conpty.py`, `engine/pty_host.py`, `engine/terminals.py`, `engine/daemon.py` (`accept_loop`, `_relay`); masaüstünde `AgentTerminal.tsx`, `terminalio.ts`, `lib.rs` (`terminal_attach`, `terminal_detach`); test: `tests/engine/test_terminals.py`, `desktop/tests/terminalio.test.ts`, `engine_connector.rs` ve `tests/acl.rs` içindeki testler.
 
 ## Bağlam
 
@@ -51,6 +51,9 @@ Kaynak: AO deposu `main`, 10 Kasım 2026'da okundu (`backend/internal/terminal/d
 - Çıktının son 256 KB'ı ham olarak saklanır (AO'daki gibi çizilmiş ekran değil); yeni bağlanan bunu alır ve boyut yollayınca tam ekran program kendini yeniden çizer.
 - Program bitince sunucu, son izleyici ayrıldıktan 30 saniye sonra kapanır; `terminal.kill` hemen kapatır.
 - Motor akışı istemciye `terminal.data` / `terminal.exit` / `terminal.ping` bildirimleri olarak geçirir; `events.subscribe` akışına yalnız `terminal.state` girer.
+
+- **xterm.js'in varsayılan çizicisi uygulamanın CSP'siyle çalışmıyor** (10 Kasım 2026'da tarayıcıda, uygulamanın CSP başlığıyla denendi): `style-src 'self'` çizicinin eklediği `<style>` öğelerini engelliyor, ekran boş kalıyor. WebGL çizicisi (`@xterm/addon-webgl`, MIT; AO da kullanıyor) aynı CSP altında doğru çiziyor. Bu yüzden onaylanan iki pakete üçüncüsü eklendi ve CSP'ye dokunulmadı. Engellenen stil öğeleri konsolda uyarı olarak kalır.
+- Kabuk her `terminal_attach` çağrısında yeni bir akış açar (saklanan çıktı yeniden çizilsin diye) ve aynı terminalin eski okuyucusunu emekliye ayırır; bildirimleri yalnız `main` penceresine `terminal-event` olarak iletir.
 
 ## Doğrulama planı
 

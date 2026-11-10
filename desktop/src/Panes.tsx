@@ -6,6 +6,7 @@ import { extOf, highlightLine } from './highlight';
 import { Suggestions } from './Beta4Screens';
 import { PreviewPanel } from './PreviewPanel';
 import { TerminalPane } from './TerminalPane';
+import { AgentTerminals } from './AgentTerminal';
 import { baseName, compactNumber, filesOf, toolCount, type ToolListView, type Turn } from './chatmodel';
 import { reasonText, stateText, type SessionView, type Usage } from './sessionlog';
 import { bufferOf } from './terminal';
@@ -71,7 +72,9 @@ export function WidePane({ kind, s, turns, root, lines, pickFolder, close }: { k
     <aside className={`wpane concept ${kind} ${big ? 'big' : ''}`} aria-label={WIDE_TITLE[kind]} style={big ? undefined : { width: w }}>
       <div className="wh"><span className="grow">{WIDE_TITLE[kind]}</span><button className="ib" onClick={close} aria-label={`${WIDE_TITLE[kind]} bölmesini kapat`}><Ico n="x" /></button></div>
       <div className="wb">
-        {kind === 'terminal' && (s ? <TerminalPane id={s.id} agent={`${s.agent} (${s.model})`} buffer={bufferOf(lines)} rows={24} /> : <p className="mut">Terminal bir oturumun akışını gösterir; önce bir oturum başlat.</p>)}
+        {kind === 'terminal' && <>
+          {root ? <AgentTerminals root={root} /> : <p className="mut">Ajan terminali için önce bir proje klasörü seç.</p>}
+          {s && <details><summary>Sohbet dökümü (düz metin)</summary><TerminalPane id={s.id} agent={`${s.agent} (${s.model})`} buffer={bufferOf(lines)} rows={24} /></details>}</>}
         {kind === 'diff' && <Changes turns={turns} />}
         {kind === 'browser' && <PreviewPanel />}
         {kind === 'files' && (root ? <Files root={root} pickFolder={pickFolder} big={big} toggleBig={() => setBig(!big)} close={close} /> : <p className="mut">Dosyaları görmek için önce bir proje klasörü seç.</p>)}

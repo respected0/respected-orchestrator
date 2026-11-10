@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-terminal-detach"
+description = "Enables the terminal_detach command without any pre-configured scope."
+commands.allow = ["terminal_detach"]
+
+[[permission]]
+identifier = "deny-terminal-detach"
+description = "Denies the terminal_detach command without any pre-configured scope."
+commands.deny = ["terminal_detach"]

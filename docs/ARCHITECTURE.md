@@ -493,7 +493,9 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   Canlı terminaller `state/terminals.json`'da tutulur. `terminal.start|input|resize|kill|attach` `TERMINAL` yetki sınıfındadır (yalnız tanınan masaüstü ve
   insan kökeni; terminale yazmak kullanıcı adına komut çalıştırmaktır), `terminal.list` `READ`. `terminal.attach` bağlantıyı o terminalin çıktı akışına çevirir;
   baytlar programın kendisinindir, motor yorumlamaz. Terminaldeki ajan proje klasöründe, kendi izin kipiyle ve `RESPECTED_ORCH_CHILD=1` ile çalışır;
-  motor yalıtım eklemez.
+  motor yalıtım eklemez. Masaüstünde bölme xterm.js'tir ve **WebGL çizicisiyle** çalışır: uygulamanın CSP'si (`style-src 'self'`) değişmedi, varsayılan çizicinin
+  eklediği stil öğeleri engellenir. Akışı kabuk açar (`terminal_attach` / `terminal_detach`) ve yalnız `main` penceresine iletir; yazılanlar `session_call`
+  üzerinden `terminal.input` olarak gider. Terminalin çizdiği her şey programın kendi baytlarıdır ve yalnız terminal öykünücüsüne verilir.
   **Masaüstü yalnız görsel katmandır.** Varsayılan ajan/model, geçerli model denetimi (başlatma ve `session.defaults.set` modeli ajanın kendi listesine
   karşı doğrular), konuşma geçmişi, başlık, oturum-klasör eşlemesi, sıralama ve token/maliyet toplamları motorda hesaplanır ve saklanır
   (`engine/session_store.py`, veri kökünde `chat/sessions.json`); masaüstü bunları çizer ve kullanıcının seçimini iletir. Tarayıcı depolaması

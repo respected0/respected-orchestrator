@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-terminal-attach"
+description = "Enables the terminal_attach command without any pre-configured scope."
+commands.allow = ["terminal_attach"]
+
+[[permission]]
+identifier = "deny-terminal-attach"
+description = "Denies the terminal_attach command without any pre-configured scope."
+commands.deny = ["terminal_attach"]
