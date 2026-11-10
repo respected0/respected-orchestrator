@@ -46,7 +46,7 @@ Kullanıcı başına, yönetici izni istemez, varsayılan (açık) Inno görün�
 | Ne | Kim yapar |
 |---|---|
 | Kurulum kaydı ve veri klasörü | motorun ilk açılışı (`setup` ile aynı iş); elle `rorch setup` / `rorch repair` |
-| Ayarlar, AI araçlarına bağlantı, Brain hafızası | masaüstü uygulaması ya da `rorch config`, `rorch integrations`, `rorch memory connect` |
+| Ayarlar, AI araçlarına bağlantı, Brain hafızası | `rorch config`, `rorch integrations`, `rorch memory connect` (masaüstünde ayar ve bağlantı ekranı henüz yok) |
 | Kaldırmadan önce MCP girdilerini ve kaydı geri alma | `rorch uninstall [--purge]` (kaldırıcı yalnızca program dosyalarını siler) |
 
 **Güncelleme = yeni sürümün kurucusunu çalıştırmak, her sürümden en yeniye doğrudan.** Kurucu yedek almaz ve geri yüklemez; çalışan

@@ -4,7 +4,7 @@ KURULUMDA NELER OLUR
 
   - Program: %LOCALAPPDATA%\Respected\RespectedOrchestrator\app. Yönetici izni ve Python gerekmez. Windows Ayarlar › Uygulamalar listesinde bir giriş.
   - Veri klasörü (motor ilk açıldığında hazırlanır): %LOCALAPPDATA%\Respected\RespectedOrchestrator\data (ayarlar, işlem makbuzları, görev ve kampanya kayıtları, kanıtları imzalayan anahtar; anahtar yalnızca sizin hesabınıza açıktır).
-  - İsteğe bağlı, kurucudan sonra uygulamadan ya da `rorch integrations` / `rorch memory connect` ile: AI araçlarına MCP kaydı (Claude Code, Codex, Cursor, Windsurf) ve Brain hafızasına bağlantı.
+  - İsteğe bağlı, kurucudan sonra `rorch integrations` / `rorch memory connect` ile: AI araçlarına MCP kaydı (Claude Code, Codex, Cursor, Windsurf) ve Brain hafızasına bağlantı.
 
 KULLANIRKEN NELER OLUR
 

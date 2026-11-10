@@ -61,7 +61,7 @@ Brain ya da sürekli çalışan bir servis gerektirmez; Brain hafızası isteğe
 `RespectedOrchestrator-Windows-Setup.exe` kullanıcı başına kurulur, **yönetici izni istemez, Python gerektirmez**. Bilgisayarda **Git** ve
 görevleri yapacak bir AI aracının komut satırı (oturumu açık) olmalıdır. Güncelleme: yeni sürümün kurucusunu çalıştırın.
 
-Kurucuyu yeniden çalıştırmak onarır/günceller, ayarları değiştirir ya da kaldırır. Adım adım: [Kullanım rehberi](docs/USAGE.md).
+Yeni sürümün kurucusunu çalıştırmak günceller (kurucu yalnızca dosyaları yerleştirir); ayarlar ve kaldırma `rorch` komutlarıyla yapılır. Adım adım: [Kullanım rehberi](docs/USAGE.md).
 
 **Güncelleme:** eski sürümden güncellerken ayarlarınız ve önceki görev kayıtlarınız korunur; biçimi değişen ayarlar otomatik taşınır ve eskisi `.bak` olarak saklanır. beta.2 ile Gemini CLI desteği kalktı (Google'ın aracı Antigravity oldu): `gemini` olarak ayarlanmış varsayılanlar `agy`'ye çevrilir, eski Gemini MCP kaydı `integrations set gemini=off` ya da kaldırma ile temizlenir.
 
@@ -117,9 +117,10 @@ $env:RESPECTED_DATA_DIR = "$env:TEMP\orch-dev"; python -m respected_orchestrator
 | Belge | Konu |
 |---|---|
 | [USAGE.md](docs/USAGE.md) | Kullanım rehberi |
+| [KALAN_ISLER.md](docs/KALAN_ISLER.md) | Açık işler |
 | [COMMANDS.md](docs/COMMANDS.md) | Komutlar ve istek biçimleri |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Bağlayıcı kurallar ve güvenlik sınırları |
-| [adr/](docs/adr) | Mimari karar kayıtları (ADR-001…020): neden böyle yapıldı |
+| [adr/](docs/adr) | Mimari karar kayıtları: neden böyle yapıldı |
 | [THREAT_MODEL.md](docs/THREAT_MODEL.md) | Tehdit modeli ve yetki matrisi |
 | [PRODUCT_CONTRACT.md](docs/PRODUCT_CONTRACT.md) | Üç ürünün ortak sözleşmesi |
 | [ROADMAP.md](docs/ROADMAP.md) | Yol haritası |

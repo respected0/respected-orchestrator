@@ -161,7 +161,7 @@ Kanıt, test adı + çalışma tarihiyle birlikte sunulur; test adı belge cüml
 
 ## 12. Masaüstü (Beta.3) tehdit modeli taslağı — B3-00.02
 
-Durum: **taslak/plan**. Bu bölümdeki hiçbir satır "Engellenir" değildir; masaüstü uygulaması henüz yoktur, durum
+Durum: **taslak/plan** olarak yazıldı; masaüstü uygulaması o zamandan beri yapıldı (Beta.3, Beta.4), ama bu bölümün satırları tek tek yeniden değerlendirilmedi. Yeniden değerlendirilene kadar hiçbir satır "Engellenir" sayılmaz; durum
 her satırda **Planlı** yazılır ve ancak ilgili görev testiyle yükseltilir (§11 bakım kuralı). Varsayılan: **fail-closed**.
 
 ### 12.1 Yeni güven sınırları

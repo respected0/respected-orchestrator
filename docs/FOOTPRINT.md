@@ -129,7 +129,7 @@ dosya ya da ağ sınırı koymaz. Kapsam denetimi çalışmadan sonra yamaya bak
 | Ne | Sonuç |
 |---|---|
 | Program klasörü ve "Yüklü uygulamalar" kaydı | **Silinir** (kurulum kaydı program klasöründedir, birlikte gider) |
-| AI araçlarındaki MCP girdileri | Kaldırıcı **dokunmaz**; önce `rorch uninstall` (ya da uygulamanın Bağlantılar bölümünden kapatma) ile geri alın, yoksa girdiler artık olmayan programı gösterir |
+| AI araçlarındaki MCP girdileri | Kaldırıcı **dokunmaz**; önce `rorch uninstall` (masaüstünde bağlantı ekranı henüz yok) ile geri alın, yoksa girdiler artık olmayan programı gösterir |
 | Brain'e verdiğiniz hafıza izni | Kaldırma bunu **iptal etmez**; Brain'de iz kalmaması için kaldırmadan önce `memory disconnect` (ya da masaüstü uygulamasında Ayarlar'dan kapatın) |
 | Ayarlar, görev geçmişi, kanıtlar, çalışma ağaçları (`data`) | **Kalır**; silmek için kaldırmadan önce `rorch uninstall --purge` |
 | **Projeleriniz ve Git depolarınız** | **Dokunulmaz.** Biten görevlerin dalı ve çalışma ağacı zaten silindi; yalnızca zorla öldürülen bir görevin kalıntısı varsa `git worktree prune` temizler |

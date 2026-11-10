@@ -1,6 +1,6 @@
 # Rakiplerde olup bizde olmayan özellikler
 
-Tarih: 2026-11-08. Bu belge bir **yol haritası girdisidir**, bağlayıcı mimari kural değildir (bağlayıcı olan `ARCHITECTURE.md`).
+Tarih: 2026-11-08; rakiplerin **nasıl yaptığı** 2026-11-10'da resmî kaynaklardan yeniden okundu (§1c). Açık işlerin güncel listesi [KALAN_ISLER.md](KALAN_ISLER.md)'dedir. Bu belge bir **yol haritası girdisidir**, bağlayıcı mimari kural değildir (bağlayıcı olan `ARCHITECTURE.md`).
 Her madde bittiğinde `ARCHITECTURE.md` / `COMMANDS.md` güncellenir ve buradaki durum işaretlenir.
 
 ## 0. Kaynaklar ve güvenilirlik
@@ -12,7 +12,7 @@ Her madde bittiğinde `ARCHITECTURE.md` / `COMMANDS.md` güncellenir ve buradaki
 | Codex (ChatGPT masaüstü uygulamasındaki Codex kipi) | OpenAI | `learn.chatgpt.com/docs/` altında: `agent-approvals-security`, `automations`, `code-review`, `environments/git-worktrees`, `agent-configuration/subagents`, `windows/windows-app` (indirildi, başlıklar ve girişler okundu). Not: Codex uygulaması "ChatGPT desktop app" içine taşınmış | Yüksek (başlıklar), orta (ayrıntılar) |
 | Codex CLI | Terminal sürümü | Aynı belge seti (`Codex CLI` bölümleri) | Orta |
 | DeepSeek Harness (`dsh`) | Resmî DeepSeek harness'ı, MIT, TypeScript, "developer preview" | `github.com/deepseek-ai/deepseek-harness`: README, `docs/architecture.md`, `docs/user/guide/*` başlıkları, `packages/` klasör adları | Yüksek (yapı), orta (davranış) |
-| Orchestrator.inc | Ajan filosu yöneticisi, Apache-2.0, TypeScript | `github.com/OrchestratorInc/agent-orchestrator` README (iddialar README'dedir, denenmedi) | Orta-yüksek |
+| Orchestrator.inc | Ajan filosu yöneticisi, Apache-2.0; Go arka plan süreci + Electron/React masaüstü + Expo mobil (önceki "TypeScript" notu eksikti) | `github.com/OrchestratorInc/agent-orchestrator` README, `docs/STATUS.md`, `docs/architecture.md` (10 Kasım 2026; son sürüm `v0.14.11` gecelik, 9 Kasım 2026; iddialar belgededir, denenmedi) | Orta-yüksek |
 
 Hiçbir ürünü çalıştırıp denemedim; "var" resmî belgede veya README'de yazıyor demektir.
 
@@ -41,7 +41,7 @@ Sütunlar: **Biz** (masaüstü + motor), **CC-App** Claude Code masaüstü, **CC
 | Dosya düzenleme ve komut çalıştırma | ✗ (sohbette bilerek kapalı; işçi hattında ✓) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (ajanlar) |
 | Onay kipleri (salt-okunur / onaylı / tam) | ✗ | ✓ (Manual, Accept edits, Plan, Auto, Bypass) | ✓ | ✓ (salt-okunur / workspace-write + on-request / never) | ✓ | ✓ | ◐ |
 | İzin kuralları (izin / yasak listesi) | ✗ | ✓ | ✓ | ◐ | ◐ | ✓ | ✗ |
-| Sandbox | ✗ (kaldırıldı, karar §6; ajanın kendi sandbox'ı kullanılır) | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
+| Sandbox | – (yok ve **eklenmeyecek**; eksik sayılmaz, karar §6; ajanın kendi sandbox'ı kullanılır) | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
 | Canlı akış | ✗ (1 sn yoklama) | ✓ | ✓ | ✓ | ✓ | ✓ | ◐ |
 | Geri alma / kontrol noktası | ✗ (motorda `checkpoint.py` var, ekranda yok) | ✓ | ✓ | ◐ | ◐ | ✗ (belgede yok) | ◐ |
 | Proje talimat dosyası | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ◐ |
@@ -62,10 +62,10 @@ Sütunlar: **Biz** (masaüstü + motor), **CC-App** Claude Code masaüstü, **CC
 | Görsel diff incelemesi + satır yorumu | ◐ (diff paneli var, yorum ve kabul/geri alma yok) | ✓ | ✗ | ✓ (inceleme bölmesinde satır içi yorumlar) | ✗ | ? | ✓ |
 | Gömülü tarayıcı / uygulama önizleme | ◐ (`preview.rs`) | ✓ | ✗ | ✓ (tarayıcı + bilgisayar kullanımı) | ✗ | ✓ (`browser-use`) | ✓ |
 | Gömülü terminal ve dosya düzenleyici | ◐ (terminal ve dosya paneli var, düzenleyici yok) | ✓ | – | ✓ (entegre terminal) | – | ✓ | ✓ |
-| Zamanlanmış görevler + inceleme kuyruğu | ✗ (motorda iz var) | ✓ (scheduled tasks) | ✗ | ✓ (Scheduled görünümü bir gelen kutusu; Gmail/Slack/GitHub olay tetikleyicileri) | ✗ | ✓ (`schedule`) | ◐ |
-| Yan sohbet (ana bağlamı kullanır, geri yazmaz) | ✗ | ✓ | ✗ | ✓ (`/side`, Ctrl/⌘+Alt+S) | ✗ | ? | ✗ |
+| Zamanlanmış görevler + inceleme kuyruğu | ✗ (motorda iz var) | ✓ (scheduled tasks) | ✗ | ✓ (Scheduled görünümü bir gelen kutusu; Gmail/Slack/GitHub olay tetikleyicileri) | ✗ | ✓ (`schedule`) | ✓ (tekrarlayan otomasyon, çalışma geçmişi, arka plan zamanlayıcısı) |
+| Yan sohbet (ana bağlamı kullanır, geri yazmaz) | ✗ | ✓ | ✗ | ✓ (`/side`, Ctrl/⌘+Alt+S) | ✗ | ? | ◐ (belge klasöründe yan sohbet notu var; davranışı okunmadı) |
 | SSH / uzak oturum | ✗ | ✓ | – | ✓ (SSH üzerinden uygulama) | – | ✓ | ✗ |
-| CLI oturumunu uygulamaya taşıma | ✗ | ✓ (`/desktop`) | – | ? | – | ✗ | ✓ (ajanın kendi terminal arayüzü) |
+| CLI oturumunu uygulamaya taşıma | ✗ | ✓ (masaüstünde `/resume`, Ağustos 2026) | – | ◐ ("Import from another agent"; ayrıca uzak terminal arayüzü app-server'a bağlanır) | – | ✗ | ✓ (ajanın kendi terminal arayüzü; sohbet ↔ terminal geçişi) |
 | Mobil / bulut | ✗ | ◐ | ✗ | ◐ (bulut tetikleyici planlı) | ✗ | ✗ | ✓ |
 | Sesle giriş | ✓ | ✗ (belgede yok) | ✗ | ✓ (uygulama içi dikte) | ✗ | ✓ (`voice-input`) | ✗ |
 | Ekran görüntüsü ekleme (onaylı) | ✓ | ✓ (görsel/PDF ekleme, sürükle-bırak) | ✗ | ? | ✗ | ✓ (`attachment`) | ✗ |
@@ -91,6 +91,55 @@ Sütunlar: **Biz** (masaüstü + motor), **CC-App** Claude Code masaüstü, **CC
 "?" belgede bulunamayan veya doğrulanamayan hücrelerdir; bu satırlara dayanarak karar verilmemeli.
 
 Doğrulama notu (2026-11-08): önceki sürümdeki iki iddia yanlıştı. (1) Codex CLI'ın kendini MCP sunucusu yapması: `codex mcp-server` komutu kaldırılmış (resmî belge), eski üçüncü taraf yazılar bunu hâlâ anlatıyordu. (2) Claude Code masaüstünde ajan ekipleri: yalnız CLI'da var; masaüstünde "dynamic workflows" var. Claude Code masaüstünde olmayanlar (resmî "What's not available"): üçüncü taraf sağlayıcılar (ağ geçidi hariç), satır içi kod tamamlama, ajan ekipleri; Linux'ta computer use yok. dsh'nin kendi "auto-review" ve "permission-presets" bileşenleri var; Codex'te `approvals_reviewer = "auto_review"`.
+
+## 1c. Nasıl yapmışlar (10 Kasım 2026)
+
+Kaynak: resmî belge ve depo sayfaları, 10 Kasım 2026'da indirildi; hiçbir ürün çalıştırılmadı. Okunan sürümler: Claude Code belgeleri (son haftalık not 7–11 Eylül 2026, `v2.1.269`; yerel CLI `2.1.319`), Codex (`learn.chatgpt.com/docs`, son not 2–6 Kasım 2026; depo etiketi `rust-v0.169.0-alpha.7`), dsh (`dsh-v0.2.2-rc.1`, 4 Kasım 2026, "developer preview"), AO (`v0.14.11` gecelik, 9 Kasım 2026). Diğer ürünlerde yalnız açılış sayfası ya da README okundu.
+
+| Konu | Claude Code | Codex | dsh | Orchestrator.inc (AO) | Bizde |
+|---|---|---|---|---|---|
+| Arka plan süreci | CLI'da "supervisor" servisi arka plan oturumlarını tutar; terminal kapanınca çalışırlar; bir saat boşta kalan sürecin işlemi durur, bağlanınca kaldığı yerden başlar | `codex app-server`: uygulama, IDE ve uzak terminal arayüzü aynı sunucuya bağlanır | Web arayüzü yerel sunucudan (`127.0.0.1:3080`); Electron masaüstü aynı çalışma zamanını taşır | Go arka plan süreci (yalnız loopback HTTP), SQLite; masaüstü ve mobil istemcidir | Kalıcı motor (ADR-030), adlandırılmış boru, yalnız Windows |
+| Protokol ve tek kaynak | `stream-json` denetim protokolü, Agent SDK | JSON-RPC 2.0; stdio (varsayılan), Unix soketi, deneysel WebSocket; `generate-ts` ile tipler üretilir | Cordis eklenti ağacı; `web`, `headless`, `sdk`, `acp` profilleri | REST + SSE; OpenAPI Go tiplerinden, TS tipleri ondan üretilir, CI ayrışmayı denetler | `engine/catalog.py` tek tablo, `catalog.ts`/`catalog.rs` üretilir (ADR-032); girdi şemaları eksik |
+| Canlı akış | Olay akışı | `item/*/delta` bildirimleri; `turn/steer` ile çalışan tura ekleme, `turn/interrupt` | Oturum günlüğü + `agent/*` canlı olayları | Veritabanı değişiklikleri (CDC) SSE ile; terminal WebSocket ile | 1 sn yoklama |
+| Çoklu ajan desteği | Yalnız Claude (ağ geçidiyle başka sağlayıcı) | OpenAI modelleri (belge dizininde ağ geçidi ve Bedrock sayfaları var; okunmadı) | LLM adaptörleri; kendini ACP ile açar | Codex'e yerel app-server, Claude Code dahil diğerlerine ACP; her adaptör desteğini açıkça bildirir, sözleşme testi ölçer; inceleyici, işçi ve sohbet kayıtları ayrıdır | İşçilerde 6 ajan; sohbette yalnız opencode; `agent.describe` yok |
+| Ajanın kendi terminali | CLI'ın kendisi; masaüstünde ayrı terminal bölmesi | Entegre terminal | `terminal` alt sistemi | Sohbet **ve** ajanın kendi terminal arayüzü, aralarında geçiş; PTY ayrı süreçte | Yok (karar 11, yapılmadı) |
+| Görev başlatma ve pano | İstem altındaki satırda ortam, klasör, kip, model; ajan görünümü oturumları duruma göre gruplar | Projeler, bölümler, sabitleme, arama | Kenar çubuğu | Ana ajan planlar, parça başına işçi; şeritler olgulardan okuma anında türetilir | Masaüstü başlatamıyor; pano yok |
+| Worktree | `.claude/worktrees/`, `.worktreeinclude`, düzenli süpürme, alt ajan için `isolation: worktree` | `$CODEX_HOME/worktrees`, `.worktreeinclude`, "Hand off" ile yerel ↔ worktree, kurulum betikleri | `worktrees` (deneysel) | Her görev kendi dalı ve worktree'si | Motorda var, ekranda yok |
+| Geri alma | İstem başına kontrol noktası; yalnız düzenleme araçlarının değiştirdiği dosyalar; `/rewind` | `thread/revert` konuşma geçmişini geri sarar; inceleme bölmesinde dosya geri alma | Okunmadı | Oturum geri yükleme | Yama onaysız uygulanmaz; `checkpoint.py` var, ekranda yok |
+| İnceleme, PR, CI | Diff görünümü, `/code-review`, "Auto-fix", "Merge when ready" | İnceleme bölmesinde satır yorumu, sahneleme/geri alma; PR incelemesi eklentiyle, kendisi yorum yazmaz/birleştirmez | `github-review` kılavuzu | 30 sn'de bir GitHub/GitLab yoklama; başarısız CI, yorum ve çakışma sahibi işçiye döner; inceleyici ajan; birleştirme API'den | Diff paneli; taslak PR ve CI yoklama motorda, gerçek uzakta denenmedi |
+| İzinler | Kip seçici, izin kuralları, sandbox | Kip seçici; "Approve for me" = Auto-review (inceleyici ajan onay isteğini değerlendirir); Starlark `.rules`; yerel Windows sandbox'ı | `permission-presets`, `guard`, `sandbox` | Ajanın kendi kipi; kendi sandbox'ı okunmadı | Karar var, ekran yok; sandbox yok |
+| Bağlam | Oturum kartında doluluk; otomatik ve elle `/compact` | `/status`; `thread/compact/start` | `token-meter`, `compaction` | Okunmadı | Token var, yüzde yok |
+| Zamanlama | Masaüstü ve bulut zamanlanmış görevleri | "Scheduled" gelen kutusu, uygulama olayı tetikleyicileri | `schedule` | Arka plan zamanlayıcısı, çalışma geçmişi | Yok |
+| Bildirim | Bakmadığınız oturum bitince işletim sistemi bildirimi | Tur bitiş uyarısı, etkinlik görünümü | Okunmadı | `girdi bekliyor`, `birleştirmeye hazır` için kalıcı bildirim; mobil itme | Yok |
+| Uzak ve mobil | Remote Control, bulut oturumları, SSH | Uzak bağlantılar (SSH ile uzak app-server), mobil onay | SSH | Mobil uygulama; isteğe bağlı kimlik doğrulamalı LAN dinleyicisi; ev dışı için tünel; bulut işçileri | Yok |
+| Telemetri | Var | Var | `telemetry`, `otel` paketleri | Var (PostHog; kurulum kimliği ve GitHub kullanıcı adı) | Yok |
+
+**Diğer orkestratörler** (açılış sayfası ya da README, 10 Kasım 2026):
+
+| Ürün | Nasıl çalışıyor | Bize ders |
+|---|---|---|
+| Herdr (Apache-2.0) | Ajanlar `herdr-core` adlı küçük sunucuda, gerçek terminallerde çalışır; uygulama kapanınca, güncellenince ya da çökünce terminaller yaşar (`hc update` çalışanları kapatmaz). Durum ekran kazımayla değil, programın bildirdiği açık terminal dizisiyle (OSC 7501) okunur. API `hc schema` ile OpenRPC olarak verilir. SSH ile başka makineler aynı kenar çubuğunda | Güncellemede çalışan işi koruma; durum için ekran kazımama |
+| Orca (açık kaynak) | Her ajan kendi worktree'sinde; sohbet ya da terminal; diff, tarayıcı, CLI tek uygulamada; arayüzde yapılan her şey CLI'dan da yapılır (ajanlar da kullanır); mobil eşlik uygulaması | "Her şey CLI'dan da yapılır" bizim tek katalog kararımızla aynı |
+| MXterm | Her ajanın kendi CLI'ı gerçek terminal bölmesinde (28 CLI); bölme "sohbet görünümü"ne çevrilebilir ve Claude Code/Codex istekleri oradan onaylanır; telefonla paylaşım | Terminal taban, sohbet üstüne görünüm |
+| Vi3ecode | Adlandırılmış, kalıcı roller (lider, analist, geliştirici, test, tasarım) tek konuşmayı paylaşır; her tur devir ya da bitti ile biter; otomatik devir sıçrama sınırı ve bütçeyle durur; salt-okunur ilan edilen ajan yazamaz | Devir sınırı ve bütçe motorumuzda var, ekranda yok |
+| AgentSpace (Muratify, `v0.4.11`) | Kalıcı kimlikli ajan ekibi, görev panosu ve gerçek terminaller tek pencerede; "kanıtla teslim"; sesli komut, mobil izleme | "Kanıtla teslim" iddiası; bizim imzalı kanıt daha güçlü, görünür kılınmalı |
+| Munder Difflin (MIT) | Gerçek terminal ajanlarını sarar; ortak hafıza, posta kutusu, kara tahta, görev defteri; yerleşik dikte | Ajanlar arası mesajlaşma |
+| Open Space (MIT) | Yalnız Claude Code; izin ve sorular terminalsiz yanıtlanır; aynı klasörde ikinci oturum için "dalda yalıt" seçili gelir | Çakışmada yalıtımı varsayılan öner |
+| Kitchen (MIT) | tmux pencerelerinde ajanlar; bir ana ajan büyük resmi tutar | Terminal taban |
+| Mission Control (MIT) | Ajan çalışma zamanlarının üstünde, kendi sunucunuzda denetim düzlemi; REST API | Kapsamımız dışında (ajan çalıştırmaz, yönetir) |
+| Agency Orchestrator (Apache-2.0) | Bir cümleden görev ayrıştırma, hazır rollerle DAG çalıştırma, kabul ölçütü; web stüdyosu | Kabul ölçütü bizde zaten var |
+| Buzz (Block, Apache-2.0) | İnsanların ve ajanların aynı odaları paylaştığı, imzalı olay günlüklü çalışma alanı | Kapsam dışı (sohbet alanı) |
+
+**Bu okumadan çıkan sonuçlar:**
+
+1. Arka plan süreci, tek protokol ve üretilmiş tipler artık sınıfın tabanı; ADR-030 ve ADR-032 ile aynı yerdeyiz. Eksiğimiz: canlı akış (hâlâ yoklama) ve güncellemede çalışan işin korunması.
+2. Orkestratör sınıfında **ajanın kendi terminali taban**, yapılandırılmış sohbet onun üstüne ek. Bizde tersine yalnız sohbet var ve tek ajanla. Terminal paneli öne alınmalı.
+3. Çok ajanı desteklemenin yolu ajan başına adaptör değil **ACP**: AO, Claude Code dahil hemen herkesi ACP ile sürüyor; yalnız Codex kendi app-server'ı ile.
+4. Pano durumu saklanmaz, olgulardan türetilir (AO). Bizim `effective_status` aynı ilkede.
+5. `.worktreeinclude` iki büyük rakibin ortak kuralı; aynen tanımak bedava uyumluluk.
+6. İnceleme kuyruğu ve geri bildirimi sahibi işçiye yollamak AO ve Codex'te ürünün merkezi; bizim odağımızla ("işin bittiğini kanıtla") en çok örtüşen eksik bu.
+7. Uzak ve mobil erişim neredeyse herkeste var; bizde yok ve karar bekliyor.
+8. İmzalı kanıt, telemetrisizlik ve hesapsız çalışma okuduğum hiçbir rakipte yok; fark burada.
 
 ## 2. Özellik listesi
 
@@ -319,7 +368,7 @@ Her maddede: **Rakipler** · **Bizde şimdi** · **Hedef** · **Motor işi** · 
 ## 4. Her madde için ortak kurallar
 
 - Karar ve iş kuralı motorda; masaüstü yalnız çizer ve seçimi iletir (`desktop/tests/engine_owns.test.ts` bunu denetler).
-- Masaüstü komut izin listeleri üç yerde aynı tutulur: `engine_connector.rs`, `sessionlog.ts`/`beta4.ts`, `contracts/ipc.ts`.
+- Motor komutları tek tablodadır (`engine/catalog.py`, ADR-032). Masaüstü izin listeleri elle yazılmaz: `python -m respected_orchestrator.engine.catalog` `contracts/catalog.ts` ve `src-tauri/src/catalog.rs` dosyalarını üretir.
 - Motor kapalı / komut hatası: hata görünümü; sahte veya yedek veri çizilmez.
 - Yeni komut: yetki sınıfı (READ/TASK/SETTINGS/PRIVILEGED) belgelenir, `tests/engine` ve `cargo test` ACL testi güncellenir.
 - Telemetri eklenmez; ağ erişimi yeni özellik için ayrıca gerekçelendirilir.
@@ -327,7 +376,7 @@ Her maddede: **Rakipler** · **Bizde şimdi** · **Hedef** · **Motor işi** · 
 ## 6. Alınan kararlar (2026-11-08, kullanıcı)
 
 1. **Odak:** "Birden çok ajanı çalıştıran, işin gerçekten bittiğini kanıtlayan, tamamen yerel orchestrator." Özellik sayısı yarışına girilmez.
-2. **Motor tek, kalıcı bir arka plan süreci olur.** CLI, MCP ve masaüstü aynı canlı oturumları görür. (Tasarım: [ADR-030](adr/ADR-030-kalici-motor.md), onay bekliyor: başlatma, kurucu, yerel bağlantı güvenliği.)
+2. **Motor tek, kalıcı bir arka plan süreci olur.** CLI, MCP ve masaüstü aynı canlı oturumları görür. (Tasarım: [ADR-030](adr/ADR-030-kalici-motor.md); onaylandı ve uygulandı.)
 3. **Tek işlem kataloğu:** CLI, MCP ve masaüstü motordaki tek katalogdan beslenir; yeni özellik üçünde birden görünür.
 4. **İzin kipleri:** tüm kipler sunulur, seçimi kullanıcı yapar; `İzinleri atla` yalnız soruları kapatır, ilk seçimde uyarı penceresi çıkar (B3).
 5. **Sandbox komple kaldırılır** (yedek olarak da kalmaz). İşçiler kullanıcı olarak, ajanın kendi sandbox ve izin kipiyle çalışır. Motorun doğrulama komutları dahil AppContainer yolu tamamen silinir: işçi kısıtsız çalıştığı için doğrulamayı kutuda koşmak yarım koruma olurdu. Kanıt ve onay bütünlüğü imza ve motor doğrulamasıyla sağlanır; anahtar gizliliği için ek garanti verilmez ve belgede açıkça yazılır. Getirisi: Windows bağımlılığı biter (macOS/Linux yolu açılır), `RESPECTED_CHAT_UNSANDBOXED` kalkar, araç uyumsuzlukları (`npm test`, Codex sandbox) biter.
@@ -336,6 +385,8 @@ Her maddede: **Rakipler** · **Bizde şimdi** · **Hedef** · **Motor işi** · 
    - Kod ve `ARCHITECTURE.md` aynı değişiklikte güncellenir; `rorch` adına geçiş ayrı bir adımdır.
 6. **CLI adı: `rorch`** (Respected Orchestrator; `ro` fazla kısa bulundu). Tek ad: yürütülebilir dosya `rorch.exe`, MCP girdisi `rorch mcp`; uzun ad ve takma ad yoktur (depo kuralı). Ürün adı "Respected Orchestrator" olarak kalır. Beta olduğu için geçiş şimdi ucuz: kayıtlı MCP girdileri (`respected-orchestrator.exe mcp`), kurucu, belgeler ve testler güncellenir. Ayrı adım olarak yapılır. Reddedilenler: `ro`, `rsp`, `orch`. İlk komut yapısı için Orchestrator.inc'in `ao` komutları örnek alındı (daemon/start/stop/status/doctor, spawn/send/session/project, pr/review, mcp, hooks).
 7. **Çalışma şekli:** dikey dilimler; bir özellik motor + CLI + MCP + masaüstü + test + belge bitince biter.
+
+0. **Yön kararı (2026-11-10): her şeyi, yapacağımız ve var olan özellikleri, rakiplerdeki gibi yaparız. Birincil kaynak Orchestrator.inc'tir;** diğer rakipler özelliği daha iyi yapmak için örnek alınır. **Sandbox yok ve eklenmeyecek** (Orchestrator.inc'te de yok): bu belgedeki tablolarda başka rakiplerin sandbox'ından, sandbox dışı komut kurallarından (G11) ya da ağ proxy'sinden (G10) söz edilmesi yalnız bilgidir; bizde bunlar ajanın kendi özelliği olarak gösterilir, motor yalıtım katmanı eklemez. Ayrıntı, bu kararla kesinleşenler ve istisnalar (telemetri yok, hesap yok): [KALAN_ISLER.md](KALAN_ISLER.md) "Yön kararı". Bu karar madde 10'daki "önce Claude Code adaptörü" sırasını değiştirir: çok ajan desteği ACP ile yapılır (Codex kendi `app-server`'ı ile); ajanın kendi terminali Orchestrator.inc'teki gibi sohbetle yan yana sunulur.
 
 8. **Ajanın kendi özellikleri ajandan gelir.** Bağlam doluluğu, sıkıştırma (`/compact`), temizleme (`/clear`), model listesi, izin kipleri, eğik çizgi komutları, beceriler, alt ajanlar, hook'lar ajanın işidir; biz yeniden üretmeyiz. Motor ajana sorar, ortak şemaya çevirir, ekran yalnız çizer (§7).
 9. **Ortak şema + ajana özel uzantı alanı.** Her ajan için motor aynı biçimde cevap verir; şemada karşılığı olmayan şeyler "uzantı" alanında genel etiket/değer listesi olarak gelir ve ekran bunu olduğu gibi çizer. Yeni bir ajan özelliği masaüstünü değiştirmeyi gerektirmez.
@@ -395,7 +446,7 @@ Her yetenek: `native` (ajan veriyor) ya da `unsupported`; kaynağı ve doğrulam
 
 **Risk:** ortak şema en küçük ortak paydaya inebilir; çözüm uzantı alanı ve terminal yedeği.
 
-**Adaptör sırası** (motorun desteklediği ajanlar: `engine/clis.py` içinde `claude`, `antigravity`/`agy`, `codex`, `cursor`, `opencode`, `openrouter`, `custom`). Kullanıcı kararı: önce Claude; diğerleri de yapılacak. Önerilen sıra (Claude dışındaki sıra öneridir, onay bekler):
+**Adaptör sırası** (motorun desteklediği ajanlar: `engine/clis.py` içinde `claude`, `antigravity`/`agy`, `codex`, `cursor`, `opencode`, `openrouter`, `custom`). **Bu sıra 2026-11-10 yön kararıyla geçersizdir:** ajan başına adaptör yazılmaz; Codex kendi `app-server`'ı ile, Claude Code dahil diğerleri tek ACP adaptörüyle sürülür, Claude Code'a özel alanlar üstüne eklenir (`KALAN_ISLER.md` 3.2). Eski sıra tarihçe olarak duruyor:
 1. **Claude Code** (karar). Referans adaptör: şema burada oturur.
 2. **Codex** (resmî belgede app server ve ilgili alanlar var; ikinci büyük kullanıcı kitlesi).
 3. **OpenCode** (ACP istemcisi ve bugünkü sohbet zaten var; yeni şemaya taşınır).

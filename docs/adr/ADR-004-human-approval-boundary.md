@@ -2,7 +2,7 @@
 
 ## Durum
 
-Kabul edildi.
+Kabul edildi. **Değişecek (10 Kasım 2026, kullanıcı kararı):** onay ve uygulama rakiplerdeki gibi yapılacak (onay isteği motordan istemciye gider ve uygulamanın ekranında yanıtlanır; ayrı `apply` yerine dala çevir / yerele al / PR aç). Doğrulama ön koşulu ve "çalışan sürecin içinden onay verilemez" kuralı korunur. Yeni ADR yazılıp uygulanana kadar bu belge ve kod geçerlidir; iş: `KALAN_ISLER.md` 1.7.
 
 ## Bağlam
 
