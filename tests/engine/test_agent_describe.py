@@ -4,7 +4,7 @@ import time
 import unittest
 from pathlib import Path
 
-from respected_orchestrator.engine import agent_adapters, agent_describe as ad
+from respected_orchestrator.engine import agent_adapters, agent_describe as ad, chat_session
 from tests.engine.test_agent_discovery import CODEX_OK, FakeProbe
 
 NOW = dt.datetime(2026, 11, 10, 12, 0, tzinfo=dt.timezone.utc)
@@ -30,7 +30,7 @@ class DescribeTests(unittest.TestCase):
 
     def assert_contract(self, d):
         """The shape every adapter row must keep (the counterpart of a registry contract test)."""
-        self.assertEqual(set(d), {"agent", "checked_at", "version", "readiness", "interfaces", "capabilities", "modes", "chat_modes", "models", "commands", "context", "extra"})
+        self.assertEqual(set(d), {"agent", "checked_at", "version", "readiness", "interfaces", "capabilities", "modes", "chat_modes", "chat_permissions", "models", "commands", "context", "extra"})
         self.assertEqual(set(d["interfaces"]), set(ad.INTERFACES))
         self.assertLessEqual(set(d["capabilities"]), set(ad.FLAGS.values()))
         fields = [*d["interfaces"].values(), *d["capabilities"].values(), d["modes"], d["models"], d["commands"], d["context"]]
@@ -64,6 +64,9 @@ class DescribeTests(unittest.TestCase):
         self.assertEqual(d["interfaces"]["chat"]["status"], "native")
         self.assertEqual(d["modes"]["items"], [{"id": "default", "native": ""}, {"id": "auto", "native": "--auto"}])  # the bypass flag is not in this help
         self.assertEqual(d["chat_modes"], ["default", "accept-edits", "bypass-permissions"])
+        self.assertEqual(d["chat_permissions"]["modes"], {mode: list(actions) for mode, actions in chat_session.MODES.items()})
+        self.assertEqual(d["chat_permissions"]["always_denied"], list(chat_session.ALWAYS_DENIED))
+        self.assertEqual((d["chat_permissions"]["project_config"], d["chat_permissions"]["source"]), ("disabled", "engine policy"))
         self.assertEqual((d["models"]["status"], d["models"]["selection"]), ("native", "catalog"))
         self.assertEqual((d["version"], d["checked_at"]), ("opencode v2.2.3", NOW.isoformat()))
 
@@ -77,6 +80,7 @@ class DescribeTests(unittest.TestCase):
                          {"steer": "unverified", "interrupt": "unverified", "resume": "native", "usage": "unverified", "approvals": "native"})
         self.assertEqual([m["id"] for m in d["modes"]["items"]], ["default", "bypass-permissions"])
         self.assertEqual(d["chat_modes"], [])  # codex has no chat adapter here
+        self.assertEqual(d["chat_permissions"], {})
         self.assertEqual(d["models"]["selection"], "text")
 
     def test_common_mode_ids_keep_the_agents_own_names_and_a_missing_login_is_not_ready(self):

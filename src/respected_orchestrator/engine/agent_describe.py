@@ -113,6 +113,11 @@ def describe(agent, *, probe=None, which=None, now=None, use_cache=True):
         "modes": _modes(spec.get("modes"), path, row, probe),
         # The CLI's own flags (`modes`) are not the chat screen's permission modes; keep both, named.
         "chat_modes": list(chat_session.MODES) if agent in chat_session.SUPPORTED else [],
+        # The engine's own permission policy for the chat stream, so the screen shows the rules actually enforced.
+        "chat_permissions": ({"modes": {mode: list(actions) for mode, actions in chat_session.MODES.items()},
+                              "always_denied": list(chat_session.ALWAYS_DENIED),
+                              "project_config": "disabled", "source": "engine policy"}
+                             if agent in chat_session.SUPPORTED else {}),
         "models": _models(agent, spec.get("model"), path, row, probe),
         "commands": _field("unverified", "doc", live["commands"], items=[]) if "commands" in live else _field("unsupported", "none", _NO_CONTRACT, items=[]),
         "context": _field("unverified", "doc", live["context"]) if "context" in live else _field("unsupported", "none", _NO_CONTRACT),
