@@ -147,7 +147,7 @@ export function Sessions() {
   const [menu, setMenu] = useState(false);
   const [modal, setModal] = useState<null | 'voice' | 'shot'>(null);
   useEffect(() => {
-    setConvStore({ list: conversations.map((c) => ({ id: c.id, title: c.title, state: c.state, root: c.project_root, at: c.updated * 1000, saved: c.saved })) });
+    setConvStore({ list: conversations.map((c) => ({ id: c.id, title: c.title, state: c.state, root: c.project_root, at: c.updated * 1000, saved: c.saved, pinned: c.pinned, archived: c.archived, match: c.match ?? '' })) });
   }, [conversations]);
 
   const pickFolder = async (start?: string): Promise<string | null> => invoke<string | null>('pick_folder', { start: start ?? null });

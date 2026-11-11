@@ -1,12 +1,12 @@
 import { useSyncExternalStore } from 'react';
 /** Sohbet listesi sidebar'da, mesajlar sayfada: ikisi bu küçük depo üzerinden aynı seçimi paylaşır. */
-export type ConvItem = { id: string; title: string; state: 'idle' | 'running' | 'failed' | 'ended'; root: string | null; at: number; saved: boolean };
-export type ConvStore = { list: ConvItem[]; sel: string; groupOrder: string[]; collapsed: string[]; newRoot: string | null };
+export type ConvItem = { id: string; title: string; state: 'idle' | 'running' | 'failed' | 'ended'; root: string | null; at: number; saved: boolean; pinned: boolean; archived: boolean; match: string };
+export type ConvStore = { list: ConvItem[]; sel: string; groupOrder: string[]; collapsed: string[]; newRoot: string | null; query: string; showArchived: boolean };
 
 function loadList(key: string): string[] {
   try { const v = JSON.parse(localStorage.getItem(key) ?? '[]') as unknown; return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []; } catch { return []; }
 }
-let st: ConvStore = { list: [], sel: 'new', groupOrder: loadList('orch.group-order'), collapsed: loadList('orch.group-collapsed'), newRoot: null };
+let st: ConvStore = { list: [], sel: 'new', groupOrder: loadList('orch.group-order'), collapsed: loadList('orch.group-collapsed'), newRoot: null, query: '', showArchived: false };
 const subs = new Set<() => void>();
 export const getConvStore = () => st;
 export function setConvStore(p: Partial<ConvStore>): void {
