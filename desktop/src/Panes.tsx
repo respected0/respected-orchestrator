@@ -8,8 +8,8 @@ import { PreviewPanel } from './PreviewPanel';
 import { TerminalPane } from './TerminalPane';
 import { AgentTerminals } from './AgentTerminal';
 import { Instructions } from './Instructions';
-import { baseName, compactNumber, filesOf, toolCount, type ToolListView, type Turn } from './chatmodel';
-import { reasonText, stateText, type SessionView, type Usage } from './sessionlog';
+import { actionText, baseName, compactNumber, filesOf, toolCount, type ChatPermissionsView, type ToolListView, type Turn } from './chatmodel';
+import { modeText, reasonText, stateText, type SessionView, type Usage } from './sessionlog';
 import { bufferOf } from './terminal';
 import type { Loaded } from './Chat';
 
@@ -19,7 +19,7 @@ export const WIDE_TITLE: Record<Wide, string> = { terminal: 'Terminal', diff: 'D
 const row = (a: string, b: ReactNode, icon?: Parameters<typeof Ico>[0]['n']) => <div className="step">{icon && <Ico n={icon} />}<div className="grow">{a}</div><span className="mut" style={{ maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b}</span></div>;
 
 /** The narrow session bar: environment, context, adapters, outputs. A section with no data is not drawn. */
-export function SessionPane({ s, turns, usage, root, tools }: { s: SessionView | null; turns: Turn[]; usage: Usage | null; root: string | null; tools: Loaded<ToolListView>; close?: () => void }) {
+export function SessionPane({ s, turns, usage, root, tools, rules }: { s: SessionView | null; turns: Turn[]; usage: Usage | null; root: string | null; tools: Loaded<ToolListView>; rules?: ChatPermissionsView | null; close?: () => void }) {
   const files = filesOf(turns), calls = toolCount(turns);
   return (
     <aside className="rpanel concept" aria-label="Oturum çubuğu">
@@ -35,6 +35,13 @@ export function SessionPane({ s, turns, usage, root, tools }: { s: SessionView |
       </details>
       {usage && <details open><summary>Bağlam</summary><Tokens u={usage} /></details>}
       {root && <details><summary>Proje talimatları</summary><Instructions root={root} /></details>}
+      {rules && rules.kind === 'error' && <details><summary>Ajan kuralları</summary><p role="alert">{rules.text}</p></details>}
+      {rules && rules.kind === 'rules' && <details><summary>Ajan kuralları</summary>
+        {rules.modes.map((m) => <div key={m.id} className="step"><span className="grow" title={modeText(m.id)[1]}>{modeText(m.id)[0]}</span><span className="mut">{m.actions.map(actionText).join(', ')}</span></div>)}
+        {rules.denied.length > 0 && <details><summary>Her kipte kapalı ({rules.denied.length})</summary>{rules.denied.map((a) => <div key={a} className="step"><span className="mono">{a}</span></div>)}</details>}
+        <p className="mut">{rules.note}</p>
+        <p className="mut">Tanınan talimat dosyaları: AGENTS.md, CLAUDE.md.</p>
+      </details>}
       <details open><summary>Bağdaştırıcılar</summary>
         {tools.s === 'loading' && <p className="mut" role="status">Taranıyor…</p>}
         {tools.s === 'done' && tools.v.kind === 'error' && <p role="alert">{tools.v.text}</p>}

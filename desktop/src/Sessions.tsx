@@ -4,7 +4,7 @@ import { listen } from '@tauri-apps/api/event';
 import { Modal } from './ui';
 import { ChatThread, Composer, type Loaded } from './Chat';
 import { SessionPane, WIDE_TITLE, WidePane, type Wide } from './Panes';
-import { agentLine, baseName, modelsView, toolListView, withAttachments, withLive, type AgentLine, type ModelsView, type ToolListView, type Turn } from './chatmodel';
+import { agentLine, baseName, chatPermissionsView, modelsView, toolListView, withAttachments, withLive, type AgentLine, type ChatPermissionsView, type ModelsView, type ToolListView, type Turn } from './chatmodel';
 import { Voice } from './Voice';
 import { Screenshot } from './Screenshot';
 import { Ico } from './icons';
@@ -33,6 +33,7 @@ export function Sessions() {
   const [models, setModels] = useState<Loaded<ModelsView>>({ s: 'loading' });
   const [tools, setTools] = useState<Loaded<ToolListView>>({ s: 'loading' });
   const [agent, setAgent] = useState<AgentLine | null>(null);
+  const [rules, setRules] = useState<ChatPermissionsView | null>(null);
   const { sel, newRoot, query, showArchived } = useConvStore();
   const turns = Object.fromEntries(Object.entries(tr).map(([k, v]) => [k, withLive(v.turns, v.live)]));
   useEffect(() => { if (newRoot) { setForm((f) => ({ ...f, root: newRoot })); setConvStore({ newRoot: null }); } }, [newRoot]);
@@ -72,7 +73,7 @@ export function Sessions() {
   useEffect(() => {
     if (!defaults?.agent) return;
     let live = true;
-    void call<unknown>(relay, 'agent.describe', { agent: defaults.agent }).then((r) => { if (live) setAgent(agentLine(r)); });
+    void call<unknown>(relay, 'agent.describe', { agent: defaults.agent }).then((r) => { if (live) { setAgent(agentLine(r)); setRules(chatPermissionsView(r)); } });
     return () => { live = false; };
   }, [defaults?.agent]);
 
@@ -306,7 +307,7 @@ export function Sessions() {
               onPickMode: active.state === 'running' ? undefined : (id) => void act('session.mode.set', active, { mode: id }) }} />
         )}
       </div>
-      {panel && (active || archived) && <SessionPane s={active} usage={active ? tr[active.id]?.usage ?? null : archT?.usage ?? null} turns={active ? turns[active.id] ?? [] : archT?.turns ?? []} root={root} tools={tools} close={() => setPanel(false)} />}
+      {panel && (active || archived) && <SessionPane s={active} usage={active ? tr[active.id]?.usage ?? null : archT?.usage ?? null} turns={active ? turns[active.id] ?? [] : archT?.turns ?? []} root={root} tools={tools} rules={rules} close={() => setPanel(false)} />}
       {wide && <WidePane kind={wide} s={active} turns={active ? turns[active.id] ?? [] : archT?.turns ?? []} root={root} lines={active ? linesOf(turns[active.id] ?? []) : []} pickFolder={pickFolder} close={() => setWide(null)} />}
       {modal === 'voice' && <Modal title="Sesli görev" onClose={() => setModal(null)} foot={<button className="btn" onClick={() => setModal(null)}>Kapat</button>}><Voice /></Modal>}
       {modal === 'shot' && <Modal title="Ekran görüntüsü" onClose={() => setModal(null)} foot={<button className="btn" onClick={() => setModal(null)}>Kapat</button>}><Screenshot /></Modal>}

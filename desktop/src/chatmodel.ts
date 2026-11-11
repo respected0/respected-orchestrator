@@ -142,6 +142,32 @@ export function agentLine(r: { ok: true; value: unknown } | { ok: false; text: s
   return { ready: false, text: `Ajan: ${name} · ${label}${typeof why === 'string' && why ? `: ${why}` : ''}` };
 }
 
+export type ChatPermissionsView =
+  | { kind: 'rules'; modes: { id: string; actions: string[] }[]; denied: string[]; note: string }
+  | { kind: 'none' }
+  | { kind: 'error'; text: string };
+
+const ACTION_TEXT: Record<string, string> = { '*': 'tümü', read: 'okuma', glob: 'dosya arama', grep: 'içerik arama', edit: 'düzenleme', execute: 'kod çalıştırma' };
+
+/** One permission action in Turkish; an action this screen does not know keeps the engine's own name. */
+export const actionText = (action: string): string => ACTION_TEXT[action] ?? action;
+
+/** The engine's permission policy (`chat_permissions`) -> the rules the side panel shows. Absent for agents the engine does not run in chat. */
+export function chatPermissionsView(r: { ok: true; value: unknown } | { ok: false; text: string }): ChatPermissionsView {
+  if (!r.ok) return { kind: 'error', text: r.text };
+  const p = (r.value as { chat_permissions?: unknown } | null)?.chat_permissions;
+  if (p === null || typeof p !== 'object' || Array.isArray(p)) return { kind: 'error', text: 'Ajan kuralları beklenen biçimde değil; gösterilmedi.' };
+  const o = p as Record<string, unknown>;
+  if (Object.keys(o).length === 0) return { kind: 'none' };
+  const modes = o.modes, denied = o.always_denied;
+  const rows = typeof modes === 'object' && modes !== null && !Array.isArray(modes) ? Object.entries(modes) : null;
+  if (!rows || !rows.every(([, a]) => Array.isArray(a) && a.every((x) => typeof x === 'string')) || !Array.isArray(denied) || !denied.every((x) => typeof x === 'string')) {
+    return { kind: 'error', text: 'Ajan kuralları beklenen biçimde değil; gösterilmedi.' };
+  }
+  return { kind: 'rules', modes: rows.map(([id, a]) => ({ id, actions: a as string[] })), denied: denied as string[],
+           note: 'Bu kurallar motorun kendi ilkesidir; proje yapılandırması yok sayılır.' };
+}
+
 export type ToolListView =
   | { kind: 'rows'; mcp: string[]; skills: string[] }
   | { kind: 'error'; text: string };

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addPaths, agentLine, baseName, childPath, compactNumber, filesOf, itemsOf, modelsView, planOf, toolCount, toolListView, withAttachments, withLive, type Turn } from '../src/chatmodel.ts';
+import { actionText, addPaths, agentLine, baseName, chatPermissionsView, childPath, compactNumber, filesOf, itemsOf, modelsView, planOf, toolCount, toolListView, withAttachments, withLive, type Turn } from '../src/chatmodel.ts';
 
 const done = (events: Record<string, unknown>[], extra = {}): Turn['result'] => ({ state: 'complete', complete: true, events: events as { kind: string }[], ...extra });
 const turns: Turn[] = [
@@ -61,6 +61,25 @@ test('agent line: ready only when the engine says ready and chat is native; anyt
   assert.match(agentLine(d('unknown', 'native')).text, /durumu bilinmiyor/);
   assert.match(agentLine({ ok: true, value: { agent: 'x', readiness: { effective: 'great' } } }).text, /beklenen biçimde değil/);
   assert.match(agentLine({ ok: false, text: 'Motor yanıt vermedi' }).text, /okunamadı: Motor yanıt vermedi/);
+});
+
+test('agent permission rules come from the engine policy; absent or broken data is never shown as rules', () => {
+  const d = { ok: true as const, value: { agent: 'opencode', chat_permissions: {
+    modes: { default: ['read', 'glob', 'grep'], 'accept-edits': ['read', 'edit'], 'bypass-permissions': ['*'] },
+    always_denied: ['execute', 'opencode_worktree_create'], project_config: 'disabled', source: 'engine policy' } } };
+  assert.deepEqual(chatPermissionsView(d), {
+    kind: 'rules',
+    modes: [{ id: 'default', actions: ['read', 'glob', 'grep'] }, { id: 'accept-edits', actions: ['read', 'edit'] }, { id: 'bypass-permissions', actions: ['*'] }],
+    denied: ['execute', 'opencode_worktree_create'],
+    note: 'Bu kurallar motorun kendi ilkesidir; proje yapılandırması yok sayılır.',
+  });
+  assert.deepEqual(chatPermissionsView({ ok: true, value: { agent: 'codex', chat_permissions: {} } }), { kind: 'none' });
+  assert.equal(chatPermissionsView({ ok: true, value: { agent: 'codex' } }).kind, 'error');
+  assert.equal(chatPermissionsView({ ok: true, value: { chat_permissions: { modes: { x: 'read' }, always_denied: [] } } }).kind, 'error');
+  assert.equal(chatPermissionsView({ ok: true, value: { chat_permissions: { modes: {}, always_denied: [1] } } }).kind, 'error');
+  assert.deepEqual(chatPermissionsView({ ok: false, text: 'Motor yanıt vermedi' }), { kind: 'error', text: 'Motor yanıt vermedi' });
+  assert.equal(actionText('edit'), 'düzenleme');
+  assert.equal(actionText('opencode_worktree_create'), 'opencode_worktree_create');
 });
 
 test('the running turn shows what the agent has said so far, in the turn that asked or as a turn of its own for a retry', () => {
