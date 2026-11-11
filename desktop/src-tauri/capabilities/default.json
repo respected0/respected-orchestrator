@@ -29,6 +29,7 @@
     "allow-preview-open",
     "allow-pick-folder",
     "allow-pick-files",
+    "allow-save-text-file",
     "allow-list-dir",
     "allow-read-text-file",
     "allow-write-instruction-file",
