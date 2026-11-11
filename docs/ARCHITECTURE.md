@@ -546,7 +546,9 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   `native` / `unsupported` / `unverified` durumu ve kaynağı (`probe` / `doc` / `none`) taşır; `native` yalnız yüklü CLI'ın kendi yardım
   metninde bu makinede görülünce verilir, sürüm doğrulanan tabandan eskiyse verilmez. Yalnız salt-okunur yoklamalar çalışır (`--version`,
   `--help`, giriş durumu); ajan başlatılmaz. Sohbet arayüzü yalnız akışı gerçekten doğrulanmış ajanda (`chat_session.SUPPORTED`) `native`'dir.
-  `modes` CLI'ın kendi kip bayraklarıdır; sohbetin izin kipleri ayrı `chat_modes` alanındadır ve `session.defaults.modes` ile aynıdır. Komut listesi ve bağlam canlı oturum ister; o zamana kadar boş ve `unverified` kalır. Ekran yalnız bu cevabı çizer: yeni sohbet
+  `modes` CLI'ın kendi kip bayraklarıdır; sohbetin izin kipleri ayrı `chat_modes` alanındadır ve `session.defaults.modes` ile aynıdır. Sohbet arayüzü olan ajanlarda `chat_permissions`
+  aynı politikayı makine okunur verir: `modes` (kip → açılan araçlar), `always_denied`, `project_config` (`disabled`), `source` (`engine policy`); sohbet arayüzü olmayan ajanlarda boş nesnedir.
+  Oturum paneli bunu "Ajan kuralları" olarak çizer. Motor korunan yol listesi vermez; koruma araç düzeyindedir, ekran yol uydurmaz. Komut listesi ve bağlam canlı oturum ister; o zamana kadar boş ve `unverified` kalır. Ekran yalnız bu cevabı çizer: yeni sohbet
   sayfası varsayılan ajanın durum satırını buradan gösterir. Eski `capabilities.matrix` komutu ve `capability_matrix.py` bununla kalktı.
   `session.models` (salt okunur) ajan CLI'ının kendi `models` çıktısını döndürür; yalnız `sağlayıcı/ad` biçimindeki satırlar kalır ve
   ajan CLI'ını çalıştırır. Sohbet ekranı model listesini, token kullanımını (`usage`
