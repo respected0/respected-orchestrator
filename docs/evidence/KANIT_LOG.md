@@ -2971,3 +2971,11 @@ Kullanıcı yönergesi: ücretsiz modeller. `opencode models` listesindeki ücre
 - **Davranış:** `register()` ve `_persist()` kayda `mode` yazar; `set_mode()` turlar arasında değişikliği hemen kaydeder; `start(mode=None)` kayıtlı konuşmayı `resume` cli kimliğiyle eşleyip kipini geri yükler, çağıran açıkça kip verdiyse o kazanır.
 - **Test:** `$env:PYTHONPATH="src"; py -m unittest tests.engine.test_session_control -v` → `Ran 43 tests` ... `OK`. `tests.engine.test_session_ipc` → `Ran 7 tests` ... `OK`. (PowerShell çıkış kodu 1 görünebilir; unittest stderr'e yazar.)
 - **Doğrulanmayan:** Bu değişiklik yeni canlı ajan koşusu gerektirmedi (izin kuralları önceki 4.6 koşusunda ölçüldü); ekran üzerinden kip seçimi hâlâ gerçek uygulamada görülmedi.
+
+## KALAN_ISLER 4.6 — agent.describe kip ayrımı (11 Kasım 2026)
+
+- **Kapsam:** `agent.describe` cevabındaki `modes` alanının CLI'ın kendi bayrakları olduğunu koruyup sohbetin izin kiplerini ayrı `chat_modes` alanında yayınlamak. `[K]`
+- **Değişen dosyalar:** `src/respected_orchestrator/engine/agent_describe.py`, `tests/engine/test_agent_describe.py`, `docs/ARCHITECTURE.md`, `docs/KALAN_ISLER.md`, bu giriş.
+- **Davranış:** `modes` değişmedi (OpenCode için yardım metninden gelen `default`/`auto` gibi CLI bayrakları). `chat_modes`, ajanın doğrulanmış sohbet adaptörü varsa `session.defaults.modes` ile aynı üç kişiyi (`default`, `accept-edits`, `bypass-permissions`) listeler; sohbet adaptörü yoksa boş listeledir.
+- **Test:** `$env:PYTHONPATH="src"; py -m unittest tests.engine.test_agent_describe tests.engine.test_session_ipc -v` → `Ran 13 tests` ... `OK` (PowerShell çıkış kodu 1 görünebilir; unittest stderr'e yazar).
+- **Doğrulanmayan:** Ekranın `chat_modes` alanını çizdiği gerçek uygulamada görülmedi; bu alan sözleşme ve test düzeyinde doğrulandı.

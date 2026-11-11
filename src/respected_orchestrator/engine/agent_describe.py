@@ -111,6 +111,8 @@ def describe(agent, *, probe=None, which=None, now=None, use_cache=True):
         "interfaces": {"chat": chat, "terminal": terminal, "handoff": handoff},
         "capabilities": {flag: _claim(row["caps"][cap]) for cap, flag in FLAGS.items() if row["caps"][cap]["status"] != agent_adapters.GATED},
         "modes": _modes(spec.get("modes"), path, row, probe),
+        # The CLI's own flags (`modes`) are not the chat screen's permission modes; keep both, named.
+        "chat_modes": list(chat_session.MODES) if agent in chat_session.SUPPORTED else [],
         "models": _models(agent, spec.get("model"), path, row, probe),
         "commands": _field("unverified", "doc", live["commands"], items=[]) if "commands" in live else _field("unsupported", "none", _NO_CONTRACT, items=[]),
         "context": _field("unverified", "doc", live["context"]) if "context" in live else _field("unsupported", "none", _NO_CONTRACT),
