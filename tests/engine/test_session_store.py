@@ -7,7 +7,7 @@ from pathlib import Path
 from respected_orchestrator.engine import chat_session
 from respected_orchestrator.engine.authority import Origin
 from respected_orchestrator.engine.session_control import SessionController, SessionError
-from respected_orchestrator.engine.session_store import DEFAULT_MODEL, SessionStore, title_of, usage_of
+from respected_orchestrator.engine.session_store import DEFAULT_MODEL, SessionStore, display_title, folded, title_of, usage_of
 
 OK = ('{"type":"step_start","sessionID":"ses_aaaaaaaa1111"}\n'
       '{"type":"text","sessionID":"ses_aaaaaaaa1111","part":{"text":"merhaba"}}\n'
@@ -26,6 +26,19 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(title_of([{"user": "iyi bir plan yap. sonra uygula"}], "x"), "İyi bir plan yap")
         self.assertEqual(title_of([{"user": None}], "yedek"), "yedek")
         self.assertLessEqual(len(title_of([{"user": "kelime " * 30}], "x")), 52)
+
+    def test_a_custom_title_wins_and_search_folding_meets_turkish_i(self):
+        self.assertEqual(display_title({"title": "eski", "title_custom": "yeni", "turns": []}), "yeni")
+        self.assertEqual(display_title({"title": "eski", "title_custom": "  ", "turns": []}), "eski")
+        self.assertEqual(folded("İstanbul"), folded("ISTANBUL"))
+        self.assertEqual(folded("İstanbul"), "istanbul")
+
+    def test_a_flag_change_keeps_updated_so_the_list_does_not_reorder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = SessionStore(Path(tmp) / "s.json")
+            store.put({"id": "loc_1", "turns": [], "title": "A", "updated": 5.0}, touch=False)
+            store.put({**store.get("loc_1"), "title_custom": "B"}, touch=False)
+            self.assertEqual((store.get("loc_1")["updated"], store.get("loc_1")["title_custom"]), (5.0, "B"))
 
     def test_usage_adds_what_steps_reported(self):
         step = lambda **k: {"result": {"events": [{"kind": "usage", **k}]}}  # noqa: E731

@@ -8,6 +8,7 @@ prompts are not answerable here; `approve` refuses for every origin including HU
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import secrets
@@ -16,7 +17,7 @@ import threading
 import time
 
 from . import chat_session, winproc
-from .session_store import SessionStore, title_of, usage_of
+from .session_store import RENAME_MAX, SessionStore, display_title, folded, title_of, usage_of
 from .authority import Action, authorize
 
 MAX_RETRIES = 2
@@ -34,6 +35,7 @@ _SESSION = re.compile(r"^(ses|loc)_[A-Za-z0-9]{8,64}$")
 # command -> authority class. `approve` is deliberately absent from this table.
 CLASSES = {"defaults": Action.READ, "set_defaults": Action.SETTINGS, "transcript": Action.READ, "history": Action.READ, "forget": Action.TASK, "register": Action.TASK, "start": Action.TASK, "send": Action.TASK, "retry": Action.TASK, "interrupt": Action.TASK,
            "cancel": Action.TASK, "resume": Action.TASK, "view": Action.READ, "events": Action.READ, "models": Action.READ,
+           "rename": Action.TASK, "pin": Action.TASK, "archive": Action.TASK, "export": Action.READ,
            "set_mode": Action.TERMINAL}  # a mode that lets the agent write or run commands is the person's choice alone (KALAN_ISLER 4.6)
 
 
@@ -84,6 +86,23 @@ class SessionError(ValueError):
     def __init__(self, message, reason=None):
         super().__init__(message)
         self.reason = reason
+
+
+def _match(record, needle, title_hit=False):
+    """A short piece of the first turn that contains the search words, for the sidebar result line."""
+    if not needle:
+        return None
+    for turn in record.get("turns") or []:
+        text = turn.get("user")
+        if isinstance(text, str) and needle in folded(text):
+            flat = " ".join(text.split())
+            at = folded(flat).find(needle)
+            start = max(0, at - 24)
+            return ("…" if start else "") + flat[start:start + 80] + ("…" if start + 80 < len(flat) else "")
+    if not title_hit:
+        return None
+    first = next((t["user"] for t in record.get("turns") or [] if isinstance(t.get("user"), str) and t["user"].strip()), "")
+    return " ".join(first.split())[:80] or None  # the title matched; the first line is the useful context
 
 
 def check_input(text):
@@ -144,7 +163,8 @@ class SessionController:
                 raise SessionError("Session already registered")
             self._sessions[session_id] = {"id": session_id, "cli_id": session_id, "project_id": project_id, "agent": agent, "model": model,
                                           "mode": "default", "cwd": str(cwd), "state": "running" if handle else "idle", "handle": handle, "retries": 0,
-                                          "last": None, "last_text": None, "gen": 0, "turn": 0, "result": None, "turns": []}
+                                          "last": None, "last_text": None, "gen": 0, "turn": 0, "result": None, "turns": [],
+                                          "pinned": False, "archived": False, "title_custom": None}
         return self._dto(self._sessions[session_id])
 
     def _check_mode(self, origin, mode):
@@ -188,9 +208,12 @@ class SessionController:
                 raise SessionError("Too many open sessions", "TOO_MANY_SESSIONS")
             sid = "loc_" + secrets.token_hex(8)
             self._sessions[sid] = {"id": sid, "cli_id": resume, "project_id": project_id, "agent": agent, "model": model, "cwd": str(cwd), "mode": mode,
-                                   "state": "idle", "handle": None, "retries": 0, "last": None, "last_text": None, "gen": 0, "turn": 0, "result": None, "turns": []}
-            if adopted:  # the saved conversation continues here: its record moves to the new session
+                                   "state": "idle", "handle": None, "retries": 0, "last": None, "last_text": None, "gen": 0, "turn": 0, "result": None, "turns": [],
+                                   "pinned": False, "archived": False, "title_custom": None}
+            if adopted:  # the saved conversation continues here: its record, name and flags move to the new session
                 self._sessions[sid]["turns"] = list(adopted["turns"])
+                for key in ("pinned", "archived", "title_custom"):
+                    self._sessions[sid][key] = adopted.get(key, self._sessions[sid][key])
             try:
                 result = self._turn(self._sessions[sid], text, wait)
             except Exception:
@@ -243,11 +266,19 @@ class SessionController:
         self.store.set_defaults(agent, model)
         return self.defaults(origin)
 
-    def _persist(self, session):
+    def _persist(self, session, touch=True):
         turns = session["turns"]
+        old = self.store.get(session["id"]) or {}
         self.store.put({"id": session["id"], "project_root": session["cwd"], "agent": session["agent"], "model": session["model"],
                         "cli": session["cli_id"], "mode": session.get("mode", "default"), "turns": turns,
-                        "title": title_of(turns, f"{session['agent']} · {session['model'].split('/')[-1]}")})
+                        "title": title_of(turns, f"{session['agent']} · {session['model'].split('/')[-1]}"),
+                        "pinned": session.get("pinned", old.get("pinned", False)), "archived": session.get("archived", old.get("archived", False)),
+                        "title_custom": session.get("title_custom", old.get("title_custom"))}, touch=touch)
+
+    @staticmethod
+    def _title(session, record=None):
+        custom = session.get("title_custom") or (record or {}).get("title_custom")
+        return custom if isinstance(custom, str) and custom.strip() else title_of(session["turns"], f"{session['agent']} · {session['model'].split('/')[-1]}")
 
     def transcript(self, origin, session_id, before=None, limit=PAGE_TURNS):
         """One page of a conversation, newest by default: the `limit` turns that end just before turn index `before`. `first` is the index of
@@ -265,7 +296,7 @@ class SessionController:
             first = max(0, end - limit)
             session = self._sessions.get(session_id)
             live = {"turn": session["turn"], "events": list(session.get("live", ()))} if session and session["state"] == "running" else None
-            return {"id": record["id"], "title": record["title"], "project_root": record["project_root"], "agent": record["agent"],
+            return {"id": record["id"], "title": display_title(record), "project_root": record["project_root"], "agent": record["agent"],
                     "model": record["model"], "resumable": bool(record.get("cli")), "turns": turns[first:end], "first": first, "total": len(turns),
                     "usage": usage_of(turns), "live": live}
 
@@ -273,23 +304,35 @@ class SessionController:
         """Saved conversations that no session of this run owns (after a restart: all of them), newest first."""
         authorize(origin, CLASSES["history"])
         with self._lock:
-            return [{"id": r["id"], "title": r["title"], "project_root": r["project_root"], "agent": r["agent"], "model": r["model"],
-                     "updated": r["updated"], "resumable": bool(r.get("cli"))} for r in self.store.all() if r["id"] not in self._sessions]
+            return [{"id": r["id"], "title": display_title(r), "project_root": r["project_root"], "agent": r["agent"], "model": r["model"],
+                     "updated": r["updated"], "resumable": bool(r.get("cli")), "pinned": bool(r.get("pinned")), "archived": bool(r.get("archived"))}
+                    for r in self.store.all() if r["id"] not in self._sessions]
 
-    def conversations(self, origin, project_id):
-        """Everything the sidebar lists, newest first: this run's sessions and the saved conversations nobody owns now."""
+    def conversations(self, origin, project_id, query=None, include_archived=False):
+        """The sidebar: live sessions plus saved conversations. Pinned first, then newest. Archived are hidden unless asked for;
+        `query` matches the title or a turn, in a Turkish-aware case-insensitive way, and returns a short `match` snippet."""
         authorize(origin, CLASSES["history"])
+        needle = folded(query or "").strip()
         with self._lock:
             live = []
             for s in self._sessions.values():
                 if s["project_id"] != project_id:
                     continue
-                record = self.store.get(s["id"])
-                live.append({"id": s["id"], "title": title_of(s["turns"], f"{s['agent']} \u00b7 {s['model'].split('/')[-1]}"), "state": s["state"],
-                             "project_root": s["cwd"], "updated": record["updated"] if record else time.time(), "saved": False})
-            old = [{"id": h["id"], "title": h["title"], "state": "ended", "project_root": h["project_root"], "updated": h["updated"], "saved": True}
+                record = self.store.get(s["id"]) or {}
+                title = self._title(s, record)
+                live.append({"id": s["id"], "title": title, "state": s["state"],
+                             "project_root": s["cwd"], "updated": record.get("updated", time.time()), "saved": False,
+                             "pinned": bool(s.get("pinned", record.get("pinned"))), "archived": bool(s.get("archived", record.get("archived"))),
+                             "match": _match(record or s, needle, needle in folded(title))})
+            old = [{"id": h["id"], "title": h["title"], "state": "ended", "project_root": h["project_root"], "updated": h["updated"], "saved": True,
+                    "pinned": h["pinned"], "archived": h["archived"], "match": _match(self.store.get(h["id"]) or {}, needle, needle in folded(h["title"]))}
                    for h in self.history(origin)]
-        return sorted(live + old, key=lambda c: c["updated"], reverse=True)
+        rows = live + old
+        if not include_archived:
+            rows = [r for r in rows if not r["archived"]]
+        if needle:
+            rows = [r for r in rows if needle in folded(r["title"]) or r["match"]]
+        return sorted(rows, key=lambda c: (not c["pinned"], -c["updated"]))
 
     def forget(self, origin, session_id):
         authorize(origin, CLASSES["forget"])
@@ -299,6 +342,82 @@ class SessionController:
             self._sessions.pop(session_id, None)
         self.store.delete(session_id)
         return {"deleted": session_id}
+
+    def _set_saved(self, session_id, **fields):
+        """Saved fields of a live session or a stored conversation; a rename must not reorder the sidebar."""
+        with self._lock:
+            session = self._sessions.get(session_id) if isinstance(session_id, str) else None
+            record = self.store.get(session_id) if isinstance(session_id, str) else None
+            if session is None and record is None:
+                raise SessionError("Unknown conversation", "SESSION_UNKNOWN")
+            if session is not None:
+                session.update(fields)
+                if session["turns"] or record:
+                    self._persist(session, touch=False)  # a rename, pin or archive is not activity
+                self._changed(session)
+            else:
+                self.store.put({**record, **fields}, touch=False)
+
+    def rename(self, origin, session_id, title):
+        authorize(origin, CLASSES["rename"])
+        if not isinstance(title, str):
+            raise SessionError("A title must be text", "TITLE_INVALID")
+        title = title.strip()
+        if not title:
+            raise SessionError("A title cannot be empty", "TITLE_EMPTY")
+        if len(title) > RENAME_MAX:
+            raise SessionError(f"A title can be at most {RENAME_MAX} characters", "TITLE_TOO_LONG")
+        if _UNSAFE.search(title):
+            raise SessionError("A title cannot contain control characters", "TITLE_UNSAFE")
+        self._set_saved(session_id, title_custom=title)
+        return {"id": session_id, "title": title}
+
+    def pin(self, origin, session_id, pinned):
+        authorize(origin, CLASSES["pin"])
+        if type(pinned) is not bool:
+            raise SessionError("pinned must be true or false", "PIN_INVALID")
+        self._set_saved(session_id, pinned=pinned)
+        return {"id": session_id, "pinned": pinned}
+
+    def archive(self, origin, session_id, archived):
+        authorize(origin, CLASSES["archive"])
+        if type(archived) is not bool:
+            raise SessionError("archived must be true or false", "ARCHIVE_INVALID")
+        self._set_saved(session_id, archived=archived)
+        return {"id": session_id, "archived": archived}
+
+    def export(self, origin, session_id, fmt="markdown"):
+        """The saved conversation as plain data the person can keep: never executed, never written by the engine."""
+        authorize(origin, CLASSES["export"])
+        if fmt not in ("markdown", "json"):
+            raise SessionError("Export format must be markdown or json", "EXPORT_INVALID")
+        with self._lock:
+            record = self.store.get(session_id) if isinstance(session_id, str) else None
+            if record is None:
+                session = self._sessions.get(session_id) if isinstance(session_id, str) else None
+                if session is None or not session["turns"]:
+                    raise SessionError("Unknown conversation", "SESSION_UNKNOWN")
+                self._persist(session)
+                record = self.store.get(session_id)
+        title = display_title(record)
+        if fmt == "json":
+            text = json.dumps({"title": title, "project_root": record["project_root"], "agent": record["agent"], "model": record["model"],
+                               "turns": record["turns"]}, ensure_ascii=False, indent=2) + "\n"
+            name = "sohbet.json"
+        else:
+            lines = [f"# {title}", "", f"- Proje: `{record['project_root']}`", f"- Ajan: `{record['agent']}` / `{record['model']}`", ""]
+            for turn in record["turns"]:
+                if turn.get("user"):
+                    lines += ["## Sen", "", turn["user"], ""]
+                for event in (turn.get("result") or {}).get("events") or []:
+                    if event.get("kind") == "message" and event.get("role") == "assistant":
+                        lines += ["## Ajan", "", event.get("text", ""), ""]
+                    elif event.get("kind") == "tool_call":
+                        lines += [f"> Araç: `{event.get('tool', '')}`", ""]
+            text = "\n".join(lines).rstrip() + "\n"
+            safe = re.sub(r"[^\w\-. ]+", "", title).strip()[:60].replace(" ", "-") or "sohbet"
+            name = safe + ".md"
+        return {"id": session_id, "title": title, "format": fmt, "filename": name, "text": text}
 
     def _turn(self, session, text, wait=True, new_message=True):
         """Start one turn. wait=True blocks and returns the parsed result; wait=False returns the session view at once and the turn
@@ -473,5 +592,5 @@ class SessionController:
         }
         return {"id": s["id"], "project_id": s["project_id"], "agent": s["agent"], "model": s["model"], "mode": s.get("mode", "default"), "state": state,
                 "retries": s["retries"], "last_state": s.get("last_state"),
-                "turn": s["turn"], "project_root": s["cwd"], "title": title_of(s["turns"], f"{s['agent']} · {s['model'].split('/')[-1]}"),
+                "turn": s["turn"], "project_root": s["cwd"], "title": s.get("title_custom") or title_of(s["turns"], f"{s['agent']} · {s['model'].split('/')[-1]}"),
                 "commands": {k: {"enabled": v, "reason": None if v else why.get(state, "NOT_AVAILABLE")} for k, v in enabled.items()}}

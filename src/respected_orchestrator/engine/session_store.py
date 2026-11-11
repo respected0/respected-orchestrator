@@ -19,6 +19,7 @@ MAX_CONVERSATIONS = 100
 MAX_TURNS = 200
 MAX_BYTES = 3_000_000
 TITLE_MAX = 52
+RENAME_MAX = 120
 
 
 def title_of(turns, fallback):
@@ -32,6 +33,17 @@ def title_of(turns, fallback):
     space = head.rfind(" ")
     cut = sentence if len(sentence) <= TITLE_MAX else head[:space] if space > 12 else sentence[:TITLE_MAX]
     return {"i": "İ", "ı": "I"}.get(cut[0], cut[0].upper()) + cut[1:]
+
+
+def display_title(record):
+    """The name the person sees: their own rename wins, otherwise the saved first-sentence title."""
+    custom = record.get("title_custom")
+    return custom if isinstance(custom, str) and custom.strip() else record.get("title") or title_of(record.get("turns") or [], "Sohbet")
+
+
+def folded(text):
+    """Case-insensitive comparison that also makes Turkish İ and I meet: search is a person typing, not an id match."""
+    return str(text).casefold().replace("\u0307", "")
 
 
 def usage_of(turns):
@@ -93,9 +105,9 @@ class SessionStore:
         with self._lock:
             return sorted(self._conversations.values(), key=lambda c: c.get("updated", 0), reverse=True)
 
-    def put(self, record):
+    def put(self, record, touch=True):
         with self._lock:
-            record = {**record, "updated": time.time(), "turns": record["turns"][-MAX_TURNS:]}
+            record = {**record, "updated": time.time() if touch else record.get("updated", time.time()), "turns": record["turns"][-MAX_TURNS:]}
             self._conversations[record["id"]] = record
             ordered = sorted(self._conversations.values(), key=lambda c: c["updated"], reverse=True)[:MAX_CONVERSATIONS]
             while len(ordered) > 1 and len(json.dumps(ordered)) > MAX_BYTES:

@@ -53,6 +53,8 @@ class AuthorityTests(unittest.TestCase):
             "set_defaults": lambda c, o: c.set_defaults(o, "opencode", MODEL), "transcript": lambda c, o: c.transcript(o, SID),
             "history": lambda c, o: c.history(o), "forget": lambda c, o: c.forget(o, SID),
             "set_mode": lambda c, o: c.set_mode(o, SID, PID, "default"),
+            "rename": lambda c, o: c.rename(o, SID, "ad"), "pin": lambda c, o: c.pin(o, SID, True),
+            "archive": lambda c, o: c.archive(o, SID, True), "export": lambda c, o: c.export(o, SID),
         }
         self.assertEqual(set(calls), set(CLASSES))
         for name, call in calls.items():
@@ -550,6 +552,79 @@ class InFlightTurnTests(unittest.TestCase):
             with self.assertRaises(SessionError):
                 ctl.start(Origin.HUMAN, PID, "opencode", MODEL, ".", "hi")
         self.assertEqual(ctl._sessions, {})
+
+    def test_rename_survives_a_restart_and_continuing_the_conversation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ctl = SessionController(binary="oc", runner=FakeRunner(), store=SessionStore(Path(tmp) / "s.json"))
+            ctl.start(Origin.HUMAN, "p", "opencode", MODEL, tmp, "eski başlık")
+            sid = next(iter(ctl._sessions))
+            ctl.rename(Origin.HUMAN, sid, "Yeni ad")
+            self.assertEqual(ctl.conversations(Origin.HUMAN, "p")[0]["title"], "Yeni ad")
+            self.assertEqual(ctl.transcript(Origin.HUMAN, sid)["title"], "Yeni ad")
+            fresh = SessionController(binary="oc", runner=FakeRunner(), store=SessionStore(Path(tmp) / "s.json"))
+            self.assertEqual(fresh.history(Origin.HUMAN)[0]["title"], "Yeni ad")
+            fresh.rename(Origin.HUMAN, sid, "Dosyada ad")  # saved conversation: no live session needed
+            self.assertEqual(SessionController(binary="oc", runner=FakeRunner(), store=SessionStore(Path(tmp) / "s.json")).history(Origin.HUMAN)[0]["title"], "Dosyada ad")
+            cli = SessionStore(Path(tmp) / "s.json").get(sid)["cli"]
+            fresh.start(Origin.HUMAN, "p", "opencode", MODEL, tmp, "devam", resume=cli)
+            row = fresh.conversations(Origin.HUMAN, "p")[0]
+            self.assertEqual((row["title"], row["saved"]), ("Dosyada ad", False))
+
+    def test_rename_validates_its_input_with_stable_reasons(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ctl = SessionController(binary="oc", runner=FakeRunner(), store=SessionStore(Path(tmp) / "s.json"))
+            for title, reason in ((3, "TITLE_INVALID"), ("  ", "TITLE_EMPTY"), ("x" * 121, "TITLE_TOO_LONG"), ("a\x07", "TITLE_UNSAFE")):
+                with self.assertRaises(SessionError) as caught:
+                    ctl.rename(Origin.HUMAN, SID, title)
+                self.assertEqual(caught.exception.reason, reason)
+
+    def test_pinned_first_archived_hidden_and_search_folds_turkish_case(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = SessionStore(Path(tmp) / "s.json")
+            base = {"project_root": tmp, "agent": "opencode", "model": MODEL, "cli": None, "title_custom": None}
+            store.put({**base, "id": "loc_a", "turns": [{"n": 1, "user": "Dosyayı oku", "result": None}], "title": "İstanbul Planı", "updated": 30}, touch=False)
+            store.put({**base, "id": "loc_b", "turns": [{"n": 1, "user": "başka", "result": None}], "title": "Eski iş", "updated": 20, "pinned": True}, touch=False)
+            store.put({**base, "id": "loc_c", "turns": [], "title": "Arşiv", "updated": 10, "archived": True}, touch=False)
+            ctl = SessionController(store=store)
+            self.assertEqual([r["id"] for r in ctl.conversations(Origin.HUMAN, "p")], ["loc_b", "loc_a"])
+            self.assertEqual([r["id"] for r in ctl.conversations(Origin.HUMAN, "p", include_archived=True)], ["loc_b", "loc_a", "loc_c"])
+            hits = ctl.conversations(Origin.HUMAN, "p", query="ISTANBUL")
+            self.assertEqual([r["id"] for r in hits], ["loc_a"])
+            self.assertIn("Dosyayı oku", hits[0]["match"])
+            self.assertEqual(ctl.conversations(Origin.HUMAN, "p", query="oku")[0]["id"], "loc_a")
+            self.assertEqual(ctl.conversations(Origin.HUMAN, "p", query="yok"), [])
+            ctl.pin(Origin.HUMAN, "loc_a", True)
+            self.assertEqual([r["id"] for r in ctl.conversations(Origin.HUMAN, "p")], ["loc_a", "loc_b"])
+            ctl.archive(Origin.HUMAN, "loc_a", True)
+            self.assertEqual([r["id"] for r in ctl.conversations(Origin.HUMAN, "p")], ["loc_b"])
+
+    def test_pin_and_archive_on_a_live_session_and_their_input_types(self):
+        ctl = make()
+        ctl.pin(Origin.HUMAN, SID, True)
+        ctl.archive(Origin.HUMAN, SID, True)
+        self.assertTrue(ctl._sessions[SID]["pinned"] and ctl._sessions[SID]["archived"])
+        for call, reason in ((lambda: ctl.pin(Origin.HUMAN, SID, 1), "PIN_INVALID"), (lambda: ctl.archive(Origin.HUMAN, SID, "yes"), "ARCHIVE_INVALID")):
+            with self.assertRaises(SessionError) as caught:
+                call()
+            self.assertEqual(caught.exception.reason, reason)
+
+    def test_export_is_plain_text_with_a_safe_name_and_refuses_unknown_formats(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ctl = SessionController(binary="oc", runner=FakeRunner(), store=SessionStore(Path(tmp) / "s.json"))
+            ctl.start(Origin.HUMAN, "p", "opencode", MODEL, tmp, "hello")
+            sid = next(iter(ctl._sessions))
+            ctl.rename(Origin.HUMAN, sid, "../../x y")
+            md = ctl.export(Origin.HUMAN, sid)
+            self.assertTrue(md["filename"].endswith(".md"))
+            self.assertNotIn("/", md["filename"])
+            self.assertIn("## Sen", md["text"])
+            self.assertIn("hello", md["text"])
+            self.assertIn("## Ajan", md["text"])
+            doc = json.loads(ctl.export(Origin.HUMAN, sid, "json")["text"])
+            self.assertEqual(doc["turns"][0]["user"], "hello")
+            with self.assertRaises(SessionError) as caught:
+                ctl.export(Origin.HUMAN, sid, "pdf")
+            self.assertEqual(caught.exception.reason, "EXPORT_INVALID")
 
     def test_start_is_authority_checked_validated_and_bounded(self):
         ctl = SessionController(binary="oc", runner=FakeRunner())
