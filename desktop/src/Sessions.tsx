@@ -11,7 +11,7 @@ import { Ico } from './icons';
 import { getConvStore, setConvStore, useConvStore } from './sessionstore';
 import { refusalText } from './terminalio';
 import {
-  COMMAND_TEXT, PROJECT_ID, RESUBSCRIBE_MS, applyLive, call, joinPages, reasonText, shouldNotify, stateText, transcriptLines,
+  COMMAND_TEXT, PROJECT_ID, REJECT_TEXT, RESUBSCRIBE_MS, applyLive, call, exportName, exportTooBig, joinPages, reasonText, shouldNotify, stateText, transcriptLines,
   type Conversation, type Defaults, type Note, type Relay, type SessionView, type Transcript,
 } from './sessionlog';
 
@@ -33,12 +33,13 @@ export function Sessions() {
   const [models, setModels] = useState<Loaded<ModelsView>>({ s: 'loading' });
   const [tools, setTools] = useState<Loaded<ToolListView>>({ s: 'loading' });
   const [agent, setAgent] = useState<AgentLine | null>(null);
-  const { sel, newRoot } = useConvStore();
+  const { sel, newRoot, query, showArchived } = useConvStore();
   const turns = Object.fromEntries(Object.entries(tr).map(([k, v]) => [k, withLive(v.turns, v.live)]));
   useEffect(() => { if (newRoot) { setForm((f) => ({ ...f, root: newRoot })); setConvStore({ newRoot: null }); } }, [newRoot]);
 
   const refresh = useCallback(async () => {
-    const r = await call<{ sessions: SessionView[]; conversations: Conversation[] }>(relay, 'sessions.list', {});
+    const { query, showArchived } = getConvStore();
+    const r = await call<{ sessions: SessionView[]; conversations: Conversation[] }>(relay, 'sessions.list', { query, include_archived: showArchived });
     if (r.ok) { setList(r.value.sessions); setConversations(r.value.conversations); setListState('ok'); setNote(null); } else { setListState('error'); setNote(r.text); }
   }, []);
 
@@ -61,7 +62,7 @@ export function Sessions() {
     if (r.ok) put(id, (old) => joinPages(old, r.value)); else if (before === undefined) seen.current[id] = '';
   }, [put]);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => { void refresh(); }, [refresh, query, showArchived]);
   useEffect(() => {
     let live = true;
     void call<Defaults>(relay, 'session.defaults', {}).then((r) => { if (live && r.ok) { setDefaults(r.value); setForm((f) => ({ ...f, model: f.model || r.value.model })); } });
@@ -135,6 +136,49 @@ export function Sessions() {
   }, [refresh, collect, put]);
   useEffect(() => { list.forEach((s) => void collect(s.id, `${s.state}:${s.turn}`)); }, [list, collect]);
 
+  // Geçmiş araçları: ad, sabitleme, arşiv ve dışa aktarma. Motor reddi bir metindir, ekranı düşürmez.
+  const historyTarget = active ?? archived;
+  const openRename = () => {
+    if (!historyTarget) return;
+    setRename(historyTarget.title); setRenameErr(null); setMenu(false); setModal('rename');
+  };
+  const doRename = async () => {
+    if (!historyTarget) return;
+    const title = rename.trim();
+    if (!title) { setRenameErr(REJECT_TEXT.TITLE_EMPTY); return; }
+    if (title.length > 120) { setRenameErr(REJECT_TEXT.TITLE_TOO_LONG); return; }
+    const r = await call(relay, 'session.rename', { session_id: historyTarget.id, title });
+    if (!r.ok) { setRenameErr(r.text); return; }
+    setModal(null); setNote(null); await refresh();
+  };
+  const togglePin = async () => {
+    if (!historyTarget) return;
+    setMenu(false);
+    const r = await call(relay, 'session.pin', { session_id: historyTarget.id, pinned: !historyTarget.pinned });
+    setNote(r.ok ? null : r.text); await refresh();
+  };
+  const toggleArchive = async () => {
+    if (!historyTarget) return;
+    setMenu(false);
+    const archiving = !historyTarget.archived;
+    const r = await call(relay, 'session.archive', { session_id: historyTarget.id, archived: archiving });
+    setNote(r.ok ? null : r.text);
+    if (r.ok && archiving) setConvStore({ showArchived: true }); // arşivlenen seçili sohbet listede ve ekranda kalır
+    await refresh();
+  };
+  const doExport = async (format: 'markdown' | 'json') => {
+    if (!historyTarget) return;
+    setMenu(false);
+    const r = await call<{ id: string; title: string; filename: string; text: string }>(relay, 'session.export', { session_id: historyTarget.id, format });
+    if (!r.ok) { setNote(r.text); return; }
+    if (exportTooBig(r.value.text)) { setNote('Dışa aktarım 4 MB sınırını aşıyor.'); return; }
+    const filename = r.value.filename?.trim() || exportName(r.value.title, format);
+    try {
+      const saved = await invoke<string | null>('save_text_file', { filename, text: r.value.text });
+      setNote(saved ? null : 'Dışa aktarma iptal edildi.');
+    } catch { setNote('Dosya kaydedilemedi.'); }
+  };
+
   const act = async (cmd: Parameters<typeof call>[1], s: SessionView, extra: Record<string, unknown> = {}) => {
     const r = await call<SessionView>(relay, cmd, { session_id: s.id, ...extra });
     setNote(r.ok ? null : r.text);
@@ -145,7 +189,9 @@ export function Sessions() {
   const [panel, setPanel] = useState(true); // the narrow session bar: open by default in every conversation
   const [wideBy, setWideBy] = useState<Record<string, Wide | null>>({}); // files, browser...: open only in the conversation where it was opened
   const [menu, setMenu] = useState(false);
-  const [modal, setModal] = useState<null | 'voice' | 'shot'>(null);
+  const [modal, setModal] = useState<null | 'voice' | 'shot' | 'rename'>(null);
+  const [rename, setRename] = useState('');
+  const [renameErr, setRenameErr] = useState<string | null>(null);
   useEffect(() => {
     setConvStore({ list: conversations.map((c) => ({ id: c.id, title: c.title, state: c.state, root: c.project_root, at: c.updated * 1000, saved: c.saved, pinned: c.pinned, archived: c.archived, match: c.match ?? '' })) });
   }, [conversations]);
@@ -217,9 +263,16 @@ export function Sessions() {
             {(active || archived) && <button className={`ib ${panel ? 'on' : ''}`} aria-pressed={panel} onClick={() => setPanel((p) => !p)} title="Oturum çubuğu" aria-label="Oturum çubuğunu aç/kapat"><Ico n="panel" /></button>}
             {([['terminal', 'terminal'], ['diff', 'diff'], ['browser', 'globe'], ['files', 'folder']] as const).filter(([k]) => active || archived || k !== 'diff').map(([k, icon]) => (
               <button key={k} className={`ib ${wide === k ? 'on' : ''}`} aria-pressed={wide === k} onClick={() => setWide(wide === k ? null : k)} title={WIDE_TITLE[k]} aria-label={`${WIDE_TITLE[k]} bölmesini aç/kapat`}><Ico n={icon} /></button>))}
-            {active && <button className="ib" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)} title="Diğer" aria-label="Diğer işlemler"><Ico n="more" /></button>}
+            {(active || archived) && <button className="ib" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)} title="Diğer" aria-label="Diğer işlemler"><Ico n="more" /></button>}
           </div>
           {menu && <div className="pop" role="menu" style={{ position: 'fixed', top: 40, right: 140, zIndex: 60 }} onKeyDown={(e) => { if (e.key === 'Escape') setMenu(false); }}>
+            {historyTarget && <>
+              <button className="it" role="menuitem" onClick={openRename}><div><Ico n="edit" /> Yeniden adlandır</div></button>
+              <button className="it" role="menuitem" onClick={() => void togglePin()}><div><Ico n="pin" /> {historyTarget.pinned ? 'Sabitlemeyi kaldır' : 'Sabitle'}</div></button>
+              <button className="it" role="menuitem" onClick={() => void toggleArchive()}><div><Ico n="archive" /> {historyTarget.archived ? 'Arşivden çıkar' : 'Arşivle'}</div></button>
+              <button className="it" role="menuitem" onClick={() => void doExport('markdown')}><div><Ico n="download" /> Markdown olarak dışa aktar</div></button>
+              <button className="it" role="menuitem" onClick={() => void doExport('json')}><div><Ico n="download" /> JSON olarak dışa aktar</div></button>
+            </>}
             {active && <button className="it" role="menuitem" disabled={active.state === 'running'} title={active.state === 'running' ? 'Bir tur çalışıyor.' : 'Ajanın kendi arayüzü, aynı ajan oturumuyla'} onClick={() => { setMenu(false); void toTerminal(active); }}><div>Terminalde sürdür</div></button>}
             {active && <button className="it" role="menuitem" disabled={!active.commands.cancel.enabled} title={reasonText(active.commands.cancel.reason)} onClick={() => { setMenu(false); void act('session.cancel', active); }}><div>Oturumu bitir</div></button>}
             {[['Yan sohbet', 'Motorda karşılığı yok'], ['Arka plan görevleri', 'Motorda karşılığı yok'], ['Bilgisayarı uyanık tut', 'Motorda karşılığı yok']].map(([a, b]) => <div key={a} className="it" role="menuitem" aria-disabled="true"><div>{a}<div className="mut">{b}</div></div></div>)}</div>}
@@ -257,6 +310,13 @@ export function Sessions() {
       {wide && <WidePane kind={wide} s={active} turns={active ? turns[active.id] ?? [] : archT?.turns ?? []} root={root} lines={active ? linesOf(turns[active.id] ?? []) : []} pickFolder={pickFolder} close={() => setWide(null)} />}
       {modal === 'voice' && <Modal title="Sesli görev" onClose={() => setModal(null)} foot={<button className="btn" onClick={() => setModal(null)}>Kapat</button>}><Voice /></Modal>}
       {modal === 'shot' && <Modal title="Ekran görüntüsü" onClose={() => setModal(null)} foot={<button className="btn" onClick={() => setModal(null)}>Kapat</button>}><Screenshot /></Modal>}
+      {modal === 'rename' && historyTarget && <Modal title="Yeniden adlandır" onClose={() => setModal(null)}
+        foot={<><button className="btn" onClick={() => setModal(null)}>Vazgeç</button><button className="btn" disabled={!rename.trim()} onClick={() => void doRename()}>Kaydet</button></>}>
+        <label>Başlık <input value={rename} maxLength={120} autoFocus onChange={(e) => { setRename(e.target.value); setRenameErr(null); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') void doRename(); }} /></label>
+        <p className="mut">{rename.length}/120</p>
+        {renameErr && <p role="alert">{renameErr}</p>}
+      </Modal>}
     </section>
   );
 }

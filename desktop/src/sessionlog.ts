@@ -12,7 +12,7 @@ export type State = 'idle' | 'running' | 'failed' | 'ended';
 export type CommandState = { enabled: boolean; reason: string | null };
 export type SessionView = {
   id: string; project_id: string; agent: string; model: string; mode: string; state: State; retries: number; last_state: string | null; turn: number;
-  project_root: string; title: string;
+  project_root: string; title: string; pinned?: boolean; archived?: boolean;
   commands: Record<'send' | 'retry' | 'interrupt' | 'cancel' | 'resume', CommandState>;
 };
 /** One sidebar row, ordered and titled by the engine. `saved`: a conversation from an earlier run (read-only until continued). */
