@@ -32,6 +32,8 @@
     "allow-save-text-file",
     "allow-list-dir",
     "allow-read-text-file",
+    "allow-discover-instruction-files",
+    "allow-read-user-instruction",
     "allow-write-instruction-file",
     "allow-notify-attention"
   ]

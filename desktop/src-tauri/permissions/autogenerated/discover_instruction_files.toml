@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-discover-instruction-files"
+description = "Enables the discover_instruction_files command without any pre-configured scope."
+commands.allow = ["discover_instruction_files"]
+
+[[permission]]
+identifier = "deny-discover-instruction-files"
+description = "Denies the discover_instruction_files command without any pre-configured scope."
+commands.deny = ["discover_instruction_files"]
