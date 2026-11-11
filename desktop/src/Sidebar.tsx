@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { type RouteId } from './shell';
 import { Ico } from './icons';
 import { Logo, Resizer } from './ui';
 import { setConvStore, setLayout, useConvStore } from './sessionstore';
-import { stateText } from './sessionlog';
+import { matchSnippet, stateText } from './sessionlog';
 import { PER_GROUP, moveGroup, nextShown, orderGroups, stepGroup } from './grouporder';
 import { baseName } from './chatmodel';
 
@@ -23,17 +23,20 @@ export function Sidebar({ route, theme, toggleTheme, width, setWidth }: { route:
   const setSort = (v: 'date' | 'name') => { setSortState(v); setMenu(null); try { localStorage.setItem('orch.sort', v); } catch { /* storage unavailable */ } };
   const [menu, setMenu] = useState<string | null>(null);
   const [shown, setShown] = useState<Record<string, number>>({});
+  const [q, setQ] = useState(conv.query);
+  useEffect(() => { const t = setTimeout(() => setConvStore({ query: q.trim() }), 250); return () => clearTimeout(t); }, [q]);
   const toggle = (k: string) => setLayout({ collapsed: conv.collapsed.includes(k) ? conv.collapsed.filter((x) => x !== k) : [...conv.collapsed, k] });
   return (
     <div className="concept sidewrap">
       <nav className="side" aria-label="Ana gezinme" data-tauri-drag-region>
         <a href="#/sessions" className="nav" onClick={() => setConvStore({ sel: 'new' })}><Ico n="plus" /><span>Yeni</span></a>
-        <span className="nav mut3" aria-disabled="true" title="Arama sonraki sürümde"><Ico n="search" /><span>Ara</span></span>
+        <div className="searchrow"><Ico n="search" /><input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ara" aria-label="Sohbetlerde ara" />
+          <button type="button" className={`ib ${conv.showArchived ? 'on' : ''}`} aria-pressed={conv.showArchived} title={conv.showArchived ? 'Arşivlileri gizle' : 'Arşivlileri göster'} aria-label={conv.showArchived ? 'Arşivlileri gizle' : 'Arşivlileri göster'} onClick={() => setConvStore({ showArchived: !conv.showArchived })}><Ico n="archive" /></button></div>
         <div className="grouplist">
           {keys.length === 0 && <span className="nav sub mut3">Henüz sohbet yok</span>}
           {order.map((k) => {
             const open = !conv.collapsed.includes(k), name = k === NONE ? 'Diğer oturumlar' : baseName(k);
-            const all = conv.list.filter((c) => (c.root ?? NONE) === k).sort((a, b) => (sort === 'name' ? a.title.localeCompare(b.title, 'tr') : b.at - a.at)), count = Math.min(shown[k] ?? PER_GROUP, all.length);
+            const all = conv.list.filter((c) => (c.root ?? NONE) === k).sort((a, b) => Number(b.pinned) - Number(a.pinned) || (sort === 'name' ? a.title.localeCompare(b.title, 'tr') : b.at - a.at)), count = Math.min(shown[k] ?? PER_GROUP, all.length);
             return (
               <div key={k} className={`grp ${over === k && drag !== k ? 'over' : ''}`} onDragOver={(e) => { if (drag) { e.preventDefault(); setOver(k); } }}
                 onDrop={(e) => { e.preventDefault(); if (drag) setLayout({ groupOrder: moveGroup(order, drag, k) }); setDrag(null); setOver(null); }}>
@@ -46,7 +49,7 @@ export function Sidebar({ route, theme, toggleTheme, width, setWidth }: { route:
                 {k !== NONE && <button type="button" className="gadd"  aria-label={`${name} içinde yeni sohbet`} title="Bu projede yeni sohbet" onClick={() => { setConvStore({ sel: 'new', newRoot: k }); location.hash = '#/sessions'; }}><Ico n="plus" /></button>}</div>
                 {open && all.slice(0, count).map((c) => (
                   <a key={c.id} href="#/sessions" className={`nav conv ${onChat && conv.sel === c.id ? 'on' : ''}`} title={`${c.title} — ${c.saved ? 'geçmiş' : stateText(c.state)}`} onClick={() => setConvStore({ sel: c.id })}>
-                    {!c.saved && (c.state === 'running' || c.state === 'failed') && <span className={`dot ${c.state === 'running' ? 'run' : 'err'}`} />}<span className="ct">{c.title}</span></a>))}
+                    {!c.saved && (c.state === 'running' || c.state === 'failed') && <span className={`dot ${c.state === 'running' ? 'run' : 'err'}`} />}{c.pinned && <span className="cpin"><Ico n="pin" /></span>}<span className="ct">{c.title}</span>{c.match && <span className="cm">{matchSnippet(c.match)}</span>}</a>))}
                 {open && all.length > PER_GROUP && (
                   <button type="button" className="nav more" onClick={() => setShown({ ...shown, [k]: nextShown(count, all.length) })}>{count >= all.length ? 'Daha az göster' : 'Daha fazla göster'}</button>)}
               </div>
