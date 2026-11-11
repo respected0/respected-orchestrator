@@ -491,7 +491,7 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   CLI'ın kendi araçları (\opencode_worktree_*\, \opencode_session_*\, \opencode_models\, MCP okuma) **her kipte kapalıdır**; joker eylem onları gizlemediği için adları
   açıkça reddedilir ve \execute\ yasağı Code Mode'u tümüyle kaldırır. 11 Kasım 2026 ölçümü: bu adlar araç kataloğunda görünse de çağrı \TOOL_UNAVAILABLE\ döndü.
   Kipi yalnız kişi seçer: \default\ dışı kiple başlatma ve \session.mode.set\ \TERMINAL\ sınıfındadır (tanınan masaüstü ve insan kökeni), MCP kökeni ve işçi soyu seçemez;
-  akıştaki hiçbir şey kipi değiştiremez. Kip turlar arasında değişir; bugün kaydedilmez (sürdürülen konuşma \default\ ile başlar). Açık kipte ajan gerçek proje
+  akıştaki hiçbir şey kipi değiştiremez. Kip turlar arasında değişir ve konuşmayla birlikte kaydedilir: sürdürülen konuşma kendi kipini geri yükler, açıkça verilen kip bunu ezer. Açık kipte ajan gerçek proje
   klasörüne yazar; motor yalıtım eklemez.
   **Canlı akış (ADR-034):** ajanın çıktısı satır satır okunur; her olay turun `live` listesine girer ve abonelere bildirilir. Abonelik ayrı bir
   boru bağlantısıdır: `events.subscribe {project_id}` yanıtından sonra o bağlantıdan yalnız motor yazar (`session.event`, `session.state`; `id` taşımaz),

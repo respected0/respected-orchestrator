@@ -72,15 +72,17 @@ class SessionIpcTests(unittest.TestCase):
         self.assertEqual(self.call(api, "session.defaults")["result"]["modes"], ["default", "accept-edits", "bypass-permissions"])
         sid = self.started(api)
         runner = api.sessions._runner
-        permission = lambda n: json.loads(runner.kwargs[n]["env"]["OPENCODE_CONFIG_CONTENT"])["permission"]
-        self.assertEqual((self.call(api, "sessions.list")["result"]["sessions"][0]["mode"], permission(0)["edit"]), ("default", "deny"))
+        def effect(n, action):
+            rules = json.loads(runner.kwargs[n]["env"]["OPENCODE_CONFIG_CONTENT"])["permissions"]
+            return next(r["effect"] for r in reversed(rules) if r["action"] in (action, "*"))
+        self.assertEqual((self.call(api, "sessions.list")["result"]["sessions"][0]["mode"], effect(0, "edit")), ("default", "deny"))
         self.assertEqual(self.call(api, "session.mode.set", {"session_id": sid, "mode": "plan"})["error"]["reason"], "MODE_INVALID")
         self.assertEqual(self.call(api, "session.mode.set", {"session_id": sid, "mode": "accept-edits"})["result"]["mode"], "accept-edits")
         self.assertTrue(self.call(api, "session.send", {"session_id": sid, "text": "düzenle"})["ok"])
         self.assertTrue(wait_for(lambda: self.call(api, "session.events", {"session_id": sid})["result"]["state"] == "idle"))
-        self.assertEqual((permission(1)["edit"], permission(1)["shell"]), ("allow", "deny"))
+        self.assertEqual((effect(1, "edit"), effect(1, "shell"), effect(1, "execute")), ("allow", "deny", "deny"))
         opened = self.started(api, mode="bypass-permissions")
-        self.assertEqual(permission(2)["shell"], "allow")
+        self.assertEqual((effect(2, "shell"), effect(2, "execute")), ("allow", "deny"))
         self.assertEqual(self.call(api, "sessions.list")["result"]["sessions"][-1]["id"], opened)
         # an agent (MCP level) can neither start a session with an opening mode nor change one; a plain start still works for it
         other = self.api(origin=Origin.MCP)

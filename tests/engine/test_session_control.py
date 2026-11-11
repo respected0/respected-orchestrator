@@ -14,6 +14,7 @@ from respected_orchestrator.engine import approval, chat_session, local_api
 from respected_orchestrator.engine.authority import Action, Origin, authorize, effective_origin
 from respected_orchestrator.engine.session_control import (CLASSES, MAX_RETRIES, MAX_SESSIONS, SessionApprovalRefused, SessionController,
                                                            SessionError, check_input, run_killable)
+from respected_orchestrator.engine.session_store import SessionStore
 
 FIX = Path(__file__).resolve().parents[1] / "fixtures" / "chat"
 OK_STREAM = (FIX / "opencode_ok_text.jsonl").read_text(encoding="utf-8")
@@ -303,7 +304,12 @@ class AgentCliTests(unittest.TestCase):
         self.assertIn("--standalone", argv)
         self.assertEqual(kw["env"]["PWD"], tempfile.gettempdir())
         self.assertEqual(kw["env"]["RESPECTED_ORCH_CHILD"], "1")
-        self.assertEqual(json.loads(kw["env"]["OPENCODE_CONFIG_CONTENT"])["permission"]["shell"], "deny")
+        rules = json.loads(kw["env"]["OPENCODE_CONFIG_CONTENT"])["permissions"]
+        denied = {r["action"] for r in rules if r["effect"] == "deny"}
+        allowed = {r["action"] for r in rules if r["effect"] == "allow"}
+        self.assertIn("*", denied)  # read-only: nothing is opened by default
+        self.assertNotIn("shell", allowed)
+        self.assertIn("execute", denied)
 
     def test_injected_runners_get_the_same_environment(self):
         runner = FakeRunner()
@@ -503,6 +509,28 @@ class InFlightTurnTests(unittest.TestCase):
         with self.assertRaises(SessionError):
             ctl.send(Origin.HUMAN, SID, PID, "b", wait=False)
         ctl.cancel(Origin.HUMAN, SID, PID)
+
+    def test_mode_is_saved_and_restored_when_a_conversation_continues(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "sessions.json"
+            first = SessionController(binary="oc", runner=FakeRunner(), store=SessionStore(path))
+            cli = first.start(Origin.HUMAN, PID, "opencode", MODEL, ".", "hello", mode="accept-edits")["session_id"]
+            self.assertEqual(SessionStore(path).get(next(iter(first._sessions)))["mode"], "accept-edits")
+            continued = SessionController(binary="oc", runner=FakeRunner(), store=SessionStore(path))
+            continued.start(Origin.HUMAN, PID, "opencode", MODEL, ".", "again", resume=cli)
+            self.assertEqual(continued._sessions[next(iter(continued._sessions))]["mode"], "accept-edits")
+            explicit = SessionController(binary="oc", runner=FakeRunner(), store=SessionStore(path))
+            explicit.start(Origin.HUMAN, PID, "opencode", MODEL, ".", "again", resume=cli, mode="default")
+            self.assertEqual(explicit._sessions[next(iter(explicit._sessions))]["mode"], "default")
+
+    def test_set_mode_between_turns_is_saved(self):
+        with tempfile.TemporaryDirectory() as d:
+            store = SessionStore(Path(d) / "sessions.json")
+            ctl = SessionController(binary="oc", runner=FakeRunner(), store=store)
+            ctl.start(Origin.HUMAN, PID, "opencode", MODEL, ".", "hello")
+            sid = next(iter(ctl._sessions))
+            ctl.set_mode(Origin.HUMAN, sid, PID, "bypass-permissions")
+            self.assertEqual(store.get(sid)["mode"], "bypass-permissions")
 
     def test_start_learns_the_cli_session_id_and_resumes_with_it(self):
         runner = FakeRunner()

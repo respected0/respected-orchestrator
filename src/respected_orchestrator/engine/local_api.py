@@ -227,7 +227,7 @@ class LocalApi:
                 if not (isinstance(agent, str) and isinstance(model, str)):
                     return _reply(corr, False, code="BAD_REQUEST", message="agent and model must be strings.", reason="MODEL_INVALID")
                 return _reply(corr, True, self.sessions.start(self.origin, pid, agent, model, root, payload.get("text"), wait=False, resume=resume,
-                                                              mode=payload.get("mode", "default")))
+                                                              mode=payload.get("mode")))
             args = (self.origin, sid, pid) + ((payload.get("text"),) if name == "send" else ())
             # A turn can take minutes and this loop answers one request at a time: turns run on their own thread (wait=False)
             # so interrupt/cancel stay reachable; the result is read with session.events.

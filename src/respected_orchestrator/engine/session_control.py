@@ -143,7 +143,7 @@ class SessionController:
             if session_id in self._sessions:
                 raise SessionError("Session already registered")
             self._sessions[session_id] = {"id": session_id, "cli_id": session_id, "project_id": project_id, "agent": agent, "model": model,
-                                          "cwd": str(cwd), "state": "running" if handle else "idle", "handle": handle, "retries": 0,
+                                          "mode": "default", "cwd": str(cwd), "state": "running" if handle else "idle", "handle": handle, "retries": 0,
                                           "last": None, "last_text": None, "gen": 0, "turn": 0, "result": None, "turns": []}
         return self._dto(self._sessions[session_id])
 
@@ -163,14 +163,16 @@ class SessionController:
             if session["state"] == "running":
                 raise SessionError("A turn is running; wait for it or stop it first", "TURN_RUNNING")
             session["mode"] = mode
+            if session["turns"] or self.store.get(session["id"]):
+                self._persist(session)
             self._changed(session)
             return self._dto(session)
 
-    def start(self, origin, project_id, agent, model, cwd, text, wait=True, resume=None, mode="default"):
+    def start(self, origin, project_id, agent, model, cwd, text, wait=True, resume=None, mode=None):
         """A new session: the first turn runs without --session; the CLI's own session id is learned from its stream. `resume` is such an id from
-        an earlier session (the CLI keeps its sessions on disk): the first turn then continues that conversation instead of starting one."""
+        an earlier session (the CLI keeps its sessions on disk): the first turn then continues that conversation instead of starting one.
+        `mode=None` keeps a saved conversation's own mode; otherwise the caller's explicit mode wins."""
         authorize(origin, CLASSES["start"])
-        self._check_mode(origin, mode)
         text = check_input(text)
         if resume is not None and not (isinstance(resume, str) and chat_session._SESSION.match(resume)):
             raise SessionError("Invalid session to continue", "RESUME_INVALID")
@@ -178,12 +180,15 @@ class SessionController:
             raise chat_session.Unsupported(f"{agent}: no verified structured-stream adapter")
         self._check_model(agent, model)
         with self._lock:
+            adopted = next((r for r in self.store.all() if resume and r.get("cli") == resume and r["id"] not in self._sessions), None)
+            if mode is None:
+                mode = adopted.get("mode", "default") if adopted else "default"
+            self._check_mode(origin, mode)
             if sum(1 for s in self._sessions.values() if s["state"] != "ended") >= MAX_SESSIONS:
                 raise SessionError("Too many open sessions", "TOO_MANY_SESSIONS")
             sid = "loc_" + secrets.token_hex(8)
             self._sessions[sid] = {"id": sid, "cli_id": resume, "project_id": project_id, "agent": agent, "model": model, "cwd": str(cwd), "mode": mode,
                                    "state": "idle", "handle": None, "retries": 0, "last": None, "last_text": None, "gen": 0, "turn": 0, "result": None, "turns": []}
-            adopted = next((r for r in self.store.all() if resume and r.get("cli") == resume and r["id"] not in self._sessions), None)
             if adopted:  # the saved conversation continues here: its record moves to the new session
                 self._sessions[sid]["turns"] = list(adopted["turns"])
             try:
@@ -241,7 +246,8 @@ class SessionController:
     def _persist(self, session):
         turns = session["turns"]
         self.store.put({"id": session["id"], "project_root": session["cwd"], "agent": session["agent"], "model": session["model"],
-                        "cli": session["cli_id"], "turns": turns, "title": title_of(turns, f"{session['agent']} · {session['model'].split('/')[-1]}")})
+                        "cli": session["cli_id"], "mode": session.get("mode", "default"), "turns": turns,
+                        "title": title_of(turns, f"{session['agent']} · {session['model'].split('/')[-1]}")})
 
     def transcript(self, origin, session_id, before=None, limit=PAGE_TURNS):
         """One page of a conversation, newest by default: the `limit` turns that end just before turn index `before`. `first` is the index of

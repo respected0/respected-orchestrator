@@ -2963,3 +2963,11 @@ Kullanıcı yönergesi: ücretsiz modeller. `opencode models` listesindeki ücre
   - Çağrılabilirlik (araç çağrısı istendi, yoksa `TOOL_UNAVAILABLE`): `accept-edits` + `opencode_worktree_list` → `TOOL_UNAVAILABLE`; `bypass-permissions` + `opencode_worktree_list` → `TOOL_UNAVAILABLE`; `default` + `execute` → `TOOL_UNAVAILABLE`. Sonuç: meta araçlar katalogda görünse de çağrılamıyor.
 - **Önceki oturumdan geçerli ölçümler:** `default` dosya yazmadı; `accept-edits` dosya değiştirdi, kabuk çalışmadı; `bypass-permissions` kabuk çalıştırdı (ücretsiz model, geçici klasör).
 - **Doğrulanmayanlar:** `accept-edits`/`bypass-permissions` altında `execute` çağrısı ücretsiz modelin yavaşlığından 180 saniyede zaman aşımına düştü; `skill` çağrılabilirliği salt okunurda ayrıca denenmedi. Ekran (kip seçici) gerçek uygulamada görülmedi.
+
+## KALAN_ISLER 4.6 — kipin konuşmayla kaydı ve geri yüklenmesi (11 Kasım 2026)
+
+- **Kapsam:** Sohbet kipinin (default/accept-edits/bypass-permissions) konuşma kaydına yazılması ve sürdürülen konuşmada geri yüklenmesi; açıkça verilen kipin kayıtlı kipi ezmesi. `[K]`
+- **Değişen dosyalar:** `src/respected_orchestrator/engine/session_control.py`, `src/respected_orchestrator/engine/local_api.py`, `tests/engine/test_session_control.py`, `tests/engine/test_session_ipc.py`, `docs/ARCHITECTURE.md`, `docs/KALAN_ISLER.md`, bu giriş.
+- **Davranış:** `register()` ve `_persist()` kayda `mode` yazar; `set_mode()` turlar arasında değişikliği hemen kaydeder; `start(mode=None)` kayıtlı konuşmayı `resume` cli kimliğiyle eşleyip kipini geri yükler, çağıran açıkça kip verdiyse o kazanır.
+- **Test:** `$env:PYTHONPATH="src"; py -m unittest tests.engine.test_session_control -v` → `Ran 43 tests` ... `OK`. `tests.engine.test_session_ipc` → `Ran 7 tests` ... `OK`. (PowerShell çıkış kodu 1 görünebilir; unittest stderr'e yazar.)
+- **Doğrulanmayan:** Bu değişiklik yeni canlı ajan koşusu gerektirmedi (izin kuralları önceki 4.6 koşusunda ölçüldü); ekran üzerinden kip seçimi hâlâ gerçek uygulamada görülmedi.
