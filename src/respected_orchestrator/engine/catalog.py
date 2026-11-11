@@ -111,7 +111,8 @@ ENTRIES = (
     Entry("approval.apply", PRIVILEGED),
     Entry("sessions.list", READ, cli=("list", "project_id"), desktop="session", mcp=(
         "orchestrator_session_list", "List the engine's live chat sessions and saved conversations for a project_id. Read-only.",
-        _object([], project_id=_PROJECT_ID), True)),
+        _object([], project_id=_PROJECT_ID, query={"type": "string", "description": "matches title or turn"},
+                include_archived={"type": "boolean"}), True)),
     Entry("session.start", TASK, cli=("start", None), desktop="session", mcp=(
         "orchestrator_session_start", "Start a chat session with a coding agent in a project folder and send its first message (the turn runs in the "
         "background; read it with orchestrator_session_events). Only agents with a verified chat adapter work.",
@@ -140,6 +141,12 @@ ENTRIES = (
         "`before` of the page above it). Read-only.",
         _object(["session_id"], session_id=_SESSION_ID, before={"type": "integer", "minimum": 0}, limit={"type": "integer", "minimum": 1, "maximum": 200}), True)),
     Entry("session.forget", TASK, cli=("forget", None), desktop="session"),
+    Entry("session.rename", TASK, cli=("rename", None), desktop="session"),
+    Entry("session.pin", TASK, cli=("pin", None), desktop="session"),
+    Entry("session.archive", TASK, cli=("archive", None), desktop="session"),
+    Entry("session.export", READ, cli=("export", None), desktop="session", mcp=(
+        "orchestrator_session_export", "Export a saved conversation as markdown or json text. Writes no file. Read-only.",
+        _object(["session_id"], session_id=_SESSION_ID, format={"type": "string", "enum": ["markdown", "json"]}), True)),
 )
 BY_NAME = {entry.name: entry for entry in ENTRIES}
 assert len(BY_NAME) == len(ENTRIES), "a command is listed twice"

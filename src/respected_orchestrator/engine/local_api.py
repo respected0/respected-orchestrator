@@ -198,7 +198,9 @@ class LocalApi:
         pid, sid = payload.get("project_id"), payload.get("session_id")
         try:
             if command == "sessions.list":
-                return _reply(corr, True, {"sessions": self.sessions.view(self.origin, pid), "conversations": self.sessions.conversations(self.origin, pid)})
+                return _reply(corr, True, {"sessions": self.sessions.view(self.origin, pid),
+                                           "conversations": self.sessions.conversations(self.origin, pid, payload.get("query"),
+                                                                                         bool(payload.get("include_archived", False)))})
             name = command.split(".", 1)[1]
             if name == "models":
                 return _reply(corr, True, self.sessions.models(self.origin, payload.get("agent", self.sessions.store.defaults()["agent"])))
@@ -212,6 +214,14 @@ class LocalApi:
                 return _reply(corr, True, self.sessions.transcript(self.origin, sid, payload.get("before"), payload.get("limit", session_control.PAGE_TURNS)))
             if name == "forget":
                 return _reply(corr, True, self.sessions.forget(self.origin, sid))
+            if name == "rename":
+                return _reply(corr, True, self.sessions.rename(self.origin, sid, payload.get("title")))
+            if name == "pin":
+                return _reply(corr, True, self.sessions.pin(self.origin, sid, payload.get("pinned")))
+            if name == "archive":
+                return _reply(corr, True, self.sessions.archive(self.origin, sid, payload.get("archived")))
+            if name == "export":
+                return _reply(corr, True, self.sessions.export(self.origin, sid, payload.get("format", "markdown")))
             if name == "start":
                 root = payload.get("project_root")
                 chosen = self.sessions.store.defaults()
