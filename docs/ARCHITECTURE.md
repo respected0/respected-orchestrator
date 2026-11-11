@@ -483,7 +483,7 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   --format json` akışını eşler; diğer CLI'lar açıkça reddedilir. Süreç motorun kullanıcısı olarak çalışır. Her tur için dosya değiştiren/komut çalıştıran/ağ araçları, oturumun **izin kipi** açmadıkça reddedilir (aşağıda), proje yapılandırması yok sayılır, çalışma dizini
   `PWD` ile verilir, süreç `RESPECTED_ORCH_CHILD=1` ile işaretlenir (insan onayı veremez), `.cmd` shim'i çalıştırılmaz. Akıştaki her
   olay güvenilmeyen veridir; oturumda `approve` komutu yoktur (onaylar yalnız onay merkezinde). Canlı oturumlar süreç içidir; konuşma kayıtları
-  (`chat/sessions.json`) yeniden başlatmada kalır ve `continue_conversation` ile sürdürülür. `interrupt` süreç ağacını öldürür; tur sonucu `session.events` ile okunur.
+  (`chat/sessions.json`) yeniden başlatmada kalır ve `continue_conversation` ile sürdürülür. Geçmiş araçları (`sessions.list` süzgeçleri, `session.rename|pin|archive|export`) yalnız kaydı okur/yazar; dışa aktarmada metni motor üretir, dosyayı masaüstü kabuğu kullanıcıya seçtirdiği yola yazar (≤4 MB, UTF-8). `interrupt` süreç ağacını öldürür; tur sonucu `session.events` ile okunur.
   **İzin kipleri (KALAN_ISLER 4.6; 10–11 Kasım 2026'da ücretsiz modelle gerçek koşularla ölçüldü):** \chat_session.MODES\ üç kip tanır: \default\ (salt okunur),
   \ccept-edits\ (\edit\; edit/write/patch'i kapsar), \ypass-permissions\ (kabuk, ağ ve alt görev de açılır). Kip, tur ortamında CLI v2'nin **sıralı \permissions\**
   kurallarına çevrilir (son eşleşen kural kazanır): önce her şeyi reddeden ya da açan \*\ kuralı, sonra kipin eylemleri (ead\, \glob\, \grep\; \ccept-edits'te \edit\),

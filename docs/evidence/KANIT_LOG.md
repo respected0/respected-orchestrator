@@ -3003,3 +3003,11 @@ Kullanıcı yönergesi: ücretsiz modeller. `opencode models` listesindeki ücre
 - **Davranış:** Palet `ROUTES` ve `SHORTCUTS` listelerini çizer; `paletteRoutes` Türkçe küçük harfle süzer, boş sorgu hepsini verir. `shortcutRoute` yalnız 1…9 aralığını sayfaya çevirir. Palet yeni yetki ya da motor komutu açmaz; yalnız `location.hash` ile var olan sayfaya gider.
 - **Test:** `cd desktop; npm run check` → `tsc` temiz, `109 passed` (yeni: palet süzme ve `Ctrl+digit` eşlemesi).
 - **Doğrulanmayan:** Paletin gerçek uygulamada çizildiği ve kısayolların odak alanından bağımsız çalıştığı görülmedi; `[O]` gerçek uygulama koşusu gerekir.
+
+## KALAN_ISLER 4.13 E4 — geçmiş araçları (masaüstü, 11 Kasım 2026)
+
+- **Kapsam:** Sohbet geçmişinde arama, yeniden adlandırma (≤120), sabitleme, arşiv ve Markdown/JSON dışa aktarma; motor sözleşmesi `sessions.list` süzgeçleri ve `session.rename|pin|archive|export` ile zaten hazırdı, bu tur masaüstü tarafı bağlandı. `[K]`
+- **Değişen dosyalar:** `desktop/src/sessionlog.ts`, `desktop/src/sessionstore.ts`, `desktop/src/icons.tsx`, `desktop/src/Sidebar.tsx`, `desktop/src/Sessions.tsx`, `desktop/src/style.css`, `desktop/src-tauri/src/files.rs`, `desktop/src-tauri/src/lib.rs`, `desktop/src-tauri/build.rs`, `desktop/src-tauri/capabilities/default.json`, `tests/desktop/test_shell_policy.py`, `desktop/tests/sessionlog.test.ts`, bu giriş.
+- **Davranış:** Retler Türkçe metne çevrilir (`TITLE_EMPTY|TITLE_TOO_LONG|TITLE_INVALID|TITLE_UNSAFE`, `PIN_INVALID`, `ARCHIVE_INVALID`, `EXPORT_INVALID`); liste sabitlenmiş önce, sonra en yeni; arşivliler istenmedikçe gizli; arama Türkçe katlamalı ve kısa eşleşme parçası taşır; dışa aktarma 4 MB UTF-8 sınırını aşarsa `exportTooBig` ile durur ve adı `exportName` temizler. Dosyayı motor değil, onay kapısından geçmeyen ayrı `save_text_file` native komutu kullanıcının seçtiği yola tek yazmayla yazar.
+- **Test:** `cd desktop; npm run check` → `tsc` temiz, `114 passed`. `cd desktop/src-tauri; cargo test --quiet` → 45 lib + 1 ACL testi geçti. `$env:PYTHONPATH="src"; py -m pytest tests/desktop tests/docs tests/test_context.py tests/test_hints.py tests/test_main.py tests/test_release_script.py -q` → `23 passed`.
+- **Doğrulanmayan:** Yeni menülerin, arama kutusunun ve dışa aktarma diyaloğunun gerçek uygulamada çizildiği görülmedi (`[O]` gerekir); gerçek ücretsiz modelle ajan koşusu gerekmedi.
