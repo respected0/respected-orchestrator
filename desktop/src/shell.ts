@@ -12,6 +12,26 @@ export const ROUTES = [
 ] as const;
 export type RouteId = (typeof ROUTES)[number]['id'];
 
+/** Real bindings only; the palette lists these and each route. */
+export const SHORTCUTS = [
+  { keys: 'Ctrl+/', label: 'Kısayollar ve komut paleti' },
+  { keys: 'Ctrl+B', label: 'Kenar çubuğunu göster/gizle' },
+  { keys: 'Ctrl+1…9', label: 'Çalışma alanına git' },
+  { keys: 'Esc', label: 'Açık pencereyi kapat' },
+] as const;
+
+/** Routes whose label matches the query, in nav order; empty query lists all. */
+export function paletteRoutes(query: string): (typeof ROUTES)[number][] {
+  const q = query.trim().toLocaleLowerCase('tr');
+  return ROUTES.filter((r) => !q || r.label.toLocaleLowerCase('tr').includes(q));
+}
+
+/** Ctrl+digit maps to the nav order; out-of-range and 0 give null. */
+export function shortcutRoute(key: string): RouteId | null {
+  const n = Number(key);
+  return Number.isInteger(n) && n >= 1 && n <= ROUTES.length ? ROUTES[n - 1].id : null;
+}
+
 export type EngineState =
   | { phase: 'loading' }
   | { phase: 'ready'; version: string; healthy: boolean }

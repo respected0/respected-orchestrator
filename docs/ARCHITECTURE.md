@@ -557,6 +557,8 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   hiçbiri hiçbir pencereye verilmez) yapılır.
 
 **Bildirimler (E2):** masaüstü, oturum durumu değişince `notify_attention {kind}` kabuk komutunu çağırır: tur bitişi (`running` → `idle`), `failed` ve `ended`. Tür `turn-finished` / `failed` / `ended`'dir; gövde sabittir ve yalnız tür taşır, bildirime kod, istem ya da dosya adı yazılmaz. Pencere odaktayken ve bildirimin geldiği oturum seçiliyken bildirim yolu kapanır (`sessionlog.shouldNotify`). İşletim sistemi bildirimi `tauri-plugin-notification` ile gider; eklentinin hiçbir komutu hiçbir pencereye verilmez, yalnız `notify_attention` `allow-notify-attention` izinlidir ve gövdeyi kabuk üretir. Onay bekleyen tur için bildirim 4.6(a)'ya (çift yönlü izin isteği) bağlıdır ve henüz yoktur.
+
+**Kısayollar (E3):** `Ctrl+/` komut paletini açar; palet gerçek kısayolları ve çalışma alanlarını listeler, yazarak süzer ve Enter ilk sonuca gider. `Ctrl+B` kenar çubuğunu gösterir/gizler, `Ctrl+1…9` sıradaki çalışma alanına gider. Bağlar ve süzme `shell.ts`'dedir; palet yeni bir yetki ya da motor komutu açmaz, yalnız var olan sayfalara gider.
 - Kurucu üretimde güvenilir bir Authenticode sertifikasıyla imzalı değildir. İmza/doğrulama hattı gerçek bir
   self-signed test sertifikasıyla kanıtlanmıştır; üretim sertifikası ve zaman damgası operasyonel bağımlılıktır
   (`KANIT_LOG.md` §REL-01).

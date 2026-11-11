@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ROUTES, nextRoute, routeFromHash, screenView } from '../src/shell.ts';
+import { ROUTES, paletteRoutes, nextRoute, routeFromHash, screenView, shortcutRoute } from '../src/shell.ts';
 
 test('ten routes exist, every one has an understandable empty text', () => {
   assert.deepEqual(ROUTES.map((r) => r.id), ['sessions', 'inbox', 'flow', 'tasks', 'projects', 'team', 'capabilities', 'usage', 'settings']);
@@ -39,4 +39,13 @@ test('closing is free when idle and informs (never kills) when runs are active',
   const d = closeDecision('quit-app', 2);
   assert.equal(d.allow, false);
   if (!d.allow) assert.match(d.message, /durdurmaz/);
+});
+
+test('the palette filters routes by their Turkish label and Ctrl+digit follows nav order', () => {
+  assert.deepEqual(paletteRoutes('ayar').map((r) => r.id), ['settings']);
+  assert.equal(paletteRoutes('  ').length, ROUTES.length);
+  assert.equal(paletteRoutes('yok').length, 0);
+  assert.equal(shortcutRoute('1'), 'sessions');
+  assert.equal(shortcutRoute('9'), 'settings');
+  for (const k of ['0', '10', 'a', '']) assert.equal(shortcutRoute(k), null);
 });

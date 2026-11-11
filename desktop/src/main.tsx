@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { ROUTES, type EngineState, type RouteId, closeDecision, routeFromHash, screenView } from './shell';
+import { ROUTES, SHORTCUTS, type EngineState, type RouteId, closeDecision, paletteRoutes, routeFromHash, screenView, shortcutRoute } from './shell';
 import { Capabilities } from './Capabilities';
 import { Team, Usage } from './Beta4Screens';
 import { PreviewPanel } from './PreviewPanel';
@@ -61,6 +61,21 @@ function App() {
     addEventListener('hashchange', on);
     return () => removeEventListener('hashchange', on);
   }, []);
+  const [palette, setPalette] = useState(false);
+  const [query, setQuery] = useState('');
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key === '/') { e.preventDefault(); setPalette((p) => !p); return; }
+      if (mod && e.key.toLowerCase() === 'b') { e.preventDefault(); toggleSide(); return; }
+      const target = mod ? shortcutRoute(e.key) : null;
+      if (target) { e.preventDefault(); location.hash = `#/${target}`; return; }
+      if (e.key === 'Escape') setPalette(false);
+    };
+    addEventListener('keydown', on);
+    return () => removeEventListener('keydown', on);
+  }, []);
+  const openRoute = (id: RouteId) => { location.hash = `#/${id}`; setPalette(false); };
   const view = screenView(route, engine);
   const title = ROUTES.find((r) => r.id === route)!.label;
   const badge = engine.phase === 'ready' ? `Motor ${engine.version}` : engine.phase === 'loading' ? 'Motor aranıyor…' : 'Motor yok';
@@ -71,6 +86,23 @@ function App() {
           <p id="close-msg">{decision.message}</p>
           <button autoFocus onClick={() => setBlocked(null)}>{decision.cancel}</button>
           <button onClick={() => invoke('confirm_close')}>{decision.confirm}</button>
+        </div>
+      )}
+      {palette && (
+        <div className="palettebg" onClick={(e) => { if (e.target === e.currentTarget) setPalette(false); }}>
+          <div className="palette" role="dialog" aria-modal="true" aria-label="Komut paleti">
+            <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Komut ara…" aria-label="Komut ara"
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setPalette(false);
+                if (e.key === 'Enter') { const first = paletteRoutes(query)[0]; if (first) openRoute(first.id); }
+              }} />
+            <div className="pflist">
+              {paletteRoutes(query).map((r) => <button key={r.id} onClick={() => openRoute(r.id)}>{r.label}</button>)}
+            </div>
+            <div className="pfkeys">
+              {SHORTCUTS.map((s) => <div key={s.keys}><kbd>{s.keys}</kbd><span>{s.label}</span></div>)}
+            </div>
+          </div>
         </div>
       )}
       <a className="skip" href="#content">İçeriğe geç</a>

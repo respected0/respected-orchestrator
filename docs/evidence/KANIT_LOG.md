@@ -2995,3 +2995,11 @@ Kullanıcı yönergesi: ücretsiz modeller. `opencode models` listesindeki ücre
 - **Davranış:** `session.state` geçişinde `running` → `idle` / `failed` / `ended` için `notify_attention {kind}` çağrılır. `shouldNotify` yalnız pencere odakta değilken ya da bildirimin geldiği oturum seçili değilken izin verir. Gövdeyi Rust tarafı sabit metin olarak üretir; bildirime tur içeriği geçmez. `tauri-plugin-notification` bağlanır ama hiçbir pencereye eklenti komutu verilmez; yalnız `notify_attention` `allow-notify-attention` ile açıktır, ACL testi eklenti komutlarının kapalı olduğunu denetler.
 - **Test:** `cd desktop; npm run check` → `tsc` temiz, `108 passed`. `cd desktop/src-tauri; cargo test --quiet` → 44 lib + 1 ACL testi geçti.
 - **Doğrulanmayan:** Bildirimin gerçek işletim sistemi bildirim merkezinde görünmesi ve odak/oturum seçimi koşulu gerçek uygulamada görülmedi; onay bekleyen tur bildirimi 4.6(a) çift yönlü izin isteğine bağlı olduğu için yok.
+
+## KALAN_ISLER 4.11 — kısayollar ve komut paleti (11 Kasım 2026)
+
+- **Kapsam:** `Ctrl+/` ile açılan komut paleti: gerçek kısayollar, çalışma alanı listesi, yazarak süzme ve Enter ile ilk sonuca gitme; `Ctrl+B` kenar çubuğu; `Ctrl+1…9` çalışma alanı. `[K]`
+- **Değişen dosyalar:** `desktop/src/shell.ts`, `desktop/src/main.tsx`, `desktop/src/style.css`, `desktop/tests/shell.test.ts`, `docs/ARCHITECTURE.md`, `docs/KALAN_ISLER.md`, bu giriş.
+- **Davranış:** Palet `ROUTES` ve `SHORTCUTS` listelerini çizer; `paletteRoutes` Türkçe küçük harfle süzer, boş sorgu hepsini verir. `shortcutRoute` yalnız 1…9 aralığını sayfaya çevirir. Palet yeni yetki ya da motor komutu açmaz; yalnız `location.hash` ile var olan sayfaya gider.
+- **Test:** `cd desktop; npm run check` → `tsc` temiz, `109 passed` (yeni: palet süzme ve `Ctrl+digit` eşlemesi).
+- **Doğrulanmayan:** Paletin gerçek uygulamada çizildiği ve kısayolların odak alanından bağımsız çalıştığı görülmedi; `[O]` gerçek uygulama koşusu gerekir.

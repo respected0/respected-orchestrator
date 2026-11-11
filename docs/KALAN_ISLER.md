@@ -140,7 +140,6 @@ Bağlayıcı kurallar (`RAKIP_ESKIKLERI.md` §6): ajanın kendi özellikleri aja
 - [ ] **4.9 C1 Bağlam göstergesi ve G8 oturum ayrıntı paneli** `[K]` ekran, `[A]` veri yolu
   - Rakipler: CC'de sohbetin yanında kartlar var (nerede çalışıyor, ne değiştirdi, ne çalıştırıyor, bağlam doluluğu). Cx'te `/status`. dsh'de `token-meter`.
   - Yapılacak: veri 3.1'den; ajan vermiyorsa kart çıkmaz, "bilinmiyor" uydurulmaz.
-- [ ] **4.11 E3 Kısayollar ve komut paleti** `[K]`: CC'de `Ctrl+/` tüm kısayolları gösterir; Orca tek kısayolla her çalışma alanına atlar.
 - [ ] **4.12 B4 Çoklu ajan sohbeti ve G9 oturumlar arası mesajlaşma** `[K]`
   - Bizde: motorda takım, devir ve posta kutusu var (`team_profiles`, `handoff`, `team_loop`); ekran salt okunur.
   - Rakipler: CC'de bir oturum diğerlerini listeler, okur, mesaj yollar. Herdr'de bir ajan yardımcı ajan başlatır ve raporu kendi girdisine düşer. Vi3ecode'da roller tek konuşmayı paylaşır; otomatik devir "sıçrama sınırı" ve bütçe ile durur. Munder Difflin'de ajanlar ortak posta kutusu ve kara tahta paylaşır.
