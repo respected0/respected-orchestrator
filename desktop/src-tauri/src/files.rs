@@ -93,6 +93,27 @@ pub fn request_write(roots: &Roots, folder: &Path, name: &str, text: &str, prese
     Ok(true)
 }
 
+/// Exported history is not a project file: it goes wherever the person points the native save dialog, at most 4 MB, in one write.
+/// The instruction-file path above (which is gated and limited to AGENTS.md/CLAUDE.md) is deliberately not used here.
+pub const MAX_EXPORT_BYTES: usize = 4 * 1024 * 1024;
+
+/// A plain file name for the save dialog: no path, no control characters, no Windows-reserved punctuation.
+pub fn export_name(name: &str) -> Result<&str, String> {
+    let n = name.trim();
+    let bad = n.is_empty() || n.chars().count() > 120 || n == "." || n == ".."
+        || n.chars().any(|c| c.is_control() || matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|'));
+    if bad { Err("Dosya adı geçersiz.".into()) } else { Ok(n) }
+}
+
+pub fn save_text(path: &Path, text: &str) -> Result<(), String> {
+    if !path.is_absolute() { return Err("Yol geçersiz.".into()); }
+    let name = path.file_name().and_then(|n| n.to_str()).ok_or("Dosya adı geçersiz.")?;
+    export_name(name)?;
+    if text.len() > MAX_EXPORT_BYTES { return Err("Dosya çok büyük (en çok 4 MB).".into()); }
+    if text.contains('\0') { return Err("Metin geçersiz karakter içeriyor.".into()); }
+    std::fs::write(path, text.as_bytes()).map_err(|e| format!("Dosya yazılamadı: {e}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -163,6 +184,24 @@ mod tests {
         assert!(again.list(&proj).is_ok());
         assert!(again.list(&base).is_err());
         assert!(Roots::persistent(base.join("none.json")).list(&proj).is_err());
+    }
+
+    #[test]
+    fn export_names_are_plain_files_and_sizes_are_bounded() {
+        for good in ["sohbet.md", "sohbet.json", "başlık (1).md"] { assert_eq!(export_name(good), Ok(good)); }
+        for bad in ["", "..", ".", "a/b.md", "a\\b.md", "a:b.md", "a?.md", "a\u{0000}.md", &"x".repeat(121)] { assert!(export_name(bad).is_err(), "{bad:?}"); }
+        let (base, _proj, _roots) = tree();
+        let file = base.join("sohbet.md");
+        let text = "Türkçe metin ✓\n";
+        assert_eq!(save_text(&file, text), Ok(()));
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), text);
+        assert!(save_text(&base, "x").is_err(), "a directory is not a file");
+        assert!(save_text(Path::new("sohbet.md"), "x").is_err(), "a relative path is refused");
+        assert!(save_text(&base.join("a/b.md"), "x").is_err());
+        assert!(save_text(&base.join("a\0b.md"), "x").is_err());
+        assert!(save_text(&file, "a\0b").is_err());
+        assert!(save_text(&file, &"a".repeat(MAX_EXPORT_BYTES + 1)).unwrap_err().contains("büyük"));
+        std::fs::remove_dir_all(&base).ok();
     }
 
     #[test]
