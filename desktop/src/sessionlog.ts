@@ -16,7 +16,8 @@ export type SessionView = {
   commands: Record<'send' | 'retry' | 'interrupt' | 'cancel' | 'resume', CommandState>;
 };
 /** One sidebar row, ordered and titled by the engine. `saved`: a conversation from an earlier run (read-only until continued). */
-export type Conversation = { id: string; title: string; state: State; project_root: string; updated: number; saved: boolean };
+export type Conversation = { id: string; title: string; state: State; project_root: string; updated: number; saved: boolean;
+  pinned: boolean; archived: boolean; match: string | null };
 export type Usage = { input: number; output: number; reasoning: number; cache_read: number; cost: number | null; last_input: number | null; steps: number };
 /** The running turn's events so far (ADR-034). */
 export type Live = { turn: number; events: StreamEvent[] };
@@ -95,7 +96,24 @@ export const REJECT_TEXT: Record<string, string> = {
   TEXT_EMPTY: 'İleti boş.', TEXT_TOO_LONG: 'İleti çok uzun (en çok 8000 karakter).', TEXT_UNSAFE: 'İletide denetim karakteri var.',
   AGENT_NOT_INSTALLED: 'Ajan kurulu değil.', TOO_MANY_SESSIONS: 'Çok fazla açık oturum var.', SESSION_UNKNOWN: 'Oturum bulunamadı.',
   SESSION_LIVE: 'Önce oturumu bitir.', RESUME_INVALID: 'Devam ettirilecek oturum geçersiz.', MODE_INVALID: 'Bu izin kipi bilinmiyor.', TURN_RUNNING: 'Bir tur çalışıyor.',
+  TITLE_EMPTY: 'Başlık boş olamaz.', TITLE_TOO_LONG: 'Başlık çok uzun (en çok 120 karakter).', TITLE_INVALID: 'Başlık geçersiz.', TITLE_UNSAFE: 'Başlıkta denetim karakteri var.',
+  PIN_INVALID: 'Sabitleme değeri geçersiz.', ARCHIVE_INVALID: 'Arşiv değeri geçersiz.', EXPORT_INVALID: 'Dışa aktarma biçimi geçersiz.',
 };
+/** Sidebar order: pinned first, then newest. The engine sorts the same way; this keeps the screen right after a local change. */
+export const orderConversations = <T extends { pinned: boolean; updated: number }>(rows: T[]): T[] =>
+  [...rows].sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.updated - a.updated);
+
+/** The engine names the file; this is the screen's last line of defence against a title that is a path. */
+export function exportName(title: string, format: 'markdown' | 'json'): string {
+  if (format === 'json') return 'sohbet.json';
+  const clean = title.replace(/[<>:"/\\|?*\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().replace(/[. ]+$/, '').slice(0, 80).trim();
+  return `${clean || 'sohbet'}.md`;
+}
+export const EXPORT_MAX_BYTES = 4 * 1024 * 1024;
+export const exportTooBig = (text: string): boolean => new TextEncoder().encode(text).length > EXPORT_MAX_BYTES;
+/** Search hits arrive as a short engine snippet; it is shown as one plain line. */
+export const matchSnippet = (m: string | null | undefined): string =>
+  (m ?? '').replace(/[\u0000-\u001f\u007f-\u009f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140);
 
 /** How long the screen waits before asking for the notification stream again after it closed or could not be opened. */
 export const RESUBSCRIBE_MS = 2000;

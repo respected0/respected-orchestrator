@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { COMMANDS } from '../src/contracts/ipc.ts';
 import { bufferOf } from '../src/terminal.ts';
 import {
-  COMMAND_TEXT, MODE_TEXT, PROJECT_ID, SESSION_COMMANDS, applyLive, call, joinPages, modeText, notifyReason, reasonText, shouldNotify, stateText, transcriptLines,
+  COMMAND_TEXT, EXPORT_MAX_BYTES, MODE_TEXT, PROJECT_ID, REJECT_TEXT, SESSION_COMMANDS, applyLive, call, exportName, exportTooBig, joinPages, matchSnippet, modeText, notifyReason, orderConversations, reasonText, shouldNotify, stateText, transcriptLines,
   type Relay, type Transcript,
 } from '../src/sessionlog.ts';
 
@@ -149,4 +149,51 @@ test('an OS notice follows only a real turn end, and never the session the perso
   assert.equal(shouldNotify('running', 'idle', true, true), null);
   assert.equal(shouldNotify('running', 'idle', true, false), 'turn-finished');
   assert.equal(shouldNotify('running', 'idle', false, true), 'turn-finished');
+});
+
+test('the history tools word every engine refusal in Turkish', () => {
+  for (const code of ['TITLE_EMPTY', 'TITLE_TOO_LONG', 'TITLE_INVALID', 'TITLE_UNSAFE', 'PIN_INVALID', 'ARCHIVE_INVALID', 'EXPORT_INVALID']) {
+    assert.ok(REJECT_TEXT[code], code);
+    assert.match(REJECT_TEXT[code], /[çğıöşü]/i, code);
+    assert.ok(!REJECT_TEXT[code].startsWith('Motor reddetti'), code);
+  }
+});
+
+test('sidebar order: pinned first, then newest, without touching the engine rows', () => {
+  const rows = [
+    { id: 'old', pinned: false, updated: 10 }, { id: 'pinned-old', pinned: true, updated: 1 },
+    { id: 'new', pinned: false, updated: 30 }, { id: 'pinned-new', pinned: true, updated: 20 },
+  ];
+  assert.deepEqual(orderConversations(rows).map((r) => r.id), ['pinned-new', 'pinned-old', 'new', 'old']);
+  assert.deepEqual(rows.map((r) => r.id), ['old', 'pinned-old', 'new', 'pinned-new']); // input is not reordered in place
+  assert.deepEqual(orderConversations([]), []);
+});
+
+test('an exported file name cannot become a path, and JSON is always the same name', () => {
+  assert.equal(exportName('Sohbet', 'markdown'), 'Sohbet.md');
+  assert.equal(exportName('Toplantı notları 2026', 'json'), 'sohbet.json');
+  assert.equal(exportName('a/b\\c:d*e?f"g<h>i|j', 'markdown'), 'a b c d e f g h i j.md');
+  assert.equal(exportName('..', 'markdown'), 'sohbet.md');
+  assert.equal(exportName('  ...  ', 'markdown'), 'sohbet.md');
+  assert.equal(exportName('', 'markdown'), 'sohbet.md');
+  assert.equal(exportName('\u0000\u001f', 'markdown'), 'sohbet.md');
+  const long = exportName('a'.repeat(200), 'markdown');
+  assert.equal(long, `${'a'.repeat(80)}.md`);
+  assert.equal(exportName('Sohbet. . .', 'markdown'), 'Sohbet.md');
+});
+
+test('export size is counted in UTF-8 bytes, so a multi-byte title cannot sneak past 4 MB', () => {
+  assert.equal(exportTooBig('a'.repeat(EXPORT_MAX_BYTES)), false);
+  assert.equal(exportTooBig('a'.repeat(EXPORT_MAX_BYTES + 1)), true);
+  assert.equal(exportTooBig('ş'.repeat(EXPORT_MAX_BYTES / 2)), false);
+  assert.equal(exportTooBig('ş'.repeat(EXPORT_MAX_BYTES / 2 + 1)), true);
+  assert.equal(exportTooBig(''), false);
+});
+
+test('a search hit is one plain line: control characters dropped, spaces collapsed, capped at 140', () => {
+  assert.equal(matchSnippet('  a\n\tb  '), 'a b');
+  assert.equal(matchSnippet('\u0000\u001b[31mred'), '[31mred');
+  assert.equal(matchSnippet(null), '');
+  assert.equal(matchSnippet(undefined), '');
+  assert.equal(matchSnippet('x'.repeat(200)).length, 140);
 });
