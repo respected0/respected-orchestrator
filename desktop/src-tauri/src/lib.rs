@@ -282,6 +282,17 @@ async fn pick_files<R: tauri::Runtime>(window: tauri::Window<R>, app: tauri::App
     Ok(picked.into_iter().filter_map(|p| p.into_path().ok()).map(|p| p.to_string_lossy().into_owned()).collect())
 }
 
+/// Native save dialog for an exported conversation. The engine produces the text and the suggested name;
+/// the person picks the destination, and every byte goes through the bounded single write in files::save_text.
+#[tauri::command]
+async fn save_text_file<R: tauri::Runtime>(window: tauri::Window<R>, app: tauri::AppHandle<R>, filename: String, text: String) -> Result<Option<String>, String> {
+    let name = files::export_name(&filename)?;
+    let picked = app.dialog().file().set_parent(&window).set_title("Sohbeti kaydet").set_file_name(name).blocking_save_file();
+    let Some(path) = picked.and_then(|p| p.into_path().ok()) else { return Ok(None) };
+    files::save_text(&path, &text)?;
+    Ok(Some(path.to_string_lossy().into_owned()))
+}
+
 static PREVIEW_GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 /// Opens one untrusted local page (B3-06.03). Refused unless the user turned the preview on in the engine settings and listed the port.
@@ -382,7 +393,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, engine_subscribe, terminal_attach, terminal_detach, settings_request, read_call, preview_open, pick_folder, pick_files, list_dir, notify_attention, read_text_file, write_instruction_file])
+        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, engine_subscribe, terminal_attach, terminal_detach, settings_request, read_call, preview_open, pick_folder, pick_files, save_text_file, list_dir, notify_attention, read_text_file, write_instruction_file])
 }
 
 pub fn run() {
