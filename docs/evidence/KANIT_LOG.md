@@ -2951,3 +2951,15 @@ Kullanıcı yönergesi: ücretsiz modeller. `opencode models` listesindeki ücre
 - TypeScript: `voicedraft.test.ts`, `attachdraft.test.ts`; `npm run check` yeşil.
 - Tarayıcıda (dev-mock, sahte mikrofon akışı ve sahte dosya): kayıt göstergesi, taslak, vurgu, karartma pikseli siyah, önizleme, onay kutusu ve çalıştırma kimliği olmadan Ekle kapalı, ekleme, listeleme.
 - Doğrulanmadı: gerçek mikrofon, gerçek OS onay penceresi (MessageBox) ve WebView2 mikrofon izin istemi; Türkçe konuşma doğruluğu (Türkçe ses yok).
+
+## KALAN_ISLER 4.6 — v2 izin biçimi ve araç çağrılabilirliği (11 Kasım 2026)
+
+- **Kapsam:** Sohbet izin kiplerinin OpenCode v2 sıralı `permissions` biçimine geçirilmesi; `execute` ve CLI meta araçlarının her kipte gerçekten çağrılamadığının ücretsiz modelle ölçülmesi.
+- **Değişen dosyalar:** `src/respected_orchestrator/engine/chat_session.py`, `tests/engine/test_chat_session.py`, `docs/ARCHITECTURE.md`, `docs/KALAN_ISLER.md`, bu giriş.
+- **Kod:** `MODES` eylem kümeleri (`default` = read/glob/grep, `accept-edits` += edit, `bypass-permissions` = `*`); `ALWAYS_DENIED` (execute, opencode_worktree_create/remove/list, opencode_session_move/list/rename, opencode_models, opencode_read_mcp_resource, opencode_list_mcp_resources) kuralların sonuna eklenir.
+- **Test:** `$env:PYTHONPATH="src"; py -m unittest tests.engine.test_chat_session -v` → `Ran 22 tests` ... `OK` (PowerShell çıkış kodu 1 görünebilir; unittest stderr'e yazar).
+- **Gerçek koşu:** `opencode v2.2.3`, model `opencode/deepseek-v4.1-flash-free` (ücretsiz), tur ortamı `chat_session.turn_environment()` ile kuruldu.
+  - Araç listeleri: `default` → glob, grep, read, skill; `accept-edits` → edit, glob, grep, opencode_worktree_remove, read, skill, write; `bypass-permissions` → edit, glob, grep, opencode_models, opencode_session_rename, opencode_worktree_list, opencode_worktree_remove, question, read, shell, skill, subagent, webfetch, websearch, write.
+  - Çağrılabilirlik (araç çağrısı istendi, yoksa `TOOL_UNAVAILABLE`): `accept-edits` + `opencode_worktree_list` → `TOOL_UNAVAILABLE`; `bypass-permissions` + `opencode_worktree_list` → `TOOL_UNAVAILABLE`; `default` + `execute` → `TOOL_UNAVAILABLE`. Sonuç: meta araçlar katalogda görünse de çağrılamıyor.
+- **Önceki oturumdan geçerli ölçümler:** `default` dosya yazmadı; `accept-edits` dosya değiştirdi, kabuk çalışmadı; `bypass-permissions` kabuk çalıştırdı (ücretsiz model, geçici klasör).
+- **Doğrulanmayanlar:** `accept-edits`/`bypass-permissions` altında `execute` çağrısı ücretsiz modelin yavaşlığından 180 saniyede zaman aşımına düştü; `skill` çağrılabilirliği salt okunurda ayrıca denenmedi. Ekran (kip seçici) gerçek uygulamada görülmedi.

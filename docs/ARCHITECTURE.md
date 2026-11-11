@@ -484,12 +484,15 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   `PWD` ile verilir, süreç `RESPECTED_ORCH_CHILD=1` ile işaretlenir (insan onayı veremez), `.cmd` shim'i çalıştırılmaz. Akıştaki her
   olay güvenilmeyen veridir; oturumda `approve` komutu yoktur (onaylar yalnız onay merkezinde). Canlı oturumlar süreç içidir; konuşma kayıtları
   (`chat/sessions.json`) yeniden başlatmada kalır ve `continue_conversation` ile sürdürülür. `interrupt` süreç ağacını öldürür; tur sonucu `session.events` ile okunur.
-  **İzin kipleri (KALAN_ISLER 4.6; 10 Kasım 2026'da ücretsiz modelle gerçek koşularla ölçüldü):** `chat_session.MODES` üç kip tanır: `default` (salt okunur),
-  `accept-edits` (`edit`, `write`, `patch` açılır), `bypass-permissions` (kabuk, ağ ve alt görev de açılır). Kip, tur ortamındaki izin tablosuna çevrilir: `allow` aracı proje
-  klasöründe çalıştırır, `deny` aracı kaldırır. `ask` etkileşimsiz turda reddedildiği için soran bir kip ve `auto` yoktur. Model yazımlı JavaScript çalıştıran `execute` ile
-  CLI'ın kendi araçları (`opencode_*`: worktree oluşturma, oturum taşıma) **her kipte kapalıdır**; önceki reddetme listesi bunları kapsamıyordu. Kipi yalnız kişi seçer:
-  `default` dışı kiple başlatma ve `session.mode.set` `TERMINAL` sınıfındadır (tanınan masaüstü ve insan kökeni), MCP kökeni ve işçi soyu seçemez; akıştaki hiçbir şey kipi
-  değiştiremez. Kip turlar arasında değişir, kaydedilmez (sürdürülen konuşma `default` ile başlar). Açık kipte ajan gerçek proje klasörüne yazar; motor yalıtım eklemez.
+  **İzin kipleri (KALAN_ISLER 4.6; 10–11 Kasım 2026'da ücretsiz modelle gerçek koşularla ölçüldü):** \chat_session.MODES\ üç kip tanır: \default\ (salt okunur),
+  \ccept-edits\ (\edit\; edit/write/patch'i kapsar), \ypass-permissions\ (kabuk, ağ ve alt görev de açılır). Kip, tur ortamında CLI v2'nin **sıralı \permissions\**
+  kurallarına çevrilir (son eşleşen kural kazanır): önce her şeyi reddeden ya da açan \*\ kuralı, sonra kipin eylemleri (ead\, \glob\, \grep\; \ccept-edits'te \edit\),
+  en sonda \ALWAYS_DENIED\. \sk\ etkileşimsiz turda reddedildiği için soran bir kip ve \uto\ yoktur. Model yazımlı JavaScript çalıştıran \execute\ ile
+  CLI'ın kendi araçları (\opencode_worktree_*\, \opencode_session_*\, \opencode_models\, MCP okuma) **her kipte kapalıdır**; joker eylem onları gizlemediği için adları
+  açıkça reddedilir ve \execute\ yasağı Code Mode'u tümüyle kaldırır. 11 Kasım 2026 ölçümü: bu adlar araç kataloğunda görünse de çağrı \TOOL_UNAVAILABLE\ döndü.
+  Kipi yalnız kişi seçer: \default\ dışı kiple başlatma ve \session.mode.set\ \TERMINAL\ sınıfındadır (tanınan masaüstü ve insan kökeni), MCP kökeni ve işçi soyu seçemez;
+  akıştaki hiçbir şey kipi değiştiremez. Kip turlar arasında değişir; bugün kaydedilmez (sürdürülen konuşma \default\ ile başlar). Açık kipte ajan gerçek proje
+  klasörüne yazar; motor yalıtım eklemez.
   **Canlı akış (ADR-034):** ajanın çıktısı satır satır okunur; her olay turun `live` listesine girer ve abonelere bildirilir. Abonelik ayrı bir
   boru bağlantısıdır: `events.subscribe {project_id}` yanıtından sonra o bağlantıdan yalnız motor yazar (`session.event`, `session.state`; `id` taşımaz),
   istemciden bir şey okunmaz. Abone yalnız kendi `project_id`'sinin oturumlarını duyar; komut `READ` sınıfıdır, `CHILD` kökeni abone olamaz. Geride kalan

@@ -136,23 +136,25 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(env["PWD"], "/work/proj")  # the CLI takes its project dir from PWD, so a stale PWD must be overwritten
         self.assertEqual(env["RESPECTED_ORCH_CHILD"], "1")  # a child can never be the human approver
         self.assertEqual(env["OPENCODE_DISABLE_PROJECT_CONFIG"], "1")
-        denied = json.loads(env["OPENCODE_CONFIG_CONTENT"])["permission"]
-        for tool in ("bash", "shell", "edit", "write", "patch", "webfetch", "websearch", "task"):
-            self.assertEqual(denied[tool], "deny", tool)
-        self.assertNotIn("read", denied)  # reading the project is what a chat is for
-        self.assertEqual((denied["execute"], denied["opencode_*"]), ("deny", "deny"))  # model-written code and the CLI's own meta tools: off in every mode
+        rules = json.loads(env["OPENCODE_CONFIG_CONTENT"])["permissions"]
+        self.assertEqual(rules[0], {"action": "*", "resource": "*", "effect": "deny"})
+        self.assertEqual({r["action"] for r in rules[1:4]}, {"read", "glob", "grep"})  # reading the project is what a chat is for
+        self.assertEqual([(r["action"], r["effect"]) for r in rules[len(rules) - len(cs.ALWAYS_DENIED):]],
+                         [(action, "deny") for action in cs.ALWAYS_DENIED])  # model-written code and the CLI's own meta tools: explicit, because a wildcard action did not hide them
         self.assertEqual(env["PATH"], "p")
 
     def test_a_permission_mode_opens_exactly_its_tools_and_never_the_meta_tools(self):
-        def permission(mode):
-            return json.loads(cs.turn_environment("/work/proj", {}, mode=mode)["OPENCODE_CONFIG_CONTENT"])["permission"]
+        def rules(mode):
+            return json.loads(cs.turn_environment("/work/proj", {}, mode=mode)["OPENCODE_CONFIG_CONTENT"])["permissions"]
         self.assertEqual(list(cs.MODES), ["default", "accept-edits", "bypass-permissions"])
-        edits = permission("accept-edits")
-        self.assertEqual({t for t, v in edits.items() if v == "allow"}, {"edit", "write", "patch"})
-        self.assertEqual((edits["shell"], edits["bash"], edits["webfetch"]), ("deny", "deny", "deny"))
-        everything = permission("bypass-permissions")
-        self.assertEqual({t for t, v in everything.items() if v == "deny"}, {"execute", "opencode_*"})
-        self.assertNotIn("ask", set(everything.values()) | set(edits.values()))  # an asking permission is refused in a non-interactive turn
+        edits = rules("accept-edits")
+        self.assertEqual({r["action"] for r in edits if r["effect"] == "allow"}, set(cs.READ_ONLY) | {"edit"})
+        self.assertEqual(edits[0]["effect"], "deny")  # shell, web, external directories and everything else stay closed
+        everything = rules("bypass-permissions")
+        self.assertEqual(everything[0], {"action": "*", "resource": "*", "effect": "allow"})
+        self.assertEqual({(r["action"], r["effect"]) for r in everything[1:]},
+                         {(action, "deny") for action in cs.ALWAYS_DENIED})
+        self.assertNotIn("ask", {r["effect"] for r in rules("default") + edits + everything})  # asking is refused in a non-interactive turn
         with self.assertRaises(KeyError):
             cs.turn_environment("/work/proj", {}, mode="auto")
 
