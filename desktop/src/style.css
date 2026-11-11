@@ -344,6 +344,16 @@ main.chat { max-width: none; padding: 0; margin: 0; overflow: hidden; display: f
 .concept .sortmenu .it svg { width: 14px; height: 14px; }
 .grprow:has(.sortmenu) .gadd { opacity: 1; }
 
+/* sidebar history: search row, pinned mark, match snippet under the title */
+.concept .searchrow { display: flex; align-items: center; gap: 6px; margin: 2px 0 4px; padding: 0 3px 0 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--raise); color: var(--tx3); }
+.concept .searchrow svg { width: 14px; height: 14px; }
+.concept .searchrow input { flex: 1; min-width: 0; padding: 5px 0; border: 0; background: none; color: var(--tx); font: inherit; outline: none; }
+.concept .searchrow .ib { width: 24px; height: 24px; border-radius: 6px; }
+.concept .nav.conv .cpin { display: inline-flex; color: var(--tx3); }
+.concept .nav.conv .cpin svg { width: 12px; height: 12px; }
+.concept .nav.conv:has(.cm) { flex-wrap: wrap; }
+.concept .nav.conv .cm { flex-basis: 100%; margin: -2px 0 0 16px; color: var(--tx3); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* session bar: roomy sections split by hairlines, 14px rows, rounded legend squares, name badges for adapters */
 .rpanel { padding: 8px 20px 24px; }
 .rpanel details { margin-top: 0; padding: 18px 0 16px; border-top: 1px solid var(--line); }
