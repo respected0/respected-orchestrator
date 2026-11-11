@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-notify-attention"
+description = "Enables the notify_attention command without any pre-configured scope."
+commands.allow = ["notify_attention"]
+
+[[permission]]
+identifier = "deny-notify-attention"
+description = "Denies the notify_attention command without any pre-configured scope."
+commands.deny = ["notify_attention"]

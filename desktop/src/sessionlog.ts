@@ -99,6 +99,20 @@ export const REJECT_TEXT: Record<string, string> = {
 
 /** How long the screen waits before asking for the notification stream again after it closed or could not be opened. */
 export const RESUBSCRIBE_MS = 2000;
+/** Why an OS notice is due: a turn finished, failed, or the session ended. The kind, not the text, crosses into Rust, so no turn content can. */
+export type NoticeKind = 'turn-finished' | 'failed' | 'ended';
+export function notifyReason(prev: string | undefined, next: string): NoticeKind | null {
+  if (!prev || prev === next) return null;
+  if (next === 'failed') return 'failed';
+  if (next === 'ended') return 'ended';
+  if (next === 'idle' && prev === 'running') return 'turn-finished';
+  return null;
+}
+
+/** Nothing is shown for the session the person is looking at in a focused window; anywhere else, it is. */
+export function shouldNotify(prev: string | undefined, next: string, focused: boolean, selected: boolean): NoticeKind | null {
+  return focused && selected ? null : notifyReason(prev, next);
+}
 
 /** A page the engine just returned joined onto the turns already on screen (an older page goes in front, a newer one replaces the tail).
  *  Everything else is the page's, because it is the newer answer. Pages that do not touch leave a hole: then only the page is kept. */

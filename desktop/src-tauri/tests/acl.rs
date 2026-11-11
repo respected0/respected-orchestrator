@@ -5,7 +5,7 @@ use tauri::test::{get_ipc_response, mock_builder, MockRuntime, INVOKE_KEY};
 use tauri::webview::InvokeRequest;
 use tauri::{WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
-const COMMANDS: [&str; 19] = ["engine_status", "confirm_close", "request_apply", "attach_image", "share_image", "revoke_image", "capability_inventory", "session_call", "engine_subscribe", "terminal_attach", "terminal_detach", "settings_request", "read_call", "preview_open", "pick_folder", "pick_files", "list_dir", "read_text_file", "write_instruction_file"];
+const COMMANDS: [&str; 20] = ["engine_status", "confirm_close", "request_apply", "attach_image", "share_image", "revoke_image", "capability_inventory", "session_call", "engine_subscribe", "terminal_attach", "terminal_detach", "settings_request", "read_call", "preview_open", "pick_folder", "pick_files", "list_dir", "notify_attention", "read_text_file", "write_instruction_file"];
 
 fn call(w: &WebviewWindow<MockRuntime>, cmd: &str, from: &str, body: serde_json::Value) -> Result<serde_json::Value, serde_json::Value> {
     let request = InvokeRequest {

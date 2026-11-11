@@ -129,7 +129,7 @@ Bağlayıcı kurallar (`RAKIP_ESKIKLERI.md` §6): ajanın kendi özellikleri aja
   - Ölçümde bulunan açık kapatıldı: her şey reddedilmişken ajan \execute\ (model yazımlı JavaScript) ve \opencode_worktree_*\ gibi CLI araçlarını kullanabiliyordu; ikisi artık her kipte açıkça kapalı. 11 Kasım 2026: bu adlar araç kataloğunda görünse de çağrı \TOOL_UNAVAILABLE\ döndü; \execute\ yasağı Code Mode'u kaldırıyor.
   - AO ile fark: AO'nun dört adından \uto\ yok ve \default\ sormaz, salt okunurdur; çünkü \opencode run\ etkileşimsiz turda soran izni reddediyor. Soru-yanıt, ajanla çift yönlü protokol gerektirir (3.2 ACP, 1.7).
   - Ajan terminali açılırken de kip seçilir: ekran `agent.describe`ın CLI modlarını ve `session.defaults`ın ajan listesini gösterir, `terminal.start` bayrağı kayda yazar; bilinmeyen kip `MODE_UNSUPPORTED` döner. Sohbetten geçişte konuşmanın kipi CLI'da karşılığı varsa taşınır.
-  - Kalan: (a) ajanın ek izin isteğini ekranda sormak (ACP \session/request_permission\, Cx equest_permissions\): 3.2 ve 1.7 ile; (d) G11: ajanın kendi kural dosyasını ve korunan yollarını göstermek; (f) açık kipte yapılan değişikliği geri alma yok (4.3).
+  - Kalan: (a) ajanın ek izin isteğini ekranda sormak (ACP \session/request_permission\, Cx equest_permissions\): 3.2 ve 1.7 ile; bu iş onay bekleyen turun bildirimini de açar; (d) G11: ajanın kendi kural dosyasını ve korunan yollarını göstermek; (f) açık kipte yapılan değişikliği geri alma yok (4.3).
 - [ ] **4.7 C3 Proje talimat dosyası: kalanlar** `[K]` (görüntüleme ve düzenleme yapıldı, 10 Kasım 2026)
   - Bizde: oturum çubuğunda "Proje talimatları" `AGENTS.md` ve `CLAUDE.md`'yi gösterir, düz metin olarak düzenler ya da oluşturur; kayıt yerel onay penceresinden geçer. Gerçek uygulamada görülmedi.
   - Kalan: alt klasörlerdeki ve kullanıcı düzeyindeki talimat dosyaları (`~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`) listelenmiyor; Markdown önizleme yok; dosya dışarıda değişmişse uyarı yok (son yazan kazanır).
@@ -140,9 +140,6 @@ Bağlayıcı kurallar (`RAKIP_ESKIKLERI.md` §6): ajanın kendi özellikleri aja
 - [ ] **4.9 C1 Bağlam göstergesi ve G8 oturum ayrıntı paneli** `[K]` ekran, `[A]` veri yolu
   - Rakipler: CC'de sohbetin yanında kartlar var (nerede çalışıyor, ne değiştirdi, ne çalıştırıyor, bağlam doluluğu). Cx'te `/status`. dsh'de `token-meter`.
   - Yapılacak: veri 3.1'den; ajan vermiyorsa kart çıkmaz, "bilinmiyor" uydurulmaz.
-- [ ] **4.10 E2 Bildirimler** `[K]`
-  - Rakipler: CC, oturum bir işi bitirdiğinde ve o oturuma bakmıyorsanız işletim sistemi bildirimi yollar. AO `girdi bekliyor`, `birleştirmeye hazır` gibi durumlar için kalıcı bildirim ve uygulama içi bildirim merkezi tutar. Cx'te tur bitiş uyarısı ayarlardan açılır.
-  - Yapılacak: tur bitti / onay bekliyor / hata; yalnız pencere o oturumda değilken; bildirime kod ya da istem yazılmaz.
 - [ ] **4.11 E3 Kısayollar ve komut paleti** `[K]`: CC'de `Ctrl+/` tüm kısayolları gösterir; Orca tek kısayolla her çalışma alanına atlar.
 - [ ] **4.12 B4 Çoklu ajan sohbeti ve G9 oturumlar arası mesajlaşma** `[K]`
   - Bizde: motorda takım, devir ve posta kutusu var (`team_profiles`, `handoff`, `team_loop`); ekran salt okunur.

@@ -243,6 +243,24 @@ async fn pick_folder<R: tauri::Runtime>(window: tauri::Window<R>, app: tauri::Ap
 #[tauri::command]
 fn list_dir(path: String, roots: tauri::State<'_, files::Roots>) -> Result<Vec<files::Entry>, String> { roots.list(std::path::Path::new(&path)) }
 
+/// The text of an attention notice, fixed here so no turn content can reach the notification centre.
+fn notice_body(kind: &str) -> Option<&'static str> {
+    match kind {
+        "turn-finished" => Some("Bir sohbet turu tamamlandı."),
+        "failed" => Some("Bir sohbet turu başarısız oldu."),
+        "ended" => Some("Bir sohbet oturumu bitti."),
+        _ => None,
+    }
+}
+
+/// The notification plugin has no capability of its own: the WebView asks for this command with a fixed kind and nothing else.
+#[tauri::command]
+fn notify_attention<R: tauri::Runtime>(app: tauri::AppHandle<R>, kind: String) -> Result<(), String> {
+    use tauri_plugin_notification::NotificationExt;
+    let body = notice_body(&kind).ok_or_else(|| "NOTICE_INVALID".to_string())?;
+    app.notification().builder().title("Respected Orchestrator").body(body).show().map_err(|e| e.to_string())
+}
+
 /// Reads one small text file inside a picked project folder (read only; see files.rs).
 #[tauri::command]
 fn read_text_file(path: String, roots: tauri::State<'_, files::Roots>) -> Result<String, String> { roots.read_text(std::path::Path::new(&path)) }
@@ -345,6 +363,7 @@ fn roots_store() -> files::Roots {
 pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
     builder
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(Mutex::new(None::<Connection>))
         .manage(CloseConfirmed::default())
         .manage(Listening::default())
@@ -363,7 +382,7 @@ pub fn configure<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builde
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, engine_subscribe, terminal_attach, terminal_detach, settings_request, read_call, preview_open, pick_folder, pick_files, list_dir, read_text_file, write_instruction_file])
+        .invoke_handler(tauri::generate_handler![engine_status, confirm_close, request_apply, attach_image, share_image, revoke_image, capability_inventory, session_call, engine_subscribe, terminal_attach, terminal_detach, settings_request, read_call, preview_open, pick_folder, pick_files, list_dir, notify_attention, read_text_file, write_instruction_file])
 }
 
 pub fn run() {
@@ -388,6 +407,14 @@ mod tests {
         assert!(!must_ask(0, false));
         assert!(must_ask(2, false));
         assert!(!must_ask(2, true));
+    }
+
+    #[test]
+    fn a_notice_carries_only_a_fixed_kind() {
+        assert!(notice_body("turn-finished").unwrap().contains("tamamlandı"));
+        assert!(notice_body("failed").unwrap().contains("başarısız"));
+        assert!(notice_body("ended").unwrap().contains("bitti"));
+        assert_eq!(notice_body("message: secret prompt"), None);
     }
 
     #[test]

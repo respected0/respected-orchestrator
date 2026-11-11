@@ -11,7 +11,7 @@ fn main() {
     // capability grants it. `capabilities/default.json` grants these to the window "main" and to nothing else.
     tauri_build::try_build(
         tauri_build::Attributes::new().app_manifest(
-            tauri_build::AppManifest::new().commands(&["engine_status", "confirm_close", "request_apply", "attach_image", "share_image", "revoke_image", "capability_inventory", "session_call", "engine_subscribe", "terminal_attach", "terminal_detach", "settings_request", "read_call", "preview_open", "pick_folder", "pick_files", "list_dir", "read_text_file", "write_instruction_file"]),
+            tauri_build::AppManifest::new().commands(&["engine_status", "confirm_close", "request_apply", "attach_image", "share_image", "revoke_image", "capability_inventory", "session_call", "engine_subscribe", "terminal_attach", "terminal_detach", "settings_request", "read_call", "preview_open", "pick_folder", "pick_files", "list_dir", "notify_attention", "read_text_file", "write_instruction_file"]),
         ),
     )
     .expect("tauri build")

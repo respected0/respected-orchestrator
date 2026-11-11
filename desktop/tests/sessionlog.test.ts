@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { COMMANDS } from '../src/contracts/ipc.ts';
 import { bufferOf } from '../src/terminal.ts';
 import {
-  COMMAND_TEXT, MODE_TEXT, PROJECT_ID, SESSION_COMMANDS, applyLive, call, joinPages, modeText, reasonText, stateText, transcriptLines,
+  COMMAND_TEXT, MODE_TEXT, PROJECT_ID, SESSION_COMMANDS, applyLive, call, joinPages, modeText, notifyReason, reasonText, shouldNotify, stateText, transcriptLines,
   type Relay, type Transcript,
 } from '../src/sessionlog.ts';
 
@@ -137,4 +137,16 @@ test('every permission mode has a name and says what the agent may do; an unknow
   assert.equal(new Set(Object.values(MODE_TEXT).map(([name]) => name)).size, 3);
   assert.equal(modeText('plan')[0], 'plan');
   assert.ok(SESSION_COMMANDS.includes('session.mode.set'));
+});
+
+test('an OS notice follows only a real turn end, and never the session the person is already looking at', () => {
+  assert.equal(notifyReason(undefined, 'idle'), null);
+  assert.equal(notifyReason('running', 'running'), null);
+  assert.equal(notifyReason('idle', 'running'), null);
+  assert.equal(notifyReason('running', 'idle'), 'turn-finished');
+  assert.equal(notifyReason('running', 'failed'), 'failed');
+  assert.equal(notifyReason('idle', 'ended'), 'ended');
+  assert.equal(shouldNotify('running', 'idle', true, true), null);
+  assert.equal(shouldNotify('running', 'idle', true, false), 'turn-finished');
+  assert.equal(shouldNotify('running', 'idle', false, true), 'turn-finished');
 });

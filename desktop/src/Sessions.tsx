@@ -8,10 +8,10 @@ import { agentLine, baseName, modelsView, toolListView, withAttachments, withLiv
 import { Voice } from './Voice';
 import { Screenshot } from './Screenshot';
 import { Ico } from './icons';
-import { setConvStore, useConvStore } from './sessionstore';
+import { getConvStore, setConvStore, useConvStore } from './sessionstore';
 import { refusalText } from './terminalio';
 import {
-  COMMAND_TEXT, PROJECT_ID, RESUBSCRIBE_MS, applyLive, call, joinPages, reasonText, stateText, transcriptLines,
+  COMMAND_TEXT, PROJECT_ID, RESUBSCRIBE_MS, applyLive, call, joinPages, reasonText, shouldNotify, stateText, transcriptLines,
   type Conversation, type Defaults, type Note, type Relay, type SessionView, type Transcript,
 } from './sessionlog';
 
@@ -43,6 +43,7 @@ export function Sessions() {
   }, []);
 
   const trNow = useRef<Record<string, Transcript>>({}); // the transcripts on screen, readable by the stream handler between renders
+  const stateNow = useRef<Record<string, string>>({}); // last state per session, so a notice only follows a real change
   const put = useCallback((id: string, next: (old: Transcript | undefined) => Transcript | undefined) => {
     const v = next(trNow.current[id]);
     if (!v || v === trNow.current[id]) return;
@@ -114,7 +115,13 @@ export function Sessions() {
     const off = listen<Note>('engine-event', ({ payload: n }) => {
       if (!on) return;
       if (n.event === 'stream.closed') timer = setTimeout(subscribe, RESUBSCRIBE_MS);
-      else if (n.event === 'session.state') void refresh();
+      else if (n.event === 'session.state') {
+        const s = n.data.session, prev = stateNow.current[s.id];
+        stateNow.current[s.id] = s.state;
+        const kind = shouldNotify(prev, s.state, document.hasFocus(), getConvStore().sel === s.id);
+        if (kind) void invoke('notify_attention', { kind }).catch(() => {}); // a refused or unavailable notice never disturbs the screen
+        void refresh();
+      }
       else if (n.event === 'session.event') {
         const { session_id: id, turn, event } = n.data;
         const cur = trNow.current[id];
