@@ -441,7 +441,8 @@ class SessionController:
                 raise SessionError("A turn is running; wait for it or stop it first", "TURN_RUNNING")
             if not session["cli_id"]:
                 raise SessionError("The agent has not given this session an id yet", "RESUME_INVALID")
-            return {"conversation": session["id"], "agent": session["agent"], "project_root": session["cwd"], "resume": session["cli_id"]}
+            return {"conversation": session["id"], "agent": session["agent"], "project_root": session["cwd"], "resume": session["cli_id"],
+                    "mode": session.get("mode", "default")}
 
     def release(self, origin, session_id, project_id):
         """The session leaves this engine's live set and stays as a saved conversation (it can be continued later). Used after a handoff."""

@@ -16,7 +16,7 @@ from .authority import Action, Origin, authorize, effective_origin
 from .capabilities import normalize as capability_normalize, paths as capability_paths
 from . import catalog, runner, session_control, supervisor
 from .session_store import SessionStore
-from .terminals import TerminalError, Terminals
+from .terminals import TerminalError, Terminals, mode_supported
 from . import activity, agent_describe, agent_discovery, approval, artifact_view, read_model, review_model
 from ..workflows import dag_view, plan_draft, project_control, role_editor, roles
 from .runner import SUPPORTED_AGENTS, tool_available
@@ -249,10 +249,13 @@ class LocalApi:
                 if payload.get("session_id") is not None:  # switch a chat session over: same folder, agent and agent-side session; the chat side is released after the terminal is up
                     sid = payload["session_id"]
                     source = self.sessions.handoff(self.origin, sid, pid)
-                    started = self.terminals.start(pid, source["project_root"], source["agent"], cols, rows, resume=source["resume"], conversation=source["conversation"])
+                    mode = source["mode"] if mode_supported(source["agent"], source["mode"]) else None
+                    started = self.terminals.start(pid, source["project_root"], source["agent"], cols, rows, resume=source["resume"],
+                                                   conversation=source["conversation"], mode=mode)
                     self.sessions.release(self.origin, sid, pid)
                     return _reply(corr, True, started)
-                return _reply(corr, True, self.terminals.start(pid, payload.get("project_root"), payload.get("agent", self.sessions.store.defaults()["agent"]), cols, rows))
+                return _reply(corr, True, self.terminals.start(pid, payload.get("project_root"), payload.get("agent", self.sessions.store.defaults()["agent"]), cols, rows,
+                                                               mode=payload.get("mode")))
             if command == "terminal.input":
                 return _reply(corr, True, self.terminals.input(tid, pid, payload.get("data")))
             if command == "terminal.resize":

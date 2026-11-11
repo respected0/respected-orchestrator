@@ -28,7 +28,8 @@ Kaynak: AO deposu `main`, 10 Kasım 2026'da okundu (`backend/internal/terminal/d
 5. **Canlı terminallerin kaydı** veri kökünde `state/terminals.json` (kimlik, süreç, boru adı, klasör, ajan). Motor açılırken okur, ölü kayıtları siler, yaşayanlara yeniden bağlanır.
 6. **Masaüstü:** xterm.js ile gerçek terminal bölmesi. Kabuk `terminal.attach` akışını kendi bağlantısında açar ve baytları yalnız `main` penceresine iletir (`engine_subscribe` ile aynı kalıp). Var olan düz metin bölmesi (`terminal.ts`, `TerminalPane.tsx`) sohbet dökümü için kalır.
 7. **`agent.describe`:** `interfaces.terminal`, ajanın çalıştırılabilir programı bulunduğunda `native` olur. Durum (çalışıyor / sizi bekliyor) ajanın kendi hook'undan gelir; hook yoksa "bilinmiyor". Ekran kazıma yok (AO'dan fark; KALAN_ISLER 3.4'teki karar).
-8. **Sohbet ↔ terminal geçişi ikinci dilimdir.** Yalnız oturum boştayken: kaynak durdurulur, hedef aynı ajan oturum kimliğiyle başlatılır (`opencode --session ses_…`). AO'nun "çalışan turu bekle ya da kes" seçenekleri ve kalıcı aşamaları sonraya kalır.
+8. **İzin kipi terminalde de kişinin seçimidir:** `terminal.start` isteğe bağlı `mode` alır; ekran seçenekleri `agent.describe` içindeki CLI modlarıdır. `default` bayrak eklemez; bilinmeyen kip `MODE_UNSUPPORTED` döner. Terminal kaydı kipi taşır. Sohbetten geçişte konuşmanın kipi CLI'da karşılığı varsa aynı bayrakla açılır; karşılığı yoksa uydurulmaz, terminal ajanın kendi başlangıç kipiyle çalışır.
+9. **Sohbet ↔ terminal geçişi ikinci dilimdir.** Yalnız oturum boştayken: kaynak durdurulur, hedef aynı ajan oturum kimliğiyle başlatılır (`opencode --session ses_…`). AO'nun "çalışan turu bekle ya da kes" seçenekleri ve kalıcı aşamaları sonraya kalır.
 
 ## Verilen üç karar (10 Kasım 2026, kullanıcı: önerildiği gibi)
 

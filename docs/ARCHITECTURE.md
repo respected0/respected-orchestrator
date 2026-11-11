@@ -505,7 +505,9 @@ ister; Brain takımıyla aynı anda çalıştırmayın. CI derlenmiş exe'yi ür
   Canlı terminaller `state/terminals.json`'da tutulur. `terminal.start|input|resize|kill|attach` `TERMINAL` yetki sınıfındadır (yalnız tanınan masaüstü ve
   insan kökeni; terminale yazmak kullanıcı adına komut çalıştırmaktır), `terminal.list` `READ`. `terminal.attach` bağlantıyı o terminalin çıktı akışına çevirir;
   baytlar programın kendisinindir, motor yorumlamaz. Terminaldeki ajan proje klasöründe, kendi izin kipiyle ve `RESPECTED_ORCH_CHILD=1` ile çalışır;
-  motor yalıtım eklemez. Masaüstünde bölme xterm.js'tir ve **WebGL çizicisiyle** çalışır: uygulamanın CSP'si (`style-src 'self'`) değişmedi, varsayılan çizicinin
+  motor yalıtım eklemez. `terminal.start` isteğe bağlı `mode` alır; yalnız ajanın kendi CLI'ında doğrulanmış bayrağı olan kipler geçerlidir (`mode=None` / `default`
+  bayrak eklemez, bilinmeyen kip `MODE_UNSUPPORTED` döner) ve kayda yazılır. Sohbetten geçişte konuşmanın kipi CLI'da karşılığı varsa terminale taşınır; yoksa terminal
+  ajanın kendi salt okunur başlangıcıyla açılır. Masaüstünde bölme xterm.js'tir ve **WebGL çizicisiyle** çalışır: uygulamanın CSP'si (`style-src 'self'`) değişmedi, varsayılan çizicinin
   eklediği stil öğeleri engellenir. Akışı kabuk açar (`terminal_attach` / `terminal_detach`) ve yalnız `main` penceresine iletir; yazılanlar `session_call`
   üzerinden `terminal.input` olarak gider. Terminalin çizdiği her şey programın kendi baytlarıdır ve yalnız terminal öykünücüsüne verilir.
   **Sohbetten terminale geçiş** `terminal.start {session_id}` iledir: yalnız boştaki ve ajanın kimlik verdiği oturum geçer, terminal aynı ajan oturumuyla açılır

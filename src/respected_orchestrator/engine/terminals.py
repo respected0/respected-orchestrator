@@ -44,6 +44,25 @@ def agent_command(agent):
     return [binary]
 
 
+def mode_flag(agent, mode):
+    """The flag `agent.describe` published for a CLI mode; `default` is the CLI's own baseline and passes nothing."""
+    if mode in (None, "default"):
+        return []
+    spec = agent_adapters.ADAPTERS.get(agent, {}).get("modes")
+    for item in (spec[1] if spec else ()):
+        if isinstance(mode, str) and item[0] == mode:
+            return [item[1]]
+    raise TerminalError("This agent's terminal has no such mode", "MODE_UNSUPPORTED")
+
+
+def mode_supported(agent, mode):
+    try:
+        mode_flag(agent, mode)
+        return True
+    except TerminalError:
+        return False
+
+
 def _size(cols, rows):
     if type(cols) is not int or type(rows) is not int or not 20 <= cols <= 500 or not 5 <= rows <= 200:
         raise TerminalError("cols must be 20-500 and rows 5-200", "SIZE_INVALID")
@@ -97,10 +116,11 @@ class Terminals:
     def _dto(self, record, status=None):
         return {"id": record["id"], "project_id": record["project_id"], "project_root": record["project_root"], "agent": record["agent"],
                 "conversation": record.get("conversation"),  # the chat conversation this terminal continues, when it was switched over from one
+                "mode": record.get("mode", "default"),
                 "started": record["started"], "alive": status["alive"] if status else None, "exit": status["exit"] if status else None,
                 "cols": status["cols"] if status else None, "rows": status["rows"] if status else None}
 
-    def start(self, project_id, project_root, agent, cols=120, rows=30, resume=None, conversation=None):
+    def start(self, project_id, project_root, agent, cols=120, rows=30, resume=None, conversation=None, mode=None):
         """`resume`: the agent's own session id to continue in the terminal (a switch from chat); `conversation`: the chat record it came from."""
         from .lanes import _spawn_detached
         if not isinstance(project_id, str) or not project_id:
@@ -108,7 +128,7 @@ class Terminals:
         if not (isinstance(project_root, str) and os.path.isabs(project_root) and os.path.isdir(project_root)):
             raise TerminalError("project_root must be an existing absolute directory", "ROOT_INVALID")
         cols, rows = _size(cols, rows)
-        argv = self._command(agent)
+        argv = self._command(agent) + mode_flag(agent, mode)
         if resume is not None:
             if agent not in RESUME_ARGS or not isinstance(resume, str) or not chat_session._SESSION.match(resume):
                 raise TerminalError("This agent's session cannot be continued in a terminal", "HANDOFF_UNSUPPORTED")
@@ -132,7 +152,7 @@ class Terminals:
                         raise TerminalError(f"The terminal did not start; see {self.ctx.state_dir / 'pty-host.log'}", "TERMINAL_START_FAILED") from None
                     time.sleep(0.1)
             record = {"id": terminal_id, "project_id": project_id, "project_root": project_root, "agent": agent, "host_pid": host_pid, "started": time.time(),
-                      "conversation": conversation}
+                      "conversation": conversation, "mode": mode or "default"}
             atomic_write_json(self._path, {**records, terminal_id: record})
         view = self._dto(record, status)
         self._notify(project_id, "terminal.state", {"terminal": view})

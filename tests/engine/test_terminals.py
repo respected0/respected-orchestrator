@@ -87,7 +87,8 @@ class TerminalTests(unittest.TestCase):
     def test_a_program_runs_in_a_real_terminal_takes_input_and_outlives_its_viewers(self):
         started = self.terminals.start(PID, self.root, "opencode", cols=100, rows=30)
         tid = started["id"]
-        self.assertEqual((started["alive"], started["cols"], started["agent"], started["project_root"]), (True, 100, "opencode", self.root))
+        self.assertEqual((started["alive"], started["cols"], started["agent"], started["project_root"], started["mode"]),
+                         (True, 100, "opencode", self.root, "default"))
         self.assertEqual(self.notes[0][:2], (PID, "terminal.state"))
         first = Watcher(self.terminals.attach(tid, PID))
         self.assertTrue(wait_for(lambda: b"hazir 1 True" in first.data), first.data)  # a real terminal, and the program is marked as a child
@@ -123,14 +124,26 @@ class TerminalTests(unittest.TestCase):
         self.assertTrue(wait_for(lambda: not lanes._pid_is_alive(host)))
         self.assertEqual((self.terminals.list(PID), self.notes[-1][1], self.notes[-1][2]["terminal"]["alive"]), ([], "terminal.state", False))
 
+    def test_a_cli_mode_flag_is_passed_to_the_agent_and_recorded(self):
+        started = self.terminals.start(PID, self.root, "opencode", cols=100, rows=30, mode="auto")
+        self.assertEqual(started["mode"], "auto")
+        watcher = Watcher(self.terminals.attach(started["id"], PID))
+        self.assertTrue(wait_for(lambda: b"hazir 1 True --auto" in watcher.data), watcher.data)
+        self.assertEqual(self.terminals.list(PID)[0]["mode"], "auto")
+        self.terminals.kill(started["id"], PID)
+
     def test_a_start_is_checked_before_anything_runs(self):
-        for kwargs, reason in (({"project_root": "relative"}, "ROOT_INVALID"), ({"cols": 5}, "SIZE_INVALID"), ({"rows": "30"}, "SIZE_INVALID")):
+        for kwargs, reason in (({"project_root": "relative"}, "ROOT_INVALID"), ({"cols": 5}, "SIZE_INVALID"), ({"rows": "30"}, "SIZE_INVALID"),
+                               ({"mode": "no-such-mode"}, "MODE_UNSUPPORTED")):
             with self.assertRaises(TerminalError) as refused:
                 self.terminals.start(PID, **{"project_root": self.root, "agent": "opencode", **kwargs})
             self.assertEqual(refused.exception.reason, reason)
         with self.assertRaises(TerminalError) as refused:
             Terminals(self.ctx).start(PID, self.root, "no-such-agent")
         self.assertEqual(refused.exception.reason, "AGENT_UNKNOWN")
+        with self.assertRaises(TerminalError) as refused:  # cursor declares no CLI mode flags at all
+            self.terminals.start(PID, self.root, "cursor", mode="auto")
+        self.assertEqual(refused.exception.reason, "MODE_UNSUPPORTED")
         self.assertEqual(self.terminals._records(), {})
 
     def test_an_idle_chat_session_continues_in_a_terminal_and_stays_as_a_saved_conversation(self):
@@ -150,11 +163,12 @@ class TerminalTests(unittest.TestCase):
         api.sessions._sessions[sid]["state"] = "running"
         self.assertEqual(call("terminal.start", {"session_id": sid})["error"]["reason"], "TURN_RUNNING")  # only a session that is not working is handed over
         api.sessions._sessions[sid]["state"] = "idle"
+        api.sessions.set_mode(Origin.RENDERER, sid, PID, "bypass-permissions")
         started = call("terminal.start", {"session_id": sid, "cols": 100, "rows": 30})
         self.assertTrue(started["ok"], started)
         self.assertEqual((started["result"]["conversation"], started["result"]["project_root"], started["result"]["agent"]), (sid, self.root, "opencode"))
         watcher = Watcher(self.terminals.attach(started["result"]["id"], PID))
-        self.assertTrue(wait_for(lambda: f"hazir 1 True --session {native}".encode() in watcher.data), watcher.data)  # the same agent session, in the session's folder
+        self.assertTrue(wait_for(lambda: f"hazir 1 True --dangerously-skip-permissions --session {native}".encode() in watcher.data), watcher.data)  # the chat mode and the same agent session, in the session's folder
         listed = call("sessions.list", {})["result"]
         self.assertEqual(listed["sessions"], [])  # the chat side has let go of it...
         self.assertEqual([(c["id"], c["saved"]) for c in listed["conversations"]], [(sid, True)])  # ...and it is kept as a conversation that can be continued

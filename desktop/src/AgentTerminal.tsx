@@ -5,12 +5,13 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebglAddon } from '@xterm/addon-webgl';
 import '@xterm/xterm/css/xterm.css';
-import { PROJECT_ID } from './sessionlog';
+import { modeText, PROJECT_ID, type Defaults } from './sessionlog';
 import { setConvStore } from './sessionstore';
 import { clampSize, fromBase64, keysToBase64, refusalText, terminalFor, type TerminalNote, type TerminalView } from './terminalio';
 
 type Reply<T> = { ok: boolean; result: T; error: { code?: string; message?: string; reason?: string } | null };
 const ask = <T,>(cmd: string, payload: Record<string, unknown>): Promise<Reply<T>> => invoke('session_call', { cmd, payload: { project_id: PROJECT_ID, ...payload } });
+type Describe = { modes?: { items?: { id: string; native: string }[] } };
 
 /** The agent's own terminal interface for one project folder (ADR-035). The terminal lives in its own process: closing this pane, the
  *  app or the engine does not end it; "Terminali kapat" does. */
@@ -18,6 +19,10 @@ export function AgentTerminals({ root }: { root: string }) {
   const [list, setList] = useState<TerminalView[] | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [agents, setAgents] = useState<string[]>([]);
+  const [agent, setAgent] = useState('');
+  const [modes, setModes] = useState<string[]>(['default']);
+  const [mode, setMode] = useState('default');
   const run = useCallback(async (cmd: string, payload: Record<string, unknown>) => {
     try {
       const r = await ask<unknown>(cmd, payload);
@@ -27,17 +32,31 @@ export function AgentTerminals({ root }: { root: string }) {
     } catch { setNote('Motora ulaşılamadı.'); }
   }, []);
   useEffect(() => { void run('terminal.list', {}); }, [run, root]);
+  useEffect(() => { void ask<Defaults>('session.defaults', {}).then((r) => { if (r.ok) { setAgents(r.result.agents); setAgent((a) => a || r.result.agent); } }).catch(() => undefined); }, []);
+  useEffect(() => {
+    if (!agent) return;
+    void ask<Describe>('agent.describe', { agent }).then((r) => {
+      if (!r.ok) return;
+      const ids = (r.result.modes?.items ?? []).map((m) => m.id);
+      setModes(ids.length ? ids : ['default']);
+      setMode((m) => (m === 'default' || ids.includes(m) ? m : 'default'));
+    }).catch(() => undefined);
+  }, [agent]);
   const current = list ? terminalFor(list, root) : null;
   const act = async (cmd: string, payload: Record<string, unknown>) => { setBusy(true); await run(cmd, payload); setBusy(false); };
   return (
     <div className="agentterm">
       <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
         {current ? <>
-          <span className="grow mut">{current.agent}{current.alive === false ? ` · bitti (çıkış kodu ${current.exit ?? '?'})` : ''}</span>
+          <span className="grow mut">{current.agent} · {modeText(current.mode)[0]}{current.alive === false ? ` · bitti (çıkış kodu ${current.exit ?? '?'})` : ''}</span>
           {current.conversation && <button type="button" className="btn sm" disabled={busy} title="Terminali kapatır ve bu oturumun sohbetini açar; sohbet dökümü terminalde yapılanları içermez, ajan kendi oturumunda hatırlar."
             onClick={() => { const back = current.conversation; void act('terminal.kill', { terminal_id: current.id }).then(() => { if (back) setConvStore({ sel: back }); }); }}>Sohbete dön</button>}
           <button type="button" className="btn sm" disabled={busy} onClick={() => void act('terminal.kill', { terminal_id: current.id })}>Terminali kapat</button></>
-          : <button type="button" className="btn sm" disabled={busy || list === null} onClick={() => void act('terminal.start', { project_root: root, cols: 120, rows: 30 })}>Ajan terminali aç</button>}
+          : <>
+            <select className="seg" aria-label="Ajan" value={agent} onChange={(e) => setAgent(e.target.value)}>{agents.map((a) => <option key={a} value={a}>{a}</option>)}</select>
+            <select className="seg" aria-label="İzin kipi" title={modeText(mode)[1]} value={mode} onChange={(e) => setMode(e.target.value)}>{modes.map((m) => <option key={m} value={m}>{modeText(m)[0]}</option>)}</select>
+            <button type="button" className="btn sm" disabled={busy || list === null || !agent} onClick={() => void act('terminal.start', { project_root: root, agent, mode, cols: 120, rows: 30 })}>Ajan terminali aç</button>
+          </>}
       </div>
       {note && <p role="alert">{note}</p>}
       {current ? <Screen key={current.id} id={current.id} onEnd={() => void run('terminal.list', {})} />
