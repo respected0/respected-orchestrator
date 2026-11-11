@@ -140,7 +140,7 @@ def _session(ctx, args, group="session"):
     if entry is None or len(args) > (2 if word else 1):
         raise UsageError("Kullanım: terminal list [PROJE]  (docs/COMMANDS.md)" if group == "terminal" else
                          "Kullanım: task start (istek gövdesi stdin'den JSON) | status|cancel|retry RUN_ID  (docs/COMMANDS.md)" if group == "task" else
-                         "Kullanım: session list [PROJE] | watch PROJE | models [AJAN] | describe [AJAN] | defaults | start|send|events|retry|interrupt|cancel|resume|transcript|forget  (son grupta istek gövdesi stdin'den JSON; docs/COMMANDS.md)")
+                         "Kullanım: session list [PROJE] | watch PROJE | models [AJAN] | describe [AJAN] | defaults | start|send|events|retry|interrupt|cancel|resume|transcript|forget|rename|pin|archive|export  (son grupta istek gövdesi stdin'den JSON; docs/COMMANDS.md)")
     if word is not None:  # these never read stdin
         payload = dict(zip([word], args[1:]))
     else:
