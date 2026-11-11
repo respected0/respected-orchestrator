@@ -154,3 +154,9 @@
 .concept .empty{text-align:center;padding:60px 20px;color:var(--tx2)}
 .concept .hero{display:flex;flex-direction:column;justify-content:center;align-items:center;flex:1;gap:18px;padding:0 24px 8vh}
 .concept .hero h1{font-size:26px;font-weight:500;letter-spacing:-.01em}
+/* Markdown preview inside the concept shell */
+.concept .mdpreview { font: 13.5px/1.65 var(--sans); color: var(--tx); }
+.concept .mdpreview .mdh { color: var(--tx); }
+.concept .mdpreview blockquote { color: var(--tx2); border-left-color: var(--line2); }
+.concept .mdpreview pre { background: var(--code); border-color: var(--line); }
+.concept .mdpreview pre code { font-family: var(--mono); }
