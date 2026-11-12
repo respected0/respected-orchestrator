@@ -10,7 +10,9 @@ export const RUN_STATE: Record<string, { text: string; tone: Tone }> = {
 export const stateInfo = (s: string): { text: string; tone: Tone } => RUN_STATE[s] ?? { text: s || 'Bilinmiyor', tone: '' };
 export const ATTENTION_STATES = ['failed', 'stale', 'invalid'] as const;
 
-export type RunRow = { run_id: string; state: string; lane: string; display: string; task: string; kind: string | null; agent: string | null; project_root: string | null; created_at: string | null; updated_at: string | null; error: string | null };
+export type PermissionOption = { id: string; kind: string; name: string };
+export type PendingPermission = { request_id: string; title: string; options: PermissionOption[] };
+export type RunRow = { run_id: string; state: string; lane: string; display: string; task: string; kind: string | null; agent: string | null; project_root: string | null; created_at: string | null; updated_at: string | null; error: string | null; pending_permission: PendingPermission | null };
 export type ProjectRow = { project_id: string; state: string; goal: string; created_at: string | null; alive: boolean; stages: { name: string; status: string | null; after: string[]; attempts: number }[]; error: string | null };
 export type ActivityRow = { seq: number; ts: number | null; op: string; run: string | null; type: string; stage: string | null };
 
@@ -31,11 +33,27 @@ const s = (v: unknown): string => (typeof v === 'string' ? v : '');
 const sn = (v: unknown): string | null => (typeof v === 'string' ? v : null);
 const obj = (x: unknown, key: string): x is Record<string, unknown> => typeof x === 'object' && x !== null && key in x;
 
+const PERMISSION_LABELS: Record<string, string> = {
+  allow_once: 'Bir kez izin ver', allow_always: 'Her zaman izin ver', reject_once: 'Reddet', reject_always: 'Her zaman reddet',
+};
+export const permissionLabel = (kind: string): string | null => PERMISSION_LABELS[kind] ?? null;
+
+/** A permission prompt the board may show. Anything malformed, or an option kind this screen cannot label, is dropped; no usable option means no prompt. */
+function pendingPermission(v: unknown): PendingPermission | null {
+  const p = v as { request_id?: unknown; title?: unknown; options?: unknown } | null;
+  if (!p || typeof p !== 'object' || typeof p.request_id !== 'string' || !p.request_id) return null;
+  const options = (Array.isArray(p.options) ? p.options : []).filter((o): o is PermissionOption =>
+    typeof o === 'object' && o !== null && typeof o.id === 'string' && o.id !== '' && typeof o.name === 'string' && o.name !== ''
+    && typeof o.kind === 'string' && permissionLabel(o.kind) !== null);
+  if (!options.length) return null;
+  return { request_id: p.request_id, title: typeof p.title === 'string' && p.title ? p.title : 'İzin isteği', options };
+}
+
 export function runsView(reply: unknown): View<RunRow> {
   const b = body(reply, 'Görevler okunamadı', 'runs');
   if (!b.ok) return b.f;
   const rows = b.list.filter((x): x is Record<string, unknown> => obj(x, 'run_id') && typeof x.run_id === 'string')
-    .map((x) => ({ run_id: s(x.run_id), state: s(x.state) || 'invalid', lane: s(x.lane), display: s(x.display), task: s(x.task), kind: sn(x.kind), agent: sn(x.agent), project_root: sn(x.project_root), created_at: sn(x.created_at), updated_at: sn(x.updated_at), error: sn(x.error) }));
+    .map((x) => ({ run_id: s(x.run_id), state: s(x.state) || 'invalid', lane: s(x.lane), display: s(x.display), task: s(x.task), kind: sn(x.kind), agent: sn(x.agent), project_root: sn(x.project_root), created_at: sn(x.created_at), updated_at: sn(x.updated_at), error: sn(x.error), pending_permission: pendingPermission(x.pending_permission) }));
   return rows.length === b.list.length ? { kind: 'rows', rows, more: b.r.next_cursor != null } : fail('Görev listesi beklenen biçimde değil; gösterilmedi.', SHAPE);
 }
 
@@ -108,7 +126,7 @@ export function readyAgents(reply: unknown): string[] {
 export const LANES: { id: string; title: string }[] = [
   { id: 'needs_you', title: 'Sizi bekliyor' }, { id: 'working', title: 'Çalışıyor' }, { id: 'ready', title: 'Onaya hazır' }, { id: 'archive', title: 'Arşiv' },
 ];
-const DISPLAY: Record<string, string> = { awaiting_approval: 'Onayınızı bekliyor', apply_failed: 'Uygulama başarısız oldu', applied: 'Uygulandı' };
+const DISPLAY: Record<string, string> = { awaiting_approval: 'Onayınızı bekliyor', apply_failed: 'Uygulama başarısız oldu', applied: 'Uygulandı', permission_request: 'İzin bekliyor' };
 export const displayText = (r: RunRow): string => DISPLAY[r.display] ?? stateInfo(r.state).text;
 
 /** Rows grouped by lane. A run whose lane this screen does not know stays visible: it goes to "Sizi bekliyor", never out of sight. */
@@ -116,6 +134,10 @@ export function lanesOf(rows: RunRow[]): { id: string; title: string; rows: RunR
   const known = new Set(LANES.map((l) => l.id));
   return LANES.map((l) => ({ ...l, rows: rows.filter((r) => (known.has(r.lane) ? r.lane : 'needs_you') === l.id) }));
 }
+
+/** The board polls while a run works or waits for an answer; a waiting permission must not hide behind a still board. */
+export const shouldPollRuns = (rows: RunRow[]): boolean =>
+  rows.some((r) => r.state === 'in_progress' || r.state === 'queued' || r.pending_permission !== null);
 
 /** What a card may ask the engine for: cancel while it works, retry after it failed or was cut off. The engine decides again. */
 export const cardAction = (r: RunRow): 'task.cancel' | 'task.retry' | null =>

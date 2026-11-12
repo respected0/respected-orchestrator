@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cardAction, displayText, lanesOf, activityView, newestCursor, projectsView, readyAgents, runsView, startedView, stateInfo, taskRequest, when } from '../src/boardviews.ts';
+import { cardAction, displayText, lanesOf, activityView, newestCursor, permissionLabel, projectsView, readyAgents, runsView, shouldPollRuns, startedView, stateInfo, taskRequest, when } from '../src/boardviews.ts';
 
-const run = { run_id: 'run-20261108120000-aaaaaaaaaaaa', state: 'done', lane: 'archive', display: 'done', task: 'oku', kind: 'read', agent: 'codex', project_root: 'C:/p', created_at: '2026-11-08T12:00:00Z', updated_at: null, error: null };
+const run = { run_id: 'run-20261108120000-aaaaaaaaaaaa', state: 'done', lane: 'archive', display: 'done', task: 'oku', kind: 'read', agent: 'codex', project_root: 'C:/p', created_at: '2026-11-08T12:00:00Z', updated_at: null, error: null, pending_permission: null };
 
 test('runs: documented rows become rows; any other shape is an error, never an empty list', () => {
   const v = runsView({ ok: true, result: { runs: [run], next_cursor: 'x' } });
@@ -56,9 +56,29 @@ test('new task: the reply is a run id or the engine refusal in words; only ready
 });
 
 test('board: lanes come from the engine, an unknown lane stays in sight, and a card offers only what fits its state', () => {
-  const row = (run_id: string, state: string, lane: string, display: string) => ({ run_id, state, lane, display, task: '', kind: null, agent: null, project_root: null, created_at: null, updated_at: null, error: null });
+  const row = (run_id: string, state: string, lane: string, display: string) => ({ run_id, state, lane, display, task: '', kind: null, agent: null, project_root: null, created_at: null, updated_at: null, error: null, pending_permission: null });
   const rows = [row('a', 'in_progress', 'working', 'in_progress'), row('b', 'done', 'ready', 'awaiting_approval'), row('c', 'failed', 'needs_you', 'failed'), row('d', 'done', 'archive', 'applied'), row('e', 'done', 'later', 'x')];
   assert.deepEqual(lanesOf(rows).map((l) => [l.id, l.rows.map((r) => r.run_id)]), [['needs_you', ['c', 'e']], ['working', ['a']], ['ready', ['b']], ['archive', ['d']]]);
   assert.deepEqual(rows.map(cardAction), ['task.cancel', null, 'task.retry', null, null]);
   assert.deepEqual(rows.slice(0, 4).map(displayText), ['Çalışıyor', 'Onayınızı bekliyor', 'Başarısız', 'Uygulandı']);
+});
+
+test('permission: only a valid prompt with labelable options reaches the board, in a Turkish label and the needs-you lane', () => {
+  const options = [
+    { id: 'allow', kind: 'allow_once', name: 'Allow' }, { id: 'always', kind: 'allow_always', name: 'Always' },
+    { id: 'reject', kind: 'reject_once', name: 'Reject' }, { id: 'never', kind: 'reject_always', name: 'Never' },
+  ];
+  assert.deepEqual(options.map((o) => permissionLabel(o.kind)), ['Bir kez izin ver', 'Her zaman izin ver', 'Reddet', 'Her zaman reddet']);
+  assert.equal(permissionLabel('bogus'), null);
+  const pending = { request_id: '700', title: 'Kabuk komutu çalıştır', options };
+  const v = runsView({ ok: true, result: { runs: [{ ...run, state: 'in_progress', lane: 'needs_you', display: 'permission_request', pending_permission: pending }] } });
+  assert.equal(v.kind === 'rows' && v.rows[0].pending_permission?.request_id, '700');
+  if (v.kind !== 'rows') return;
+  assert.equal(displayText(v.rows[0]), 'İzin bekliyor');
+  assert.deepEqual(lanesOf(v.rows)[0].rows.map((r) => r.run_id), [run.run_id]);
+  assert.equal(shouldPollRuns(v.rows), true);
+  const bad = { request_id: 700, title: 'x', options: [{ id: 'x', kind: 'later', name: 'x' }] };
+  const w = runsView({ ok: true, result: { runs: [{ ...run, pending_permission: bad }] } });
+  assert.equal(w.kind === 'rows' && w.rows[0].pending_permission, null);
+  assert.equal(shouldPollRuns([]), false);
 });

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Empty, Failed, Loading, Modal, Page } from './ui';
-import { ATTENTION_STATES, RUN_STATE, activityView, cardAction, displayText, lanesOf, newestCursor, projectsView, readyAgents, runsView, startedView, stateInfo, taskRequest, when, type ActivityView, type ProjectRow, type RunRow, type TaskForm, type View } from './boardviews';
+import { ATTENTION_STATES, RUN_STATE, activityView, cardAction, displayText, lanesOf, newestCursor, permissionLabel, projectsView, readyAgents, runsView, shouldPollRuns, startedView, stateInfo, taskRequest, when, type ActivityView, type ProjectRow, type RunRow, type TaskForm, type View } from './boardviews';
 import { baseName } from './chatmodel';
 
 /** One read-only engine call. A failure to reach the engine is a view, not an exception. */
@@ -76,17 +76,26 @@ function RunBoard({ rows, changed }: { rows: RunRow[]; changed: () => void }) {
     setNote(r.ok ? null : r.text);
     changed();
   };
+  const answer = async (run_id: string, request_id: string, option_id: string) => {
+    const r = await invoke('session_call', { cmd: 'task.permission.answer', payload: { run_id, request_id, option_id } }).then(startedView, () => startedView(null));
+    setNote(r.ok ? null : r.text);
+    changed();
+  };
   return (
     <>{note && <p role="alert">{note}</p>}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, alignItems: 'start' }}>
         {lanesOf(rows).map((l) => (
           <section key={l.id} aria-label={l.title}><h3 style={{ margin: '0 0 8px' }}>{l.title} <span className="mut">{l.rows.length}</span></h3>
             {l.rows.length === 0 && <p className="mut">Boş</p>}
-            {l.rows.map((r) => { const action = cardAction(r); return (
+            {l.rows.map((r) => { const action = cardAction(r); const pp = r.pending_permission; return (
               <div key={r.run_id} className="card" style={{ padding: 10, marginBottom: 8 }}>
                 <div>{r.task || <span className="mut">(görev metni yok)</span>}</div>
                 <div className="mut">{displayText(r)} · {r.agent ?? '—'} · {when(r.updated_at ?? r.created_at)}</div>
                 {r.error && <div className="mut">{r.error}</div>}
+                {pp && <div className="b" role="group" aria-label="İzin isteği">
+                  <div>{pp.title}</div>
+                  <div className="row">{pp.options.map((o) => <button key={o.id} className="btn sm" onClick={() => void answer(r.run_id, pp.request_id, o.id)}>{permissionLabel(o.kind)}</button>)}</div>
+                </div>}
                 <div className="row"><span className="mono mut grow" title={r.project_root ?? ''}>{r.run_id}</span>
                   {action && <button className="btn sm" onClick={() => void ask(action, r.run_id)}>{action === 'task.cancel' ? 'İptal et' : 'Yeniden dene'}</button>}</div>
               </div>); })}
@@ -101,7 +110,7 @@ export function Tasks() {
   const [creating, setCreating] = useState(false);
   const [q, setQ] = useState('');
   const [v, reload] = useBoard<View<RunRow>>(() => read('runs.list', { limit: 100, ...(state !== 'all' ? { states: [state] } : {}), ...(q.trim() ? { query: q.trim() } : {}) }, runsView), [state, q],
-    (b) => b.kind === 'rows' && b.rows.some((r) => r.state === 'in_progress' || r.state === 'queued'));
+    (b) => b.kind === 'rows' && shouldPollRuns(b.rows));
   return (
     <Page title="Görevler" sub="Motorun kayıtlı çalışmaları" actions={<><button className="btn sm" onClick={() => setCreating(true)}>Yeni görev</button><Refresh onClick={reload} /></>}>
       {creating && <NewTask close={() => setCreating(false)} started={reload} />}
