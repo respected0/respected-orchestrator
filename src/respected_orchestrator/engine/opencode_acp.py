@@ -13,11 +13,18 @@ import queue
 import re
 import time
 
+from ..context import atomic_write_json, read_text_retry
+
 
 PROTOCOL_VERSION = 1
 _SUCCESS = {"success", "complete", "completed", "ok"}
 _VALID_STATUS = _SUCCESS | {"failed"}
 _EOF = object()
+PERMISSION_TIMEOUT_SECONDS = 300.0
+_TRUSTED_ORIGINS = {"human", "renderer"}
+_PERMISSION_REQUEST = "permission.request.json"
+_PERMISSION_RESPONSE = "permission.response.json"
+_PERMISSION_ANSWERED = "permission.answered.json"
 
 
 class AcpError(Exception):
@@ -84,11 +91,16 @@ def _final_object(text: str) -> dict | None:
 
 
 class Session:
-    def __init__(self, stdin, lines: LineQueue, *, deadline: float, cancel_path: Path | None = None):
+    def __init__(self, stdin, lines: LineQueue, *, deadline: float, cancel_path: Path | None = None,
+                 permission_dir: Path | None = None, run_id: str | None = None,
+                 permission_timeout: float = PERMISSION_TIMEOUT_SECONDS):
         self.stdin = stdin
         self.lines = lines
         self.deadline = deadline
         self.cancel_path = cancel_path
+        self.permission_dir = permission_dir
+        self.run_id = run_id
+        self.permission_timeout = permission_timeout
         self._ident = 0
         self._messages: list[tuple[str, str]] = []
 
@@ -129,14 +141,116 @@ class Session:
         if ident is None:
             return
         if method == "session/request_permission":
-            # An unattended engine never infers consent from an ACP prompt.  The documented
-            # cancellation outcome rejects this request and leaves the task to fail closed.
-            self._send({"jsonrpc": "2.0", "id": ident, "result": {"outcome": {"outcome": "cancelled"}}})
+            self._permission(ident, message.get("params"))
             return
         # fs/*, terminal/* and every unknown client method stay unavailable.  The engine
         # grants only the worker's own file tools; ACP client capabilities are never widenings.
         self._send({"jsonrpc": "2.0", "id": ident,
                     "error": {"code": -32601, "message": "ACP client method is not available"}})
+
+    @staticmethod
+    def _permission_options(params: dict) -> list[dict]:
+        raw = params.get("options") if isinstance(params, dict) else None
+        options = []
+        for item in raw if isinstance(raw, list) else []:
+            if not isinstance(item, dict):
+                continue
+            ident = item.get("optionId") if isinstance(item.get("optionId"), str) else item.get("id")
+            name = item.get("name")
+            if isinstance(ident, str) and ident and isinstance(name, str) and name.strip():
+                option = {"id": ident, "name": name.strip()[:120]}
+                if isinstance(item.get("kind"), str) and item["kind"]:
+                    option["kind"] = item["kind"]
+                options.append(option)
+        return options
+
+    def _permission(self, ident, params) -> None:
+        if self.permission_dir is None or not self.run_id:
+            self._send({"jsonrpc": "2.0", "id": ident, "result": {"outcome": {"outcome": "cancelled"}}})
+            return
+        options = self._permission_options(params if isinstance(params, dict) else {})
+        if not options:
+            self._send({"jsonrpc": "2.0", "id": ident, "result": {"outcome": {"outcome": "cancelled"}}})
+            return
+        request_id = str(ident)
+        raw_title = params.get("title") if isinstance(params, dict) else None
+        if not isinstance(raw_title, str) or not raw_title.strip():
+            tool_call = params.get("toolCall") if isinstance(params, dict) else None
+            raw_title = tool_call.get("title") if isinstance(tool_call, dict) else None
+        title = " ".join(raw_title.split())[:200] if isinstance(raw_title, str) else "İzin isteği"
+        remaining = max(0.0, self.deadline - time.monotonic())
+        expires_at = time.time() + min(max(0.0, self.permission_timeout), remaining)
+        request = {"run_id": self.run_id, "request_id": request_id, "method": "session/request_permission",
+                   "title": title or "İzin isteği", "options": options, "created_at": time.time(),
+                   "expires_at": expires_at}
+        response_path = self.permission_dir / _PERMISSION_RESPONSE
+        answered_path = self.permission_dir / _PERMISSION_ANSWERED
+        outcome, option_id = "cancelled", None
+        try:
+            try:
+                atomic_write_json(self.permission_dir / _PERMISSION_REQUEST, request)
+            except (OSError, ValueError):
+                self._send({"jsonrpc": "2.0", "id": ident, "result": {"outcome": {"outcome": "cancelled"}}})
+                return
+            chosen = self._await_permission(request_id, {item["id"] for item in options}, expires_at,
+                                            response_path, answered_path)
+            if chosen is None:
+                self._send({"jsonrpc": "2.0", "id": ident, "result": {"outcome": {"outcome": "cancelled"}}})
+                return
+            option_id = chosen
+            kind = next((item.get("kind", "") for item in options if item["id"] == chosen), "")
+            if str(kind).startswith("reject"):
+                self._send({"jsonrpc": "2.0", "id": ident, "result": {"outcome": {"outcome": "cancelled"}}})
+                return
+            outcome = "selected"
+            self._send({"jsonrpc": "2.0", "id": ident,
+                        "result": {"outcome": {"outcome": "selected", "optionId": chosen}}})
+        except AcpError:
+            self._send({"jsonrpc": "2.0", "id": ident, "result": {"outcome": {"outcome": "cancelled"}}})
+            outcome = "cancelled"
+            raise
+        finally:
+            try:
+                atomic_write_json(answered_path, {"run_id": self.run_id, "request_id": request_id,
+                                                  "option_id": option_id, "outcome": outcome,
+                                                  "answered_at": time.time()})
+            except (OSError, ValueError):
+                pass
+            try:
+                if response_path.is_file():
+                    response_path.unlink()
+            except OSError:
+                pass
+
+    def _await_permission(self, request_id, option_ids, expires_at, response_path, answered_path):
+        while True:
+            if self.cancel_path is not None and self.cancel_path.exists():
+                raise AcpError("ACP permission request cancelled", kind="cancelled")
+            if time.time() >= expires_at or time.monotonic() >= self.deadline:
+                raise AcpError("ACP permission request timed out", kind="timed_out")
+            try:
+                if answered_path.is_file():
+                    answered = json.loads(read_text_retry(answered_path))
+                    if isinstance(answered, dict) and str(answered.get("request_id")) == str(request_id):
+                        return None
+            except (OSError, ValueError):
+                return None
+            if response_path.is_file():
+                try:
+                    answer = json.loads(read_text_retry(response_path))
+                except (OSError, ValueError):
+                    return None
+                if not isinstance(answer, dict) or str(answer.get("request_id")) != str(request_id):
+                    return None
+                if str(answer.get("run_id")) != str(self.run_id):
+                    return None
+                if answer.get("origin") not in _TRUSTED_ORIGINS:
+                    return None
+                option_id = answer.get("option_id")
+                if not isinstance(option_id, str) or option_id not in option_ids:
+                    return None
+                return option_id
+            time.sleep(0.1)
 
     def _record(self, message: dict) -> None:
         params = message.get("params") if isinstance(message.get("params"), dict) else {}
@@ -229,8 +343,11 @@ class Session:
 
 
 def run_session(stdin, lines: LineQueue, *, cwd: Path, prompt: str, model: str | None,
-                write: bool, deadline: float, cancel_path: Path | None = None) -> dict:
-    session = Session(stdin, lines, deadline=deadline, cancel_path=cancel_path)
+                write: bool, deadline: float, cancel_path: Path | None = None,
+                permission_dir: Path | None = None, run_id: str | None = None,
+                permission_timeout: float = PERMISSION_TIMEOUT_SECONDS) -> dict:
+    session = Session(stdin, lines, deadline=deadline, cancel_path=cancel_path,
+                      permission_dir=permission_dir, run_id=run_id, permission_timeout=permission_timeout)
     session.initialize()
     created = session.new_session(cwd)
     session_id = created["sessionId"]

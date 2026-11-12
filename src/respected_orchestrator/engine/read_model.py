@@ -25,8 +25,10 @@ def _title(text, limit=160):
     return " ".join(str(text or "").split())[:limit]
 
 
-def lane_of(state, patch=False, applied=False, apply_failed=False):
+def lane_of(state, patch=False, applied=False, apply_failed=False, permission=False):
     """(lane, display) of a run on the board. Never stored: derived from the run's own files on every read, like the state."""
+    if permission and state in ("queued", "in_progress"):
+        return "needs_you", "permission_request"
     if state in ("failed", "stale", "invalid"):
         return "needs_you", state
     if state in ("queued", "in_progress"):
@@ -43,7 +45,8 @@ def _with_lane(dto, **facts):
 
 def run_dto(ctx, run_id):
     base = {"run_id": run_id, "state": "invalid", "status": None, "reason": None, "task": "", "kind": None, "agent": None,
-            "project_root": None, "created_at": None, "updated_at": None, "dependencies": {}, "evidence": {}, "error": None}
+            "project_root": None, "created_at": None, "updated_at": None, "dependencies": {}, "evidence": {}, "error": None,
+            "pending_permission": None}
     try:
         directory = ctx.run_dir(run_id)
         request = load_signed(ctx, directory / "request.json")
@@ -53,7 +56,9 @@ def run_dto(ctx, run_id):
     if request.get("run_id") != run_id or status.get("run_id") != run_id:
         return _with_lane({**base, "error": "identity_mismatch"})
     raw = status.get("status")
+    pending = runner.pending_permission(ctx, run_id, raw) if raw == "running" else None
     dto = {**base, "status": raw if isinstance(raw, str) else None, "reason": status.get("reason"),
+           "pending_permission": pending,
            "task": _title(request.get("task")), "kind": request.get("kind"), "agent": request.get("worker"),
            "project_root": request.get("project_root"), "created_at": request.get("created_at"),
            "updated_at": status.get("updated_at"),
@@ -64,7 +69,8 @@ def run_dto(ctx, run_id):
         return _with_lane({**dto, "error": "unknown_status"})
     patch = directory / "worker.patch"
     return _with_lane({**dto, "state": STATE_OF[raw]}, patch=patch.is_file() and patch.stat().st_size > 0,
-                      applied=(directory / "applied.json").is_file(), apply_failed=(directory / "apply-failed.json").is_file())
+                      applied=(directory / "applied.json").is_file(), apply_failed=(directory / "apply-failed.json").is_file(),
+                      permission=bool(pending))
 
 
 def runs_page(ctx, *, states=None, query=None, newest_first=True, cursor=None, limit=50):

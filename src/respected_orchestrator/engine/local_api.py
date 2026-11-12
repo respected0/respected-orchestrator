@@ -35,7 +35,16 @@ _LOG_TAIL = 3000
 # command -> (RPP op, authority class), from the one table (ADR-032). Anything not listed does not exist for the shell.
 COMMANDS = {entry.name: (entry.op, entry.action) for entry in catalog.ENTRIES}
 ERRORS = ("BAD_REQUEST", "UNSUPPORTED_VERSION", "UNAUTHENTICATED", "UNKNOWN_COMMAND", "FORBIDDEN",
-          "PAYLOAD_TOO_LARGE", "REPLAY_CONFLICT", "ENGINE_ERROR")
+          "PAYLOAD_TOO_LARGE", "REPLAY_CONFLICT", "ENGINE_ERROR", *sorted(runner.PERMISSION_CODES))
+_PERMISSION_MESSAGES = {
+    "PERMISSION_NOT_FOUND": "Bekleyen bir izin isteği bulunamadı.",
+    "PERMISSION_CLOSED": "Görev artık izin beklemiyor.",
+    "PERMISSION_ALREADY_ANSWERED": "Bu izin zaten yanıtlandı.",
+    "PERMISSION_EXPIRED": "İzin isteğinin süresi doldu.",
+    "PERMISSION_OPTION_INVALID": "Bu seçenek izin isteğine ait değil.",
+    "PERMISSION_REQUEST_INVALID": "İzin isteği bozuk; yanıtlanamaz.",
+    "FORBIDDEN": "Bu kaynaktan izin yanıtlanamaz.",
+}
 
 
 def _reply(corr, ok, result=None, code=None, message="", reason=None):
@@ -115,6 +124,14 @@ class LocalApi:
             if command == "task.retry":
                 retried = runner.retry_task(self.ctx, run_id)
                 return _reply(corr, True, dict(retried, **runner.start_task(self.ctx, retried["run_id"])) if "run_id" in retried else retried)
+            if command == "task.permission.answer":
+                try:
+                    answered = runner.answer_permission(self.ctx, run_id, payload.get("request_id"),
+                                                        payload.get("option_id"), origin=self.origin)
+                except runner.PermissionAnswerError as error:
+                    return _reply(corr, False, code=error.code,
+                                  message=_PERMISSION_MESSAGES.get(error.code, "İzin yanıtlanamadı."))
+                return _reply(corr, True, answered)
             entry = dict(runner.inspect_task(self.ctx, run_id))
             entry["logs"] = {name: text[-_LOG_TAIL:] for name, text in entry.get("logs", {}).items()}
             entry["patch_preview"] = entry.get("patch_preview", "")[:_LOG_TAIL]

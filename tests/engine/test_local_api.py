@@ -1,14 +1,17 @@
 import json
+import os
 import random
 import re
 import string
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
 from respected_orchestrator.context import EngineContext
-from respected_orchestrator.engine import catalog, daemon, local_api
+from respected_orchestrator.engine import catalog, daemon, local_api, runner
 from respected_orchestrator.engine.authority import Action, Origin
+from respected_orchestrator.engine.evidence import save_signed
 from respected_orchestrator.engine.local_api import ERRORS, LocalApi, MAX_REQUEST_BYTES
 
 TOKEN = "t" * 32
@@ -63,6 +66,57 @@ class LocalApiTests(unittest.TestCase):
         first = self.call("engine.health", id="same-id-0001")
         self.assertEqual(self.call("engine.health", id="same-id-0001"), first)
         self.assertEqual(self.code(self.call("engine.manifest", id="same-id-0001")), "REPLAY_CONFLICT")
+
+    def make_permission_run(self, *, expires_in=60, status="running", option_ids=("allow", "reject")):
+        rid = "run-20261112000000-000000000001"
+        directory = self.api.ctx.run_dir(rid)
+        directory.mkdir(parents=True, exist_ok=True)
+        for stale in ("permission.response.json", "permission.answered.json"):
+            (directory / stale).unlink(missing_ok=True)
+        save_signed(self.api.ctx, directory / "request.json", {"run_id": rid, "task": "permission fixture", "worker": "opencode",
+                                                               "kind": "write", "project_root": "C:/p", "created_at": "t"})
+        save_signed(self.api.ctx, directory / "status.json", {"run_id": rid, "status": status,
+                                                              **({"pid": os.getpid()} if status == "running" else {})})
+        (directory / "permission.request.json").write_text(json.dumps({
+            "run_id": rid, "request_id": "700", "title": "Run a shell command", "created_at": time.time(),
+            "expires_at": time.time() + expires_in,
+            "options": [{"id": i, "name": i.title(), "kind": "allow_once" if i == "allow" else "reject_once"} for i in option_ids]}),
+            encoding="utf8")
+        return rid, directory
+
+    def test_pending_permission_is_answered_once_by_the_desktop_and_refusals_are_coded(self):
+        rid, directory = self.make_permission_run()
+        listed = self.call("runs.list")["result"]["runs"][0]
+        self.assertEqual(listed["pending_permission"]["request_id"], "700")
+        answered = self.call("task.permission.answer", {"run_id": rid, "request_id": "700", "option_id": "allow"})
+        self.assertTrue(answered["ok"], answered)
+        response = json.loads((directory / "permission.response.json").read_text(encoding="utf8"))
+        self.assertEqual((response["request_id"], response["option_id"], response["origin"]), ("700", "allow", "renderer"))
+        self.assertEqual(self.code(self.call("task.permission.answer", {"run_id": rid, "request_id": "700", "option_id": "allow"})),
+                         "PERMISSION_ALREADY_ANSWERED")
+        self.assertEqual(self.code(self.call("task.permission.answer", {"run_id": "run-20261112000000-000000000002",
+                                                                        "request_id": "700", "option_id": "allow"})), "PERMISSION_NOT_FOUND")
+        self.assertEqual(self.code(self.call("task.permission.answer", {"run_id": rid, "request_id": "701", "option_id": "allow"})),
+                         "PERMISSION_NOT_FOUND")
+        self.assertEqual(self.code(self.call("task.permission.answer", {"run_id": rid, "request_id": "700", "option_id": "bogus"})),
+                         "PERMISSION_OPTION_INVALID")
+        mcp = LocalApi(self.api.ctx, TOKEN, origin=Origin.MCP)
+        self.assertEqual(self.code(mcp.handle(dict(ipc="1", id="mcp-perm-01", session=TOKEN, cmd="task.permission.answer",
+                                                    payload={"run_id": rid, "request_id": "700", "option_id": "allow"}))), "FORBIDDEN")
+
+    def test_expired_closed_and_damaged_permission_requests_are_refused(self):
+        rid, directory = self.make_permission_run(expires_in=-1)
+        self.assertEqual(self.code(self.call("task.permission.answer", {"run_id": rid, "request_id": "700", "option_id": "allow"})),
+                         "PERMISSION_EXPIRED")
+        rid, directory = self.make_permission_run(status="completed")
+        self.assertEqual(self.code(self.call("task.permission.answer", {"run_id": rid, "request_id": "700", "option_id": "allow"})),
+                         "PERMISSION_CLOSED")
+        rid, directory = self.make_permission_run()
+        (directory / "permission.request.json").write_text("{broken", encoding="utf8")
+        self.assertEqual(self.code(self.call("task.permission.answer", {"run_id": rid, "request_id": "700", "option_id": "allow"})),
+                         "PERMISSION_REQUEST_INVALID")
+        self.assertTrue(self.call("runs.list")["ok"])
+        self.assertIsNone(self.call("runs.list")["result"]["runs"][0]["pending_permission"])
 
     def test_authority_matrix_is_enforced(self):
         worker = LocalApi(self.api.ctx, TOKEN, origin=Origin.WORKER)

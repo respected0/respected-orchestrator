@@ -65,6 +65,8 @@ ENTRIES = (
     Entry("task.status", READ, cli=("status", "run_id"), group="task", desktop="task"),
     Entry("task.cancel", TASK, cli=("cancel", "run_id"), group="task", desktop="task"),
     Entry("task.retry", TASK, cli=("retry", "run_id"), group="task", desktop="task"),
+    # An ACP worker's pending permission (KALAN_ISLER 4.6a): only a recognised desktop person may answer, never MCP.
+    Entry("task.permission.answer", TERMINAL, group="task", desktop="task"),
     # The agent's own terminal (ADR-035). Typing into one is running commands as the user: only the recognised desktop may (TERMINAL class).
     # `terminal.attach` has no relay list: the shell opens that stream itself, like events.subscribe.
     Entry("terminal.list", READ, cli=("list", "project_id"), group="terminal", desktop="terminal"),

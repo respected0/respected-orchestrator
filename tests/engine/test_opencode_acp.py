@@ -5,6 +5,7 @@ import queue
 import sys
 import tempfile
 import textwrap
+import threading
 import time
 import unittest
 
@@ -101,9 +102,13 @@ FAKE_SERVER = textwrap.dedent(r'''
                 reply(ident, {"stopReason": "max_tokens", "usage": {}})
             elif MODE == "permission":
                 send({"jsonrpc": "2.0", "id": 700, "method": "session/request_permission", "params": {
-                    "sessionId": SESSION, "options": [{"optionId": "allow", "name": "Allow"}]}})
+                    "sessionId": SESSION, "title": "Run a shell command", "options": [
+                        {"optionId": "allow", "name": "Allow", "kind": "allow_once"},
+                        {"optionId": "always", "name": "Always", "kind": "allow_always"},
+                        {"optionId": "reject", "name": "Reject", "kind": "reject_once"},
+                        {"optionId": "never", "name": "Never", "kind": "reject_always"}]}})
                 record(response(700))
-                finish(ident, '{"status":"success","summary":"permission rejected"}')
+                finish(ident, '{"status":"success","summary":"permission answered"}')
             elif MODE in {"fs_git", "fs_outside"}:
                 path = os.path.join(CWD, ".git", "config") if MODE == "fs_git" else os.path.join(os.path.dirname(CWD), "outside.txt")
                 send({"jsonrpc": "2.0", "id": 701, "method": "fs/write_text_file", "params": {
@@ -151,7 +156,8 @@ class OpenCodeAcpTests(unittest.TestCase):
         self.work.mkdir()
         self.record = self.root / "record.jsonl"
 
-    def run_mode(self, mode, *, model=None, write=True, timeout=5):
+    def run_mode(self, mode, *, model=None, write=True, timeout=5, permission_dir=None,
+                 run_id=None, permission_timeout=300.0, expect_zero=True):
         lines = LineQueue()
         result = {}
         command = [sys.executable, "-c", FAKE_SERVER, mode, str(self.record)]
@@ -161,6 +167,8 @@ class OpenCodeAcpTests(unittest.TestCase):
                 result["value"] = run_session(
                     stdin, lines, cwd=self.work, prompt="fixture prompt", model=model,
                     write=write, deadline=time.monotonic() + timeout,
+                    cancel_path=(permission_dir / "cancel.request") if permission_dir else None,
+                    permission_dir=permission_dir, run_id=run_id, permission_timeout=permission_timeout,
                 )
             finally:
                 stdin.close()
@@ -170,8 +178,38 @@ class OpenCodeAcpTests(unittest.TestCase):
             on_output=lambda name, line: lines.push(name, line) if name == "stdout" else None,
             on_output_closed=lambda name: lines.close(name) if name == "stdout" else None,
         )
-        self.assertEqual(completed.returncode, 0)
+        if expect_zero:
+            self.assertEqual(completed.returncode, 0)
         return result["value"]
+
+    def answer_permission(self, directory, option_id="allow", request_id="700", origin="renderer"):
+        directory.mkdir(parents=True, exist_ok=True)
+        def worker():
+            path = directory / "permission.request.json"
+            deadline = time.monotonic() + 5
+            while not path.is_file() and time.monotonic() < deadline:
+                time.sleep(0.01)
+            request = json.loads(path.read_text(encoding="utf8"))
+            (directory / "permission.response.json").write_text(json.dumps({
+                "run_id": request["run_id"], "request_id": request_id, "option_id": option_id,
+                "origin": origin, "answered_at": time.time()}), encoding="utf8")
+        thread = threading.Thread(target=worker)
+        thread.start()
+        self.addCleanup(thread.join, 6)
+        return thread
+
+    def cancel_when_requested(self, directory):
+        directory.mkdir(parents=True, exist_ok=True)
+        def worker():
+            path = directory / "permission.request.json"
+            deadline = time.monotonic() + 5
+            while not path.is_file() and time.monotonic() < deadline:
+                time.sleep(0.01)
+            (directory / "cancel.request").write_text("cancel", encoding="utf8")
+        thread = threading.Thread(target=worker)
+        thread.start()
+        self.addCleanup(thread.join, 6)
+        return thread
 
     def records(self):
         return [json.loads(line) for line in self.record.read_text(encoding="utf8").splitlines() if line]
@@ -202,6 +240,54 @@ class OpenCodeAcpTests(unittest.TestCase):
                     self.assertEqual(answer.get("result"), {"outcome": {"outcome": "cancelled"}})
                 else:
                     self.assertEqual(answer.get("error", {}).get("code"), -32601)
+
+    def test_permission_allow_and_reject_answer_the_worker_and_close_the_channel(self):
+        for option, outcome, expected in (("allow", "selected", {"outcome": "selected", "optionId": "allow"}),
+                                          ("reject", "cancelled", {"outcome": "cancelled"})):
+            with self.subTest(option=option):
+                if self.record.exists():
+                    self.record.unlink()
+                directory = self.root / f"permission-{option}"
+                self.answer_permission(directory, option)
+                result = self.run_mode("permission", permission_dir=directory, run_id="run-fixture")
+                self.assertEqual(result["payload"]["status"], "success")
+                self.assertEqual(self.records()[-1]["result"]["outcome"], expected)
+                answered = json.loads((directory / "permission.answered.json").read_text(encoding="utf8"))
+                self.assertEqual(answered["outcome"], outcome)
+                self.assertEqual(answered["request_id"], "700")
+                self.assertFalse((directory / "permission.response.json").exists())
+
+    def test_permission_timeout_cancel_invalid_and_untrusted_answer_stay_closed(self):
+        cases = (("timeout", None, None, "timed_out"), ("cancel", None, "cancel", "cancelled"),
+                 ("invalid_option", "bogus", None, None), ("untrusted", "allow", "worker", None),
+                 ("mismatch", "allow", "other-request", None))
+        for name, option, extra, kind in cases:
+            with self.subTest(name=name):
+                directory = self.root / f"permission-{name}"
+                if extra == "cancel":
+                    self.cancel_when_requested(directory)
+                elif option:
+                    self.answer_permission(directory, option, request_id=extra or "700",
+                                           origin=extra if extra == "worker" else "renderer")
+                if kind:
+                    with self.assertRaises(AcpError) as caught:
+                        self.run_mode("permission", permission_dir=directory, run_id="run-fixture",
+                                      permission_timeout=0.4 if name == "timeout" else 300,
+                                      expect_zero=False)
+                    self.assertEqual(caught.exception.kind, kind)
+                else:
+                    self.run_mode("permission", permission_dir=directory, run_id="run-fixture")
+                self.assertEqual(self.records()[-1]["result"]["outcome"], {"outcome": "cancelled"})
+
+    def test_permission_already_answered_is_never_reused(self):
+        directory = self.root / "permission-answered"
+        directory.mkdir()
+        (directory / "permission.answered.json").write_text(json.dumps(
+            {"run_id": "run-fixture", "request_id": "700", "option_id": "allow", "outcome": "selected"}),
+            encoding="utf8")
+        result = self.run_mode("permission", permission_dir=directory, run_id="run-fixture")
+        self.assertEqual(result["payload"]["status"], "success")
+        self.assertEqual(self.records()[-1]["result"]["outcome"], {"outcome": "cancelled"})
 
     def test_protocol_and_provider_failures_fail_closed(self):
         cases = (("invalid_model", "worker_failed"), ("auth", "auth"), ("limit", "limit"),

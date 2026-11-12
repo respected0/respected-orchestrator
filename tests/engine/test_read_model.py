@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 import time
@@ -68,6 +69,29 @@ class ReadModelTests(unittest.TestCase):
         directory = self.ctx.run_dir(rid)
         save_signed(self.ctx, directory / "status.json", {"run_id": rid, "status": "running", "pid": os.getpid()})
         self.assertEqual(read_model.run_dto(self.ctx, rid)["state"], "in_progress")
+
+    def test_pending_permission_moves_a_live_run_to_needs_you_and_damaged_files_never_break_the_list(self):
+        rid = self.make(1, "running")
+        directory = self.ctx.run_dir(rid)
+        save_signed(self.ctx, directory / "status.json", {"run_id": rid, "status": "running", "pid": os.getpid()})
+        (directory / "permission.request.json").write_text(json.dumps({
+            "run_id": rid, "request_id": "700", "method": "session/request_permission",
+            "title": "Run a shell command", "created_at": time.time(), "expires_at": time.time() + 60,
+            "options": [{"id": "allow", "kind": "allow_once", "name": "Allow"},
+                        {"id": "reject", "kind": "reject_once", "name": "Reject"}]}), encoding="utf8")
+        dto = read_model.run_dto(self.ctx, rid)
+        self.assertEqual((dto["lane"], dto["display"]), ("needs_you", "permission_request"))
+        self.assertEqual(dto["pending_permission"]["request_id"], "700")
+        self.assertEqual([o["id"] for o in dto["pending_permission"]["options"]], ["allow", "reject"])
+        self.assertEqual(runner.inspect_task(self.ctx, rid)["pending_permission"]["title"], "Run a shell command")
+        (directory / "permission.request.json").write_text("{not json", encoding="utf8")
+        dto = read_model.run_dto(self.ctx, rid)
+        self.assertIsNone(dto["pending_permission"])
+        self.assertEqual([r["run_id"] for r in read_model.runs_page(self.ctx)["runs"]], [rid])
+        (directory / "permission.request.json").write_text(json.dumps({
+            "run_id": rid, "request_id": "700", "title": "old", "expires_at": time.time() - 1,
+            "options": [{"id": "allow", "name": "Allow"}]}), encoding="utf8")
+        self.assertIsNone(read_model.run_dto(self.ctx, rid)["pending_permission"])
 
     def test_corrupt_missing_duplicate_and_unknown_become_invalid_rows_not_crashes(self):
         good = self.make(1)

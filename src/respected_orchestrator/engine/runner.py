@@ -18,7 +18,7 @@ from .evidence import key_path, load_signed, save_signed
 from ..interfaces import memory
 from ..hints import hint
 from ..workflows import roles
-from ..context import EngineContext, engine_command, path_within_root, safe_path, validate_project
+from ..context import EngineContext, atomic_write_json, engine_command, path_within_root, read_text_retry, safe_path, validate_project
 from . import openrouter_worker
 from .clis import EXECUTABLE, LOCAL_CODEX, SUPPORTED_AGENTS, cursor_entry, worker_executable
 from .processes import ProcessStopped, execute, run_check
@@ -40,6 +40,16 @@ NO_SHELL_SELF_CHECK = (
     + SELF_CHECK[SELF_CHECK.index("\n## Token discipline"):]
 )
 TERMINAL = {"completed", "failed", "cancelled", "timed_out", "interrupted"}
+PERMISSION_CODES = frozenset({"PERMISSION_NOT_FOUND", "PERMISSION_CLOSED", "PERMISSION_ALREADY_ANSWERED",
+                              "PERMISSION_EXPIRED", "PERMISSION_OPTION_INVALID", "PERMISSION_REQUEST_INVALID"})
+
+
+class PermissionAnswerError(ValueError):
+    def __init__(self, code: str, message: str):
+        assert code in PERMISSION_CODES | {"FORBIDDEN"}, code
+        super().__init__(message[:300])
+        self.code = code
+        self.message = message[:300]
 _IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif",
                 ".svg": "image/svg+xml"}
 MAX_ARTIFACT_BYTES = 10 * 1024 * 1024
@@ -774,6 +784,7 @@ def execute_task(ctx: EngineContext, run_id: str) -> dict:
                 acp_result["value"] = opencode_acp.run_session(
                     stdin, acp_lines, cwd=lane.worktree, prompt=brief_text, model=profile or None,
                     write=request["kind"] == "write", deadline=deadline, cancel_path=cancel,
+                    permission_dir=directory, run_id=run_id,
                 )
             finally:
                 if stdin is not None and not stdin.closed:
@@ -969,6 +980,129 @@ def effective_status(ctx, directory):
     return status
 
 
+def _read_permission_request(directory):
+    path = safe_path(directory / "permission.request.json")
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(read_text_retry(path))
+    except (OSError, ValueError):
+        return False
+    return payload if isinstance(payload, dict) else False
+
+
+def _normalized_permission(payload):
+    if not isinstance(payload, dict):
+        return None
+    request_id = payload.get("request_id")
+    expires_at = payload.get("expires_at")
+    options = payload.get("options")
+    if not isinstance(request_id, str) or not request_id or not isinstance(expires_at, (int, float)):
+        return None
+    normalized = []
+    for item in options if isinstance(options, list) else []:
+        if not isinstance(item, dict):
+            continue
+        ident, name = item.get("id"), item.get("name")
+        if isinstance(ident, str) and ident and isinstance(name, str) and name.strip():
+            normalized.append({k: item[k] for k in ("id", "kind", "name") if isinstance(item.get(k), str) and item[k]})
+    if not normalized:
+        return None
+    return {"request_id": request_id, "title": str(payload.get("title") or "İzin isteği")[:200],
+            "options": normalized, "expires_at": expires_at}
+
+
+def pending_permission(ctx, run_id, status=None):
+    """The unanswered ACP permission of a live run; any damaged record reads as no permission, never an exception."""
+    try:
+        directory = ctx.run_dir(run_id)
+        payload = _read_permission_request(directory)
+        pending = _normalized_permission(payload)
+        if pending is None or pending["expires_at"] <= time.time():
+            return None
+        if status is None:
+            status = effective_status(ctx, directory).get("status")
+        if status != "running":
+            return None
+        answered = safe_path(directory / "permission.answered.json")
+        if answered.is_file():
+            try:
+                record = json.loads(read_text_retry(answered))
+            except (OSError, ValueError):
+                return None
+            if isinstance(record, dict) and str(record.get("request_id")) == pending["request_id"]:
+                return None
+        return pending
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def answer_permission(ctx, run_id, request_id, option_id, *, origin):
+    """Answer a waiting ACP permission once. Refusals are data; the caller maps codes to sentences."""
+    trusted = {getattr(origin, "value", origin)}
+    if not trusted <= {"human", "renderer"}:
+        raise PermissionAnswerError("FORBIDDEN", "This origin may not answer a permission request")
+    directory = ctx.run_dir(run_id) if isinstance(run_id, str) and run_id else None
+    if directory is None:
+        raise PermissionAnswerError("PERMISSION_NOT_FOUND", "Unknown run")
+    try:
+        status = effective_status(ctx, directory).get("status")
+    except (OSError, ValueError, KeyError, TypeError):
+        raise PermissionAnswerError("PERMISSION_NOT_FOUND", "Unknown run") from None
+    if status != "running":
+        raise PermissionAnswerError("PERMISSION_CLOSED", "The run has no open permission request")
+    payload = _read_permission_request(directory)
+    if payload is None:
+        raise PermissionAnswerError("PERMISSION_NOT_FOUND", "There is no permission request")
+    if payload is False or not isinstance(payload.get("request_id"), str):
+        raise PermissionAnswerError("PERMISSION_REQUEST_INVALID", "The permission request is damaged")
+    if payload["request_id"] != request_id:
+        raise PermissionAnswerError("PERMISSION_NOT_FOUND", "That permission request is not the waiting one")
+    pending = _normalized_permission(payload)
+    if pending is None or not isinstance(payload.get("expires_at"), (int, float)):
+        raise PermissionAnswerError("PERMISSION_REQUEST_INVALID", "The permission request is damaged")
+    if payload["expires_at"] <= time.time():
+        raise PermissionAnswerError("PERMISSION_EXPIRED", "The permission request has expired")
+    if not isinstance(option_id, str) or not any(item["id"] == option_id for item in pending["options"]):
+        raise PermissionAnswerError("PERMISSION_OPTION_INVALID", "That option is not part of this request")
+    answered = safe_path(directory / "permission.answered.json")
+    if answered.is_file():
+        try:
+            record = json.loads(read_text_retry(answered))
+        except (OSError, ValueError):
+            record = None
+        if isinstance(record, dict) and str(record.get("request_id")) == request_id:
+            raise PermissionAnswerError("PERMISSION_ALREADY_ANSWERED", "The permission was already answered")
+    response = safe_path(directory / "permission.response.json")
+    if response.is_file():
+        raise PermissionAnswerError("PERMISSION_ALREADY_ANSWERED", "The permission was already answered")
+    claim = safe_path(directory / (".permission-claim-" + hashlib.sha256(request_id.encode()).hexdigest()[:16]))
+    try:
+        descriptor = os.open(claim, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        os.close(descriptor)
+    except FileExistsError:
+        raise PermissionAnswerError("PERMISSION_ALREADY_ANSWERED", "The permission was already answered") from None
+    try:
+        if response.is_file() or (answered.is_file() and _answered_for(answered, request_id)):
+            raise PermissionAnswerError("PERMISSION_ALREADY_ANSWERED", "The permission was already answered")
+        atomic_write_json(response, {"run_id": run_id, "request_id": request_id, "option_id": option_id,
+                                     "origin": getattr(origin, "value", origin), "answered_at": time.time()})
+    finally:
+        try:
+            claim.unlink()
+        except OSError:
+            pass
+    return {"run_id": run_id, "request_id": request_id, "option_id": option_id}
+
+
+def _answered_for(path, request_id):
+    try:
+        record = json.loads(read_text_retry(path))
+    except (OSError, ValueError):
+        return False
+    return isinstance(record, dict) and str(record.get("request_id")) == request_id
+
+
 def inspect_task(ctx, run_id):
     directory = ctx.run_dir(run_id)
     request = load_signed(ctx, directory / "request.json")
@@ -984,7 +1118,8 @@ def inspect_task(ctx, run_id):
     if patch.is_file():
         with patch.open("rb") as handle:
             preview = handle.read(60000).decode("utf8", errors="replace")
-    return dict(request=request, **status, logs=logs, patch_preview=preview)
+    return dict(request=request, **status, logs=logs, patch_preview=preview,
+                pending_permission=pending_permission(ctx, run_id, status.get("status")))
 
 
 def list_tasks(ctx):
