@@ -11,3 +11,5 @@ dist/
 .env.*
 *.pem
 *.key
+_eng.log
+.claude/

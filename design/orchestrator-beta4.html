@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Respected Orchestrator — Beta.4 tasarım prototipi</title>
+<style>
+:root{
+  --bg:#faf9f5;--panel:#f4f2eb;--side:#f0eee6;--raise:#ffffff;--hover:#e9e6dc;--line:#e4e1d6;--line2:#d6d2c4;
+  --tx:#1f1e1b;--tx2:#6b6859;--tx3:#9a9684;
+  --acc:#b4532f;--acc-bg:#f6e6dd;--ok:#3f7a52;--ok-bg:#e3efe6;--warn:#9a6a14;--warn-bg:#f6ecd2;--err:#b23b34;--err-bg:#f6e0dd;--info:#3b6a94;--info-bg:#e1ebf4;
+  --add:#e3efe6;--del:#f6e0dd;--code:#f1efe7;--shadow:0 8px 30px rgba(40,30,10,.12);
+  --mono:"Cascadia Code","JetBrains Mono",Consolas,monospace;--sans:"Segoe UI Variable Text","Segoe UI",Inter,system-ui,sans-serif;
+}
+:root[data-theme=dark]{
+  --bg:#1f1e1c;--panel:#252421;--side:#181715;--raise:#2b2a26;--hover:#33312c;--line:#34322d;--line2:#46433b;
+  --tx:#ece9e0;--tx2:#a39f91;--tx3:#78756a;
+  --acc:#d9774f;--acc-bg:#3a2a21;--ok:#7fc093;--ok-bg:#1f2f25;--warn:#d9a948;--warn-bg:#352c16;--err:#e07b72;--err-bg:#3a2321;--info:#7fb0dc;--info-bg:#1f2c3a;
+  --add:#1f3026;--del:#3a2321;--code:#262521;--shadow:0 8px 30px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:13.5px/1.5 var(--sans);background:var(--bg);color:var(--tx);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;border-radius:6px}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.mono{font-family:var(--mono);font-size:12px}
+.mut{color:var(--tx2)}.mut3{color:var(--tx3)}
+.row{display:flex;align-items:center;gap:8px}.col{display:flex;flex-direction:column}.grow{flex:1;min-width:0}.sp{flex:1}
+.title{height:36px;display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--side);border-bottom:1px solid var(--line);font-size:12px;color:var(--tx2)}
+.title b{color:var(--tx);font-weight:600}
+.title select,.seg{background:var(--raise);border:1px solid var(--line);border-radius:6px;color:var(--tx);font-size:12px;padding:2px 6px}
+.app{display:grid;height:calc(100% - 36px);grid-template-columns:var(--sw,252px) 1fr var(--rw,0px)}
+.side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;padding:10px 8px;gap:2px;overflow:auto}
+.nav{display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;color:var(--tx);text-align:left;width:100%}
+.nav:hover{background:var(--hover)}.nav.on{background:var(--hover);font-weight:600}
+.nav svg{width:16px;height:16px;flex:none;stroke:var(--tx2)}
+.nav .badge{margin-left:auto}
+.lab{font-size:11px;letter-spacing:.04em;color:var(--tx3);padding:12px 9px 4px;text-transform:uppercase}
+.sub{padding-left:30px;color:var(--tx2);font-size:13px}.sub.on{color:var(--tx);background:var(--hover)}
+.dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--tx3)}
+.dot.run{background:var(--info)}.dot.ok{background:var(--ok)}.dot.err{background:var(--err)}.dot.warn{background:var(--warn)}
+.badge{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--hover);color:var(--tx2);white-space:nowrap}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}.badge.warn{background:var(--warn-bg);color:var(--warn)}.badge.err{background:var(--err-bg);color:var(--err)}.badge.info{background:var(--info-bg);color:var(--info)}.badge.acc{background:var(--acc-bg);color:var(--acc)}
+.main{display:flex;flex-direction:column;min-width:0;min-height:0;position:relative}
+.bar{height:44px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--line);flex:none}
+.bar h1{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:30px;height:30px;display:grid;place-items:center;color:var(--tx2)}.ib:hover{background:var(--hover);color:var(--tx)}.ib.on{background:var(--hover);color:var(--tx)}
+.ib svg,.btn svg{width:16px;height:16px;stroke:currentColor}
+svg{fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;width:16px;height:16px;flex:none;stroke:currentColor}
+.hero h1{margin:0}
+@media (max-width:980px){.app{--sw:56px}.side .nav span,.side .lab,.side .badge,.side .row,.side .sub{display:none}.side .nav{justify-content:center}}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border:1px solid var(--line2);background:var(--raise);border-radius:7px}
+.btn:hover{background:var(--hover)}.btn.pri{background:var(--tx);color:var(--bg);border-color:var(--tx)}.btn.acc{background:var(--acc);color:#fff;border-color:var(--acc)}
+.btn.sm{padding:2px 8px;font-size:12px}.btn.err{color:var(--err)}
+.toggle{display:flex;background:var(--hover);border-radius:8px;padding:2px}
+.toggle button{padding:3px 12px;border-radius:6px;font-size:12.5px;color:var(--tx2)}.toggle button.on{background:var(--raise);color:var(--tx);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.scroll{overflow:auto;min-height:0;flex:1}
+.wrap{max-width:780px;margin:0 auto;padding:22px 24px 12px}
+.msg{margin:0 0 22px}
+.msg.user{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-left:56px}
+.who{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2);margin-bottom:5px}
+.av{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--acc-bg);color:var(--acc)}
+.card{border:1px solid var(--line);background:var(--raise);border-radius:10px;margin:8px 0;overflow:hidden}
+.card>.h{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);font-weight:600;font-size:12.5px}
+.card>.h:last-child{border:0}.card .b{padding:10px 12px}
+.card.click{cursor:pointer}.card.click:hover{border-color:var(--line2)}
+.step{display:flex;gap:9px;align-items:flex-start;padding:5px 0}
+.ic{width:16px;height:16px;border-radius:50%;flex:none;margin-top:2px;display:grid;place-items:center;font-size:10px;border:1.5px solid var(--line2);color:#fff}
+.ic.ok{background:var(--ok);border-color:var(--ok)}.ic.run{border-color:var(--info);border-top-color:transparent;animation:sp 1s linear infinite}.ic.err{background:var(--err);border-color:var(--err)}.ic.warn{background:var(--warn);border-color:var(--warn)}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.ic.run{animation:none}}
+.tool{display:flex;align-items:center;gap:8px;padding:5px 10px;border:1px solid var(--line);border-radius:8px;margin:4px 0;color:var(--tx2);font-size:12.5px;background:var(--panel)}
+.tool .mono{color:var(--tx)}
+.route{background:var(--info-bg);color:var(--info);border-radius:8px;padding:7px 11px;font-size:12.5px;display:flex;gap:8px;align-items:center;margin:6px 0}
+.comp{padding:0 24px 14px}
+.compbox{max-width:780px;margin:0 auto;border:1px solid var(--line2);background:var(--raise);border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.05);padding:10px 12px 8px}
+.compbox textarea{width:100%;border:0;background:none;color:var(--tx);resize:none;font:inherit;outline:0;min-height:44px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border:1px solid var(--line);border-radius:99px;font-size:12px;color:var(--tx2);background:var(--panel)}
+.chip:hover{background:var(--hover)}
+.tray{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.pop{position:absolute;z-index:20;background:var(--raise);border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow);padding:6px;min-width:260px}
+.pop .it{display:flex;gap:9px;padding:7px 9px;border-radius:8px;width:100%;text-align:left;align-items:flex-start}
+.pop .it:hover,.pop .it.on{background:var(--hover)}
+.pop hr{border:0;border-top:1px solid var(--line);margin:5px 0}
+.right{background:var(--bg);border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;position:relative}
+.right .bar{height:44px}
+.sec{padding:12px 14px;border-bottom:1px solid var(--line)}
+.sec h3{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--tx3);margin-bottom:8px;font-weight:600}
+.meter{height:6px;background:var(--hover);border-radius:9px;overflow:hidden;display:flex}
+.meter i{display:block;height:100%}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:2px 0}
+.tabs{display:flex;gap:2px;padding:0 12px;border-bottom:1px solid var(--line);flex:none}
+.tabs button{padding:9px 10px;color:var(--tx2);border-radius:0;border-bottom:2px solid transparent}.tabs button.on{color:var(--tx);border-color:var(--acc)}
+.resizer{position:absolute;left:-3px;top:0;bottom:0;width:6px;cursor:col-resize;z-index:5}
+.diff{font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--raise)}
+.diff div{padding:0 10px;white-space:pre;min-height:18px}.diff .a{background:var(--add)}.diff .d{background:var(--del)}.diff .h{background:var(--panel);color:var(--tx2);padding:4px 10px}
+.term{background:var(--code);border:1px solid var(--line);border-radius:8px;font-family:var(--mono);font-size:12px;padding:10px 12px;overflow:auto;line-height:1.55}
+.term .p{color:var(--acc)}.term .o{color:var(--ok)}.term .e{color:var(--err)}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--tx3);text-align:left;font-weight:600;padding:6px 10px;border-bottom:1px solid var(--line)}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr.click:hover td{background:var(--panel);cursor:pointer}
+.page{padding:22px 28px;max-width:1040px;margin:0 auto;width:100%}
+.page h2{font-size:18px;font-weight:600;margin-bottom:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.kanban .colh{font-size:12px;color:var(--tx2);padding:4px 2px;display:flex;gap:6px}
+.tcard{border:1px solid var(--line);background:var(--raise);border-radius:9px;padding:9px 11px;margin-bottom:8px;cursor:pointer}.tcard:hover{border-color:var(--line2)}
+.sw{width:32px;height:18px;border-radius:99px;background:var(--line2);position:relative;flex:none}.sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:.15s}.sw.on{background:var(--ok)}.sw.on::after{left:16px}
+.modalbg{position:fixed;inset:0;background:rgba(20,15,5,.38);display:grid;place-items:center;z-index:50}
+.modal{background:var(--raise);border:1px solid var(--line2);border-radius:14px;box-shadow:var(--shadow);width:min(560px,92vw);max-height:88vh;overflow:auto}
+.modal .mh{padding:14px 18px;border-bottom:1px solid var(--line);font-weight:600;display:flex;gap:8px;align-items:center}
+.modal .mb{padding:14px 18px}.modal .mf{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
+.toast{position:fixed;right:18px;bottom:18px;background:var(--tx);color:var(--bg);padding:9px 14px;border-radius:9px;z-index:60;box-shadow:var(--shadow);max-width:360px}
+.strip{display:flex;gap:10px;align-items:center;padding:8px 24px;border-bottom:1px solid var(--line);background:var(--panel);font-size:12.5px}
+.graphwrap{flex:1;min-height:0;overflow:auto;background:radial-gradient(var(--line) 1px,transparent 1px) 0 0/18px 18px}
+.node{cursor:pointer}.node rect{fill:var(--raise);stroke:var(--line2);stroke-width:1.2}.node:hover rect,.node.sel rect{stroke:var(--acc);stroke-width:2}
+.node text{fill:var(--tx);font-size:12.5px;font-family:var(--sans)}.node .s{fill:var(--tx2);font-size:11px}
+.edge{stroke:var(--line2);stroke-width:1.5;fill:none}.edge.live{stroke:var(--info);stroke-dasharray:5 4}
+.dock{border-top:1px solid var(--line);height:170px;display:flex;flex-direction:column;flex:none}
+.ftree{width:210px;border-right:1px solid var(--line);padding:10px 8px;overflow:auto;flex:none;background:var(--panel)}
+.ftree .nav{padding:3px 7px;font-size:12.5px}
+.note{font-size:11.5px;color:var(--tx3);padding:6px 24px;border-top:1px solid var(--line);text-align:center}
+.empty{text-align:center;padding:60px 20px;color:var(--tx2)}
+.hero{display:flex;flex-direction:column;justify-content:center;align-items:center;flex:1;gap:18px;padding:0 24px 8vh}
+.hero h1{font-size:26px;font-weight:500;letter-spacing:-.01em}
+@media (max-width:1100px){.side{--sw:200px}}
+</style>
+</head>
+<body>
+<div class="title">
+  <b>Respected Orchestrator</b><span>Beta.4 · tasarım prototipi · konsept veri</span>
+  <span class="sp"></span>
+  <label>Yerleşim <select id="layoutSel" aria-label="Yerleşim alternatifi">
+    <option value="A">A · Minimal</option><option value="B">B · Çalışma alanı</option><option value="C">C · Sakin orkestrasyon</option></select></label>
+  <label>An <select id="phaseSel" aria-label="Senaryo zamanı">
+    <option value="run">06:42 · Builder çalışıyor</option><option value="approve">07:05 · İzin bekliyor</option><option value="review">09:10 · İnceleme hazır</option><option value="fail">Alternatif · QA başarısız</option></select></label>
+  <button class="seg" id="themeBtn" aria-label="Tema değiştir">Açık / Koyu</button>
+</div>
+<div class="app" id="app"></div>
+<div id="layer"></div>
+
+<script>
+const I=(d)=>`<svg viewBox="0 0 24 24">${d}</svg>`;
+const ic={
+ plus:I('<path d="M12 5v14M5 12h14"/>'),search:I('<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/>'),folder:I('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'),
+ inbox:I('<path d="M4 13l2-8h12l2 8M4 13v5h16v-5M4 13h5a3 3 0 0 0 6 0h5"/>'),gear:I('<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>'),
+ chat:I('<path d="M5 6h14v10H10l-4 3v-3H5z"/>'),graph:I('<circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M8 6h8M7 8l4 8M17 8l-4 8"/>'),
+ panel:I('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>'),mic:I('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>'),
+ shot:I('<path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3"/><rect x="9" y="9" width="6" height="6" rx="1"/>'),clip:I('<path d="M20 11l-8 8a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7"/>'),
+ ctx:I('<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16"/>'),tools:I('<path d="M14 6l4 4-8 8H6v-4zM13 7l4 4"/>'),send:I('<path d="M5 12l14-7-5 14-2-6z"/>'),
+ term:I('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m7 10 3 2-3 2M12 15h5"/>'),file:I('<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/>'),
+ check:I('<path d="m5 12 5 5 9-10"/>'),shield:I('<path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/>'),more:I('<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'),
+ x:I('<path d="M6 6l12 12M18 6 6 18"/>'),down:I('<path d="m6 9 6 6 6-6"/>'),list:I('<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>'),users:I('<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 6"/>'),
+ chart:I('<path d="M4 20V4M4 20h16M8 16v-5M13 16V8M18 16v-9"/>'),back:I('<path d="M15 6l-6 6 6 6"/>'),
+};
+const S={view:'chat',project:'tavarluk',mode:'chat',panel:null,agent:'builder',layout:'A',phase:'run',theme:null,pop:null,rw:360,drafts:[],teamTab:'agents'};
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+/* ---- scenario data (concept, tutarlı) ---- */
+const AG={
+ planner:{n:'Planner',m:'Claude Code',mo:'Opus 5.5',av:'P'},builder:{n:'Builder',m:'Codex',mo:'GPT-5.x',av:'B'},
+ reviewer:{n:'Reviewer',m:'Claude Code',mo:'Sonnet 5.5',av:'R'},qa:{n:'QA',m:'Uyumlu CLI ajanı',mo:'Yerel adaptör',av:'Q'}};
+function st(){ // her faz için ajan durumları
+ const p=S.phase;
+ if(p==='run')return{planner:'ok',builder:'run',qa:'ok',reviewer:'wait',gate:'wait',t:'06:42'};
+ if(p==='approve')return{planner:'ok',builder:'warn',qa:'ok',reviewer:'wait',gate:'wait',t:'07:05'};
+ if(p==='review')return{planner:'ok',builder:'ok',qa:'ok',reviewer:'ok',gate:'warn',t:'09:10'};
+ return{planner:'ok',builder:'ok',qa:'err',reviewer:'wait',gate:'wait',t:'08:21'};
+}
+const stTxt={ok:'Tamamlandı',run:'Çalışıyor',wait:'Sırada',warn:'İzin bekliyor',err:'Başarısız'};
+const stBadge={ok:'ok',run:'info',wait:'',warn:'warn',err:'err'};
+const sb=(k,t)=>`<span class="badge ${stBadge[k]}"><span class="dot ${k==='wait'?'':k}"></span> ${t||stTxt[k]}</span>`;
+const stepIc=k=>`<span class="ic ${k==='wait'?'':k}">${k==='ok'?'✓':k==='err'?'!':k==='warn'?'?':''}</span>`;
+
+/* ---- shell ---- */
+function render(){
+  document.documentElement.dataset.theme=S.theme||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  const showRight=!!S.panel&&['chat','orch'].includes(S.view==='chat'?'chat':S.view);
+  $('#app').style.setProperty('--rw',showRight?S.rw+'px':'0px');
+  $('#app').innerHTML=sidebar()+`<main class="main" id="main">${mainView()}</main>`+(showRight?`<aside class="right" aria-label="Bağlam paneli"><div class="resizer" id="rz"></div>${rightPanel()}</aside>`:'<aside></aside>');
+  $('#layoutSel').value=S.layout;$('#phaseSel').value=S.phase;
+  bind(); drawPop();
+}
+function sidebar(){
+  const v=S.view;
+  const n=(id,i,t,x='')=>`<button class="nav ${v===id?'on':''}" data-go="${id}">${ic[i]}<span>${t}</span>${x}</button>`;
+  const pend=S.phase==='approve'||S.phase==='review'||S.phase==='fail';
+  return `<nav class="side" aria-label="Ana gezinme">
+   <button class="nav" data-go="home" style="font-weight:600">${ic.plus}<span>Yeni sohbet</span></button>
+   <button class="nav" id="cmdk">${ic.search}<span>Ara</span><span class="badge">Ctrl K</span></button>
+   ${n('inbox','inbox','Gelen kutusu',pend?`<span class="badge ${S.phase==='fail'?'err':'warn'}">${S.phase==='fail'?'1 hata':'1 onay'}</span>`:'')}
+   <div class="lab">Projeler</div>
+   ${[['tavarluk','Kişisel finans uygulaması'],['respected-hub',''],['respected-brain',''],['respected-orchestrator','']].map(([p])=>`<button class="nav ${S.project===p&&['chat','orch','tasks','review','proj'].includes(v)?'on':''}" data-proj="${p}">${ic.folder}<span>${p}</span>${p==='tavarluk'&&S.phase==='run'?'<span class="dot run" title="Çalışıyor"></span>':''}</button>`).join('')}
+   <button class="nav sub" data-go="projects">Tüm projeler ve çalışma alanları…</button>
+   <div class="lab">Son konuşmalar · ${S.project}</div>
+   <button class="nav sub ${v==='chat'||v==='orch'?'on':''}" data-go="chat"><span class="dot ${S.phase==='fail'?'err':S.phase==='review'?'ok':'run'}"></span> Ödeme senkronizasyonu</button>
+   <button class="nav sub" data-toast="Örnek konuşma — bu prototipte içerik yok"><span class="dot ok"></span> Webhook retry mantığı</button>
+   <button class="nav sub" data-toast="Örnek konuşma — bu prototipte içerik yok"><span class="dot"></span> Kategori eşleştirme refaktörü</button>
+   <button class="nav sub" data-go="tasks">${ic.list.replace('<svg','<svg style="width:14px;height:14px"')} Görevler (12)</button>
+   <div class="sp"></div>
+   <button class="nav" data-go="team">${ic.users}<span>Ajanlar ve ekipler</span></button>
+   <button class="nav" data-go="mcp">${ic.tools}<span>MCP ve beceriler</span></button>
+   <button class="nav" data-go="usage">${ic.chart}<span>Kullanım</span></button>
+   <button class="nav ${v==='settings'?'on':''}" data-go="settings">${ic.gear}<span>Ayarlar</span></button>
+   <div class="row mut3" style="padding:8px 9px;font-size:12px"><span class="dot ok"></span> Motor hazır · Yerel · v0.1.0-beta.4</div>
+  </nav>`;
+}
+function mainView(){
+  switch(S.view){
+   case 'welcome':return welcome();case 'home':return home();case 'chat':return S.mode==='orch'?orch():chat();
+   case 'tasks':return tasks();case 'review':return review();case 'projects':return projects();case 'team':return team();
+   case 'mcp':return mcp();case 'usage':return usage();case 'settings':return settings();case 'inbox':return inbox();case 'recovery':return recovery();
+  } return '';
+}
+function topbar(extra=''){
+  const s=st();
+  return `<div class="bar"><div class="grow row"><span class="mut">${S.project} /</span><h1>Ödeme senkronizasyonu</h1><span class="badge">TAV-098</span>${sb(s.builder==='warn'?'warn':s.qa==='err'?'err':s.gate==='warn'?'warn':'run', s.qa==='err'?'RUN-1287 · başarısız':s.gate==='warn'?'RUN-1287 · onay bekliyor':s.builder==='warn'?'RUN-1287 · izin bekliyor':'RUN-1287 · çalışıyor')}</div>
+   <div class="toggle" role="tablist" aria-label="Görünüm"><button role="tab" class="${S.mode==='chat'?'on':''}" data-mode="chat" aria-selected="${S.mode==='chat'}">Sohbet</button><button role="tab" class="${S.mode==='orch'?'on':''}" data-mode="orch" aria-selected="${S.mode==='orch'}">Akış</button></div>
+   ${extra}<button class="ib ${S.panel==='ctx'?'on':''}" data-panel="ctx" title="Bağlam paneli" aria-label="Bağlam panelini aç/kapat">${ic.panel}</button><button class="ib" data-pop="more" title="Diğer" aria-label="Diğer işlemler">${ic.more}</button></div>`;
+}
+
+/* ---- chat ---- */
+function planCard(){
+  const s=st(); const f=s.qa==='err';
+  const steps=[['ok','Ödeme senkronizasyonunu analiz et'],['ok','Webhook işleyicisini incele'],[s.builder,'Eksik durum işlemesini uygula'],[s.reviewer,'Kod değişikliklerini incele'],[f?'err':s.qa==='ok'&&S.phase!=='run'?'ok':'wait','Testleri çalıştır'],[s.gate==='warn'?'ok':'wait','Doğrulanmış yama hazırla'],[s.gate==='warn'?'warn':'wait','Uygulama onayı iste']];
+  if(S.phase==='run')steps[4]=['wait','Testleri çalıştır'];
+  if(S.phase==='review')steps[4]=['ok','Testleri çalıştır'];
+  if(S.phase==='approve')steps[2]=['warn','Eksik durum işlemesini uygula'];
+  return `<div class="card"><div class="h">${ic.list} Plan <span class="badge">${steps.filter(x=>x[0]==='ok').length}/7</span><span class="sp"></span><button class="btn sm" data-toast="Plan düzenleme açılır (prototipte işlevsiz)">Düzenle</button></div><div class="b">${steps.map(([k,t])=>`<div class="step">${stepIc(k)}<div>${t}</div></div>`).join('')}</div></div>`;
+}
+function chat(){
+  const s=st();
+  const bodyMsgs=`
+  <div class="msg user"><div class="who">Sen · ${s.t==='06:42'?'06:31':'06:31'}</div>Ödeme modülündeki senkronizasyon hatasını araştır, düzelt ve testleri çalıştır.</div>
+  <div class="msg"><div class="who"><span class="av">P</span><b>Planner</b> · Claude Code</div>
+   Webhook'tan gelen <span class="mono">payment.refunded</span> olayı <span class="mono">payment_service.py</span> içinde işlenmiyor; bu yüzden iade sonrası bakiye eski kalıyor. Görevi 3 ajana böldüm.
+   <div class="route">${ic.shield.replace('<svg','<svg style="width:15px;height:15px"')}<div><b>Yönlendirme önerisi:</b> Builder için Codex — Python servis düzeltmelerinde geçmiş başarı yüksek, tahmini maliyet düşük. <a href="#" data-pop="route" style="color:inherit;text-decoration:underline">Karşılaştır</a></div></div>
+   ${planCard()}</div>
+  <div class="msg"><div class="who"><span class="av">B</span><b>Builder</b> · Codex <span class="mut3">worktree: wt/TAV-098</span></div>
+   ${S.phase==='run'?'Webhook işleyicisindeki durum eşlemesini genişletiyorum.':S.phase==='fail'?'Değişiklikleri tamamladım; 2 test başarısız olduğunda QA durdurdu.':'Değişiklikleri tamamladım.'}
+   <div class="tool">${ic.file.replace('<svg','<svg style="width:14px;height:14px"')} <span class="mono">read</span> src/webhooks/payment_handler.py <span class="sp"></span><span class="mut3">412 satır</span></div>
+   <div class="tool">${ic.file.replace('<svg','<svg style="width:14px;height:14px"')} <span class="mono">edit</span> src/services/payment_service.py <span class="sp"></span><span class="badge ok">+18</span><span class="badge err">−3</span></div>
+   ${S.phase==='approve'?approvalInline():''}
+   ${S.phase!=='run'&&S.phase!=='approve'?changeCard():''}
+   ${S.phase==='fail'?failInline():''}
+   ${S.phase==='review'?`<div class="card" style="border-color:var(--warn)"><div class="h">${ic.shield} Uygulama onayı bekliyor<span class="sp"></span><button class="btn pri sm" data-go="review">İncele ve uygula</button></div><div class="b mut">Reviewer onayladı, 14/14 test geçti, kanıt imzalandı. Ana dala uygulama senin onayını bekliyor.</div></div>`:''}
+   ${S.phase==='run'?`<div class="row mut" style="margin-top:6px"><span class="ic run"></span> Builder çalışıyor… <button class="btn sm" data-mode="orch">Akışı gör</button></div>`:''}
+  </div>`;
+  const body=`<div class="scroll" id="scroll"><div class="wrap">${bodyMsgs}</div></div>`;
+  const comp=composer(false);
+  const strip=S.layout==='C'?runStrip():'';
+  let core=`<div class="col grow" style="min-height:0">${strip}${body}${comp}</div>`;
+  if(S.layout==='B'){core=`<div class="row grow" style="align-items:stretch;min-height:0"><div class="ftree"><div class="lab" style="padding-top:0">Çalışma ağacı · wt/TAV-098</div>${['src/','  services/','    payment_service.py M','  webhooks/','    payment_handler.py','tests/','    test_payment_sync.py A'].map(f=>`<button class="nav" data-toast="Dosya önizlemesi — prototipte işlevsiz" style="${f.startsWith(' ')?'padding-left:'+(10+f.search(/\S/)*5)+'px':''}">${f.trim().endsWith('/')?ic.folder:ic.file}<span class="${f.endsWith(' M')||f.endsWith(' A')?'':'mut'}">${f.trim().replace(/ [MA]$/,'')}</span>${f.endsWith(' M')?'<span class="badge warn">M</span>':f.endsWith(' A')?'<span class="badge ok">A</span>':''}</button>`).join('')}</div>
+   <div class="col grow" style="min-width:0">${body}<div class="dock"><div class="tabs"><button class="on">Terminal</button><button>Çıktı</button><span class="sp"></span><span class="mut3" style="padding:9px 0">wt/TAV-098</span></div><div class="term grow" style="border:0;border-radius:0">${termText()}</div></div>${comp}</div></div>`;}
+  return topbar()+core+`<div class="note">Konsept veri — gerçek ölçüm değildir · ${S.phase==='run'?'Bu an: 06:42 (Builder çalışıyor)':S.phase==='approve'?'Bu an: 07:05':S.phase==='review'?'Bu an: 09:10 (tüm adımlar bitti)':'Alternatif senaryo: QA başarısız'}</div>`;
+}
+function runStrip(){
+  const s=st();
+  return `<div class="strip">${['planner','builder','reviewer','qa'].map(a=>`<button class="chip" data-agent="${a}"><span class="dot ${s[a]==='wait'?'':s[a]}"></span>${AG[a].n}</button>`).join('')}<span class="sp"></span><span class="mut">Bütçe $0,84 / $5,00 · Context %38</span></div>`;
+}
+function termText(){
+  const f=S.phase==='fail';
+  return `<div><span class="p">PS wt/TAV-098&gt;</span> pytest tests/test_payment_sync.py -q</div>${S.phase==='run'?'<div class="mut3">… Builder henüz test çalıştırmadı</div>':f?'<div class="e">FAILED test_refund_updates_balance — AssertionError: 120.0 != 95.0</div><div class="e">FAILED test_duplicate_webhook_idempotent</div><div class="e">2 failed, 12 passed in 3.4s</div>':'<div class="o">14 passed in 3.1s</div>'}`;
+}
+function changeCard(){
+  return `<div class="card click" data-go="review"><div class="h">${ic.file} 3 dosya değişti <span class="badge ok">+64</span><span class="badge err">−9</span><span class="sp"></span><span class="mut">Diff ve kanıtı aç →</span></div><div class="b mono"><div>M src/services/payment_service.py</div><div>M src/webhooks/payment_handler.py</div><div>A tests/test_payment_sync.py</div></div></div>`;
+}
+function approvalInline(){
+  return `<div class="card" style="border-color:var(--warn)"><div class="h">${ic.shield} İzin isteği <span class="badge warn">Orta risk</span></div><div class="b"><div class="mut" style="margin-bottom:6px">Builder bir komut çalıştırmak istiyor:</div><div class="term" style="padding:6px 10px">pip install -r requirements-dev.txt</div><div class="row" style="margin-top:9px"><button class="btn pri sm" data-modal="approval">Ayrıntıları gör</button><button class="btn sm" data-toast="Bir kez izin verildi (prototip)">Bir kez izin ver</button><button class="btn sm err" data-toast="Reddedildi (prototip)">Reddet</button></div></div></div>`;
+}
+function failInline(){
+  return `<div class="card" style="border-color:var(--err)"><div class="h"><span class="ic err">!</span> QA başarısız · 2 test <span class="sp"></span><button class="btn sm" data-go="recovery">Kurtarma seçenekleri</button></div><div class="b mut">Son sağlam kontrol noktası: <b>CP-3</b> (Builder değişikliği uygulanmadan önce). Reviewer engellendi.</div></div>`;
+}
+function composer(hero){
+  const tray=S.drafts.map((d,i)=>`<span class="chip">${d} <button data-rmd="${i}" aria-label="Kaldır">×</button></span>`).join('');
+  return `<div class="comp" style="${hero?'padding:0;width:100%;max-width:720px':''}"><div class="compbox"><div class="tray">${tray}</div>
+   <textarea id="ta" rows="2" placeholder="${hero?'tavarluk için ne yapmak istersin?':'Ajanlara mesaj yaz, görev ver veya soru sor…'}" aria-label="Mesaj"></textarea>
+   <div class="row" style="margin-top:4px">
+    <button class="ib" data-pop="attach" title="Ekle" aria-label="Ekle">${ic.plus}</button>
+    <button class="ib" data-pop="shot" title="Ekran görüntüsü" aria-label="Ekran görüntüsü">${ic.shot}</button>
+    <button class="chip" data-pop="ctx">${ic.ctx.replace('<svg','<svg style="width:13px;height:13px"')} Context %38</button>
+    <button class="chip" data-pop="tools">${ic.tools.replace('<svg','<svg style="width:13px;height:13px"')} 3 araç</button>
+    <span class="sp"></span>
+    <button class="chip" data-pop="model">Otomatik yönlendirme ${ic.down.replace('<svg','<svg style="width:12px;height:12px"')}</button>
+    <button class="ib" data-modal="voice" title="Bas-konuş" aria-label="Sesle görev ver">${ic.mic}</button>
+    <button class="btn acc" data-send aria-label="Gönder">${ic.send}</button>
+   </div></div></div>`;
+}
+
+/* ---- welcome / home ---- */
+function welcome(){
+  return `<div class="hero"><div style="text-align:center"><h1>Respected Orchestrator’a hoş geldin</h1><p class="mut" style="margin-top:6px">Bir proje aç; ajanlarla sohbet et, gerektiğinde ekip kur.</p></div>
+  <div class="grid3" style="width:min(720px,100%)">${[['Klasör aç','Yerel bir projeyi seç','home'],['Depo klonla','Git URL’sinden','home'],['Mevcut proje','Son açılanlardan','home']].map(([a,b,g])=>`<button class="card b click" data-go="${g}" style="text-align:left;padding:14px"><div style="font-weight:600">${a}</div><div class="mut">${b}</div></button>`).join('')}</div>
+  <div class="card" style="width:min(720px,100%)"><div class="h">Ortam kontrolü</div><div class="b">${[['ok','Motor (Python)','çalışıyor · 127.0.0.1'],['ok','Claude Code','bulundu · giriş yapılmış'],['ok','Codex','bulundu'],['warn','Diğer CLI adaptörleri','1 bulundu, kurulum gerekli'],['ok','Veri klasörü','%LOCALAPPDATA%\\Respected\\Orchestrator · yazılabilir']].map(([k,a,b])=>`<div class="step">${stepIc(k)}<div class="grow">${a}</div><span class="mut">${b}</span></div>`).join('')}</div></div>
+  <button class="btn pri" data-go="home">Devam et</button></div>`;
+}
+function home(){
+  return `<div class="bar"><div class="grow mut">Yeni sohbet</div><button class="btn sm" data-go="welcome">İlk açılış ekranı</button></div>
+  <div class="hero"><h1>Ne üzerinde çalışıyoruz?</h1>${composer(true)}
+  <div class="row" style="flex-wrap:wrap;justify-content:center"><button class="chip" data-go="chat">${ic.chat.replace('<svg','<svg style="width:13px;height:13px"')} Ödeme senkronizasyonu</button><button class="chip" data-toast="Örnek">Webhook retry mantığı</button><button class="chip" data-toast="Örnek">Kategori refaktörü</button></div></div>`;
+}
+
+/* ---- orchestration ---- */
+function orch(){
+  const s=st();
+  const N=(id,x,y,a,sub,k)=>`<g class="node ${S.agent===id?'sel':''}" data-agent="${id}" transform="translate(${x},${y})" tabindex="0" role="button" aria-label="${a} — ${stTxt[k]}"><rect width="190" height="64" rx="10"/><circle cx="16" cy="22" r="5" fill="${k==='ok'?'var(--ok)':k==='run'?'var(--info)':k==='err'?'var(--err)':k==='warn'?'var(--warn)':'var(--tx3)'}"/><text x="30" y="26" font-weight="600">${a}</text><text class="s" x="14" y="46">${sub}</text><text class="s" x="176" y="26" text-anchor="end">${stTxt[k]}</text></g>`;
+  const live=s.builder==='run';
+  const graph=`<div class="graphwrap"><svg viewBox="0 0 900 330" style="width:100%;min-width:760px;height:auto;stroke:none">
+   <path class="edge" d="M210 80 C260 80 260 50 300 50"/><path class="edge" d="M210 80 C260 80 260 190 300 190"/>
+   <path class="edge ${live?'live':''}" d="M490 50 C540 50 540 110 580 110"/><path class="edge" d="M490 190 C540 190 540 110 580 110"/>
+   <path class="edge" d="M770 110 C790 110 790 110 810 110" style="display:none"/>
+   <path class="edge" d="M680 142 L680 220"/>
+   ${N('planner',20,48,'Planner','Claude Code · plan',s.planner)}
+   ${N('builder',300,18,'Builder','Codex · wt/TAV-098',s.builder)}
+   ${N('qa',300,158,'QA hazırlık','Uyumlu CLI · testler',s.qa)}
+   ${N('reviewer',580,78,'Reviewer','Claude Code · bağımsız',s.reviewer)}
+   <g class="node" transform="translate(580,220)" data-go="review" tabindex="0" role="button" aria-label="Uygulama kapısı"><rect width="190" height="64" rx="10" stroke-dasharray="5 4"/><text x="14" y="26" font-weight="600">Uygulama kapısı</text><text class="s" x="14" y="46">${s.gate==='warn'?'Senin onayını bekliyor':'Kanıt + onay gerekli'}</text></g>
+  </svg></div>`;
+  const tabs=`<div class="tabs"><button class="${S.otab!=='tl'?'on':''}" data-otab="term">Terminal</button><button class="${S.otab==='tl'?'on':''}" data-otab="tl">Zaman çizelgesi</button><span class="sp"></span><span class="mut" style="padding:9px 0">Sandbox: AppContainer · Ağ: kapalı · Worktree: wt/TAV-098</span></div>`;
+  const tl=[['06:31','Kullanıcı görevi verdi'],['06:32','Planner planı çıkardı (7 adım)'],['06:34','Yönlendirme: Builder → Codex'],['06:36','QA hazırlık testleri yazmaya başladı'],['06:40','Builder payment_service.py düzenledi'],...(S.phase==='review'?[['08:50','Reviewer onayladı'],['09:05','14/14 test geçti'],['09:08','Kanıt imzalandı']]:[]),...(S.phase==='fail'?[['08:15','Builder tamamladı'],['08:21','QA: 2 test başarısız · devre kesici açık']]:[])];
+  const bottom=S.otab==='tl'?`<div class="scroll" style="padding:10px 14px">${tl.map(([t,x])=>`<div class="step"><span class="mono mut3">${t}</span><div>${x}</div></div>`).join('')}</div>`:`<div class="term grow" style="border:0;border-radius:0;min-height:0;overflow:auto">${termText()}</div>`;
+  return topbar()+`<div class="row" style="padding:8px 16px;border-bottom:1px solid var(--line);gap:12px;flex-wrap:wrap"><span class="mut">RUN-1287</span>${sb(s.qa==='err'?'err':s.builder==='warn'?'warn':s.gate==='warn'?'warn':'run',s.qa==='err'?'Başarısız':s.gate==='warn'?'Onay bekliyor':s.builder==='warn'?'İzin bekliyor':'Çalışıyor')}<span class="mut">Paralel 2 ajan · Bütçe $0,84 / $5,00 · 6 dk 12 sn</span><span class="sp"></span>
+   ${S.phase==='fail'?`<button class="btn sm" data-go="recovery">Kurtar</button>`:`<button class="btn sm" data-toast="Duraklatıldı (prototip)">Duraklat</button><button class="btn sm err" data-toast="İptal için onay istenir (prototip)">İptal</button>`}</div>
+   <div class="col grow" style="min-height:0">${graph}<div class="col" style="height:210px;border-top:1px solid var(--line);flex:none;min-height:0">${tabs}${bottom}</div></div>`;
+}
+
+/* ---- right panel ---- */
+function rightPanel(){
+  const close=`<button class="ib" data-panel="" aria-label="Paneli kapat">${ic.x}</button>`;
+  if(S.panel==='agent'){
+    const a=AG[S.agent];const s=st()[S.agent];
+    const conv={planner:[['Planner','Görev: ödeme senkronizasyonunu analiz et.'],['tool','read src/services/payment_service.py'],['Planner','Eksik: payment.refunded. Plan 7 adım, Builder’a devrediyorum.']],
+     builder:[['handoff','Planner → Builder · Kapsam: src/services/**, src/webhooks/**'],['Builder','Webhook işleyicisindeki durum eşlemesini genişletiyorum.'],['tool','edit src/services/payment_service.py (+18 −3)'],...(S.phase==='approve'?[['Builder','Bağımlılıklar için pip install gerekiyor — izin istiyorum.']]:[])],
+     reviewer:[['handoff','Builder → Reviewer · yama hash: 7e3a…c91'],['Reviewer',s==='ok'?'Yama onaylandı: idempotency kontrolü eklenmiş, sınır durumları kapsanıyor.':'Builder bitince başlayacak.']],
+     qa:[['QA','Test iskeleti: tests/test_payment_sync.py'],['tool','pytest -q → '+(S.phase==='fail'?'2 failed':'hazırlık')]]}[S.agent];
+    return `<div class="bar"><button class="ib" data-panel="" aria-label="Geri">${ic.back}</button><div class="grow"><b>${a.n}</b> <span class="mut">· ${a.m}</span></div>${sb(s)}<button class="ib" data-toast="Ayrı sekmeye taşıma (prototipte işlevsiz)" title="Sekmeye taşı">${ic.panel}</button>${close}</div>
+    <div class="sec"><h3>Aldığı görev</h3><div>TAV-098 · ${S.agent==='builder'?'Eksik durum işlemesini uygula':S.agent==='planner'?'Analiz ve planlama':S.agent==='reviewer'?'Bağımsız kod incelemesi':'Test yaz ve çalıştır'}</div><div class="mut" style="margin-top:4px">Üst görev: <a href="#" data-mode="chat" style="color:var(--acc)">Ödeme senkronizasyonu</a> · Yetki: yalnız worktree</div></div>
+    <div class="scroll" style="padding:12px 14px">${conv.map(([w,t])=>w==='tool'?`<div class="tool"><span class="mono">${esc(t)}</span></div>`:w==='handoff'?`<div class="route">${esc(t)}</div>`:`<div class="msg"><div class="who"><span class="av">${w[0]}</span>${w}</div>${esc(t)}</div>`).join('')}</div>
+    <div class="comp" style="padding:10px 12px"><div class="compbox" style="padding:8px 10px"><textarea rows="2" placeholder="${a.n}’a talimat ver…" aria-label="Alt ajana talimat"></textarea><div class="row"><span class="mut3" style="font-size:12px">Talimat ${a.n}’ın izin sınırları içinde uygulanır</span><span class="sp"></span><button class="btn sm" data-toast="Talimat kuyruğa alındı (prototip)">Gönder</button></div></div></div>`;
+  }
+  const s=st();
+  return `<div class="bar"><b class="grow">Bağlam</b>${close}</div><div class="scroll">
+   <div class="sec"><h3>Görev</h3><div class="kv"><b>TAV-098</b>${sb(s.qa==='err'?'err':s.gate==='warn'?'warn':'run')}</div><div class="mut">Ödeme modülü senkronizasyonu · branch <span class="mono">fix/tav-098</span></div></div>
+   <div class="sec"><h3>Aktif ajanlar</h3>${['planner','builder','reviewer','qa'].map(a=>`<button class="nav" data-agent="${a}"><span class="dot ${s[a]==='wait'?'':s[a]}"></span><span>${AG[a].n}</span><span class="mut" style="margin-left:auto">${AG[a].m}</span></button>`).join('')}</div>
+   <div class="sec"><h3>Context · 76k / 200k</h3><div class="meter"><i style="width:22%;background:var(--acc)"></i><i style="width:10%;background:var(--info)"></i><i style="width:6%;background:var(--ok)"></i></div>
+    <div class="kv mut" style="margin-top:6px"><span>Kod dosyaları</span><span>44k</span></div><div class="kv mut"><span>Sohbet geçmişi</span><span>20k</span></div><div class="kv mut"><span>Özetlenmiş devir</span><span>12k</span></div>
+    <button class="btn sm" data-pop="ctx" style="margin-top:8px">Context’i düzenle</button></div>
+   <div class="sec"><h3>Değişen dosyalar</h3>${S.phase==='run'?'<div class="mut">1 dosya değişiyor…</div><div class="mono">payment_service.py</div>':'<div class="mono">payment_service.py <span class="badge ok">+18</span></div><div class="mono">payment_handler.py <span class="badge ok">+30</span></div><div class="mono">test_payment_sync.py <span class="badge ok">+16</span></div><button class="btn sm" data-go="review" style="margin-top:8px">Diff’i aç</button>'}</div>
+   <div class="sec"><h3>Testler</h3>${S.phase==='run'?'<span class="mut">Henüz çalıştırılmadı</span>':S.phase==='fail'?'<span class="badge err">2 başarısız</span> <span class="mut">12 geçti</span>':'<span class="badge ok">14 geçti</span>'}</div>
+   <div class="sec"><h3>Çalışma güvenliği</h3><div class="kv"><span>İzolasyon</span><span>Git worktree</span></div><div class="kv"><span>Sandbox</span><span>AppContainer</span></div><div class="kv"><span>Ağ</span><span>Kapalı</span></div><div class="kv"><span>Bütçe</span><span>$0,84 / $5,00</span></div></div></div>`;
+}
+
+/* ---- review ---- */
+function review(){
+  const ok=S.phase==='review';
+  return `<div class="bar"><button class="ib" data-go="chat" aria-label="Sohbete dön">${ic.back}</button><div class="grow row"><h1>İnceleme ve uygulama</h1><span class="badge">TAV-098</span><span class="badge">RUN-1287</span></div>${ok?'<span class="badge warn">Onay bekliyor</span>':'<span class="badge info">Bu an: Builder tamamlandı, Reviewer sırada</span>'}</div>
+  <div class="row grow" style="align-items:stretch;min-height:0"><div class="ftree"><div class="lab" style="padding-top:0">3 dosya</div>${['payment_service.py|M|+18 −3','payment_handler.py|M|+30 −6','test_payment_sync.py|A|+16'].map((f,i)=>{const[n,k,d]=f.split('|');return `<button class="nav ${i===0?'on':''}">${ic.file}<span style="font-size:12.5px">${n}</span></button>`}).join('')}
+   <div class="lab">Kapılar</div>${gate('Reviewer kararı',ok?'ok':'wait')}${gate('Testler (14/14)',ok?'ok':'wait')}${gate('İmzalı kanıt',ok?'ok':'wait')}${gate('Repo parmak izi eşleşti',ok?'ok':'wait')}${gate('Senin onayın','wait')}</div>
+   <div class="scroll"><div class="page" style="max-width:860px">
+    <div class="mono mut" style="margin-bottom:6px">src/services/payment_service.py</div>
+    <div class="diff"><div class="h">@@ def apply_webhook(event) @@</div><div>    if event.type == "payment.completed":</div><div>        self._mark_paid(event.payment_id)</div><div class="d">    # TODO: iade olayları</div><div class="a">    elif event.type == "payment.refunded":</div><div class="a">        if self._seen(event.id):</div><div class="a">            return  # idempotent</div><div class="a">        self._apply_refund(event.payment_id, event.amount)</div><div class="a">        self._remember(event.id)</div><div>    else:</div><div>        log.warning("unhandled %s", event.type)</div></div>
+    <div class="grid2" style="margin-top:16px">
+     <div class="card"><div class="h">${ic.shield} Kanıt — neden güvenilir?</div><div class="b">${[['Yama hash','sha256:7e3a…c91','Diff içeriğinden hesaplandı; değişirse imza geçersiz olur.'],['Repo parmak izi','HEAD 4f1b9e2 + temiz ağaç','Yama, incelenen commit üzerine uygulanır.'],['İmza','Yerel anahtar · key-01','Test çıktısı ve hash birlikte imzalandı.']].map(([a,b,c])=>`<div style="margin-bottom:8px"><div class="kv"><span class="mut">${a}</span><span class="mono">${b}</span></div><div class="mut3" style="font-size:12px">${c}</div></div>`).join('')}</div></div>
+     <div class="card"><div class="h">Reviewer · Claude Code</div><div class="b">${ok?'<span class="badge ok">Onayladı</span><p style="margin-top:6px" class="mut">İade olayı idempotent işleniyor, çift webhook senaryosu test edilmiş. Bakiye güncellemesi tek yerde.</p>':'<span class="badge">Henüz incelemedi</span><p style="margin-top:6px" class="mut">Reviewer Builder’ın bitmesini bekliyor. Uygulama kapısı kapalı.</p>'}</div></div></div>
+   </div>
+   <div class="row" style="padding:12px 28px;border-top:1px solid var(--line);background:var(--bg);position:sticky;bottom:0"><span class="mut">Hedef:</span><select class="seg" aria-label="Hedef dal"><option>fix/tav-098 (önerilen)</option><option>main</option></select><span class="sp"></span><button class="btn err" data-toast="Reddedildi (prototip)">Reddet</button><button class="btn acc" ${ok?'':'disabled style="opacity:.45;cursor:not-allowed"'} data-modal="apply">Dala uygula…</button></div></div></div>`;
+}
+const gate=(t,k)=>`<div class="step" style="padding:3px 8px">${stepIc(k)}<div style="font-size:12.5px">${t}</div></div>`;
+
+/* ---- recovery ---- */
+function recovery(){
+  return `<div class="bar"><button class="ib" data-go="chat" aria-label="Geri">${ic.back}</button><h1 class="grow">Kurtarma · RUN-1287</h1>${sb('err')}</div>
+  <div class="scroll"><div class="page" style="max-width:760px"><h2>QA başarısız oldu</h2><p class="mut">Sınıflandırma: <b>test hatası</b> (kod kaynaklı, altyapı değil). Aynı hata 2 kez tekrarlandı; devre kesici yeni otomatik denemeleri durdurdu.</p>
+   <div class="term" style="margin:14px 0"><div class="e">FAILED test_refund_updates_balance — AssertionError: 120.0 != 95.0</div><div class="e">FAILED test_duplicate_webhook_idempotent</div><div class="o">12 passed</div></div>
+   <div class="card"><div class="h">Son sağlam kontrol noktası</div><div class="b"><b>CP-3</b> · 08:12 · Builder düzenlemeden önce · wt/TAV-098 temiz</div></div>
+   <div class="grid2" style="margin-top:12px">${[['Kontrol noktasından devam et','CP-3’ten Builder’ı, test çıktısı bağlamıyla yeniden başlatır.','pri'],['Ajanı değiştir','Builder yerine Claude Code ile dener. Maliyet tahmini +$0,40.',''],['Yalnız QA’yı yeniden dene','Kod değişmediği için büyük olasılıkla aynı sonucu verir.',''],['Elle müdahale','Worktree’yi editörde aç, düzelttikten sonra devam et.','']].map(([a,b,c])=>`<button class="card b click" data-toast="“${a}” — prototipte işlevsiz" style="text-align:left"><div class="row"><b>${a}</b>${c?'<span class="badge acc">Önerilen</span>':''}</div><div class="mut">${b}</div></button>`).join('')}</div></div></div>`;
+}
+
+/* ---- tasks ---- */
+function tasks(){
+  const cols=[['Sırada',[['TAV-101','Kategori eşleştirme refaktörü','—']]],['Çalışıyor',[['TAV-098','Ödeme modülü senkronizasyonu','Builder']]],['İncelemede',[['TAV-094','Bildirim zamanlayıcı','Reviewer']]],['Bitti',[['TAV-090','CSV dışa aktarma','—'],['TAV-087','Kur çevirici önbelleği','—']]]];
+  return `<div class="bar"><h1 class="grow">Görevler · ${S.project}</h1><div class="toggle"><button class="on">Pano</button><button data-toast="Liste görünümü (prototip)">Liste</button><button data-toast="DAG görünümü Akış sekmesinde">Bağımlılık</button></div><button class="btn sm" data-go="home">${ic.plus} Yeni görev</button></div>
+  <div class="scroll"><div class="page" style="max-width:1100px"><div class="kanban">${cols.map(([t,c])=>`<div><div class="colh"><b>${t}</b><span class="mut3">${c.length}</span></div>${c.map(([id,n,o])=>`<div class="tcard" data-modal="task" data-id="${id}"><div class="mono mut3">${id}</div><div>${n}</div><div class="row" style="margin-top:6px">${o!=='—'?`<span class="badge">${o}</span>`:''}${id==='TAV-098'?'<span class="badge info">RUN-1287</span>':''}</div></div>`).join('')}</div>`).join('')}</div></div></div>`;
+}
+
+/* ---- managements ---- */
+function shell(t,sub,body,act=''){return `<div class="bar"><h1 class="grow">${t}</h1>${act}</div><div class="scroll"><div class="page"><p class="mut" style="margin-bottom:16px">${sub}</p>${body}</div></div>`;}
+function projects(){return shell('Projeler','Yerel klasörler, depolar ve çalışma alanları.',`<div class="card"><table><tr><th>Proje</th><th>Yol</th><th>Branch</th><th>Oturum</th></tr>${[['tavarluk','D:\\Projects\\tavarluk','main (+ fix/tav-098)','1 aktif'],['respected-hub','D:\\Projects\\respected-hub','main','—'],['respected-brain','D:\\Projects\\respected-brain','main','—'],['respected-orchestrator','D:\\Projects\\respected-orchestrator','main','—']].map(r=>`<tr class="click" data-proj="${r[0]}"><td><b>${r[0]}</b></td><td class="mono mut">${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('')}</table></div>`,`<button class="btn sm" data-go="welcome">${ic.plus} Proje ekle</button>`);}
+function team(){
+  const rows=[['Claude Code','Anthropic','Opus 5.5 · Sonnet 5.5','Hazır','ok'],['Codex','OpenAI','GPT-5.x','Hazır','ok'],['Uyumlu CLI ajanı','Yerel adaptör','—','Kurulum gerekli','warn']];
+  const ro=[['Planner','Claude Code'],['Builder','Codex'],['Reviewer','Claude Code'],['QA','Uyumlu CLI ajanı']];
+  const body=S.teamTab==='team'?`<div class="card"><div class="h">Kalıcı ekip · “tavarluk ekibi” <span class="sp"></span><button class="btn sm" data-toast="Şablon kaydedildi (prototip)">Şablon olarak kaydet</button></div><div class="b">${ro.map(([r,a])=>`<div class="kv" style="padding:6px 0;border-bottom:1px solid var(--line)"><b>${r}</b><select class="seg"><option>${a}</option><option>Claude Code</option><option>Codex</option></select></div>`).join('')}<div class="mut" style="margin-top:8px">Yedek (fallback): Builder erişilemezse → Claude Code</div></div></div>`:`<div class="card"><table><tr><th>Ajan</th><th>Sağlayıcı</th><th>Modeller</th><th>Durum</th></tr>${rows.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td><span class="badge ${r[4]}">${r[3]}</span></td></tr>`).join('')}</table></div><div class="card"><div class="h">Yetenek matrisi</div><div class="b mut">Kod düzenleme · Test çalıştırma · MCP · Görsel girdi — Claude Code ✓✓✓✓, Codex ✓✓✓–, Uyumlu CLI ✓✓––</div></div>`;
+  return shell('Ajanlar ve ekipler','Kurulu ajanlar, roller ve yedekleme tercihleri.',`<div class="toggle" style="display:inline-flex;margin-bottom:12px"><button class="${S.teamTab==='agents'?'on':''}" data-tt="agents">Ajanlar</button><button class="${S.teamTab==='team'?'on':''}" data-tt="team">Ekip</button></div>${body}`);}
+function mcp(){return shell('MCP ve beceriler','Bu makinede bulunan yerel araçlar. Mağaza değil; yalnız keşfedilenler ve proje kapsamı.',`<div class="card"><table><tr><th>Araç</th><th>Uyumluluk</th><th>Güven</th><th>İzinler</th><th>tavarluk</th></tr>${[['filesystem (MCP)','Claude Code, Codex','Yüksek','Dosya okuma/yazma','on'],['sqlite (MCP)','Claude Code','Orta','Yerel DB dosyası','on'],['git (MCP)','Claude Code, Codex','Yüksek','Depo okuma','on'],['browser-fetch (MCP)','Claude Code','Düşük','Ağ erişimi','off'],['review-checklist (Skill)','Hepsi','Yüksek','—','off']].map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td><span class="badge ${r[2]==='Yüksek'?'ok':r[2]==='Orta'?'warn':'err'}">${r[2]}</span></td><td class="mut">${r[3]}</td><td><button class="sw ${r[4]}" data-sw aria-label="Proje için etkinleştir"></button></td></tr>`).join('')}</table></div>`);}
+function usage(){return shell('Kullanım','Konsept veri · son 7 gün.',`<div class="grid3">${[['Token','1,42 M'],['Maliyet','$11,60'],['Başarı oranı','%86']].map(([a,b])=>`<div class="card b"><div class="mut">${a}</div><div style="font-size:22px;font-weight:600">${b}</div></div>`).join('')}</div><div class="card" style="margin-top:12px"><table><tr><th>Ajan / model</th><th>Token</th><th>Maliyet</th><th>Başarı</th></tr>${[['Claude Code · Opus 5.5','410k','$5,10','%90'],['Codex · GPT-5.x','720k','$4,70','%84'],['Claude Code · Sonnet 5.5','290k','$1,80','%88']].map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('')}</table></div>`);}
+function settings(){const g=(t,rows)=>`<div class="card" style="margin-bottom:12px"><div class="h">${t}</div><div class="b">${rows.map(([a,b,on])=>`<div class="kv" style="padding:7px 0;align-items:center"><div><div>${a}</div><div class="mut3" style="font-size:12px">${b}</div></div>${on===undefined?'':`<button class="sw ${on?'on':''}" data-sw aria-label="${a}"></button>`}</div>`).join('')}</div></div>`;
+ return shell('Ayarlar','Genel, güvenlik ve gizlilik.',g('Görünüm',[['Tema','Sistem / açık / koyu — üst çubuktan da değişir'],['Yerleşim','A / B / C — üst çubuktaki seçici']])+g('Güvenlik ve sandbox',[['AppContainer yalıtımı','Ajanlar yalnız worktree’ye erişir',true],['Varsayılan ağ politikası','Kapalı; izin istenince açılır',true],['Riskli komutlarda onay iste','Silme, kurulum, ağ',true]])+g('Gizlilik',[['Ses kaydını sakla','Yalnız yazıya çevirmek için kullanılır',false],['Ekran görüntülerinde otomatik maskeleme','Anahtar ve e-posta benzeri metinler',true]])+g('Motor ve veri',[['Veri klasörü','%LOCALAPPDATA%\\Respected\\Orchestrator'],['Günlükler','Son 30 gün saklanır']]));}
+function inbox(){
+  const items=[...(S.phase==='approve'?[['warn','İzin bekliyor','Builder · pip install -r requirements-dev.txt','TAV-098','approval']]:[]),...(S.phase==='review'?[['warn','Uygulama onayı bekliyor','RUN-1287 · kanıt imzalı','TAV-098','review']]:[]),...(S.phase==='fail'?[['err','Run başarısız','RUN-1287 · QA 2 test','TAV-098','recovery']]:[]),['run','Çalışıyor','TAV-098 · Ödeme senkronizasyonu','tavarluk','chat'],['ok','Tamamlandı','TAV-090 · CSV dışa aktarma','tavarluk','chat']];
+  return shell('Gelen kutusu','Dikkat isteyenler önce.',`<div class="card"><table>${items.map(([k,a,b,c,go])=>`<tr class="click" data-go="${go==='approval'?'chat':go}"><td style="width:28px">${stepIc(k)}</td><td><b>${a}</b><div class="mut">${b}</div></td><td class="mut">${c}</td></tr>`).join('')}</table></div><p class="mut3" style="margin-top:10px">Denetim kaydı için her satırın içinden “Geçmiş” açılır; tüm sistem geçmişi arama ile bulunur.</p>`);
+}
+
+/* ---- popovers / modals ---- */
+function drawPop(){
+  const old=$('#pop');if(old)old.remove();if(!S.pop)return;
+  const defs={
+   model:`<div class="lab" style="padding-top:4px">Yönlendirme</div>${[['Otomatik yönlendirme','Görev analizine göre ajan ve model seçer',1],['Claude Code · Opus 5.5','Güçlü planlama',0],['Codex · GPT-5.x','Hızlı kod düzenleme',0],['Ekip: tavarluk ekibi','4 rol',0]].map(([a,b,o])=>`<button class="it ${o?'on':''}" data-toast="Seçim: ${a}"><div><b>${a}</b><div class="mut">${b}</div></div></button>`).join('')}<hr><div class="mut3" style="padding:4px 9px;font-size:12px">Mod: Aktif (gölge modu ayarlardan)</div>`,
+   route:`<div class="lab" style="padding-top:4px">Neden Codex?</div><table style="font-size:12.5px"><tr><th></th><th>Başarı</th><th>Maliyet</th><th>Hız</th></tr><tr><td>Codex</td><td>%91</td><td>$</td><td>Hızlı</td></tr><tr><td>Claude Code</td><td>%94</td><td>$$</td><td>Orta</td></tr></table><div class="mut" style="padding:6px 9px">Erişilemezse yedek: Claude Code.</div>`,
+   attach:`<button class="it" data-draft="main.py dosyası"><span>${ic.file}</span><div>Dosya ekle</div></button><button class="it" data-draft="klasör: src/services"><span>${ic.folder}</span><div>Klasör ekle</div></button><button class="it" data-pop="shot"><span>${ic.shot}</span><div>Ekran görüntüsü al</div></button>`,
+   ctx:`<div class="lab" style="padding-top:4px">Context · 76k / 200k</div><div class="meter" style="margin:0 9px 8px"><i style="width:22%;background:var(--acc)"></i><i style="width:10%;background:var(--info)"></i><i style="width:6%;background:var(--ok)"></i></div>${[['payment_service.py','0,94','18k'],['payment_handler.py','0,91','14k'],['models/payment.py','0,72','9k'],['docs/api.md','0,31','—']].map(([a,r,t],i)=>`<div class="it"><button class="sw ${i<3?'on':''}" data-sw aria-label="${a}"></button><div class="grow mono">${a}</div><span class="mut">${r} · ${t}</span></div>`).join('')}<hr><button class="it" data-toast="Otomatik özetleme (prototip)"><div>Eski sohbeti özetle <span class="mut">−12k token</span></div></button>`,
+   tools:`<div class="lab" style="padding-top:4px">Bu sohbette etkin</div>${[['filesystem',1],['git',1],['sqlite',1],['browser-fetch',0]].map(([a,o])=>`<div class="it"><button class="sw ${o?'on':''}" data-sw aria-label="${a}"></button><div>${a}</div></div>`).join('')}<hr><div class="mut" style="padding:4px 9px">Öneri: bu görev için <b>sqlite</b> uygun görünüyor.</div><button class="it" data-go="mcp"><div>Tümünü yönet…</div></button>`,
+   more:`${[['Denetim kaydı','Geçmiş olaylar'],['Run bütçesi','$5,00 sınır'],['Konuşmayı dışa aktar','']].map(([a,b])=>`<button class="it" data-toast="${a} — prototipte işlevsiz"><div>${a}<div class="mut">${b}</div></div></button>`).join('')}`,
+   shot:`<div class="lab" style="padding-top:4px">Ekran görüntüsü</div>${[['Bölge seç','Sürükleyerek alan seç'],['Pencere seç','Açık pencerelerden'],['Tüm ekran','']].map(([a,b])=>`<button class="it" data-modal="shot"><div>${a}<div class="mut">${b}</div></div></button>`).join('')}`
+  };
+  const anchor=['model','tools','ctx','attach','shot','route'].includes(S.pop)?'bottom:130px;right:48px':'top:46px;right:14px';
+  const left=S.pop==='ctx'||S.pop==='attach'||S.pop==='shot'?'bottom:130px;left:48px':anchor;
+  const el=document.createElement('div');el.id='pop';el.className='pop';el.setAttribute('style',(S.view==='chat'||S.view==='home'?left:'top:46px;right:14px')+';position:fixed');el.setAttribute('role','menu');el.innerHTML=defs[S.pop];
+  document.body.appendChild(el);
+  el.onclick=e=>{const d=e.target.closest('[data-draft]');if(d){S.drafts.push(d.dataset.draft);S.pop=null;render();}};
+  bindIn(el);
+}
+function modal(kind,id){
+  const L=$('#layer');
+  const m={
+   approval:['İzin isteği — Builder','<div class="row" style="margin-bottom:10px"><span class="badge warn">Orta risk</span><span class="badge">Kapsam: wt/TAV-098</span></div><div class="mut">Tam komut</div><div class="term" style="margin:4px 0 10px">pip install -r requirements-dev.txt</div><p class="mut">Neden: testleri çalıştırmak için pytest-asyncio gerekli. Ağ erişimi PyPI için geçici açılır, ardından kapanır.</p><p class="mut3" style="margin-top:8px">Politika: “kurulum komutları her seferinde sorulur”.</p>',[['Reddet','err'],['Bir kez izin ver','pri']]],
+   apply:['Değişiklikleri uygula','<p>3 dosya, +64 −9, <span class="mono">fix/tav-098</span> dalına uygulanacak.</p><p class="mut" style="margin-top:8px">Yama sha256:7e3a…c91 · imza geçerli · tüm kapılar açık. Bu işlem commit oluşturur; geri almak için revert gerekir.</p>',[['Vazgeç',''],['Dala uygula','acc']]],
+   voice:['Sesli görev','<div class="row" style="justify-content:center;padding:14px"><span class="dot err" style="width:12px;height:12px"></span> <span>Kaydediliyor… 0:07</span></div><div class="mut" style="margin-bottom:4px">Yazıya çevrilen metin (düzenlenebilir)</div><textarea style="width:100%;border:1px solid var(--line2);border-radius:8px;padding:8px;background:var(--panel);color:var(--tx);font:inherit" rows="3">Ödeme modülündeki iade webhook’unu da kapsa ve idempotency testi ekle.</textarea>',[['İptal',''],['Taslağı ekle','pri']]],
+   shot:['Ekran görüntüsü','<div style="height:150px;border:1px dashed var(--line2);border-radius:8px;display:grid;place-items:center;background:var(--panel)" class="mut">Örnek önizleme</div><div class="row" style="margin-top:10px"><button class="btn sm">Çiz</button><button class="btn sm">Maskele</button><span class="mut3">1 alan maskelendi: e-posta</span></div>',[['İptal',''],['Sohbete ekle','pri']]],
+   task:['Görev '+(id||''),'<div class="row" style="margin-bottom:8px"><span class="badge info">Çalışıyor</span><span class="badge">Builder</span></div><p>Ödeme modülü senkronizasyonu</p><div class="mut" style="margin-top:8px">Bağımlılıklar: —  ·  Engelleyen: TAV-101</div>',[['Konuşmayı aç','pri']]]
+  }[kind];
+  L.innerHTML=`<div class="modalbg" id="mbg"><div class="modal" role="dialog" aria-modal="true" aria-label="${m[0]}"><div class="mh">${m[0]}<span class="sp"></span><button class="ib" data-x aria-label="Kapat">${ic.x}</button></div><div class="mb">${m[1]}</div><div class="mf">${m[2].map(([t,c])=>`<button class="btn ${c}" data-mact="${kind}|${t}">${t}</button>`).join('')}</div></div></div>`;
+  $('#mbg').onclick=e=>{if(e.target.id==='mbg'||e.target.closest('[data-x]'))L.innerHTML='';};
+  L.querySelectorAll('[data-mact]').forEach(b=>b.onclick=()=>{const[k,t]=b.dataset.mact.split('|');L.innerHTML='';
+    if(k==='voice'&&t!=='İptal'){S.drafts.push('Sesli taslak');render();}
+    else if(k==='shot'&&t!=='İptal'){S.drafts.push('Ekran görüntüsü');render();}
+    else if(k==='task'){S.view='chat';S.mode='chat';render();}
+    else toast(t==='Dala uygula'?'Prototip: gerçek uygulama yapılmaz':t+' (prototip)');});
+  document.onkeydown=e=>{if(e.key==='Escape'){L.innerHTML='';S.pop=null;drawPop();}};
+}
+function toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),2200);}
+
+/* ---- events ---- */
+function bind(){
+  bindIn(document);
+  const rz=$('#rz');
+  if(rz)rz.onmousedown=e=>{e.preventDefault();const mv=ev=>{S.rw=Math.max(300,Math.min(640,innerWidth-ev.clientX));$('#app').style.setProperty('--rw',S.rw+'px')};const up=()=>{removeEventListener('mousemove',mv);removeEventListener('mouseup',up)};addEventListener('mousemove',mv);addEventListener('mouseup',up)};
+}
+function bindIn(r){
+  r.querySelectorAll('[data-go]').forEach(b=>b.onclick=e=>{e.preventDefault();const g=b.dataset.go;S.pop=null;S.view=g;if(g==='chat')S.mode='chat';if(g==='welcome'||g==='home')S.panel=null;render();});
+  r.querySelectorAll('[data-proj]').forEach(b=>b.onclick=()=>{S.project=b.dataset.proj;S.view=b.dataset.proj==='tavarluk'?'chat':'home';S.mode='chat';S.pop=null;render();});
+  r.querySelectorAll('[data-mode]').forEach(b=>b.onclick=e=>{e.preventDefault();S.mode=b.dataset.mode;S.view='chat';if(S.mode==='chat'&&S.panel==='agent')S.panel=null;render();});
+  r.querySelectorAll('[data-panel]').forEach(b=>b.onclick=()=>{const p=b.dataset.panel;S.panel=p&&S.panel===p?null:p||null;render();});
+  r.querySelectorAll('[data-agent]').forEach(b=>b.onclick=()=>{S.agent=b.dataset.agent;S.panel='agent';S.pop=null;render();});
+  r.querySelectorAll('[data-pop]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();S.pop=S.pop===b.dataset.pop?null:b.dataset.pop;drawPop();});
+  r.querySelectorAll('[data-modal]').forEach(b=>b.onclick=e=>{e.stopPropagation();S.pop=null;drawPop();modal(b.dataset.modal,b.dataset.id);});
+  r.querySelectorAll('[data-toast]').forEach(b=>b.onclick=()=>toast(b.dataset.toast));
+  r.querySelectorAll('[data-sw]').forEach(b=>b.onclick=e=>{e.stopPropagation();b.classList.toggle('on');});
+  r.querySelectorAll('[data-otab]').forEach(b=>b.onclick=()=>{S.otab=b.dataset.otab;render();});
+  r.querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>{S.teamTab=b.dataset.tt;render();});
+  r.querySelectorAll('[data-rmd]').forEach(b=>b.onclick=()=>{S.drafts.splice(+b.dataset.rmd,1);render();});
+  r.querySelectorAll('[data-send]').forEach(b=>b.onclick=()=>{const t=$('#ta');if(!t||!t.value.trim()){toast('Boş mesaj gönderilmez');return;}toast('Gönderildi (prototip — ajan yanıtı yok)');t.value='';});
+  const c=$('#cmdk');if(c)c.onclick=()=>toast('Komut paleti (Ctrl K) — prototipte işlevsiz');
+}
+document.addEventListener('click',e=>{if(S.pop&&!e.target.closest('#pop,[data-pop]')){S.pop=null;drawPop();}});
+$('#layoutSel').onchange=e=>{S.layout=e.target.value;render();};
+$('#phaseSel').onchange=e=>{S.phase=e.target.value;if(S.phase==='fail'&&S.view==='review')S.view='chat';render();};
+$('#themeBtn').onclick=()=>{const cur=document.documentElement.dataset.theme;S.theme=cur==='dark'?'light':'dark';render();};
+S.view=new URLSearchParams(location.search).get('v')||'chat';
+render();
+</script>
+</body>
+</html>
